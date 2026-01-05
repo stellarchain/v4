@@ -165,11 +165,11 @@ function ChartModal({ asset, onClose }: { asset: MarketAsset; onClose: () => voi
   const isPositive = (asset.change_7d || 0) >= 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-30 flex items-end sm:items-center justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
       <div
-        className="relative bg-[#0a0a0a] border-t sm:border border-[#1a1a1a] sm:rounded-2xl w-full sm:max-w-lg max-h-[85vh] overflow-auto animate-in slide-in-from-bottom sm:zoom-in-95 duration-200"
+        className="relative bg-[#0a0a0a] border-t sm:border border-[#1a1a1a] sm:rounded-2xl w-full sm:max-w-lg max-h-[70vh] sm:max-h-[85vh] mb-16 sm:mb-0 overflow-auto animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 safe-area-bottom"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle for mobile */}
