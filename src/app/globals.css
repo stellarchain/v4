@@ -193,12 +193,12 @@ body {
     opacity: 1;
   }
   50% {
-    opacity: 0.4;
+    opacity: 0.6;
   }
 }
 
 .animate-pulse-soft {
-  animation: pulse-soft 2.5s ease-in-out infinite;
+  animation: pulse-soft 3.5s ease-in-out infinite;
 }
 
 /* Live indicator */
@@ -207,8 +207,8 @@ body {
   height: 6px;
   background: var(--primary);
   border-radius: 50%;
-  box-shadow: 0 0 8px var(--primary);
-  animation: pulse-soft 2s ease-in-out infinite;
+  box-shadow: 0 0 6px var(--primary);
+  animation: pulse-soft 3s ease-in-out infinite;
 }
 
 /* Sidebar Styles */

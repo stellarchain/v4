@@ -87,12 +87,12 @@ export default async function AccountPage({ params }: AccountPageProps) {
       {/* Overview Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Balance Overview */}
-        <div className="lg:col-span-2 bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-6">
+        <div className="lg:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
           <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">Overview</h2>
 
           <div className="space-y-4">
             {/* XLM Balance */}
-            <div className="flex items-center justify-between py-3 border-b border-[#1a1a1a]">
+            <div className="flex items-center justify-between py-3 border-b border-[var(--border-subtle)]">
               <span className="text-[#888]">XLM Balance:</span>
               <div className="flex items-center gap-3">
                 <div className="w-6 h-6 bg-[#1a2a1a] rounded-full flex items-center justify-center">
@@ -103,13 +103,13 @@ export default async function AccountPage({ params }: AccountPageProps) {
             </div>
 
             {/* Assets Count */}
-            <div className="flex items-center justify-between py-3 border-b border-[#1a1a1a]">
+            <div className="flex items-center justify-between py-3 border-b border-[var(--border-subtle)]">
               <span className="text-[#888]">Assets:</span>
               <span className="text-white font-semibold">{totalAssets} Token{totalAssets !== 1 ? 's' : ''}</span>
             </div>
 
             {/* Subentries */}
-            <div className="flex items-center justify-between py-3 border-b border-[#1a1a1a]">
+            <div className="flex items-center justify-between py-3 border-b border-[var(--border-subtle)]">
               <span className="text-[#888]">Subentries:</span>
               <span className="text-white font-semibold">{account.subentry_count}</span>
             </div>
@@ -123,7 +123,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
         </div>
 
         {/* More Info Card */}
-        <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
           <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">More Info</h2>
 
           <div className="space-y-4">
@@ -162,7 +162,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
       {/* Thresholds & Flags */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Thresholds */}
-        <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
           <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">Thresholds</h2>
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-[#111] rounded-xl p-4 text-center">
@@ -181,7 +181,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
         </div>
 
         {/* Flags */}
-        <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
           <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">Flags</h2>
           <div className="flex flex-wrap gap-2">
             <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
@@ -218,7 +218,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
 
       {/* Assets/Balances */}
       {otherBalances.length > 0 && (
-        <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
           <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">
             Token Holdings ({otherBalances.length})
           </h2>
@@ -257,7 +257,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
 
       {/* Signers */}
       {account.signers.length > 1 && (
-        <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
           <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">
             Signers ({account.signers.length})
           </h2>
