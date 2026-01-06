@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 
 const navItems = [
-  { name: 'Today', href: '/', icon: 'calendar', count: null },
+  { name: 'Dashboard', href: '/', icon: 'dashboard', count: null },
   { name: 'Projects', href: '/projects', icon: 'compass', count: null },
   { name: 'Ledgers', href: '/ledgers', icon: 'cube', count: null },
   { name: 'Transactions', href: '/transactions', icon: 'arrows', count: null },
@@ -16,48 +16,48 @@ const navItems = [
 ];
 
 const icons: Record<string, ReactNode> = {
-  calendar: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  dashboard: (
+    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 12a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1v-7z" />
     </svg>
   ),
   compass: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
     </svg>
   ),
   cube: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
     </svg>
   ),
   arrows: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
     </svg>
   ),
   bolt: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
     </svg>
   ),
   users: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
     </svg>
   ),
   coins: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
   chart: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
     </svg>
   ),
   search: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
     </svg>
   ),
@@ -65,7 +65,6 @@ const icons: Record<string, ReactNode> = {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [darkMode, setDarkMode] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = (e: React.FormEvent) => {
@@ -87,27 +86,31 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="sidebar-container w-[240px] min-h-screen flex flex-col sticky top-0 h-screen shrink-0">
+    <aside className="sidebar-container w-[260px] min-h-screen flex flex-col sticky top-0 h-screen shrink-0">
       {/* Logo */}
-      <div className="p-5 pb-3">
+      <div className="p-6 pb-4">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 holo-border flex items-center justify-center">
-            <svg className="w-5 h-5 text-[#BFF549]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-10 h-10 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl flex items-center justify-center">
+            <svg className="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
           <div>
-            <span className="text-white font-semibold text-sm tracking-tight">Stellar<span className="text-[#BFF549]">Chain</span></span>
-            <span className="block text-[9px] text-[#555] tracking-widest uppercase">Explorer</span>
+            <span className="text-[var(--text-primary)] font-semibold text-[15px] tracking-tight">
+              Stellar<span className="text-[var(--primary)]">Chain</span>
+            </span>
+            <span className="block text-[10px] text-[var(--text-muted)] tracking-widest uppercase font-medium">
+              Explorer
+            </span>
           </div>
         </Link>
       </div>
 
       {/* Search */}
-      <div className="px-4 py-3">
+      <div className="px-4 py-2">
         <form onSubmit={handleSearch}>
           <div className="search-box relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#444]">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
               {icons.search}
             </span>
             <input
@@ -115,19 +118,19 @@ export default function Sidebar() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search address, tx, ledger..."
-              className="w-full bg-transparent py-2 pl-9 pr-3 text-white placeholder-[#444] text-xs focus:outline-none"
+              className="w-full bg-transparent py-2.5 pl-10 pr-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] text-[13px] focus:outline-none"
             />
           </div>
         </form>
       </div>
 
       {/* Section Label */}
-      <div className="px-5 pt-4 pb-2">
-        <span className="text-[9px] text-[#444] uppercase tracking-widest font-medium">Navigation</span>
+      <div className="px-6 pt-6 pb-2">
+        <span className="section-header">Navigation</span>
       </div>
 
       {/* Navigation */}
-      <nav className="px-3">
+      <nav className="px-3 flex-1">
         <ul className="space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href ||
@@ -137,17 +140,17 @@ export default function Sidebar() {
               <li key={item.name}>
                 <Link
                   href={item.href}
-                  className={`nav-item flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${isActive
+                  className={`nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg ${isActive
                     ? 'nav-item-active'
-                    : 'text-[#666] hover:text-white hover:bg-[#111]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                 >
-                  <span className={`transition-colors duration-200 ${isActive ? 'text-[#BFF549]' : ''}`}>
+                  <span className={`transition-colors duration-200 ${isActive ? 'text-[var(--primary)]' : ''}`}>
                     {icons[item.icon]}
                   </span>
-                  <span className="flex-1 text-xs font-medium">{item.name}</span>
+                  <span className="flex-1 text-[13px] font-medium">{item.name}</span>
                   {isActive && (
-                    <span className="w-1.5 h-1.5 bg-[#BFF549] rounded-full animate-pulse-soft" />
+                    <span className="live-indicator" />
                   )}
                 </Link>
               </li>
@@ -158,53 +161,36 @@ export default function Sidebar() {
 
       {/* Divider */}
       <div className="mx-4 my-3">
-        <div className="h-px bg-gradient-to-r from-transparent via-[#222] to-transparent" />
+        <div className="divider" />
       </div>
 
       {/* Footer */}
       <div className="p-4 space-y-1">
-        <button className="flex items-center gap-3 px-3 py-2 w-full text-[#555] hover:text-white rounded-lg hover:bg-[#111] transition-all duration-200 text-xs">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        <button className="flex items-center gap-3 px-3 py-2.5 w-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-all duration-200 text-[13px]">
+          <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span className="font-medium">Feedback</span>
+          <span className="font-medium">Help & Support</span>
         </button>
 
-        <div className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-[#111] transition-all duration-200 cursor-pointer" onClick={() => setDarkMode(!darkMode)}>
-          <div className="flex items-center gap-3 text-[#555] text-xs">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-            <span className="font-medium">Dark Mode</span>
-          </div>
-          <div
-            className={`w-8 h-4 rounded-full transition-colors duration-300 ${darkMode ? 'bg-[#BFF549]' : 'bg-[#333]'
-              } relative`}
-          >
-            <span
-              className={`absolute top-0.5 w-3 h-3 rounded-full bg-black transition-transform duration-300 ${darkMode ? 'translate-x-4' : 'translate-x-0.5'
-                }`}
-            />
-          </div>
-        </div>
-
-        <button className="flex items-center gap-3 px-3 py-2 w-full text-[#555] hover:text-white rounded-lg hover:bg-[#111] transition-all duration-200 text-xs">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        <button className="flex items-center gap-3 px-3 py-2.5 w-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-all duration-200 text-[13px]">
+          <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          <span className="font-medium">Account</span>
+          <span className="font-medium">Settings</span>
         </button>
 
         {/* Network Status */}
-        <div className="mt-4 px-3 py-2">
+        <div className="mt-4 px-3 py-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-subtle)]">
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-[#BFF549] rounded-full animate-pulse-soft" />
-            <span className="text-[10px] text-[#444]">Mainnet Connected</span>
+            <span className="live-indicator" />
+            <span className="text-[11px] text-[var(--text-secondary)] font-medium">Mainnet Connected</span>
           </div>
         </div>
 
-        <div className="pt-3 text-center">
-          <span className="text-[10px] text-[#333]">© 2024 StellarChain</span>
+        <div className="pt-4 text-center">
+          <span className="text-[11px] text-[var(--text-muted)]">2024 StellarChain</span>
         </div>
       </div>
     </aside>
