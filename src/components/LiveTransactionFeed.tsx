@@ -33,28 +33,24 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10 }:
               gsap.fromTo(el,
                 {
                   opacity: 0,
-                  y: -8,
-                  scale: 0.98,
-                  filter: 'blur(4px)'
+                  y: -4,
                 },
                 {
                   opacity: 1,
                   y: 0,
-                  scale: 1,
-                  filter: 'blur(0px)',
-                  duration: 0.4,
-                  delay: index * 0.05,
-                  ease: 'power3.out'
+                  duration: 0.25,
+                  delay: index * 0.03,
+                  ease: 'power2.out'
                 }
               );
 
               gsap.fromTo(el,
-                { boxShadow: '0 0 20px rgba(191, 245, 73, 0.3)' },
+                { backgroundColor: 'rgba(191, 245, 73, 0.05)' },
                 {
-                  boxShadow: '0 0 0px rgba(191, 245, 73, 0)',
-                  duration: 1,
-                  delay: index * 0.05 + 0.2,
-                  ease: 'power2.out'
+                  backgroundColor: 'rgba(0, 0, 0, 0)',
+                  duration: 0.6,
+                  delay: index * 0.03 + 0.1,
+                  ease: 'power1.out'
                 }
               );
             }

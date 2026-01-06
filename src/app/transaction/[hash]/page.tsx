@@ -26,7 +26,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Link
           href="/transactions"
-          className="w-10 h-10 bg-[#111] border border-[#1a1a1a] rounded-xl text-[#888] hover:text-white hover:border-[#333] transition-colors flex items-center justify-center"
+          className="w-10 h-10 bg-[#111] border border-[var(--border-subtle)] rounded-xl text-[#888] hover:text-white hover:border-[#333] transition-colors flex items-center justify-center"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -75,11 +75,11 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Main Info */}
-        <div className="lg:col-span-2 bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-6">
+        <div className="lg:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
           <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">Overview</h2>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-[#1a1a1a]">
+            <div className="flex items-center justify-between py-3 border-b border-[var(--border-subtle)]">
               <span className="text-[#888]">Source Account:</span>
               <Link
                 href={`/account/${transaction.source_account}`}
@@ -88,7 +88,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
                 {shortenAddress(transaction.source_account, 8)}
               </Link>
             </div>
-            <div className="flex items-center justify-between py-3 border-b border-[#1a1a1a]">
+            <div className="flex items-center justify-between py-3 border-b border-[var(--border-subtle)]">
               <span className="text-[#888]">Ledger:</span>
               <Link
                 href={`/ledger/${transaction.ledger}`}
@@ -97,7 +97,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
                 #{transaction.ledger.toLocaleString()}
               </Link>
             </div>
-            <div className="flex items-center justify-between py-3 border-b border-[#1a1a1a]">
+            <div className="flex items-center justify-between py-3 border-b border-[var(--border-subtle)]">
               <span className="text-[#888]">Created At:</span>
               <span className="text-white">{formatDate(transaction.created_at)}</span>
             </div>
@@ -111,7 +111,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
         </div>
 
         {/* Stats */}
-        <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
           <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">Details</h2>
 
           <div className="space-y-4">
@@ -136,7 +136,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
       </div>
 
       {/* Signatures */}
-      <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-6">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
         <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">
           Signatures ({transaction.signatures.length})
         </h2>
@@ -150,7 +150,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
       </div>
 
       {/* Operations */}
-      <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-6">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
         <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">
           Operations ({operations.length})
         </h2>
@@ -221,7 +221,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
 
       {/* Effects */}
       {effects.length > 0 && (
-        <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
           <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">
             Effects ({effects.length})
           </h2>
@@ -249,7 +249,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
       )}
 
       {/* XDR Data */}
-      <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-2xl p-6">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
         <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">Raw Data</h2>
         <div className="space-y-4">
           <div>
