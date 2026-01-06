@@ -1,7 +1,8 @@
 import { getAssetDetails, getMarketAssets, shortenAddress, AssetDetails } from '@/lib/stellar';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import AssetChart from '@/components/AssetChart';
+import AssetCandlestickChart from '@/components/AssetCandlestickChart';
+import AssetOrderBook from '@/components/AssetOrderBook';
 import AssetConverter from '@/components/AssetConverter';
 
 export const revalidate = 60;
@@ -269,8 +270,10 @@ export default async function AssetPage({ params, searchParams }: PageProps) {
         {/* Right Content - Chart */}
         <div className="space-y-4">
           {/* Chart Section */}
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
-            <AssetChart asset={asset} />
+          {/* Chart Section */}
+          <div className="space-y-6">
+            <AssetCandlestickChart asset={asset} />
+            <AssetOrderBook asset={asset} />
           </div>
 
           {/* Price Performance */}
