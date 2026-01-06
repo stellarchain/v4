@@ -6,6 +6,7 @@ import { useState, type ReactNode } from 'react';
 
 const navItems = [
   { name: 'Dashboard', href: '/', icon: 'dashboard', count: null },
+  { name: 'Wallet Track', href: '/graph', icon: 'graph', count: null },
   { name: 'Projects', href: '/projects', icon: 'compass', count: null },
   { name: 'Ledgers', href: '/ledgers', icon: 'cube', count: null },
   { name: 'Transactions', href: '/transactions', icon: 'arrows', count: null },
@@ -61,7 +62,15 @@ const icons: Record<string, ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
     </svg>
   ),
+  graph: (
+    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+      {/* Or a network icon */}
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+    </svg>
+  )
 };
+
 
 export default function Sidebar() {
   const pathname = usePathname();
