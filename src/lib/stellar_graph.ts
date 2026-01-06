@@ -18,6 +18,8 @@ export interface GraphNode {
     balance?: number;
     transactionCount: number;
     val?: number; // node size for force graph
+    x?: number;
+    y?: number;
 }
 
 export interface GraphEdge {

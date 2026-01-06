@@ -50,7 +50,7 @@ export default function AddressGraph({ data, onNodeClick }: AddressGraphProps) {
         return 'rgba(34, 197, 94, 0.4)'; // Explicit visible green (40% opacity)
     };
 
-    const handleNodeHover = useCallback((node: GraphNode | null) => {
+    const handleNodeHover = useCallback((node: any) => {
         setHoverNode(node);
         if (node) {
             const neighbors = new Set();
