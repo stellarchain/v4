@@ -82,6 +82,16 @@ export default async function AccountPage({ params }: AccountPageProps) {
             </button>
           </div>
         </div>
+
+        <Link
+          href={`/graph/${id}`}
+          className="px-4 py-2 bg-[var(--primary)] text-[var(--bg-primary)] rounded-lg font-medium text-sm hover:bg-[var(--primary-light)] transition-colors flex items-center gap-2 shrink-0"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          View Graph
+        </Link>
       </div>
 
       {/* Overview Cards */}
@@ -184,32 +194,28 @@ export default async function AccountPage({ params }: AccountPageProps) {
         <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
           <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">Flags</h2>
           <div className="flex flex-wrap gap-2">
-            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-              account.flags.auth_required
+            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${account.flags.auth_required
                 ? 'bg-[#BFF549]/10 text-[#BFF549]'
                 : 'bg-[#1a1a1a] text-[#555]'
-            }`}>
+              }`}>
               {account.flags.auth_required ? '✓' : '✗'} Auth Required
             </span>
-            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-              account.flags.auth_revocable
+            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${account.flags.auth_revocable
                 ? 'bg-yellow-500/10 text-yellow-400'
                 : 'bg-[#1a1a1a] text-[#555]'
-            }`}>
+              }`}>
               {account.flags.auth_revocable ? '✓' : '✗'} Auth Revocable
             </span>
-            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-              account.flags.auth_immutable
+            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${account.flags.auth_immutable
                 ? 'bg-red-500/10 text-red-400'
                 : 'bg-[#1a1a1a] text-[#555]'
-            }`}>
+              }`}>
               {account.flags.auth_immutable ? '✓' : '✗'} Auth Immutable
             </span>
-            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
-              account.flags.auth_clawback_enabled
+            <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${account.flags.auth_clawback_enabled
                 ? 'bg-blue-500/10 text-blue-400'
                 : 'bg-[#1a1a1a] text-[#555]'
-            }`}>
+              }`}>
               {account.flags.auth_clawback_enabled ? '✓' : '✗'} Clawback
             </span>
           </div>
