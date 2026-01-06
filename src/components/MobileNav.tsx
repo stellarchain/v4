@@ -37,7 +37,7 @@ export default function MobileNav() {
   }, [showMore]);
 
   const getIcon = (icon: string, active: boolean) => {
-    const color = active ? '#BFF549' : '#555';
+    const color = active ? 'var(--primary)' : 'var(--text-tertiary)';
 
     switch (icon) {
       case 'home':
@@ -114,9 +114,9 @@ export default function MobileNav() {
           className="fixed inset-0 z-40 md:hidden"
           onClick={() => setShowMore(false)}
         >
-          <div className="absolute inset-0 bg-black/60" />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div
-            className="absolute bottom-20 left-4 right-4 bg-[#111] border border-[#222] rounded-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200"
+            className="absolute bottom-20 left-4 right-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {moreItems.map((item) => {
@@ -125,17 +125,17 @@ export default function MobileNav() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3.5 border-b border-[#1a1a1a] last:border-0 active:bg-[#1a1a1a] transition-colors ${
-                    active ? 'bg-[#1a1a1a]' : ''
+                  className={`flex items-center gap-3 px-4 py-3.5 border-b border-[var(--border-subtle)] last:border-0 active:bg-[var(--bg-tertiary)] transition-colors ${
+                    active ? 'bg-[var(--bg-tertiary)]' : ''
                   }`}
                   onClick={() => setShowMore(false)}
                 >
                   {getIcon(item.icon, active)}
-                  <span className={`text-sm font-medium ${active ? 'text-[#BFF549]' : 'text-white'}`}>
+                  <span className={`text-[13px] font-medium ${active ? 'text-[var(--primary)]' : 'text-[var(--text-primary)]'}`}>
                     {item.name}
                   </span>
                   {active && (
-                    <span className="ml-auto w-1.5 h-1.5 bg-[#BFF549] rounded-full" />
+                    <span className="ml-auto live-indicator" />
                   )}
                 </Link>
               );
@@ -145,7 +145,7 @@ export default function MobileNav() {
       )}
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a] border-t border-[#1a1a1a] md:hidden safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--bg-secondary)] border-t border-[var(--border-subtle)] md:hidden safe-area-bottom">
         <div className="flex items-center justify-around h-16">
           {mainNavItems.map((item) => {
             const active = isActive(item.href);
@@ -154,11 +154,11 @@ export default function MobileNav() {
                 key={item.name}
                 href={item.href}
                 className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                  active ? 'text-[#BFF549]' : 'text-[#555]'
+                  active ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'
                 }`}
               >
                 {getIcon(item.icon, active)}
-                <span className={`text-[10px] mt-1 ${active ? 'text-[#BFF549]' : 'text-[#555]'}`}>
+                <span className={`text-[10px] mt-1 font-medium ${active ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}>
                   {item.name}
                 </span>
               </Link>
@@ -172,11 +172,11 @@ export default function MobileNav() {
               setShowMore(!showMore);
             }}
             className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-              isMoreActive || showMore ? 'text-[#BFF549]' : 'text-[#555]'
+              isMoreActive || showMore ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'
             }`}
           >
             {getIcon('menu', isMoreActive || showMore)}
-            <span className={`text-[10px] mt-1 ${isMoreActive || showMore ? 'text-[#BFF549]' : 'text-[#555]'}`}>
+            <span className={`text-[10px] mt-1 font-medium ${isMoreActive || showMore ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}>
               More
             </span>
           </button>

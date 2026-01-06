@@ -214,6 +214,23 @@ export interface MarketAsset {
   sparkline: number[];
 }
 
+export interface AssetDetails extends MarketAsset {
+  description?: string;
+  domain?: string;
+  image?: string;
+  total_supply: number;
+  holders: number;
+  payments_24h: number;
+  trades_24h: number;
+  price_high_24h: number;
+  price_low_24h: number;
+  all_time_high?: number;
+  all_time_low?: number;
+  rating: number;
+  price_history: [number, number][];
+  volume_history: [number, number][];
+}
+
 export interface PaginatedResponse<T> {
   _links: {
     self: { href: string };
@@ -581,6 +598,148 @@ function generateMockSparkline(): number[] {
     points.push(Math.max(0.1, value));
   }
   return points;
+}
+
+// Fetch detailed asset information
+export async function getAssetDetails(code: string, issuer?: string): Promise<AssetDetails | null> {
+  try {
+    const xlmPrice = await getXLMPrice();
+
+    // Handle native XLM
+    if (code === 'XLM' && !issuer) {
+      const [priceResponse, statsResponse] = await Promise.all([
+        fetch('https://api.stellar.expert/explorer/public/xlm-price', {
+          headers: { 'Accept': 'application/json' },
+          next: { revalidate: 60 },
+        }),
+        fetchCoinGeckoData(),
+      ]);
+
+      let priceHistory: [number, number][] = [];
+      if (priceResponse.ok) {
+        const priceData = await priceResponse.json();
+        if (Array.isArray(priceData)) {
+          priceHistory = priceData;
+        }
+      }
+
+      const currentPrice = priceHistory.length > 0 ? priceHistory[priceHistory.length - 1][1] : xlmPrice;
+      const prices = priceHistory.map(p => p[1]);
+      const high24h = prices.length > 0 ? Math.max(...prices.slice(-24)) : currentPrice;
+      const low24h = prices.length > 0 ? Math.min(...prices.slice(-24)) : currentPrice;
+
+      return {
+        rank: statsResponse.rank,
+        code: 'XLM',
+        issuer: '',
+        name: 'Stellar Lumens',
+        description: 'Stellar is an open-source, distributed payments infrastructure. Stellar Lumens (XLM) is the native cryptocurrency of the Stellar network, used to facilitate cross-border transactions and connect financial institutions.',
+        domain: 'stellar.org',
+        image: 'https://stellar.org/favicon.ico',
+        price_usd: currentPrice,
+        price_xlm: 1,
+        change_1h: 0,
+        change_24h: statsResponse.priceChange24h,
+        change_7d: priceHistory.length > 0 ? calculatePriceChange(priceHistory[0][1], currentPrice) : 0,
+        volume_24h: statsResponse.volume,
+        market_cap: statsResponse.marketCap,
+        circulating_supply: statsResponse.circulatingSupply,
+        total_supply: 50000000000,
+        holders: 8500000,
+        payments_24h: 2500000,
+        trades_24h: 450000,
+        price_high_24h: high24h,
+        price_low_24h: low24h,
+        all_time_high: 0.94,
+        all_time_low: 0.001,
+        rating: 100,
+        sparkline: statsResponse.sparkline.length > 0 ? statsResponse.sparkline : prices.slice(-24),
+        price_history: priceHistory,
+        volume_history: [],
+      };
+    }
+
+    // Fetch asset from StellarExpert
+    const assetId = issuer ? `${code}-${issuer}` : code;
+    const response = await fetch(`https://api.stellar.expert/explorer/public/asset/${assetId}`, {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 60 },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const asset = await response.json();
+    const toml = asset.tomlInfo || {};
+
+    // Get price history
+    const priceResponse = await fetch(`https://api.stellar.expert/explorer/public/asset/${assetId}/price`, {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 60 },
+    });
+
+    let priceHistory: [number, number][] = [];
+    if (priceResponse.ok) {
+      const priceData = await priceResponse.json();
+      if (priceData.price7d) {
+        priceHistory = priceData.price7d;
+      } else if (Array.isArray(priceData)) {
+        priceHistory = priceData;
+      }
+    }
+
+    const currentPrice = Number(asset.price) || 0;
+    const supply = (Number(asset.supply) || 0) / 1e7;
+    const volume7d = (Number(asset.volume7d) || 0) / 1e7;
+
+    // Calculate price changes
+    const price24hAgo = getPriceAtHoursAgo(priceHistory, 24);
+    const price7dAgo = priceHistory.length > 0 ? priceHistory[0][1] : currentPrice;
+    const change24h = calculatePriceChange(price24hAgo, currentPrice);
+    const change7d = calculatePriceChange(price7dAgo, currentPrice);
+
+    // Calculate high/low
+    const recentPrices = priceHistory.slice(-24).map(p => p[1]);
+    const high24h = recentPrices.length > 0 ? Math.max(...recentPrices) : currentPrice;
+    const low24h = recentPrices.length > 0 ? Math.min(...recentPrices) : currentPrice;
+    const allPrices = priceHistory.map(p => p[1]);
+    const allTimeHigh = allPrices.length > 0 ? Math.max(...allPrices) : undefined;
+    const allTimeLow = allPrices.length > 0 ? Math.min(...allPrices) : undefined;
+
+    return {
+      rank: Number(asset.rating) || 0,
+      code: code,
+      issuer: issuer || '',
+      name: String(toml.name || code),
+      description: String(toml.desc || ''),
+      domain: String(asset.domain || toml.orgName || ''),
+      image: toml.image ? String(toml.image) : undefined,
+      price_usd: currentPrice,
+      price_xlm: xlmPrice > 0 ? currentPrice / xlmPrice : 0,
+      change_1h: 0,
+      change_24h: change24h,
+      change_7d: change7d,
+      volume_24h: volume7d / 7,
+      market_cap: supply * currentPrice,
+      circulating_supply: supply,
+      total_supply: supply,
+      holders: Number(asset.trustlines?.[0]) || Number(asset.accounts) || 0,
+      payments_24h: Number(asset.payments) || 0,
+      trades_24h: Number(asset.trades) || 0,
+      price_high_24h: high24h,
+      price_low_24h: low24h,
+      all_time_high: allTimeHigh,
+      all_time_low: allTimeLow,
+      rating: Number(asset.rating) || 0,
+      sparkline: priceHistory.slice(-24).map(p => p[1]),
+      price_history: priceHistory,
+      volume_history: [],
+    };
+  } catch (error) {
+    console.error('Error fetching asset details:', error);
+    return null;
+  }
 }
 
 // Generate mock market data for development/fallback

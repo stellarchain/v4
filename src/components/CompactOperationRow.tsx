@@ -26,32 +26,31 @@ const CompactOperationRow = forwardRef<HTMLAnchorElement, CompactOperationRowPro
       <Link
         ref={ref}
         href={`/transaction/${operation.transaction_hash}`}
-        className="flex items-center justify-between py-3 px-4 bg-[#111] rounded-xl hover:bg-[#151515] transition-all group text-xs"
+        className="data-row flex items-center justify-between py-3 px-4 group text-[13px]"
       >
         <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${operation.transaction_successful ? 'bg-[#1a1a2a]' : 'bg-[#2a1a1a]'
-            }`}>
-            <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className={`icon-container-sm ${operation.transaction_successful ? 'bg-[var(--info-muted)]' : 'bg-[var(--error-muted)]'}`}>
+            <svg className="w-4 h-4 text-[var(--info)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
           <div>
-            <span className="text-white group-hover:text-[#BFF549] transition-colors">
+            <span className="text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors">
               {getOperationTypeLabel(operation)}
             </span>
-            <span className="text-[#555] ml-2">{timeAgo(operation.created_at)}</span>
+            <span className="text-[var(--text-tertiary)] ml-2 text-[12px]">{timeAgo(operation.created_at)}</span>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
           {amount && (
-            <span className="text-[#BFF549] font-semibold">{amount}</span>
+            <span className="text-[var(--primary)] font-mono font-medium">{amount}</span>
           )}
           <div className="text-right hidden sm:block">
-            <span className="text-[#777] font-mono text-xs">
+            <span className="text-[var(--text-secondary)] font-mono text-[12px]">
               {shortenAddress(operation.source_account, 4)}
             </span>
           </div>
-          <svg className="w-4 h-4 text-[#444] group-hover:text-[#BFF549] group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--primary)] group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </div>

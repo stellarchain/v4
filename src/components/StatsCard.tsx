@@ -12,17 +12,17 @@ export default function StatsCard({
   icon,
 }: StatsCardProps) {
   return (
-    <div className="holo-border p-4">
+    <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-4 hover:border-[var(--border-default)] transition-all">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[#666] text-[10px] uppercase tracking-wider font-medium">{title}</p>
-          <p className="text-base font-semibold text-white mt-1">{value}</p>
+          <p className="data-label mb-1.5">{title}</p>
+          <p className="font-mono text-lg font-semibold text-[var(--text-primary)] tracking-tight">{value}</p>
           {subtitle && (
-            <p className="text-[#444] text-[10px] mt-0.5">{subtitle}</p>
+            <p className="text-[11px] text-[var(--text-tertiary)] mt-1">{subtitle}</p>
           )}
         </div>
         {icon && (
-          <div className="p-1.5 bg-[#1a1a1a] rounded-lg text-[#666]">
+          <div className="icon-container-sm text-[var(--text-tertiary)]">
             {icon}
           </div>
         )}
