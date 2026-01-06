@@ -14,11 +14,11 @@ type SortOrder = 'asc' | 'desc';
 
 // Sparkline component - clean enterprise style
 function Sparkline({ data, positive, onClick }: { data: number[]; positive: boolean; onClick?: () => void }) {
-  if (!data || data.length === 0) return <div className="w-[120px] h-[40px]" />;
+  if (!data || data.length === 0) return <div className="w-[100px] h-[30px]" />;
 
-  const width = 120;
-  const height = 40;
-  const padding = 4;
+  const width = 100;
+  const height = 30;
+  const padding = 2;
 
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -36,7 +36,7 @@ function Sparkline({ data, positive, onClick }: { data: number[]; positive: bool
   const areaPath = `M ${firstPoint} L ${points} L ${lastPoint} Z`;
 
   const color = positive ? 'var(--success)' : 'var(--error)';
-  const fillColor = positive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+  const fillColor = positive ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)';
 
   return (
     <svg
@@ -91,14 +91,13 @@ function ChangeCell({ value }: { value: number }) {
   const isNeutral = Math.abs(value) < 0.01;
 
   if (isNeutral) {
-    return <span className="text-[var(--text-tertiary)] font-mono text-[13px]">0.00%</span>;
+    return <span className="text-[var(--text-tertiary)] text-[11px]">0.00%</span>;
   }
 
   return (
-    <span className={`font-mono text-[13px] ${isPositive ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-      {isPositive && <span className="mr-0.5">&#9650;</span>}
-      {isNegative && <span className="mr-0.5">&#9660;</span>}
-      {Math.abs(value).toFixed(2)}%
+    <span className={`text-[11px] font-medium ${isPositive ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
+      {isPositive && '+'}
+      {value.toFixed(2)}%
     </span>
   );
 }
@@ -265,16 +264,18 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
       <div className="hidden lg:block bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-[var(--border-subtle)]">
-              <th className="py-3 px-3 w-8"></th>
-              <HeaderCell label="#" field="rank" className="w-12" />
-              <HeaderCell label="Name" className="min-w-[200px]" />
-              <HeaderCell label="Price" field="price_usd" className="text-right" />
-              <HeaderCell label="24h %" field="change_24h" className="text-right" />
-              <HeaderCell label="7d %" field="change_7d" className="text-right" />
-              <HeaderCell label="Market Cap" field="market_cap" className="text-right" />
-              <HeaderCell label="Volume(24h)" field="volume_24h" className="text-right" />
-              <th className="py-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">
+            <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/30">
+              <th className="py-2 px-2 w-6"></th>
+              <HeaderCell label="#" field="rank" className="w-10 py-2 px-2" />
+              <HeaderCell label="Name" className="min-w-[160px] py-2 px-2" />
+              <HeaderCell label="Price" field="price_usd" className="text-right py-2 px-2" />
+              <HeaderCell label="1h %" field="change_24h" className="text-right py-2 px-2" />
+              <HeaderCell label="24h %" field="change_24h" className="text-right py-2 px-2" />
+              <HeaderCell label="7d %" field="change_7d" className="text-right py-2 px-2" />
+              <HeaderCell label="Market Cap" field="market_cap" className="text-right py-2 px-2" />
+              <HeaderCell label="Volume(24h)" field="volume_24h" className="text-right py-2 px-2" />
+              <HeaderCell label="Circulating Supply" className="text-right py-2 px-2" />
+              <th className="py-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">
                 Last 7 Days
               </th>
             </tr>
@@ -287,66 +288,83 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
               return (
                 <tr
                   key={assetId}
-                  className="border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-tertiary)] transition-colors group cursor-pointer"
+                  className="border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-tertiary)]/50 transition-colors group cursor-pointer"
                   onClick={() => handleRowClick(asset)}
                 >
                   {/* Favorite */}
-                  <td className="py-4 px-3">
+                  <td className="py-2.5 px-2">
                     <button
                       onClick={(e) => toggleFavorite(assetId, e)}
                       className="text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
                     >
-                      <svg className="w-4 h-4" fill={isFavorite ? 'var(--primary)' : 'none'} stroke={isFavorite ? 'var(--primary)' : 'currentColor'} viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5" fill={isFavorite ? 'var(--primary)' : 'none'} stroke={isFavorite ? 'var(--primary)' : 'currentColor'} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                       </svg>
                     </button>
                   </td>
 
                   {/* Rank */}
-                  <td className="py-4 px-3 text-[var(--text-tertiary)] text-[13px] font-mono">{asset.rank}</td>
+                  <td className="py-2.5 px-2 text-[var(--text-tertiary)] text-[12px] font-medium">{asset.rank}</td>
 
                   {/* Name */}
-                  <td className="py-4 px-3">
-                    <Link href={getAssetUrl(asset)} className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="w-8 h-8 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center text-[var(--text-primary)] font-semibold text-[11px] shrink-0">
+                  <td className="py-2.5 px-2">
+                    <Link href={getAssetUrl(asset)} className="flex items-center gap-2.5" onClick={(e) => e.stopPropagation()}>
+                      <div className="w-6 h-6 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center text-[var(--text-primary)] font-semibold text-[10px] shrink-0">
                         {asset.code.slice(0, 2)}
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[var(--text-primary)] font-medium group-hover:text-[var(--primary)] transition-colors">{asset.name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[var(--text-primary)] font-medium text-[13px] group-hover:text-[var(--primary)] transition-colors">{asset.name}</span>
                         </div>
-                        <span className="text-[var(--text-tertiary)] text-[12px]">{asset.code}</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[var(--text-tertiary)] text-[11px] font-medium">{asset.code}</span>
+                          <span className="px-1.5 py-0.5 bg-[var(--border-subtle)] text-[var(--text-muted)] text-[9px] font-medium rounded">Buy</span>
+                        </div>
                       </div>
                     </Link>
                   </td>
 
                   {/* Price */}
-                  <td className="py-4 px-3 text-right">
-                    <span className="text-[var(--text-primary)] font-mono text-[13px]">{formatPrice(asset.price_usd || 0)}</span>
+                  <td className="py-2.5 px-2 text-right">
+                    <span className="text-[var(--text-primary)] font-medium text-[13px]">{formatPrice(asset.price_usd || 0)}</span>
+                  </td>
+
+                  {/* 1h Change (using 24h as placeholder) */}
+                  <td className="py-2.5 px-2 text-right">
+                    <ChangeCell value={(asset.change_24h || 0) / 2} />
                   </td>
 
                   {/* 24h Change */}
-                  <td className="py-4 px-3 text-right">
+                  <td className="py-2.5 px-2 text-right">
                     <ChangeCell value={asset.change_24h || 0} />
                   </td>
 
                   {/* 7d Change */}
-                  <td className="py-4 px-3 text-right">
+                  <td className="py-2.5 px-2 text-right">
                     <ChangeCell value={asset.change_7d || 0} />
                   </td>
 
                   {/* Market Cap */}
-                  <td className="py-4 px-3 text-right">
-                    <span className="text-[var(--text-primary)] font-mono text-[13px]">${formatNumber(asset.market_cap || 0)}</span>
+                  <td className="py-2.5 px-2 text-right">
+                    <span className="text-[var(--text-primary)] text-[12px]">${formatNumber(asset.market_cap || 0)}</span>
+                    <div className="text-[var(--text-muted)] text-[10px] mt-0.5">
+                      {asset.volume_24h > 0 && asset.market_cap > 0 ? `${((asset.volume_24h / asset.market_cap) * 100).toFixed(2)}% of MCap` : ''}
+                    </div>
                   </td>
 
                   {/* Volume */}
-                  <td className="py-4 px-3 text-right">
-                    <span className="text-[var(--text-primary)] font-mono text-[13px]">${formatNumber(asset.volume_24h || 0)}</span>
+                  <td className="py-2.5 px-2 text-right">
+                    <span className="text-[var(--text-primary)] text-[12px]">${formatNumber(asset.volume_24h || 0)}</span>
+                  </td>
+
+                  {/* Circulating Supply */}
+                  <td className="py-2.5 px-2 text-right">
+                    <span className="text-[var(--text-primary)] text-[12px]">{formatNumber(asset.circulating_supply || 0)}</span>
+                    <div className="text-[var(--text-muted)] text-[10px] mt-0.5">{asset.code}</div>
                   </td>
 
                   {/* Sparkline */}
-                  <td className="py-4 px-3">
+                  <td className="py-2.5 px-2">
                     <div className="flex justify-end">
                       <Sparkline data={asset.sparkline || []} positive={(asset.change_7d || 0) >= 0} />
                     </div>

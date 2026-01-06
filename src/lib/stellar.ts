@@ -602,6 +602,26 @@ function generateMockSparkline(): number[] {
 
 // Fetch detailed asset information
 export async function getAssetDetails(code: string, issuer?: string): Promise<AssetDetails | null> {
+  const assetId = issuer ? `${code}-${issuer}` : code;
+  let stellarChainData: any = null;
+
+  // 1. Try fetching from StellarChain.io API first
+  // It provides accurate USD prices and ratings for yXLM etc.
+  try {
+    const scResponse = await fetch(`https://api.stellarchain.io/v1/assets/${assetId}/show`, {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 60 }
+    });
+
+    if (scResponse.ok) {
+      const json = await scResponse.json();
+      stellarChainData = json.data;
+    }
+  } catch (e) {
+    console.error('Error fetching from StellarChain.io:', e);
+  }
+
+  // 2. Fallback/Concurrent Fetch to Stellar Expert & CoinGecko (for XLM)
   try {
     const xlmPrice = await getXLMPrice();
 
@@ -623,10 +643,14 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
         }
       }
 
-      const currentPrice = priceHistory.length > 0 ? priceHistory[priceHistory.length - 1][1] : xlmPrice;
-      const prices = priceHistory.map(p => p[1]);
-      const high24h = prices.length > 0 ? Math.max(...prices.slice(-24)) : currentPrice;
-      const low24h = prices.length > 0 ? Math.min(...prices.slice(-24)) : currentPrice;
+      // IMPORTANT: priceHistory from stellar.expert is in BTC terms, not USD!
+      // Always use CoinGecko for the current USD price
+      const currentPrice = statsResponse.price > 0 ? statsResponse.price : xlmPrice;
+
+      // Use CoinGecko sparkline for 24h high/low (it's in USD)
+      const sparklineUSD = statsResponse.sparkline.length > 0 ? statsResponse.sparkline : [currentPrice];
+      const high24h = Math.max(...sparklineUSD);
+      const low24h = Math.min(...sparklineUSD);
 
       return {
         rank: statsResponse.rank,
@@ -639,41 +663,72 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
         price_usd: currentPrice,
         price_xlm: 1,
         change_1h: 0,
-        change_24h: statsResponse.priceChange24h,
+        change_24h: stellarChainData?.price_usd_change || statsResponse.priceChange24h,
         change_7d: priceHistory.length > 0 ? calculatePriceChange(priceHistory[0][1], currentPrice) : 0,
-        volume_24h: statsResponse.volume,
+        volume_24h: stellarChainData?.volume_usd || statsResponse.volume,
         market_cap: statsResponse.marketCap,
         circulating_supply: statsResponse.circulatingSupply,
         total_supply: 50000000000,
-        holders: 8500000,
+        holders: stellarChainData?.holders || 8500000,
         payments_24h: 2500000,
         trades_24h: 450000,
         price_high_24h: high24h,
         price_low_24h: low24h,
         all_time_high: 0.94,
         all_time_low: 0.001,
-        rating: 100,
-        sparkline: statsResponse.sparkline.length > 0 ? statsResponse.sparkline : prices.slice(-24),
+        rating: stellarChainData?.rating || 100,
+        sparkline: statsResponse.sparkline.length > 0 ? statsResponse.sparkline : sparklineUSD,
         price_history: priceHistory,
         volume_history: [],
       };
     }
 
-    // Fetch asset from StellarExpert
-    const assetId = issuer ? `${code}-${issuer}` : code;
+    // Fetch asset from StellarExpert (as backup for description/history)
     const response = await fetch(`https://api.stellar.expert/explorer/public/asset/${assetId}`, {
       headers: { 'Accept': 'application/json' },
       next: { revalidate: 60 },
     });
 
     if (!response.ok) {
+      if (stellarChainData) {
+        // If we have SC data but no expert data, return what we have
+        return {
+          rank: stellarChainData.rating || 0,
+          code: code,
+          issuer: issuer || '',
+          name: stellarChainData.code || code,
+          description: '',
+          domain: stellarChainData.domain,
+          image: stellarChainData.image,
+          price_usd: stellarChainData.price_usd || 0,
+          price_xlm: 0,
+          change_1h: 0,
+          change_24h: stellarChainData.price_usd_change || 0,
+          change_7d: 0,
+          volume_24h: stellarChainData.volume_usd || 0,
+          market_cap: 0,
+          circulating_supply: Number(stellarChainData.supply) || 0,
+          total_supply: Number(stellarChainData.supply) || 0,
+          holders: stellarChainData.holders || 0,
+          payments_24h: 0,
+          trades_24h: 0,
+          price_high_24h: 0,
+          price_low_24h: 0,
+          all_time_high: 0,
+          all_time_low: 0,
+          rating: stellarChainData.rating,
+          sparkline: [],
+          price_history: [],
+          volume_history: [],
+        }
+      }
       return null;
     }
 
     const asset = await response.json();
     const toml = asset.tomlInfo || {};
 
-    // Get price history
+    // Get price history for chart
     const priceResponse = await fetch(`https://api.stellar.expert/explorer/public/asset/${assetId}/price`, {
       headers: { 'Accept': 'application/json' },
       next: { revalidate: 60 },
@@ -689,14 +744,27 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       }
     }
 
-    const currentPrice = Number(asset.price) || 0;
-    const supply = (Number(asset.supply) || 0) / 1e7;
+    // Fallback to price7d from main asset response if specific price endpoint failed or returned empty
+    if (priceHistory.length === 0 && Array.isArray(asset.price7d)) {
+      priceHistory = asset.price7d;
+    }
+
+    // PREFER STELLARCHAIN DATA for live stats if available
+    const currentPrice = stellarChainData?.price_usd !== undefined ? Number(stellarChainData.price_usd) : (Number(asset.price) || 0);
+    const supply = stellarChainData?.supply !== undefined ? Number(stellarChainData.supply) : ((Number(asset.supply) || 0) / 1e7);
+    // Note: StellarExpert volume is 7d in stroops, SC is 24h USD. We prefer SC volume if available.
     const volume7d = (Number(asset.volume7d) || 0) / 1e7;
+    const volume24h = stellarChainData?.volume_usd !== undefined ? Number(stellarChainData.volume_usd) : (volume7d / 7);
 
     // Calculate price changes
     const price24hAgo = getPriceAtHoursAgo(priceHistory, 24);
     const price7dAgo = priceHistory.length > 0 ? priceHistory[0][1] : currentPrice;
-    const change24h = calculatePriceChange(price24hAgo, currentPrice);
+
+    // Use SC change if available, otherwise calc from history
+    const change24h = stellarChainData?.price_usd_change !== undefined
+      ? Number(stellarChainData.price_usd_change)
+      : calculatePriceChange(price24hAgo, currentPrice);
+
     const change7d = calculatePriceChange(price7dAgo, currentPrice);
 
     // Calculate high/low
@@ -708,30 +776,30 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
     const allTimeLow = allPrices.length > 0 ? Math.min(...allPrices) : undefined;
 
     return {
-      rank: Number(asset.rating) || 0,
+      rank: Number(stellarChainData?.rating || asset.rating) || 0,
       code: code,
       issuer: issuer || '',
       name: String(toml.name || code),
       description: String(toml.desc || ''),
-      domain: String(asset.domain || toml.orgName || ''),
-      image: toml.image ? String(toml.image) : undefined,
+      domain: String(stellarChainData?.domain || asset.domain || toml.orgName || ''),
+      image: stellarChainData?.image || (toml.image ? String(toml.image) : undefined),
       price_usd: currentPrice,
       price_xlm: xlmPrice > 0 ? currentPrice / xlmPrice : 0,
       change_1h: 0,
       change_24h: change24h,
       change_7d: change7d,
-      volume_24h: volume7d / 7,
+      volume_24h: volume24h,
       market_cap: supply * currentPrice,
       circulating_supply: supply,
       total_supply: supply,
-      holders: Number(asset.trustlines?.[0]) || Number(asset.accounts) || 0,
+      holders: stellarChainData?.holders || Number(asset.trustlines?.[0]) || Number(asset.accounts) || 0,
       payments_24h: Number(asset.payments) || 0,
       trades_24h: Number(asset.trades) || 0,
       price_high_24h: high24h,
       price_low_24h: low24h,
       all_time_high: allTimeHigh,
       all_time_low: allTimeLow,
-      rating: Number(asset.rating) || 0,
+      rating: Number(stellarChainData?.rating || asset.rating) || 0,
       sparkline: priceHistory.slice(-24).map(p => p[1]),
       price_history: priceHistory,
       volume_history: [],
@@ -1347,4 +1415,110 @@ export async function getStatistics(): Promise<StatisticsData> {
       },
     },
   };
+}
+
+// Order Book specific interfaces
+export interface OrderBook {
+  bids: {
+    price: string;
+    amount: string;
+    price_r: {
+      n: number;
+      d: number;
+    };
+  }[];
+  asks: {
+    price: string;
+    amount: string;
+    price_r: {
+      n: number;
+      d: number;
+    };
+  }[];
+  base: {
+    asset_type: string;
+    asset_code: string;
+    asset_issuer: string;
+  };
+  counter: {
+    asset_type: string;
+    asset_code: string;
+    asset_issuer: string;
+  };
+}
+
+export interface TradeAggregation {
+  timestamp: number;
+  trade_count: number;
+  base_volume: string;
+  counter_volume: string;
+  avg: string;
+  high: string;
+  high_r: {
+    n: number;
+    d: number;
+  };
+  low: string;
+  low_r: {
+    n: number;
+    d: number;
+  };
+  open: string;
+  open_r: {
+    n: number;
+    d: number;
+  };
+  close: string;
+  close_r: {
+    n: number;
+    d: number;
+  };
+}
+
+// Fetch Order Book
+export async function getOrderBook(
+  sellingAsset: { code: string; issuer?: string },
+  buyingAsset: { code: string; issuer?: string },
+  limit: number = 20
+): Promise<OrderBook> {
+  const sellingType = sellingAsset.code === 'XLM' ? 'native' : (sellingAsset.code.length > 4 ? 'credit_alphanum12' : 'credit_alphanum4');
+  const buyingType = buyingAsset.code === 'XLM' ? 'native' : (buyingAsset.code.length > 4 ? 'credit_alphanum12' : 'credit_alphanum4');
+
+  let url = `${getBaseUrl()}/order_book?selling_asset_type=${sellingType}&buying_asset_type=${buyingType}&limit=${limit}`;
+
+  if (sellingAsset.code !== 'XLM' && sellingAsset.issuer) {
+    url += `&selling_asset_code=${sellingAsset.code}&selling_asset_issuer=${sellingAsset.issuer}`;
+  }
+  if (buyingAsset.code !== 'XLM' && buyingAsset.issuer) {
+    url += `&buying_asset_code=${buyingAsset.code}&buying_asset_issuer=${buyingAsset.issuer}`;
+  }
+
+  return fetchJSON<OrderBook>(url);
+}
+
+// Fetch OHLC Data
+export async function getTradeAggregations(
+  baseAsset: { code: string; issuer?: string },
+  counterAsset: { code: string; issuer?: string },
+  resolution: number, // e.g. 900000 (15m), 3600000 (1h), 86400000 (1d)
+  limit: number = 100,
+  startTime?: number,
+  endTime?: number
+): Promise<TradeAggregation[]> {
+  const baseType = baseAsset.code === 'XLM' ? 'native' : (baseAsset.code.length > 4 ? 'credit_alphanum12' : 'credit_alphanum4');
+  const counterType = counterAsset.code === 'XLM' ? 'native' : (counterAsset.code.length > 4 ? 'credit_alphanum12' : 'credit_alphanum4');
+
+  let url = `${getBaseUrl()}/trade_aggregations?base_asset_type=${baseType}&counter_asset_type=${counterType}&resolution=${resolution}&limit=${limit}&order=desc`;
+
+  if (baseAsset.code !== 'XLM' && baseAsset.issuer) {
+    url += `&base_asset_code=${baseAsset.code}&base_asset_issuer=${baseAsset.issuer}`;
+  }
+  if (counterAsset.code !== 'XLM' && counterAsset.issuer) {
+    url += `&counter_asset_code=${counterAsset.code}&counter_asset_issuer=${counterAsset.issuer}`;
+  }
+  if (startTime) url += `&start_time=${startTime}`;
+  if (endTime) url += `&end_time=${endTime}`;
+
+  const response = await fetchJSON<PaginatedResponse<TradeAggregation>>(url);
+  return response._embedded.records;
 }

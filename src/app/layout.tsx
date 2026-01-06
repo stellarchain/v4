@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${ibmPlexSans.variable} ${jetbrainsMono.variable} font-sans antialiased bg-[#0C0F14] text-white min-h-screen`}>
         {/* Mobile Header */}
         <MobileHeader />
