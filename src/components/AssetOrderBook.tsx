@@ -103,7 +103,7 @@ export default function AssetOrderBook({ asset }: OrderBookProps) {
     const totalMax = Math.max(maxBid, maxAsk);
 
     return (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl overflow-hidden mt-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded overflow-hidden mt-6">
             <div className="p-4 border-b border-[var(--border-subtle)]">
                 <h3 className="text-[var(--text-primary)] font-semibold">Order Book</h3>
             </div>

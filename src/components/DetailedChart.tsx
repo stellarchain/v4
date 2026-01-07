@@ -60,8 +60,8 @@ export default function DetailedChart({ stat, onClose }: DetailedChartProps) {
     }));
 
     const isPositive = (stat.change ?? 0) >= 0;
-    const strokeColor = isPositive ? '#BFF549' : '#ef4444';
-    const fillColor = isPositive ? '#BFF549' : '#ef4444';
+    const strokeColor = isPositive ? 'var(--primary)' : '#ef4444';
+    const fillColor = isPositive ? 'var(--primary)' : '#ef4444';
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -75,25 +75,25 @@ export default function DetailedChart({ stat, onClose }: DetailedChartProps) {
             {/* Modal */}
             <div
                 ref={modalRef}
-                className="relative w-full max-w-3xl bg-[#0a0a0a] border border-[#222] rounded-2xl p-6 shadow-2xl opacity-0 overflow-hidden"
+                className="relative w-full max-w-3xl bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-md p-6 shadow-2xl opacity-0 overflow-hidden"
             >
                 {/* Holographic Border Effect */}
-                <div className="absolute inset-0 pointer-events-none rounded-2xl border border-white/5" />
+                <div className="absolute inset-0 pointer-events-none rounded-md border border-white/5" />
 
                 <div className="flex justify-between items-start mb-8">
                     <div>
-                        <h3 className="text-[#888] text-sm uppercase tracking-wider font-medium mb-2">{stat.label}</h3>
+                        <h3 className="text-[var(--text-tertiary)] text-sm uppercase tracking-wider font-medium mb-2">{stat.label}</h3>
                         <div className="flex items-baseline gap-3">
-                            <span className="text-3xl font-bold text-white">
+                            <span className="text-3xl font-bold text-[var(--text-primary)]">
                                 {typeof stat.value === 'number'
                                     ? stat.prefix === '$'
                                         ? `$${stat.value.toLocaleString()}`
                                         : stat.value.toLocaleString()
                                     : stat.value}
-                                {stat.suffix && <span className="text-lg text-[#555] ml-1">{stat.suffix}</span>}
+                                {stat.suffix && <span className="text-lg text-[var(--text-muted)] ml-1">{stat.suffix}</span>}
                             </span>
                             {stat.change !== undefined && (
-                                <span className={`text-sm font-medium px-2 py-0.5 rounded ${isPositive ? 'bg-[#BFF549]/10 text-[#BFF549]' : 'bg-red-500/10 text-red-500'}`}>
+                                <span className={`text-sm font-medium px-2 py-0.5 rounded ${isPositive ? 'bg-[var(--primary)]/10 text-[var(--primary)]' : 'bg-red-500/10 text-red-500'}`}>
                                     {isPositive ? '+' : ''}{stat.change.toFixed(2)}%
                                 </span>
                             )}
@@ -101,7 +101,7 @@ export default function DetailedChart({ stat, onClose }: DetailedChartProps) {
                     </div>
                     <button
                         onClick={handleClose}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1a1a1a] text-[#666] hover:bg-[#222] hover:text-white transition-colors"
+                        className="w-8 h-8 flex items-center justify-center rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--primary)] transition-colors"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
@@ -160,7 +160,7 @@ export default function DetailedChart({ stat, onClose }: DetailedChartProps) {
                     </ResponsiveContainer>
                 </div>
 
-                <div className="mt-4 flex justify-between text-xs text-[#444]">
+                <div className="mt-4 flex justify-between text-xs text-[var(--text-muted)]">
                     <span>Past 24 hours</span>
                     <span>Now</span>
                 </div>

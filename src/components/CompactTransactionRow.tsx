@@ -14,7 +14,7 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
       <Link
         ref={ref}
         href={`/transaction/${transaction.hash}`}
-        className="data-row flex items-center justify-between py-3 px-4 group text-[13px]"
+        className="flex items-center justify-between py-4 px-5 bg-[var(--bg-secondary)] rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 group text-[13px]"
       >
         <div className="flex items-center gap-3">
           <div className={`icon-container-sm ${transaction.successful ? 'bg-[var(--success-muted)]' : 'bg-[var(--error-muted)]'}`}>

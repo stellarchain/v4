@@ -1,10 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  /* Enterprise Color Palette */
+  /* Enterprise Color Palette - Dark Mode (Default) */
   --primary: #C9A227;
   --primary-light: #E5C04D;
   --primary-dark: #A68620;
+  --primary-hover: #D4AD32;
   --primary-muted: rgba(201, 162, 39, 0.15);
 
   /* Backgrounds - Deep slate with blue undertones */
@@ -32,6 +33,58 @@
   --error-muted: rgba(239, 68, 68, 0.15);
   --info: #3B82F6;
   --info-muted: rgba(59, 130, 246, 0.15);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* Light Mode - Refined Gray/White Aesthetic */
+[data-theme="light"] {
+  /* Requested Color Palette (Gray & White) */
+  --primary: #3898EC;
+  /* Keeping Blue as brand color */
+  --primary-light: #5FB4FA;
+  --primary-dark: #2F81C9;
+  --primary-hover: #3AA1F7;
+  --primary-muted: rgba(56, 152, 236, 0.1);
+
+  /* Backgrounds */
+  --bg-primary: #F3F5F7;
+  /* Cool light gray canvas */
+  --bg-secondary: #FFFFFF;
+  /* Pure white content cards */
+  --bg-tertiary: #FFFFFF;
+  /* Sidebar/Nav - White to contrast with Gray canvas */
+  --bg-elevated: #FFFFFF;
+  --bg-hover: #F8F9FA;
+
+  /* Text hierarchy */
+  --text-primary: #111827;
+  /* Soft intense black */
+  --text-secondary: #374151;
+  --text-tertiary: #6B7280;
+  --text-muted: #9CA3AF;
+
+  /* Borders */
+  --border-subtle: #E5E7EB;
+  --border-default: #E5E7EB;
+  /* Subtle borders matching the clean look */
+  --border-strong: #D1D5DB;
+
+  /* Status colors */
+  --success: #10B981;
+  --success-muted: rgba(16, 185, 129, 0.1);
+  --error: #EF4444;
+  --error-muted: rgba(239, 68, 68, 0.1);
+  --info: #3B82F6;
+  --info-muted: rgba(59, 130, 246, 0.1);
+
+  /* Shadows - Soft & Diffused */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
 }
 
 @theme inline {
@@ -137,12 +190,10 @@ body {
   inset: -1px;
   border-radius: 13px;
   padding: 1px;
-  background: linear-gradient(
-    135deg,
-    rgba(201, 162, 39, 0.1) 0%,
-    rgba(255, 255, 255, 0.03) 50%,
-    rgba(201, 162, 39, 0.1) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(201, 162, 39, 0.1) 0%,
+      rgba(255, 255, 255, 0.03) 50%,
+      rgba(201, 162, 39, 0.1) 100%);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
@@ -189,9 +240,12 @@ body {
 
 /* Pulse animation - refined */
 @keyframes pulse-soft {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.6;
   }
@@ -320,13 +374,20 @@ body {
   height: 36px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
 }
 
 .icon-container-sm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 
 /* Stats value */

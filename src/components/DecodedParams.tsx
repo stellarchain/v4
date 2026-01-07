@@ -17,7 +17,7 @@ export default function DecodedParams({ operation }: DecodedParamsProps) {
         <div className="mt-3">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 text-xs text-[#BFF549] hover:underline mb-2"
+                className="flex items-center gap-2 text-xs text-[var(--primary)] hover:underline mb-2"
             >
                 <svg
                     className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -31,11 +31,11 @@ export default function DecodedParams({ operation }: DecodedParamsProps) {
             </button>
 
             {isOpen && (
-                <div className="bg-[#151515] rounded-lg p-3 space-y-2 border border-[#333]">
+                <div className="bg-[var(--bg-tertiary)] rounded p-3 space-y-2 border border-[var(--border-default)]">
                     {params.map((param, index) => (
                         <div key={index} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 text-xs">
-                            <span className="text-[#888] font-mono whitespace-nowrap min-w-[120px]">{param.name}:</span>
-                            <span className="text-white font-mono break-all">{param.value}</span>
+                            <span className="text-[var(--text-tertiary)] font-mono whitespace-nowrap min-w-[120px]">{param.name}:</span>
+                            <span className="text-[var(--text-primary)] font-mono break-all">{param.value}</span>
                         </div>
                     ))}
                 </div>

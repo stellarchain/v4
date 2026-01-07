@@ -79,7 +79,7 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10 }:
   }, []);
 
   return (
-    <div ref={containerRef} className="space-y-1.5">
+    <div ref={containerRef} className="space-y-3">
       {transactions.map((tx) => (
         <CompactTransactionRow
           key={tx.id}

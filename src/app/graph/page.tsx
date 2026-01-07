@@ -19,7 +19,7 @@ export default function WalletTrackPage() {
         <div className="max-w-4xl mx-auto space-y-12 py-12 px-4">
             {/* Header */}
             <div className="text-center space-y-4">
-                <h1 className="text-4xl font-bold text-[var(--text-primary)] tracking-tight">Wallet Track</h1>
+                <h1 className="text-[56px] font-bold text-[var(--text-primary)] tracking-tight leading-tight">Wallet Track</h1>
                 <p className="text-[var(--text-secondary)] text-lg max-w-2xl mx-auto">
                     Visualize transaction flows, money movement, and account connections in real-time on the Stellar network.
                 </p>
@@ -33,12 +33,12 @@ export default function WalletTrackPage() {
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         placeholder="Enter Stellar Address (G...)"
-                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl py-5 pl-6 pr-32 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all shadow-lg text-lg font-mono"
+                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md py-5 pl-6 pr-32 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all shadow-lg text-lg font-mono"
                     />
                     <button
                         type="submit"
                         disabled={address.length !== 56}
-                        className="absolute right-2 top-2 bottom-2 bg-[var(--primary)] text-black font-semibold px-6 rounded-xl hover:bg-[var(--primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="absolute right-2 top-2 bottom-2 bg-[var(--primary)] text-black font-semibold px-6 rounded hover:bg-[var(--primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         Visualize
                     </button>
@@ -46,7 +46,7 @@ export default function WalletTrackPage() {
             </div>
 
             {/* Showcase CARD */}
-            <div className="border border-[var(--border-subtle)] rounded-2xl p-8 bg-[var(--bg-secondary)] relative overflow-hidden group hover:border-[var(--primary)] transition-all cursor-pointer" onClick={() => window.location.href = `/graph/${showcaseAddress}`}>
+            <div className="border border-[var(--border-subtle)] rounded-md p-8 bg-[var(--bg-secondary)] relative overflow-hidden group hover:border-[var(--primary)] transition-all cursor-pointer" onClick={() => window.location.href = `/graph/${showcaseAddress}`}>
                 {/* Background Decoration */}
                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform scale-150 translate-x-10 -translate-y-10">
                     <svg className="w-96 h-96 text-[var(--primary)]" fill="currentColor" viewBox="0 0 24 24">

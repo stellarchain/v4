@@ -79,7 +79,7 @@ export default function LiveOperationFeed({ initialOperations, limit = 10 }: Liv
   }, []);
 
   return (
-    <div ref={containerRef} className="space-y-1.5">
+    <div ref={containerRef} className="space-y-3">
       {operations.map((op) => (
         <CompactOperationRow
           key={op.id}

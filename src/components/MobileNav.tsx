@@ -116,7 +116,7 @@ export default function MobileNav() {
         >
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div
-            className="absolute bottom-20 left-4 right-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200"
+            className="absolute bottom-20 left-4 right-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md overflow-hidden animate-in slide-in-from-bottom-4 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {moreItems.map((item) => {

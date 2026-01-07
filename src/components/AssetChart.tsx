@@ -133,15 +133,15 @@ export default function AssetChart({ asset }: AssetChartProps) {
       {/* Tabs */}
       <div className="flex items-center justify-between p-4 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-1">
-          <button className="px-3 py-1.5 rounded-lg text-[13px] font-medium bg-[var(--primary-muted)] text-[var(--primary)]">
+          <button className="px-3 py-1.5 rounded text-[13px] font-medium bg-[var(--primary-muted)] text-[var(--primary)]">
             Price
           </button>
-          <button className="px-3 py-1.5 rounded-lg text-[13px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors">
+          <button className="px-3 py-1.5 rounded text-[13px] font-medium text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:bg-[var(--bg-tertiary)] transition-colors">
             Market cap
           </button>
         </div>
 
-        <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] p-1 rounded-lg">
+        <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] p-1 rounded">
           {(['24h', '7d', '30d', '1y', 'all'] as TimeRange[]).map((range) => (
             <button
               key={range}
@@ -149,7 +149,7 @@ export default function AssetChart({ asset }: AssetChartProps) {
               className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
                 timeRange === range
                   ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm'
-                  : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
+                  : 'text-[var(--text-tertiary)] hover:text-[var(--primary)]'
               }`}
             >
               {range.toUpperCase()}

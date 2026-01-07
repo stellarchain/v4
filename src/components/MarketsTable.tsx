@@ -60,7 +60,7 @@ function Sparkline({ data, positive, onClick }: { data: number[]; positive: bool
 
 function StatBox({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
   return (
-    <div className="bg-[var(--bg-tertiary)] rounded-lg p-3">
+    <div className="bg-[var(--bg-tertiary)] rounded p-3">
       <p className="text-[var(--text-muted)] text-[10px] uppercase tracking-wide font-medium">{label}</p>
       <p className="text-[14px] font-medium mt-0.5" style={{ color: valueColor || 'var(--text-primary)' }}>{value}</p>
     </div>
@@ -201,13 +201,27 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 rounded flex items-center justify-center">
+          <svg className="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
         <div>
-          <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Markets</h1>
-          <p className="text-[13px] text-[var(--text-tertiary)] mt-0.5">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Markets</h1>
+            <span className="px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[10px] font-medium text-[#777]">
+              Directory
+            </span>
+          </div>
+          <p className="text-[var(--text-muted)] text-xs">
             Stellar network assets ranked by market capitalization
           </p>
         </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div />
         <div className="flex items-center gap-2">
           <span className="live-indicator" />
           <span className="text-[12px] text-[var(--text-secondary)] font-medium">Live prices</span>
@@ -226,7 +240,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search assets..."
-            className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-lg py-2.5 pl-10 pr-4 text-[var(--text-primary)] placeholder-[var(--text-muted)] text-[13px] focus:outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-muted)] transition-all"
+            className="w-full bg-[var(--bg-secondary)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all pl-11 shadow-inner placeholder-[var(--text-muted)] text-[13px]"
           />
         </div>
 
@@ -239,7 +253,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
               setSortField(field);
               setSortOrder(order);
             }}
-            className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-lg px-3 py-2.5 text-[var(--text-primary)] text-[13px] focus:outline-none focus:border-[var(--primary)] appearance-none cursor-pointer pr-8"
+            className="bg-[var(--bg-secondary)] rounded-xl px-4 py-3 text-[var(--text-primary)] text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 appearance-none cursor-pointer pr-10 shadow-sm"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
           >
             <option value="market_cap-desc">Market Cap</option>
@@ -251,7 +265,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
           </select>
 
           {/* Columns button (visual only for now) */}
-          <button className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-lg px-3 py-2.5 text-[var(--text-secondary)] text-[13px] hover:border-[var(--border-default)] transition-colors flex items-center gap-2">
+          <button className="bg-[var(--bg-secondary)] rounded-xl px-4 py-3 text-[var(--text-secondary)] text-[13px] hover:bg-[var(--bg-hover)] transition-colors flex items-center gap-2 shadow-sm">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h18M3 8h18M3 12h18M3 16h18M3 20h18" />
             </svg>
@@ -261,10 +275,10 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden lg:block bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
+      <div className="hidden lg:block bg-[var(--bg-secondary)] rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/30">
+            <tr className="border-b border-[var(--border-subtle)]">
               <th className="py-2 px-2 w-6"></th>
               <HeaderCell label="#" field="rank" className="w-10 py-2 px-2" />
               <HeaderCell label="Name" className="min-w-[160px] py-2 px-2" />
@@ -309,9 +323,6 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
                   {/* Name */}
                   <td className="py-2.5 px-2">
                     <Link href={getAssetUrl(asset)} className="flex items-center gap-2.5" onClick={(e) => e.stopPropagation()}>
-                      <div className="w-6 h-6 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center text-[var(--text-primary)] font-semibold text-[10px] shrink-0">
-                        {asset.code.slice(0, 2)}
-                      </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-[var(--text-primary)] font-medium text-[13px] group-hover:text-[var(--primary)] transition-colors">{asset.name}</span>
@@ -377,7 +388,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
       </div>
 
       {/* Tablet Table (simplified) */}
-      <div className="hidden md:block lg:hidden bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
+      <div className="hidden md:block lg:hidden bg-[var(--bg-secondary)] rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--border-subtle)]">
@@ -399,9 +410,6 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
                 <td className="py-3 px-3 text-[var(--text-tertiary)] text-[13px] font-mono">{asset.rank}</td>
                 <td className="py-3 px-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center text-[10px] font-semibold text-[var(--text-primary)]">
-                      {asset.code.slice(0, 2)}
-                    </div>
                     <div>
                       <span className="text-[var(--text-primary)] font-medium text-[13px]">{asset.code}</span>
                     </div>
@@ -426,15 +434,12 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
         {filteredAndSortedAssets.map((asset) => (
           <div
             key={`mobile-${asset.code}-${asset.issuer || asset.rank}`}
-            className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-4 active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+            className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
             onClick={() => handleRowClick(asset)}
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <span className="text-[var(--text-muted)] text-[11px] font-mono w-5">{asset.rank}</span>
-                <div className="w-8 h-8 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center text-[11px] font-semibold text-[var(--text-primary)]">
-                  {asset.code.slice(0, 2)}
-                </div>
                 <div>
                   <span className="text-[var(--text-primary)] font-semibold">{asset.code}</span>
                   <span className="text-[var(--text-tertiary)] text-[12px] ml-2">{asset.name !== asset.code ? asset.name : ''}</span>
@@ -465,7 +470,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
 
       {/* Empty State */}
       {filteredAndSortedAssets.length === 0 && (
-        <div className="text-center py-16 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl">
+        <div className="text-center py-16 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded">
           <svg className="w-12 h-12 text-[var(--text-muted)] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>

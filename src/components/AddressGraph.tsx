@@ -3,6 +3,7 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { GraphNode, GraphEdge, AddressGraph as AddressGraphType } from '@/lib/stellar_graph';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // Dynamically import ForceGraph2D to avoid SSR issues
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), {
@@ -25,6 +26,13 @@ export default function AddressGraph({ data, onNodeClick }: AddressGraphProps) {
     const [highlightNodes, setHighlightNodes] = useState(new Set());
     const [highlightLinks, setHighlightLinks] = useState(new Set());
     const [hoverNode, setHoverNode] = useState<GraphNode | null>(null);
+    const { theme } = useTheme();
+
+    // Theme-aware colors
+    const bgColor = theme === 'light' ? '#F8F9FB' : '#0a0a0a';
+    const pillBgColor = theme === 'light' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(10, 10, 10, 0.85)';
+    const pillBorderColor = theme === 'light' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.15)';
+    const textColor = theme === 'light' ? '#1A1D26' : '#E2E8F0';
 
     useEffect(() => {
         setMounted(true);
@@ -85,18 +93,18 @@ export default function AddressGraph({ data, onNodeClick }: AddressGraphProps) {
 
     if (!mounted) {
         return (
-            <div className="relative w-full h-full bg-[#0a0a0a] rounded-xl overflow-hidden border border-[var(--border-subtle)] flex items-center justify-center">
+            <div className="relative w-full h-full bg-[var(--bg-primary)] rounded overflow-hidden border border-[var(--border-subtle)] flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className="relative w-full h-full bg-[#0a0a0a] rounded-xl overflow-hidden border border-[var(--border-subtle)]">
+        <div className="relative w-full h-full bg-[var(--bg-primary)] rounded overflow-hidden border border-[var(--border-subtle)]">
             <ForceGraph2D
                 ref={graphRef}
                 graphData={data}
-                backgroundColor="#0a0a0a"
+                backgroundColor={bgColor}
                 // NODES: Custom Pill Renderer
                 nodeCanvasObject={(node: any, ctx, globalScale) => {
                     const label = node.id.slice(0, 4) + '...' + node.id.slice(-4);
@@ -128,15 +136,15 @@ export default function AddressGraph({ data, onNodeClick }: AddressGraphProps) {
                     if (ctx.roundRect) ctx.roundRect(pillX, pillY, bckgDimensions[0], bckgDimensions[1], cornerRadius);
                     else ctx.rect(pillX, pillY, bckgDimensions[0], bckgDimensions[1]);
 
-                    ctx.fillStyle = 'rgba(10, 10, 10, 0.85)';
+                    ctx.fillStyle = pillBgColor;
                     ctx.fill();
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctx.strokeStyle = pillBorderColor;
                     ctx.lineWidth = 0.5 / globalScale;
                     ctx.stroke();
 
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillStyle = '#E2E8F0';
+                    ctx.fillStyle = textColor;
                     ctx.fillText(label, node.x, pillY + bckgDimensions[1] / 2);
 
                     node.__bckgDimensions = bckgDimensions;
@@ -250,18 +258,18 @@ export default function AddressGraph({ data, onNodeClick }: AddressGraphProps) {
 
             {/* Hover tooltip for Nodes */}
             {hoverNode && (
-                <div className="absolute top-4 left-4 bg-[#0a0a0a]/90 border border-white/20 rounded-xl p-4 max-w-xs z-10 backdrop-blur-md">
-                    <div className="text-white font-mono text-xs mb-2 pb-2 border-b border-white/10 break-all">
+                <div className="absolute top-4 left-4 bg-[var(--bg-primary)]/90 border border-[var(--border-subtle)] rounded p-4 max-w-xs z-10 backdrop-blur-md">
+                    <div className="text-[var(--text-primary)] font-mono text-xs mb-2 pb-2 border-b border-[var(--border-subtle)] break-all">
                         {hoverNode.id}
                     </div>
                     <div className="flex gap-4 text-xs">
                         <div>
-                            <div className="text-white/50 uppercase text-[10px] tracking-wider mb-1">TXs</div>
-                            <div className="text-white font-bold text-lg">{hoverNode.transactionCount}</div>
+                            <div className="text-[var(--text-primary)]/50 uppercase text-[10px] tracking-wider mb-1">TXs</div>
+                            <div className="text-[var(--text-primary)] font-bold text-lg">{hoverNode.transactionCount}</div>
                         </div>
                         <div>
-                            <div className="text-white/50 uppercase text-[10px] tracking-wider mb-1">Type</div>
-                            <div className="text-white font-bold text-lg capitalize">{hoverNode.type}</div>
+                            <div className="text-[var(--text-primary)]/50 uppercase text-[10px] tracking-wider mb-1">Type</div>
+                            <div className="text-[var(--text-primary)] font-bold text-lg capitalize">{hoverNode.type}</div>
                         </div>
                     </div>
                 </div>
