@@ -28,7 +28,7 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Link
           href="/ledgers"
-          className="w-10 h-10 bg-[#111] border border-[var(--border-subtle)] rounded-xl text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-default)] transition-colors flex items-center justify-center"
+          className="w-10 h-10 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:border-[var(--border-default)] transition-colors flex items-center justify-center"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -36,14 +36,14 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#BFF549]/20 to-[#BFF549]/5 rounded-xl flex items-center justify-center">
-              <svg className="w-5 h-5 text-[#BFF549]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 rounded flex items-center justify-center">
+              <svg className="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
             </div>
             <div>
               <h1 className="text-xl font-semibold text-[var(--text-primary)]">Ledger #{ledger.sequence.toLocaleString()}</h1>
-              <p className="text-[#666] text-sm">{timeAgo(ledger.closed_at)}</p>
+              <p className="text-[var(--text-muted)] text-sm">{timeAgo(ledger.closed_at)}</p>
             </div>
           </div>
         </div>
@@ -52,8 +52,8 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
       {/* Overview Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Main Info */}
-        <div className="lg:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
-          <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">Overview</h2>
+        <div className="lg:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+          <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">Overview</h2>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between py-3 border-b border-[var(--border-subtle)]">
@@ -67,7 +67,7 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
             <div className="flex items-center justify-between py-3 border-b border-[var(--border-subtle)]">
               <span className="text-[var(--text-tertiary)]">Transactions:</span>
               <div className="flex items-center gap-2">
-                <span className="text-[#BFF549] font-semibold">{ledger.successful_transaction_count} successful</span>
+                <span className="text-[var(--primary)] font-semibold">{ledger.successful_transaction_count} successful</span>
                 {ledger.failed_transaction_count > 0 && (
                   <span className="text-red-400">/ {ledger.failed_transaction_count} failed</span>
                 )}
@@ -81,20 +81,20 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
         </div>
 
         {/* Stats */}
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
-          <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">Network Stats</h2>
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+          <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">Network Stats</h2>
 
           <div className="space-y-4">
             <div className="flex flex-col gap-1">
-              <span className="text-[#666] text-xs">Total Coins</span>
+              <span className="text-[var(--text-muted)] text-xs">Total Coins</span>
               <span className="text-[var(--text-primary)] font-semibold">{formatXLM(ledger.total_coins)} XLM</span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[#666] text-xs">Fee Pool</span>
+              <span className="text-[var(--text-muted)] text-xs">Fee Pool</span>
               <span className="text-[var(--text-primary)] font-semibold">{formatXLM(ledger.fee_pool)} XLM</span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[#666] text-xs">Protocol Version</span>
+              <span className="text-[var(--text-muted)] text-xs">Protocol Version</span>
               <span className="text-[var(--text-primary)] font-semibold">v{ledger.protocol_version}</span>
             </div>
           </div>
@@ -103,35 +103,35 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
 
       {/* Fee Details */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
           <div className="flex flex-col gap-2">
-            <span className="text-[#666] text-xs uppercase tracking-wider">Base Fee</span>
+            <span className="text-[var(--text-muted)] text-xs uppercase tracking-wider">Base Fee</span>
             <span className="text-[var(--text-primary)] text-2xl font-bold">{formatStroopsToXLM(ledger.base_fee_in_stroops)}</span>
-            <span className="text-[#555] text-xs">XLM</span>
+            <span className="text-[var(--text-muted)] text-xs">XLM</span>
           </div>
         </div>
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
           <div className="flex flex-col gap-2">
-            <span className="text-[#666] text-xs uppercase tracking-wider">Base Reserve</span>
+            <span className="text-[var(--text-muted)] text-xs uppercase tracking-wider">Base Reserve</span>
             <span className="text-[var(--text-primary)] text-2xl font-bold">{formatStroopsToXLM(ledger.base_reserve_in_stroops)}</span>
-            <span className="text-[#555] text-xs">XLM</span>
+            <span className="text-[var(--text-muted)] text-xs">XLM</span>
           </div>
         </div>
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
           <div className="flex flex-col gap-2">
-            <span className="text-[#666] text-xs uppercase tracking-wider">Max Tx Set Size</span>
+            <span className="text-[var(--text-muted)] text-xs uppercase tracking-wider">Max Tx Set Size</span>
             <span className="text-[var(--text-primary)] text-2xl font-bold">{ledger.max_tx_set_size}</span>
-            <span className="text-[#555] text-xs">transactions</span>
+            <span className="text-[var(--text-muted)] text-xs">transactions</span>
           </div>
         </div>
       </div>
 
       {/* Previous Hash */}
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
-        <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-3">Previous Ledger Hash</h2>
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-3">Previous Ledger Hash</h2>
         <Link
           href={`/ledger/${sequenceNum - 1}`}
-          className="text-[var(--text-tertiary)] hover:text-[#BFF549] font-mono text-sm break-all transition-colors"
+          className="text-[var(--text-tertiary)] hover:text-[var(--primary)] font-mono text-sm break-all transition-colors"
         >
           {ledger.prev_hash}
         </Link>
@@ -141,7 +141,7 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
       <div className="flex justify-between gap-4">
         <Link
           href={`/ledger/${sequenceNum - 1}`}
-          className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-default)] transition-all"
+          className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:border-[var(--border-default)] transition-all"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -150,7 +150,7 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
         </Link>
         <Link
           href={`/ledger/${sequenceNum + 1}`}
-          className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-default)] transition-all"
+          className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:border-[var(--border-default)] transition-all"
         >
           <span className="hidden sm:inline">Ledger</span> #{(sequenceNum + 1).toLocaleString()}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,8 +161,8 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
 
       {/* Transactions */}
       {transactions.length > 0 && (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
-          <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+          <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">
             Transactions ({transactions.length})
           </h2>
           <div className="space-y-2">
@@ -175,8 +175,8 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
 
       {/* Operations */}
       {operations.length > 0 && (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-6">
-          <h2 className="text-sm font-medium text-[#666] uppercase tracking-wider mb-4">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+          <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">
             Operations ({operations.length})
           </h2>
           <div className="space-y-2">

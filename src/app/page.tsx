@@ -31,14 +31,14 @@ export default async function HomePage() {
             Real-time blockchain analytics and monitoring
           </p>
         </div>
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-lg">
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded">
           <span className="live-indicator" />
           <span className="text-[12px] text-[var(--text-secondary)] font-medium">Live</span>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         <StatsCard
           title="Latest Ledger"
           value={`#${stats.ledger_count.toLocaleString()}`}
@@ -83,7 +83,7 @@ export default async function HomePage() {
 
       {/* Recent Ledgers */}
       <section>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
             <span className="section-header">Recent Ledgers</span>
             <span className="live-indicator" />
@@ -105,7 +105,7 @@ export default async function HomePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Transactions */}
         <section>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
               <span className="section-header">Recent Transactions</span>
               <span className="live-indicator" />
@@ -125,7 +125,7 @@ export default async function HomePage() {
 
         {/* Recent Operations */}
         <section>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
               <span className="section-header">Recent Operations</span>
               <span className="live-indicator" />

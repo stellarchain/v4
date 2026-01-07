@@ -24,12 +24,12 @@ export default async function OperationsPage() {
         </div>
       </div>
 
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-4">
+      <div>
         <LiveOperationFeed initialOperations={operations} limit={25} />
       </div>
 
       <div className="flex justify-center">
-        <button className="px-6 py-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl text-[var(--text-primary)] font-medium text-sm hover:bg-[var(--bg-tertiary)] hover:border-[var(--border-default)] transition-all">
+        <button className="px-6 py-3 bg-[var(--bg-secondary)] rounded-xl shadow-sm text-[var(--text-primary)] font-medium text-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
           Load More
         </button>
       </div>

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
+import ThemeToggle from './ThemeToggle';
 
 const navItems = [
   { name: 'Dashboard', href: '/', icon: 'dashboard', count: null },
@@ -95,11 +96,11 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="sidebar-container w-[260px] min-h-screen flex flex-col sticky top-0 h-screen shrink-0">
+    <aside className="sidebar-container w-[260px] min-h-screen flex flex-col sticky top-0 h-screen shrink-0 bg-[var(--bg-tertiary)] border-r border-[var(--border-subtle)]">
       {/* Logo */}
       <div className="p-6 pb-4">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded flex items-center justify-center shadow-sm">
             <svg className="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
@@ -127,7 +128,7 @@ export default function Sidebar() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search address, tx, ledger..."
-              className="w-full bg-transparent py-2.5 pl-10 pr-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] text-[13px] focus:outline-none"
+              className="w-full bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-md py-2.5 pl-10 pr-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] text-[13px] focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)]/20 transition-all shadow-sm"
             />
           </div>
         </form>
@@ -135,32 +136,33 @@ export default function Sidebar() {
 
       {/* Section Label */}
       <div className="px-6 pt-6 pb-2">
-        <span className="section-header">Navigation</span>
+        <span className="section-header text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Navigation</span>
       </div>
 
       {/* Navigation */}
-      <nav className="px-3 flex-1">
+      <nav className="flex-1 py-2">
         <ul className="space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href ||
               (item.href !== '/' && pathname.startsWith(item.href));
 
             return (
-              <li key={item.name}>
+              <li key={item.name} className="relative">
                 <Link
                   href={item.href}
-                  className={`nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg ${isActive
-                    ? 'nav-item-active'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  className={`flex items-center gap-3 py-3 pl-6 pr-4 transition-all duration-200 ${isActive
+                    ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] border-y border-l border-[var(--border-subtle)] -mr-[1px] rounded-l-md rounded-r-none z-10 relative'
+                    : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-primary)]/50 hover:text-[var(--text-primary)] mx-3 rounded-md'
                     }`}
                 >
-                  <span className={`transition-colors duration-200 ${isActive ? 'text-[var(--primary)]' : ''}`}>
+                  {isActive && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--primary)] rounded-l-md" />
+                  )}
+
+                  <span className={`transition-colors duration-200 ${isActive ? 'text-[var(--primary)]' : 'group-hover:text-[var(--text-primary)]'}`}>
                     {icons[item.icon]}
                   </span>
-                  <span className="flex-1 text-[13px] font-medium">{item.name}</span>
-                  {isActive && (
-                    <span className="live-indicator" />
-                  )}
+                  <span className={`flex-1 text-[13px] font-medium ${isActive ? 'font-semibold' : ''}`}>{item.name}</span>
                 </Link>
               </li>
             );
@@ -175,14 +177,14 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 space-y-1">
-        <button className="flex items-center gap-3 px-3 py-2.5 w-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-all duration-200 text-[13px]">
+        <button className="flex items-center gap-3 px-3 py-2.5 w-full text-[var(--text-secondary)] hover:text-[var(--primary)] rounded hover:bg-[var(--bg-tertiary)] transition-all duration-200 text-[13px]">
           <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <span className="font-medium">Help & Support</span>
         </button>
 
-        <button className="flex items-center gap-3 px-3 py-2.5 w-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-all duration-200 text-[13px]">
+        <button className="flex items-center gap-3 px-3 py-2.5 w-full text-[var(--text-secondary)] hover:text-[var(--primary)] rounded hover:bg-[var(--bg-tertiary)] transition-all duration-200 text-[13px]">
           <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -190,8 +192,11 @@ export default function Sidebar() {
           <span className="font-medium">Settings</span>
         </button>
 
+        {/* Theme Toggle */}
+        <ThemeToggle />
+
         {/* Network Status */}
-        <div className="mt-4 px-3 py-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-subtle)]">
+        <div className="mt-4 px-3 py-3 bg-[var(--bg-tertiary)] rounded border border-[var(--border-subtle)]">
           <div className="flex items-center gap-2">
             <span className="live-indicator" />
             <span className="text-[11px] text-[var(--text-secondary)] font-medium">Mainnet Connected</span>

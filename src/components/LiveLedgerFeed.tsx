@@ -80,7 +80,7 @@ export default function LiveLedgerFeed({ initialLedgers, limit = 10 }: LiveLedge
   }, []);
 
   return (
-    <div ref={containerRef} className="space-y-1.5">
+    <div ref={containerRef} className="space-y-3">
       {ledgers.map((ledger) => (
         <CompactLedgerRow
           key={ledger.id}

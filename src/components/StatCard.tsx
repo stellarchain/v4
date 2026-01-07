@@ -25,7 +25,7 @@ function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
     return `${x},${y}`;
   }).join(' ');
 
-  const strokeColor = positive ? '#BFF549' : '#ef4444';
+  const strokeColor = positive ? 'var(--primary)' : '#ef4444';
 
   return (
     <svg width={width} height={height} className="overflow-visible">
@@ -97,22 +97,22 @@ export default function StatCard({ stat, onClick }: StatCardProps) {
   return (
     <div
       onClick={onClick}
-      className={`bg-[#0d0d0d] border border-[#1a1a1a] rounded-xl p-4 transition-all ${onClick ? 'cursor-pointer hover:border-[#BFF549]/50 hover:bg-[#111]' : ''
+      className={`bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded p-4 transition-all ${onClick ? 'cursor-pointer hover:border-[var(--primary)]/50 hover:bg-[var(--bg-secondary)]' : ''
         }`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-[#555] text-xs mb-1">{stat.label}</p>
-          <p className="text-white text-lg font-semibold">
+          <p className="text-[var(--text-muted)] text-xs mb-1">{stat.label}</p>
+          <p className="text-[var(--text-primary)] text-lg font-semibold">
             {formatValue(stat.value, stat.prefix, stat.suffix)}
           </p>
           {stat.change !== undefined && (
             <div className="flex items-center gap-1 mt-1">
-              <span className={`text-xs font-medium ${isPositive ? 'text-[#BFF549]' : 'text-red-400'}`}>
+              <span className={`text-xs font-medium ${isPositive ? 'text-[var(--primary)]' : 'text-red-400'}`}>
                 {isPositive ? '+' : ''}{stat.change.toFixed(2)}%
               </span>
               <svg
-                className={`w-3 h-3 ${isPositive ? 'text-[#BFF549]' : 'text-red-400 rotate-180'}`}
+                className={`w-3 h-3 ${isPositive ? 'text-[var(--primary)]' : 'text-red-400 rotate-180'}`}
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
