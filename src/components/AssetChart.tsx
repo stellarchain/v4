@@ -146,11 +146,10 @@ export default function AssetChart({ asset }: AssetChartProps) {
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
-                timeRange === range
+              className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${timeRange === range
                   ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm'
                   : 'text-[var(--text-tertiary)] hover:text-[var(--primary)]'
-              }`}
+                }`}
             >
               {range.toUpperCase()}
             </button>
@@ -303,7 +302,7 @@ export default function AssetChart({ asset }: AssetChartProps) {
 
       {/* Footer */}
       <div className="px-4 pb-4 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-        <span>Data from StellarExpert API</span>
+
         <span>{priceData.length} data points</span>
       </div>
     </div>

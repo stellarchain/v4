@@ -103,14 +103,14 @@ export default function AssetOrderBook({ asset }: OrderBookProps) {
     const totalMax = Math.max(maxBid, maxAsk);
 
     return (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded overflow-hidden mt-6">
+        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm overflow-hidden mt-6">
             <div className="p-4 border-b border-[var(--border-subtle)]">
                 <h3 className="text-[var(--text-primary)] font-semibold">Order Book</h3>
             </div>
             <div className="grid grid-cols-2 gap-px bg-[var(--border-subtle)]">
                 {/* Bids */}
                 <div className="bg-[var(--bg-secondary)]">
-                    <div className="grid grid-cols-3 text-[11px] text-[var(--text-tertiary)] p-2 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/30">
+                    <div className="grid grid-cols-3 text-[11px] text-[var(--text-tertiary)] p-3 border-b border-[var(--border-subtle)]">
                         <span>Price ({asset.code === 'XLM' ? 'USDC' : 'XLM'})</span>
                         <span className="text-right">Amount ({asset.code})</span>
                         <span className="text-right">Total</span>
@@ -134,7 +134,7 @@ export default function AssetOrderBook({ asset }: OrderBookProps) {
 
                 {/* Asks */}
                 <div className="bg-[var(--bg-secondary)]">
-                    <div className="grid grid-cols-3 text-[11px] text-[var(--text-tertiary)] p-2 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/30">
+                    <div className="grid grid-cols-3 text-[11px] text-[var(--text-tertiary)] p-3 border-b border-[var(--border-subtle)]">
                         <span>Price ({asset.code === 'XLM' ? 'USDC' : 'XLM'})</span>
                         <span className="text-right">Amount ({asset.code})</span>
                         <span className="text-right">Total</span>

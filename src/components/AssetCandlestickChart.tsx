@@ -89,7 +89,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
     }, [asset, resolution]);
 
     return (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded p-4">
+        <div className="bg-[var(--bg-secondary)] rounded-2xl p-5 shadow-sm">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-[var(--text-primary)] font-semibold">Price Chart ({asset.code}/{asset.code === 'XLM' ? 'USDC' : 'XLM'})</h3>
                 <div className="flex gap-2">
