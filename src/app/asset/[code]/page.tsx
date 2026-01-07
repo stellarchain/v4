@@ -32,7 +32,7 @@ function formatPrice(price: number): string {
 
 function StatCard({ label, value, subValue, tooltip }: { label: string; value: string; subValue?: string; tooltip?: string }) {
   return (
-    <div className="bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded p-4 hover:border-[var(--border-default)] transition-all">
+    <div className="bg-[var(--bg-secondary)] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
       <div className="flex items-center gap-1 mb-1">
         <span className="text-[var(--text-tertiary)] text-[11px] uppercase tracking-wider font-medium">{label}</span>
         {tooltip && (
@@ -93,7 +93,7 @@ export default async function AssetPage({ params, searchParams }: PageProps) {
         {/* Left Sidebar */}
         <div className="space-y-4">
           {/* Asset Header Card */}
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded p-5">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-14 h-14 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center text-[var(--text-primary)] font-bold text-xl">
                 {asset.code.slice(0, 2)}
@@ -156,7 +156,7 @@ export default async function AssetPage({ params, searchParams }: PageProps) {
           </div>
 
           {/* Market Stats */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <StatCard
               label="Market Cap"
               value={`$${formatNumber(asset.market_cap)}`}
@@ -180,7 +180,7 @@ export default async function AssetPage({ params, searchParams }: PageProps) {
           </div>
 
           {/* Additional Info */}
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded p-4 space-y-3">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 space-y-4 shadow-sm">
             {asset.holders > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-[var(--text-tertiary)] text-[13px]">Holders</span>
@@ -215,7 +215,7 @@ export default async function AssetPage({ params, searchParams }: PageProps) {
 
           {/* Links */}
           {(asset.domain || asset.issuer) && (
-            <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded p-4 space-y-3">
+            <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 space-y-4 shadow-sm">
               {asset.domain && (
                 <div className="flex items-center justify-between">
                   <span className="text-[var(--text-tertiary)] text-[13px]">Website</span>
@@ -246,20 +246,7 @@ export default async function AssetPage({ params, searchParams }: PageProps) {
                   </Link>
                 </div>
               )}
-              <div className="flex items-center justify-between">
-                <span className="text-[var(--text-tertiary)] text-[13px]">Explorer</span>
-                <a
-                  href={`https://stellar.expert/explorer/public/asset/${asset.code}${asset.issuer ? `-${asset.issuer}` : ''}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-[var(--primary)] text-[13px] hover:underline"
-                >
-                  stellar.expert
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              </div>
+
             </div>
           )}
 
@@ -277,18 +264,18 @@ export default async function AssetPage({ params, searchParams }: PageProps) {
           </div>
 
           {/* Price Performance */}
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded p-5">
-            <h3 className="text-[var(--text-primary)] font-semibold mb-4">Price Performance</h3>
+          <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm">
+            <h3 className="text-[var(--text-primary)] font-semibold mb-4 text-sm uppercase tracking-wide">Price Performance</h3>
             <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-3 bg-[var(--bg-tertiary)] rounded">
+              <div className="text-center p-4 bg-[var(--bg-tertiary)] rounded-xl">
                 <p className="text-[var(--text-tertiary)] text-[11px] uppercase mb-1">1 Hour</p>
                 <ChangeIndicator value={asset.change_1h} size="sm" />
               </div>
-              <div className="text-center p-3 bg-[var(--bg-tertiary)] rounded">
+              <div className="text-center p-4 bg-[var(--bg-tertiary)] rounded-xl">
                 <p className="text-[var(--text-tertiary)] text-[11px] uppercase mb-1">24 Hours</p>
                 <ChangeIndicator value={asset.change_24h} size="sm" />
               </div>
-              <div className="text-center p-3 bg-[var(--bg-tertiary)] rounded">
+              <div className="text-center p-4 bg-[var(--bg-tertiary)] rounded-xl">
                 <p className="text-[var(--text-tertiary)] text-[11px] uppercase mb-1">7 Days</p>
                 <ChangeIndicator value={asset.change_7d} size="sm" />
               </div>
@@ -297,7 +284,7 @@ export default async function AssetPage({ params, searchParams }: PageProps) {
 
           {/* About Section */}
           {asset.description && (
-            <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded p-5">
+            <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm">
               <h3 className="text-[var(--text-primary)] font-semibold mb-3">About {asset.name}</h3>
               <p className="text-[var(--text-secondary)] text-[14px] leading-relaxed">
                 {asset.description}

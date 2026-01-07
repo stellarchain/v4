@@ -24,12 +24,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             setThemeState(stored);
             document.documentElement.setAttribute('data-theme', stored);
         } else {
-            // Check system preference
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const defaultTheme = prefersDark ? 'dark' : 'light';
+            // Default to light mode
+            const defaultTheme = 'light';
             setThemeState(defaultTheme);
             document.documentElement.setAttribute('data-theme', defaultTheme);
         }
+
     }, []);
 
     const setTheme = (newTheme: Theme) => {

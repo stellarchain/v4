@@ -75,7 +75,7 @@ export default function DetailedChart({ stat, onClose }: DetailedChartProps) {
             {/* Modal */}
             <div
                 ref={modalRef}
-                className="relative w-full max-w-3xl bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-md p-6 shadow-2xl opacity-0 overflow-hidden"
+                className="relative w-full max-w-3xl bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-2xl opacity-0 overflow-hidden"
             >
                 {/* Holographic Border Effect */}
                 <div className="absolute inset-0 pointer-events-none rounded-md border border-white/5" />
@@ -129,12 +129,13 @@ export default function DetailedChart({ stat, onClose }: DetailedChartProps) {
                             />
                             <Tooltip
                                 contentStyle={{
-                                    backgroundColor: '#111',
-                                    border: '1px solid #333',
-                                    borderRadius: '8px',
-                                    color: '#fff'
+                                    backgroundColor: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-subtle)',
+                                    borderRadius: '12px',
+                                    color: 'var(--text-primary)',
+                                    boxShadow: 'var(--shadow-lg)'
                                 }}
-                                itemStyle={{ color: '#fff' }}
+                                itemStyle={{ color: 'var(--text-primary)' }}
                                 formatter={(value: number | string | Array<number | string> | undefined) => {
                                     if (value === undefined) return [];
                                     const numValue = Number(value);
