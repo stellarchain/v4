@@ -749,21 +749,22 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       priceHistory = asset.price7d;
     }
 
-    // PREFER STELLARCHAIN DATA for live stats if available
-    const currentPrice = stellarChainData?.price_usd !== undefined ? Number(stellarChainData.price_usd) : (Number(asset.price) || 0);
+    // Get price from Horizon API (single source of truth)
+    const horizonPrice = await getAssetPriceFromHorizon(code, issuer);
+    const currentPrice = horizonPrice.priceUsd;
+    const priceInXlm = horizonPrice.priceXlm;
+
     const supply = stellarChainData?.supply !== undefined ? Number(stellarChainData.supply) : ((Number(asset.supply) || 0) / 1e7);
     // Note: StellarExpert volume is 7d in stroops, SC is 24h USD. We prefer SC volume if available.
     const volume7d = (Number(asset.volume7d) || 0) / 1e7;
     const volume24h = stellarChainData?.volume_usd !== undefined ? Number(stellarChainData.volume_usd) : (volume7d / 7);
 
-    // Calculate price changes
+    // Calculate price changes using Horizon current price
     const price24hAgo = getPriceAtHoursAgo(priceHistory, 24);
     const price7dAgo = priceHistory.length > 0 ? priceHistory[0][1] : currentPrice;
 
-    // Use SC change if available, otherwise calc from history
-    const change24h = stellarChainData?.price_usd_change !== undefined
-      ? Number(stellarChainData.price_usd_change)
-      : calculatePriceChange(price24hAgo, currentPrice);
+    // Calculate change based on current Horizon price
+    const change24h = price24hAgo > 0 ? calculatePriceChange(price24hAgo, currentPrice) : 0;
 
     const change7d = calculatePriceChange(price7dAgo, currentPrice);
 
@@ -784,7 +785,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       domain: String(stellarChainData?.domain || asset.domain || toml.orgName || ''),
       image: stellarChainData?.image || (toml.image ? String(toml.image) : undefined),
       price_usd: currentPrice,
-      price_xlm: xlmPrice > 0 ? currentPrice / xlmPrice : 0,
+      price_xlm: priceInXlm,
       change_1h: 0,
       change_24h: change24h,
       change_7d: change7d,
@@ -843,49 +844,72 @@ function generateMockMarketData(): MarketAsset[] {
 }
 
 // Known Accounts
-export async function fetchKnownAccounts(
+// List All Accounts sorted by XLM balance (Rich List) - using Stellarchain API
+export async function fetchAllAccounts(
   limit: number = 50,
-  search?: string,
-  tag?: string
+  page: number = 1
 ): Promise<KnownAccount[]> {
   try {
-    let url = `https://api.stellar.expert/explorer/public/directory?limit=${limit}`;
-    if (search) url += `&search=${search}`;
-    if (tag) url += `&tag=${tag}`;
+    // Use Stellarchain's top accounts API - returns accounts sorted by XLM balance with labels
+    const url = `https://api.stellarchain.io/v1/accounts/top?page=${page}&paginate=${limit}`;
 
     const response = await fetch(url, {
       headers: { 'Accept': 'application/json' },
-      next: { revalidate: 3600 },
+      next: { revalidate: 300 }, // Cache for 5 minutes
     });
 
     if (!response.ok) {
-      return generateMockKnownAccounts(limit, search, tag);
+      throw new Error(`Failed to fetch: ${response.status}`);
     }
 
     const data = await response.json();
-    return data._embedded.records.map((record: any) => ({
-      address: record.address,
-      name: record.name || 'Unknown',
-      domain: record.domain,
-      tags: record.tags || [],
-      paging_token: record.paging_token
-    }));
+
+    // Handle the response structure - data is in 'data' array
+    const records = data.data || [];
+
+    return records.map((record: any) => {
+      const balance = parseFloat(record.balance || '0');
+      const formattedBalance = balance >= 1e9
+        ? `${(balance / 1e9).toFixed(2)}B XLM`
+        : balance >= 1e6
+          ? `${(balance / 1e6).toFixed(2)}M XLM`
+          : `${balance.toLocaleString()} XLM`;
+
+      // Build tags array
+      const tags: string[] = [formattedBalance];
+      if (record.percent_of_coins) {
+        tags.push(`${parseFloat(record.percent_of_coins).toFixed(2)}%`);
+      }
+      if (record.label?.verified) {
+        tags.push('verified');
+      }
+
+      return {
+        address: record.account,
+        name: record.label?.name || shortenAddress(record.account),
+        domain: record.label?.domain || undefined,
+        tags,
+        paging_token: record.rank?.toString() || record.account
+      };
+    });
+
   } catch (error) {
-    console.error('Error fetching known accounts:', error);
-    return generateMockKnownAccounts(limit, search, tag);
+    console.error('Error fetching accounts:', error);
+    return generateMockKnownAccounts(limit);
   }
 }
 
+
 function generateMockKnownAccounts(limit: number, search?: string, tag?: string): KnownAccount[] {
   const mockAccounts: KnownAccount[] = [
-    { address: 'G...BINANCE', name: 'Binance', domain: 'binance.com', tags: ['exchange', 'wallet'], paging_token: '1' },
-    { address: 'G...COINBASE', name: 'Coinbase', domain: 'coinbase.com', tags: ['exchange', 'custodian'], paging_token: '2' },
-    { address: 'G...KRAKEN', name: 'Kraken', domain: 'kraken.com', tags: ['exchange'], paging_token: '3' },
-    { address: 'G...CIRCLE', name: 'USDC Issuer', domain: 'centre.io', tags: ['issuer', 'stablecoin'], paging_token: '4' },
-    { address: 'G...ANCHORUSD', name: 'AnchorUSD', domain: 'anchorusd.com', tags: ['anchor', 'wallet'], paging_token: '5' },
-    { address: 'G...BITFINEX', name: 'Bitfinex', domain: 'bitfinex.com', tags: ['exchange'], paging_token: '6' },
-    { address: 'G...LOBSTR', name: 'LOBSTR', domain: 'lobstr.co', tags: ['wallet'], paging_token: '7' },
-    { address: 'G...WIREX', name: 'Wirex', domain: 'wirexapp.com', tags: ['anchor', 'issuer'], paging_token: '8' },
+    { address: 'GCO2IP3MJHM72GMXOD4KKHLNPHX6F477123456789012345678901234', name: 'Binance', domain: 'binance.com', tags: ['exchange', 'wallet'], paging_token: '1' },
+    { address: 'GA5XIGA5C7QTPTWXQHY6MCJRMTRZDOSHR6EFIBJH372345678901234', name: 'Coinbase', domain: 'coinbase.com', tags: ['exchange', 'custodian'], paging_token: '2' },
+    { address: 'GBX67BEOABQAELIP2XTC2JZB3TVXQ7W351234567890123456789012', name: 'Kraken', domain: 'kraken.com', tags: ['exchange'], paging_token: '3' },
+    { address: 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN', name: 'USDC Issuer', domain: 'centre.io', tags: ['issuer', 'stablecoin'], paging_token: '4' },
+    { address: 'GATEMHCCKCY67ZUCKTROYN24ZYT5GK4EQZ654321098765432109876', name: 'AnchorUSD', domain: 'anchorusd.com', tags: ['anchor', 'wallet'], paging_token: '5' },
+    { address: 'GC4KAS6W2YQFJHLFQT3Z29XN3723456789012345678901234567890', name: 'Bitfinex', domain: 'bitfinex.com', tags: ['exchange'], paging_token: '6' },
+    { address: 'GAB7PTLMA7234567890123456789012345678901234567890123456', name: 'LOBSTR', domain: 'lobstr.co', tags: ['wallet'], paging_token: '7' },
+    { address: 'GC32345678901234567890123456789012345678901234567890123', name: 'Wirex', domain: 'wirexapp.com', tags: ['anchor', 'issuer'], paging_token: '8' },
   ];
 
   // Simple filtering for mock data
@@ -1522,3 +1546,85 @@ export async function getTradeAggregations(
   const response = await fetchJSON<PaginatedResponse<TradeAggregation>>(url);
   return response._embedded.records;
 }
+
+// USDC issuer on Stellar mainnet (Centre/Circle)
+const USDC_ISSUER = 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN';
+
+/**
+ * Get current XLM/USD price from Horizon API using XLM/USDC trade aggregations
+ * Uses the most recent 15-minute aggregation to get the close price
+ */
+export async function getXLMUSDPriceFromHorizon(): Promise<number> {
+  try {
+    const aggregations = await getTradeAggregations(
+      { code: 'XLM' }, // base asset
+      { code: 'USDC', issuer: USDC_ISSUER }, // counter asset (USDC ≈ USD)
+      900000, // 15-minute resolution
+      1 // just need the most recent one
+    );
+
+    if (aggregations.length > 0) {
+      // Close price gives us XLM price in USDC (≈ USD)
+      return parseFloat(aggregations[0].close);
+    }
+  } catch (error) {
+    console.error('Failed to fetch XLM/USD price from Horizon:', error);
+  }
+
+  // Fallback price if API fails
+  return 0.10;
+}
+
+/**
+ * Get current asset price in USD from Horizon API
+ * For XLM: uses XLM/USDC pair
+ * For other tokens: uses TOKEN/XLM pair and multiplies by XLM/USD
+ */
+export async function getAssetPriceFromHorizon(
+  assetCode: string,
+  assetIssuer?: string
+): Promise<{ priceUsd: number; priceXlm: number; xlmUsdRate: number }> {
+  try {
+    // Get XLM/USD rate first
+    const xlmUsdRate = await getXLMUSDPriceFromHorizon();
+
+    if (assetCode === 'XLM') {
+      return {
+        priceUsd: xlmUsdRate,
+        priceXlm: 1,
+        xlmUsdRate
+      };
+    }
+
+    // For other tokens, get TOKEN/XLM price from trade aggregations
+    const aggregations = await getTradeAggregations(
+      { code: assetCode, issuer: assetIssuer },
+      { code: 'XLM' },
+      900000, // 15-minute resolution
+      1
+    );
+
+    if (aggregations.length > 0) {
+      // Close price gives us how many XLM per TOKEN
+      const priceXlm = parseFloat(aggregations[0].close);
+      const priceUsd = priceXlm * xlmUsdRate;
+
+      return {
+        priceUsd,
+        priceXlm,
+        xlmUsdRate
+      };
+    }
+  } catch (error) {
+    console.error('Failed to fetch asset price from Horizon:', error);
+  }
+
+  // Fallback
+  return {
+    priceUsd: 0,
+    priceXlm: 0,
+    xlmUsdRate: 0.10
+  };
+}
+
+export { USDC_ISSUER };
