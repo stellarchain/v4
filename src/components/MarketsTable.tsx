@@ -232,7 +232,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Search */}
         <div className="relative flex-1 max-w-md">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -240,7 +240,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search assets..."
-            className="w-full bg-[var(--bg-secondary)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all pl-11 shadow-inner placeholder-[var(--text-muted)] text-[13px]"
+            className="w-full bg-[var(--bg-tertiary)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all pl-11 shadow-inner text-sm"
           />
         </div>
 
@@ -253,7 +253,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
               setSortField(field);
               setSortOrder(order);
             }}
-            className="bg-[var(--bg-secondary)] rounded-xl px-4 py-3 text-[var(--text-primary)] text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 appearance-none cursor-pointer pr-10 shadow-sm"
+            className="bg-[var(--bg-tertiary)] rounded-xl px-4 py-3 text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 appearance-none cursor-pointer pr-10"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
           >
             <option value="market_cap-desc">Market Cap</option>
@@ -265,7 +265,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
           </select>
 
           {/* Columns button (visual only for now) */}
-          <button className="bg-[var(--bg-secondary)] rounded-xl px-4 py-3 text-[var(--text-secondary)] text-[13px] hover:bg-[var(--bg-hover)] transition-colors flex items-center gap-2 shadow-sm">
+          <button className="bg-[var(--bg-tertiary)] rounded-xl px-4 py-3 text-[var(--text-muted)] text-sm hover:text-[var(--text-primary)] transition-colors flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h18M3 8h18M3 12h18M3 16h18M3 20h18" />
             </svg>
@@ -470,18 +470,20 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
 
       {/* Empty State */}
       {filteredAndSortedAssets.length === 0 && (
-        <div className="text-center py-16 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded">
-          <svg className="w-12 h-12 text-[var(--text-muted)] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <p className="text-[var(--text-tertiary)] text-[14px]">No assets found matching &quot;{searchQuery}&quot;</p>
+        <div className="text-center py-20 bg-[var(--bg-secondary)] rounded-2xl shadow-sm">
+          <div className="w-16 h-16 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <h3 className="text-[var(--text-primary)] font-medium mb-1">No assets found</h3>
+          <p className="text-[var(--text-muted)] text-sm">No assets found matching &quot;{searchQuery}&quot;</p>
         </div>
       )}
 
       {/* Footer Info */}
-      <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-        <span>Showing {filteredAndSortedAssets.length} assets</span>
-        <span>Data from StellarExpert API</span>
+      <div className="text-sm text-[var(--text-muted)]">
+        Showing {filteredAndSortedAssets.length} assets
       </div>
     </div>
   );

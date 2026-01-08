@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 
 export default function WalletTrackPage() {
     const [address, setAddress] = useState('');
@@ -16,61 +15,81 @@ export default function WalletTrackPage() {
     const showcaseAddress = 'GDUY7J7A33TQWOSOQGDO776GGLM3UQERL4J3SPT56F6YS4ID7MLDERI4';
 
     return (
-        <div className="max-w-4xl mx-auto space-y-12 py-12 px-4">
+        <div className="max-w-3xl mx-auto space-y-8">
             {/* Header */}
-            <div className="text-center space-y-4">
-                <h1 className="text-[56px] font-bold text-[var(--text-primary)] tracking-tight leading-tight">Wallet Track</h1>
-                <p className="text-[var(--text-secondary)] text-lg max-w-2xl mx-auto">
-                    Visualize transaction flows, money movement, and account connections in real-time on the Stellar network.
-                </p>
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                    </svg>
+                </div>
+                <div>
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Wallet Track</h1>
+                        <span className="px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[10px] font-medium text-[#777]">
+                            Beta
+                        </span>
+                    </div>
+                    <p className="text-[var(--text-muted)] text-xs">Visualize transaction flows and account connections</p>
+                </div>
             </div>
 
-            {/* Search */}
-            <div className="max-w-2xl mx-auto">
-                <form onSubmit={handleSubmit} className="relative">
-                    <input
-                        type="text"
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        placeholder="Enter Stellar Address (G...)"
-                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl py-5 pl-6 pr-32 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all shadow-lg text-lg font-mono"
-                    />
+            {/* Search Card */}
+            <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2 block">
+                            Stellar Address
+                        </label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                                placeholder="G..."
+                                className="w-full bg-[var(--bg-tertiary)] rounded-xl py-3 px-4 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all text-sm font-mono"
+                            />
+                        </div>
+                    </div>
                     <button
                         type="submit"
                         disabled={address.length !== 56}
-                        className="absolute right-2 top-2 bottom-2 bg-[var(--primary)] text-black font-semibold px-6 rounded-xl hover:bg-[var(--primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full bg-[var(--primary)] text-white font-medium py-3 rounded-xl hover:bg-[var(--primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                     >
-                        Visualize
+                        Visualize Graph
                     </button>
                 </form>
             </div>
 
-            {/* Showcase CARD */}
-            <div className="border border-[var(--border-subtle)] rounded-2xl shadow-sm p-8 bg-[var(--bg-secondary)] relative overflow-hidden group hover:border-[var(--primary)] transition-all cursor-pointer" onClick={() => window.location.href = `/graph/${showcaseAddress}`}>
-                {/* Background Decoration */}
-                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform scale-150 translate-x-10 -translate-y-10">
-                    <svg className="w-96 h-96 text-[var(--primary)]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+            {/* Showcase Card */}
+            <div
+                className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
+                onClick={() => window.location.href = `/graph/${showcaseAddress}`}
+            >
+                <div className="flex items-start justify-between">
+                    <div className="space-y-3">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded-md text-[10px] font-medium uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />
+                            Featured
+                        </span>
+                        <div>
+                            <h3 className="text-[var(--text-primary)] font-medium mb-1">Enterprise Fund</h3>
+                            <p className="text-[var(--text-muted)] text-xs mb-3">SDF Use-Case Investment</p>
+                            <p className="text-[var(--text-muted)] font-mono text-[10px] break-all max-w-md">
+                                {showcaseAddress}
+                            </p>
+                        </div>
+                    </div>
+                    <svg className="w-5 h-5 text-[var(--text-muted)] group-hover:text-[var(--primary)] group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
                     </svg>
                 </div>
-
-                <div className="relative z-10">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full text-xs font-semibold uppercase tracking-wider mb-4 border border-[var(--primary)]/20">
-                        Featured Showcase
-                    </div>
-                    <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Enterprise Fund</h3>
-                    <p className="text-[var(--text-secondary)] mb-1">SDF Use-Case Investment</p>
-                    <p className="text-[var(--text-muted)] mb-6 font-mono text-sm break-all max-w-xl opacity-70">
-                        {showcaseAddress}
-                    </p>
-                    <div className="flex items-center gap-2 text-[var(--primary)] font-medium group-hover:gap-4 transition-all">
-                        <span>View Interactive Graph</span>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
-                    </div>
-                </div>
             </div>
+
+            {/* Info */}
+            <p className="text-center text-[var(--text-muted)] text-xs">
+                Enter any Stellar address to visualize its transaction network
+            </p>
         </div>
     );
 }

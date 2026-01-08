@@ -20,25 +20,27 @@ export default async function HomePage() {
   const operations = operationsResponse._embedded.records;
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-8 w-full">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
-            Stellar Explorer
-          </h1>
-          <p className="text-[13px] text-[var(--text-tertiary)] mt-1">
-            Real-time blockchain analytics and monitoring
-          </p>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 rounded-xl flex items-center justify-center">
+          <svg className="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+          </svg>
         </div>
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded">
-          <span className="live-indicator" />
-          <span className="text-[12px] text-[var(--text-secondary)] font-medium">Live</span>
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Explorer</h1>
+            <span className="px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[10px] font-medium text-[#777]">
+              Live
+            </span>
+          </div>
+          <p className="text-[var(--text-muted)] text-xs">Real-time blockchain analytics and monitoring</p>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatsCard
           title="Latest Ledger"
           value={`#${stats.ledger_count.toLocaleString()}`}
@@ -83,14 +85,14 @@ export default async function HomePage() {
 
       {/* Recent Ledgers */}
       <section>
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2.5">
-            <span className="section-header">Recent Ledgers</span>
-            <span className="live-indicator" />
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-4 bg-[var(--primary)] rounded-full" />
+            <h2 className="text-sm font-medium text-[#777] uppercase tracking-wider">Recent Ledgers</h2>
           </div>
           <Link
             href="/ledgers"
-            className="text-[var(--text-tertiary)] hover:text-[var(--primary)] text-[12px] font-medium flex items-center gap-1 transition-colors"
+            className="text-[var(--text-muted)] hover:text-[var(--primary)] text-xs font-medium flex items-center gap-1 transition-colors"
           >
             View all
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,14 +107,14 @@ export default async function HomePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Transactions */}
         <section>
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2.5">
-              <span className="section-header">Recent Transactions</span>
-              <span className="live-indicator" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-4 bg-blue-400 rounded-full" />
+              <h2 className="text-sm font-medium text-[#777] uppercase tracking-wider">Recent Transactions</h2>
             </div>
             <Link
               href="/transactions"
-              className="text-[var(--text-tertiary)] hover:text-[var(--primary)] text-[12px] font-medium flex items-center gap-1 transition-colors"
+              className="text-[var(--text-muted)] hover:text-[var(--primary)] text-xs font-medium flex items-center gap-1 transition-colors"
             >
               View all
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,14 +127,14 @@ export default async function HomePage() {
 
         {/* Recent Operations */}
         <section>
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2.5">
-              <span className="section-header">Recent Operations</span>
-              <span className="live-indicator" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-4 bg-purple-400 rounded-full" />
+              <h2 className="text-sm font-medium text-[#777] uppercase tracking-wider">Recent Operations</h2>
             </div>
             <Link
               href="/operations"
-              className="text-[var(--text-tertiary)] hover:text-[var(--primary)] text-[12px] font-medium flex items-center gap-1 transition-colors"
+              className="text-[var(--text-muted)] hover:text-[var(--primary)] text-xs font-medium flex items-center gap-1 transition-colors"
             >
               View all
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
