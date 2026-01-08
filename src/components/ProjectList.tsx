@@ -67,7 +67,7 @@ export default function ProjectList({ initialProjects }: ProjectListProps) {
                         </div>
 
                         <div className="space-y-3 relative z-10">
-                            <div className="flex flex-col gap-1.5 p-3 rounded bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                            <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
                                 <div className="flex justify-between items-center text-xs">
                                     <span className="text-[var(--text-muted)]">Funding</span>
                                     <span className="text-[var(--text-primary)] font-mono font-medium">{project.amount}</span>

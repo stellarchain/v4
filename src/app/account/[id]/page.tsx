@@ -40,7 +40,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
         <p className="text-[var(--text-muted)] font-mono text-sm mb-8 break-all max-w-lg text-center px-4">{id}</p>
         <Link
           href="/"
-          className="px-6 py-3 bg-[var(--primary)] text-black font-semibold rounded hover:opacity-90 transition-opacity"
+          className="px-6 py-3 bg-[var(--primary)] text-black font-semibold rounded-xl hover:opacity-90 transition-opacity"
         >
           Back to Home
         </Link>
@@ -56,7 +56,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="w-12 h-12 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 rounded flex items-center justify-center">
+        <div className="w-12 h-12 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 rounded-xl flex items-center justify-center">
           <svg className="w-6 h-6 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
@@ -73,7 +73,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
           <div className="flex items-center gap-2 mt-1">
             <p className="text-[var(--text-tertiary)] font-mono text-sm break-all">{id}</p>
             <button
-              className="p-1.5 hover:bg-[var(--bg-hover)] rounded transition-colors group"
+              className="p-1.5 hover:bg-[var(--bg-hover)] rounded-xl transition-colors group"
               title="Copy address"
             >
               <svg className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,7 +85,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
 
         <Link
           href={`/graph/${id}`}
-          className="px-4 py-2 bg-[var(--primary)] text-[var(--bg-primary)] rounded font-medium text-sm hover:bg-[var(--primary-light)] transition-colors flex items-center gap-2 shrink-0"
+          className="px-4 py-2 bg-[var(--primary)] text-[var(--bg-primary)] rounded-xl font-medium text-sm hover:bg-[var(--primary-light)] transition-colors flex items-center gap-2 shrink-0"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -175,15 +175,15 @@ export default async function AccountPage({ params }: AccountPageProps) {
         <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">Thresholds</h2>
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-[var(--bg-secondary)] rounded p-4 text-center">
+            <div className="bg-[var(--bg-secondary)] rounded-xl p-4 text-center">
               <p className="text-[var(--text-muted)] text-xs mb-1">Low</p>
               <p className="text-[var(--text-primary)] text-2xl font-bold">{account.thresholds.low_threshold}</p>
             </div>
-            <div className="bg-[var(--bg-secondary)] rounded p-4 text-center">
+            <div className="bg-[var(--bg-secondary)] rounded-xl p-4 text-center">
               <p className="text-[var(--text-muted)] text-xs mb-1">Medium</p>
               <p className="text-[var(--text-primary)] text-2xl font-bold">{account.thresholds.med_threshold}</p>
             </div>
-            <div className="bg-[var(--bg-secondary)] rounded p-4 text-center">
+            <div className="bg-[var(--bg-secondary)] rounded-xl p-4 text-center">
               <p className="text-[var(--text-muted)] text-xs mb-1">High</p>
               <p className="text-[var(--text-primary)] text-2xl font-bold">{account.thresholds.high_threshold}</p>
             </div>
@@ -194,25 +194,25 @@ export default async function AccountPage({ params }: AccountPageProps) {
         <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">Flags</h2>
           <div className="flex flex-wrap gap-2">
-            <span className={`px-3 py-1.5 rounded text-sm font-medium ${account.flags.auth_required
+            <span className={`px-3 py-1.5 rounded-xl text-sm font-medium ${account.flags.auth_required
                 ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
                 : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
               }`}>
               {account.flags.auth_required ? '✓' : '✗'} Auth Required
             </span>
-            <span className={`px-3 py-1.5 rounded text-sm font-medium ${account.flags.auth_revocable
+            <span className={`px-3 py-1.5 rounded-xl text-sm font-medium ${account.flags.auth_revocable
                 ? 'bg-yellow-500/10 text-yellow-400'
                 : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
               }`}>
               {account.flags.auth_revocable ? '✓' : '✗'} Auth Revocable
             </span>
-            <span className={`px-3 py-1.5 rounded text-sm font-medium ${account.flags.auth_immutable
+            <span className={`px-3 py-1.5 rounded-xl text-sm font-medium ${account.flags.auth_immutable
                 ? 'bg-red-500/10 text-red-400'
                 : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
               }`}>
               {account.flags.auth_immutable ? '✓' : '✗'} Auth Immutable
             </span>
-            <span className={`px-3 py-1.5 rounded text-sm font-medium ${account.flags.auth_clawback_enabled
+            <span className={`px-3 py-1.5 rounded-xl text-sm font-medium ${account.flags.auth_clawback_enabled
                 ? 'bg-blue-500/10 text-blue-400'
                 : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
               }`}>
@@ -230,7 +230,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {otherBalances.slice(0, 9).map((balance, idx) => (
-              <div key={idx} className="bg-[var(--bg-secondary)] rounded p-4 hover:bg-[var(--bg-tertiary)] transition-colors">
+              <div key={idx} className="bg-[var(--bg-secondary)] rounded-xl p-4 hover:bg-[var(--bg-tertiary)] transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center shrink-0">
                     <span className="text-[var(--text-tertiary)] font-bold text-xs">
@@ -269,9 +269,9 @@ export default async function AccountPage({ params }: AccountPageProps) {
           </h2>
           <div className="space-y-2">
             {account.signers.map((signer, idx) => (
-              <div key={idx} className="flex items-center justify-between bg-[var(--bg-secondary)] rounded p-4">
+              <div key={idx} className="flex items-center justify-between bg-[var(--bg-secondary)] rounded-xl p-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 bg-[var(--bg-tertiary)] rounded flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 bg-[var(--bg-tertiary)] rounded-xl flex items-center justify-center shrink-0">
                     <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                     </svg>
@@ -286,7 +286,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
                     </Link>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-[var(--success-muted)] text-[var(--primary)] rounded text-sm font-semibold shrink-0">
+                <span className="px-3 py-1 bg-[var(--success-muted)] text-[var(--primary)] rounded-xl text-sm font-semibold shrink-0">
                   {signer.weight}
                 </span>
               </div>

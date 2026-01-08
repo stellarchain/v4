@@ -28,7 +28,7 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Link
           href="/ledgers"
-          className="w-10 h-10 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:border-[var(--border-default)] transition-colors flex items-center justify-center"
+          className="w-10 h-10 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:border-[var(--border-default)] transition-colors flex items-center justify-center"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -36,7 +36,7 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="w-10 h-10 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 rounded flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 rounded-xl flex items-center justify-center">
               <svg className="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
@@ -141,7 +141,7 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
       <div className="flex justify-between gap-4">
         <Link
           href={`/ledger/${sequenceNum - 1}`}
-          className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:border-[var(--border-default)] transition-all"
+          className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:border-[var(--border-default)] transition-all"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -150,7 +150,7 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
         </Link>
         <Link
           href={`/ledger/${sequenceNum + 1}`}
-          className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:border-[var(--border-default)] transition-all"
+          className="flex items-center gap-2 px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:border-[var(--border-default)] transition-all"
         >
           <span className="hidden sm:inline">Ledger</span> #{(sequenceNum + 1).toLocaleString()}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

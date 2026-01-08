@@ -39,7 +39,7 @@ export default function AssetConverter({ asset }: AssetConverterProps) {
   };
 
   return (
-    <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded p-4">
+    <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-4">
       <h3 className="text-[var(--text-primary)] font-semibold text-[14px] mb-3">
         {asset.code} to USD Converter
       </h3>
@@ -51,7 +51,7 @@ export default function AssetConverter({ asset }: AssetConverterProps) {
             type="number"
             value={assetAmount}
             onChange={(e) => handleAssetChange(e.target.value)}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded py-3 px-4 pr-16 text-[var(--text-primary)] font-mono text-[15px] focus:outline-none focus:border-[var(--primary)] transition-colors"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl py-3 px-4 pr-16 text-[var(--text-primary)] font-mono text-[15px] focus:outline-none focus:border-[var(--primary)] transition-colors"
             placeholder="0"
           />
           <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] font-medium text-[13px]">
@@ -61,7 +61,7 @@ export default function AssetConverter({ asset }: AssetConverterProps) {
 
         {/* Swap Icon */}
         <div className="flex justify-center">
-          <div className="w-8 h-8 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded flex items-center justify-center">
+          <div className="w-8 h-8 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl flex items-center justify-center">
             <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
             </svg>
@@ -74,7 +74,7 @@ export default function AssetConverter({ asset }: AssetConverterProps) {
             type="number"
             value={usdAmount}
             onChange={(e) => handleUsdChange(e.target.value)}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded py-3 px-4 pr-16 text-[var(--text-primary)] font-mono text-[15px] focus:outline-none focus:border-[var(--primary)] transition-colors"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl py-3 px-4 pr-16 text-[var(--text-primary)] font-mono text-[15px] focus:outline-none focus:border-[var(--primary)] transition-colors"
             placeholder="0"
           />
           <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] font-medium text-[13px]">

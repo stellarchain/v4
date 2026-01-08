@@ -31,7 +31,7 @@ export default function DecodedParams({ operation }: DecodedParamsProps) {
             </button>
 
             {isOpen && (
-                <div className="bg-[var(--bg-tertiary)] rounded p-3 space-y-2 border border-[var(--border-default)]">
+                <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 space-y-2 border border-[var(--border-default)]">
                     {params.map((param, index) => (
                         <div key={index} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 text-xs">
                             <span className="text-[var(--text-tertiary)] font-mono whitespace-nowrap min-w-[120px]">{param.name}:</span>

@@ -60,7 +60,7 @@ function Sparkline({ data, positive, onClick }: { data: number[]; positive: bool
 
 function StatBox({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
   return (
-    <div className="bg-[var(--bg-tertiary)] rounded p-3">
+    <div className="bg-[var(--bg-tertiary)] rounded-xl p-3">
       <p className="text-[var(--text-muted)] text-[10px] uppercase tracking-wide font-medium">{label}</p>
       <p className="text-[14px] font-medium mt-0.5" style={{ color: valueColor || 'var(--text-primary)' }}>{value}</p>
     </div>
@@ -202,7 +202,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 rounded flex items-center justify-center">
+        <div className="w-10 h-10 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 rounded-xl flex items-center justify-center">
           <svg className="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>

@@ -133,10 +133,10 @@ export default function AssetChart({ asset }: AssetChartProps) {
       {/* Tabs */}
       <div className="flex items-center justify-between p-4 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-1">
-          <button className="px-3 py-1.5 rounded text-[13px] font-medium bg-[var(--primary-muted)] text-[var(--primary)]">
+          <button className="px-3 py-1.5 rounded-xl text-[13px] font-medium bg-[var(--primary-muted)] text-[var(--primary)]">
             Price
           </button>
-          <button className="px-3 py-1.5 rounded text-[13px] font-medium text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:bg-[var(--bg-tertiary)] transition-colors">
+          <button className="px-3 py-1.5 rounded-xl text-[13px] font-medium text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:bg-[var(--bg-tertiary)] transition-colors">
             Market cap
           </button>
         </div>

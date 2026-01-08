@@ -40,38 +40,36 @@
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
-/* Light Mode - Refined Gray/White Aesthetic */
+/* Light Mode - White background with gray cards */
 [data-theme="light"] {
-  /* Requested Color Palette (Gray & White) */
+  /* Brand Color - Blue */
   --primary: #3898EC;
-  /* Keeping Blue as brand color */
   --primary-light: #5FB4FA;
   --primary-dark: #2F81C9;
   --primary-hover: #3AA1F7;
   --primary-muted: rgba(56, 152, 236, 0.1);
 
-  /* Backgrounds */
-  --bg-primary: #F3F5F7;
-  /* Cool light gray canvas */
-  --bg-secondary: #FFFFFF;
-  /* Pure white content cards */
-  --bg-tertiary: #FFFFFF;
-  /* Sidebar/Nav - White to contrast with Gray canvas */
+  /* Backgrounds - Inverted: White canvas, Gray cards */
+  --bg-primary: #FFFFFF;
+  /* White main background */
+  --bg-secondary: #F8F9FB;
+  /* Very light gray for cards */
+  --bg-tertiary: #F3F5F7;
+  /* Light gray for nested elements */
   --bg-elevated: #FFFFFF;
-  --bg-hover: #F8F9FA;
+  --bg-hover: #EEF1F4;
 
   /* Text hierarchy */
   --text-primary: #111827;
-  /* Soft intense black */
   --text-secondary: #374151;
   --text-tertiary: #6B7280;
   --text-muted: #9CA3AF;
 
-  /* Borders */
+  /* Borders - Subtle */
   --border-subtle: #E5E7EB;
   --border-default: #E5E7EB;
-  /* Subtle borders matching the clean look */
   --border-strong: #D1D5DB;
+  --border-color: #E5E7EB;
 
   /* Status colors */
   --success: #10B981;
@@ -81,10 +79,10 @@
   --info: #3B82F6;
   --info-muted: rgba(59, 130, 246, 0.1);
 
-  /* Shadows - Soft & Diffused */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  /* Shadows - Soft */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
 }
 
 @theme inline {

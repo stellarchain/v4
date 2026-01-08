@@ -63,7 +63,7 @@ export default async function GraphPage({ params }: PageProps) {
       </div>
 
       {/* Legend */}
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded p-4">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-4">
         <div className="flex items-center gap-8 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full" style={{ background: 'var(--primary)' }} />
@@ -88,7 +88,7 @@ export default async function GraphPage({ params }: PageProps) {
 
       {/* Graph Visualization */}
       {error ? (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded p-12 text-center">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-12 text-center">
           <svg className="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -96,11 +96,11 @@ export default async function GraphPage({ params }: PageProps) {
           <p className="text-[var(--text-tertiary)] text-sm">{error}</p>
         </div>
       ) : graphData ? (
-        <div className="h-[700px] w-full max-w-full overflow-hidden rounded border border-[var(--border-subtle)] relative bg-[var(--bg-secondary)]">
+        <div className="h-[700px] w-full max-w-full overflow-hidden rounded-xl border border-[var(--border-subtle)] relative bg-[var(--bg-secondary)]">
           <AddressGraph data={graphData} />
         </div>
       ) : (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded p-12 text-center">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-12 text-center">
           <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-[var(--text-tertiary)] text-sm">Building transaction graph...</p>
         </div>
