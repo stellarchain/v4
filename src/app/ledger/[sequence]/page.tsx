@@ -52,7 +52,7 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
       {/* Overview Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Main Info */}
-        <div className="lg:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="lg:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">Overview</h2>
 
           <div className="space-y-4">
@@ -81,7 +81,7 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
         </div>
 
         {/* Stats */}
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">Network Stats</h2>
 
           <div className="space-y-4">
@@ -103,21 +103,21 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
 
       {/* Fee Details */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <div className="flex flex-col gap-2">
             <span className="text-[var(--text-muted)] text-xs uppercase tracking-wider">Base Fee</span>
             <span className="text-[var(--text-primary)] text-2xl font-bold">{formatStroopsToXLM(ledger.base_fee_in_stroops)}</span>
             <span className="text-[var(--text-muted)] text-xs">XLM</span>
           </div>
         </div>
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <div className="flex flex-col gap-2">
             <span className="text-[var(--text-muted)] text-xs uppercase tracking-wider">Base Reserve</span>
             <span className="text-[var(--text-primary)] text-2xl font-bold">{formatStroopsToXLM(ledger.base_reserve_in_stroops)}</span>
             <span className="text-[var(--text-muted)] text-xs">XLM</span>
           </div>
         </div>
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <div className="flex flex-col gap-2">
             <span className="text-[var(--text-muted)] text-xs uppercase tracking-wider">Max Tx Set Size</span>
             <span className="text-[var(--text-primary)] text-2xl font-bold">{ledger.max_tx_set_size}</span>
@@ -127,7 +127,7 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
       </div>
 
       {/* Previous Hash */}
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
         <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-3">Previous Ledger Hash</h2>
         <Link
           href={`/ledger/${sequenceNum - 1}`}
@@ -161,7 +161,7 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
 
       {/* Transactions */}
       {transactions.length > 0 && (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">
             Transactions ({transactions.length})
           </h2>
@@ -175,7 +175,7 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
 
       {/* Operations */}
       {operations.length > 0 && (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">
             Operations ({operations.length})
           </h2>

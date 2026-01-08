@@ -78,7 +78,7 @@ export default function DetailedChart({ stat, onClose }: DetailedChartProps) {
                 className="relative w-full max-w-3xl bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-2xl opacity-0 overflow-hidden"
             >
                 {/* Holographic Border Effect */}
-                <div className="absolute inset-0 pointer-events-none rounded-md border border-white/5" />
+                <div className="absolute inset-0 pointer-events-none rounded-2xl border border-white/5" />
 
                 <div className="flex justify-between items-start mb-8">
                     <div>

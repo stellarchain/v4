@@ -85,7 +85,7 @@ export default function AccountDirectory({ initialAccounts }: AccountDirectoryPr
                             {/* Percentage */}
                             <div className="col-span-2 flex items-center justify-end">
                                 {percentTag && (
-                                    <span className="px-2 py-1 rounded-md text-xs font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
+                                    <span className="px-2 py-1 rounded-2xl text-xs font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                                         {percentTag}
                                     </span>
                                 )}

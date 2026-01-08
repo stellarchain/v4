@@ -30,7 +30,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
   if (error || !account) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="w-20 h-20 bg-[var(--bg-tertiary)] rounded-md flex items-center justify-center mb-6">
+        <div className="w-20 h-20 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mb-6">
           <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
@@ -97,7 +97,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
       {/* Overview Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Balance Overview */}
-        <div className="lg:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="lg:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">Overview</h2>
 
           <div className="space-y-4">
@@ -133,7 +133,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
         </div>
 
         {/* More Info Card */}
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">More Info</h2>
 
           <div className="space-y-4">
@@ -172,7 +172,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
       {/* Thresholds & Flags */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Thresholds */}
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">Thresholds</h2>
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-[var(--bg-secondary)] rounded p-4 text-center">
@@ -191,7 +191,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
         </div>
 
         {/* Flags */}
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">Flags</h2>
           <div className="flex flex-wrap gap-2">
             <span className={`px-3 py-1.5 rounded text-sm font-medium ${account.flags.auth_required
@@ -224,7 +224,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
 
       {/* Assets/Balances */}
       {otherBalances.length > 0 && (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">
             Token Holdings ({otherBalances.length})
           </h2>
@@ -263,7 +263,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
 
       {/* Signers */}
       {account.signers.length > 1 && (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">
             Signers ({account.signers.length})
           </h2>
