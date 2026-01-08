@@ -26,7 +26,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Link
           href="/transactions"
-          className="w-10 h-10 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:border-[var(--border-default)] transition-colors flex items-center justify-center"
+          className="w-10 h-10 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl text-[var(--text-tertiary)] hover:text-[var(--primary)] hover:border-[var(--border-default)] transition-colors flex items-center justify-center"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -34,7 +34,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <div className={`w-10 h-10 rounded flex items-center justify-center ${transaction.successful
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${transaction.successful
               ? 'bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5'
               : 'bg-gradient-to-br from-red-500/20 to-red-500/5'
               }`}>
@@ -63,7 +63,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
           </div>
           <div className="flex items-center gap-2 mt-2">
             <p className="text-[var(--text-tertiary)] font-mono text-sm break-all">{hash}</p>
-            <button className="p-1.5 hover:bg-[var(--bg-hover)] rounded transition-colors group" title="Copy hash">
+            <button className="p-1.5 hover:bg-[var(--bg-hover)] rounded-xl transition-colors group" title="Copy hash">
               <svg className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
@@ -142,7 +142,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
         </h2>
         <div className="space-y-2">
           {transaction.signatures.map((sig, idx) => (
-            <div key={idx} className="bg-[var(--bg-secondary)] rounded p-3">
+            <div key={idx} className="bg-[var(--bg-secondary)] rounded-xl p-3">
               <p className="text-[var(--text-tertiary)] font-mono text-xs break-all">{sig}</p>
             </div>
           ))}
@@ -158,18 +158,18 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
           {operations.map((op, idx) => (
             <div
               key={op.id}
-              className="bg-[var(--bg-secondary)] rounded p-4 hover:bg-[var(--bg-tertiary)] transition-colors"
+              className="bg-[var(--bg-secondary)] rounded-xl p-4 hover:bg-[var(--bg-tertiary)] transition-colors"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 bg-[var(--bg-tertiary)] rounded flex items-center justify-center text-[var(--primary)] text-sm font-bold">
+                  <span className="w-8 h-8 bg-[var(--bg-tertiary)] rounded-xl flex items-center justify-center text-[var(--primary)] text-sm font-bold">
                     {idx + 1}
                   </span>
-                  <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded text-xs font-medium">
+                  <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-xl text-xs font-medium">
                     {getOperationTypeLabel(op.type)}
                   </span>
                 </div>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${op.transaction_successful
+                <span className={`px-2 py-1 rounded-xl text-xs font-medium ${op.transaction_successful
                   ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
                   : 'bg-red-500/10 text-red-400'
                   }`}>
@@ -229,10 +229,10 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
             {effects.map((effect) => (
               <div
                 key={effect.id}
-                className="bg-[var(--bg-secondary)] rounded p-4 hover:bg-[var(--bg-tertiary)] transition-colors"
+                className="bg-[var(--bg-secondary)] rounded-xl p-4 hover:bg-[var(--bg-tertiary)] transition-colors"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="px-2 py-1 bg-purple-500/10 text-purple-400 rounded text-xs font-medium capitalize">
+                  <span className="px-2 py-1 bg-purple-500/10 text-purple-400 rounded-xl text-xs font-medium capitalize">
                     {effect.type.replace(/_/g, ' ')}
                   </span>
                 </div>
@@ -254,7 +254,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
         <div className="space-y-4">
           <div>
             <p className="text-[var(--text-muted)] text-xs mb-2">Envelope XDR</p>
-            <div className="bg-[var(--bg-secondary)] rounded p-3 max-h-24 overflow-auto">
+            <div className="bg-[var(--bg-secondary)] rounded-xl p-3 max-h-24 overflow-auto">
               <p className="text-[var(--text-tertiary)] font-mono text-xs break-all">
                 {transaction.envelope_xdr}
               </p>
@@ -262,7 +262,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
           </div>
           <div>
             <p className="text-[var(--text-muted)] text-xs mb-2">Result XDR</p>
-            <div className="bg-[var(--bg-secondary)] rounded p-3 max-h-24 overflow-auto">
+            <div className="bg-[var(--bg-secondary)] rounded-xl p-3 max-h-24 overflow-auto">
               <p className="text-[var(--text-tertiary)] font-mono text-xs break-all">
                 {transaction.result_xdr}
               </p>

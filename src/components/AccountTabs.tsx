@@ -74,12 +74,12 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
               transactions.map((tx) => (
                 <div
                   key={tx.id}
-                  className="bg-[var(--bg-secondary)] rounded p-4 hover:bg-[var(--bg-tertiary)] transition-colors"
+                  className="bg-[var(--bg-secondary)] rounded-xl p-4 hover:bg-[var(--bg-tertiary)] transition-colors"
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 min-w-0">
                       {/* Status Icon */}
-                      <div className={`w-10 h-10 rounded flex items-center justify-center shrink-0 ${
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                         tx.successful ? 'bg-[var(--success-muted)]' : 'bg-[var(--error-muted)]'
                       }`}>
                         {tx.successful ? (
@@ -114,7 +114,7 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
 
                     <div className="text-right shrink-0">
                       <div className="flex items-center gap-2 justify-end">
-                        <span className="px-2 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] rounded text-xs">
+                        <span className="px-2 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] rounded-xl text-xs">
                           {tx.operation_count} op{tx.operation_count !== 1 ? 's' : ''}
                         </span>
                         <Link
@@ -141,12 +141,12 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
               operations.map((op) => (
                 <div
                   key={op.id}
-                  className="bg-[var(--bg-secondary)] rounded p-4 hover:bg-[var(--bg-tertiary)] transition-colors"
+                  className="bg-[var(--bg-secondary)] rounded-xl p-4 hover:bg-[var(--bg-tertiary)] transition-colors"
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 min-w-0">
                       {/* Type Icon */}
-                      <div className={`w-10 h-10 rounded flex items-center justify-center shrink-0 ${
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                         op.transaction_successful ? 'bg-[var(--info-muted)]' : 'bg-[var(--error-muted)]'
                       }`}>
                         <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,7 +156,7 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded text-xs font-medium">
+                          <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-xl text-xs font-medium">
                             {getOperationTypeLabel(op.type)}
                           </span>
                         </div>

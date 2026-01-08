@@ -93,14 +93,14 @@ export default function AddressGraph({ data, onNodeClick }: AddressGraphProps) {
 
     if (!mounted) {
         return (
-            <div className="relative w-full h-full bg-[var(--bg-primary)] rounded overflow-hidden border border-[var(--border-subtle)] flex items-center justify-center">
+            <div className="relative w-full h-full bg-[var(--bg-primary)] rounded-xl overflow-hidden border border-[var(--border-subtle)] flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className="relative w-full h-full bg-[var(--bg-primary)] rounded overflow-hidden border border-[var(--border-subtle)]">
+        <div className="relative w-full h-full bg-[var(--bg-primary)] rounded-xl overflow-hidden border border-[var(--border-subtle)]">
             <ForceGraph2D
                 ref={graphRef}
                 graphData={data}
@@ -258,7 +258,7 @@ export default function AddressGraph({ data, onNodeClick }: AddressGraphProps) {
 
             {/* Hover tooltip for Nodes */}
             {hoverNode && (
-                <div className="absolute top-4 left-4 bg-[var(--bg-primary)]/90 border border-[var(--border-subtle)] rounded p-4 max-w-xs z-10 backdrop-blur-md">
+                <div className="absolute top-4 left-4 bg-[var(--bg-primary)]/90 border border-[var(--border-subtle)] rounded-xl p-4 max-w-xs z-10 backdrop-blur-md">
                     <div className="text-[var(--text-primary)] font-mono text-xs mb-2 pb-2 border-b border-[var(--border-subtle)] break-all">
                         {hoverNode.id}
                     </div>

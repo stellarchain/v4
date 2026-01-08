@@ -102,7 +102,7 @@ export default async function AssetPage({ params, searchParams }: PageProps) {
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl font-semibold text-[var(--text-primary)]">{asset.name}</h1>
                   {rank > 0 && (
-                    <span className="px-2 py-0.5 bg-[var(--bg-tertiary)] rounded text-[11px] text-[var(--text-tertiary)] font-medium">
+                    <span className="px-2 py-0.5 bg-[var(--bg-tertiary)] rounded-xl text-[11px] text-[var(--text-tertiary)] font-medium">
                       #{rank}
                     </span>
                   )}

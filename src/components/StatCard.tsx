@@ -97,7 +97,7 @@ export default function StatCard({ stat, onClick }: StatCardProps) {
   return (
     <div
       onClick={onClick}
-      className={`bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded p-4 transition-all ${onClick ? 'cursor-pointer hover:border-[var(--primary)]/50 hover:bg-[var(--bg-secondary)]' : ''
+      className={`bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-4 transition-all ${onClick ? 'cursor-pointer hover:border-[var(--primary)]/50 hover:bg-[var(--bg-secondary)]' : ''
         }`}
     >
       <div className="flex items-start justify-between">

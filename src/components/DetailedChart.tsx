@@ -93,7 +93,7 @@ export default function DetailedChart({ stat, onClose }: DetailedChartProps) {
                                 {stat.suffix && <span className="text-lg text-[var(--text-muted)] ml-1">{stat.suffix}</span>}
                             </span>
                             {stat.change !== undefined && (
-                                <span className={`text-sm font-medium px-2 py-0.5 rounded ${isPositive ? 'bg-[var(--primary)]/10 text-[var(--primary)]' : 'bg-red-500/10 text-red-500'}`}>
+                                <span className={`text-sm font-medium px-2 py-0.5 rounded-xl ${isPositive ? 'bg-[var(--primary)]/10 text-[var(--primary)]' : 'bg-red-500/10 text-red-500'}`}>
                                     {isPositive ? '+' : ''}{stat.change.toFixed(2)}%
                                 </span>
                             )}
@@ -101,7 +101,7 @@ export default function DetailedChart({ stat, onClose }: DetailedChartProps) {
                     </div>
                     <button
                         onClick={handleClose}
-                        className="w-8 h-8 flex items-center justify-center rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--primary)] transition-colors"
+                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--primary)] transition-colors"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />

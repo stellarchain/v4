@@ -8,7 +8,7 @@ export default function ThemeToggle() {
     return (
         <button
             onClick={toggleTheme}
-            className="flex items-center gap-3 px-3 py-2.5 w-full text-[var(--text-secondary)] hover:text-[var(--primary)] rounded hover:bg-[var(--bg-tertiary)] transition-all duration-200 text-[13px] group"
+            className="flex items-center gap-3 px-3 py-2.5 w-full text-[var(--text-secondary)] hover:text-[var(--primary)] rounded-xl hover:bg-[var(--bg-tertiary)] transition-all duration-200 text-[13px] group"
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
         >
             {/* Icon Container with Toggle Effect */}

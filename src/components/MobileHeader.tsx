@@ -32,7 +32,7 @@ export default function MobileHeader() {
       <div className="flex items-center justify-between h-14 px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded flex items-center justify-center">
+          <div className="w-8 h-8 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl flex items-center justify-center">
             <svg className="w-4 h-4 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
@@ -46,7 +46,7 @@ export default function MobileHeader() {
           {/* Theme Toggle - Compact */}
           <button
             onClick={toggleTheme}
-            className="w-9 h-9 flex items-center justify-center rounded hover:bg-[var(--bg-tertiary)] transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors"
             aria-label="Toggle theme"
           >
             {theme === 'dark' ? (
@@ -63,7 +63,7 @@ export default function MobileHeader() {
           {/* Search Toggle */}
           <button
             onClick={() => setSearchOpen(!searchOpen)}
-            className="w-9 h-9 flex items-center justify-center rounded hover:bg-[var(--bg-tertiary)] transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors"
           >
             {searchOpen ? (
               <svg className="w-5 h-5 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,7 +92,7 @@ export default function MobileHeader() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search address, tx, ledger..."
                 autoFocus
-                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded py-2.5 pl-10 pr-4 text-[var(--text-primary)] placeholder-[var(--text-muted)] text-[13px] focus:outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-muted)]"
+                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl py-2.5 pl-10 pr-4 text-[var(--text-primary)] placeholder-[var(--text-muted)] text-[13px] focus:outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-muted)]"
               />
             </div>
           </form>

@@ -38,7 +38,7 @@ export default function WalletTrackPage() {
                     <button
                         type="submit"
                         disabled={address.length !== 56}
-                        className="absolute right-2 top-2 bottom-2 bg-[var(--primary)] text-black font-semibold px-6 rounded hover:bg-[var(--primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="absolute right-2 top-2 bottom-2 bg-[var(--primary)] text-black font-semibold px-6 rounded-xl hover:bg-[var(--primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         Visualize
                     </button>
