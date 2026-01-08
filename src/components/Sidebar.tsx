@@ -6,12 +6,9 @@ import { useState, type ReactNode } from 'react';
 import ThemeToggle from './ThemeToggle';
 
 const navItems = [
-  { name: 'Dashboard', href: '/', icon: 'dashboard', count: null },
+  { name: 'Explorer', href: '/', icon: 'dashboard', count: null },
   { name: 'Wallet Track', href: '/graph', icon: 'graph', count: null },
   { name: 'Projects', href: '/projects', icon: 'compass', count: null },
-  { name: 'Ledgers', href: '/ledgers', icon: 'cube', count: null },
-  { name: 'Transactions', href: '/transactions', icon: 'arrows', count: null },
-  { name: 'Operations', href: '/operations', icon: 'bolt', count: null },
   { name: 'Accounts', href: '/accounts', icon: 'users', count: null },
   { name: 'Markets', href: '/markets', icon: 'coins', count: null },
   { name: 'Statistics', href: '/statistics', icon: 'chart', count: null },
