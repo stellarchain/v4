@@ -42,12 +42,13 @@
 
 /* Light Mode - White background with gray cards */
 [data-theme="light"] {
-  /* Brand Color - Blue */
-  --primary: #3898EC;
-  --primary-light: #5FB4FA;
-  --primary-dark: #2F81C9;
-  --primary-hover: #3AA1F7;
-  --primary-muted: rgba(56, 152, 236, 0.1);
+  /* Professional Neutral Color Palette */
+  --primary: #475569;
+  /* Slate gray - professional and neutral */
+  --primary-light: #64748B;
+  --primary-dark: #334155;
+  --primary-hover: #334155;
+  --primary-muted: rgba(71, 85, 105, 0.1);
 
   /* Backgrounds - Inverted: White canvas, Gray cards */
   --bg-primary: #FFFFFF;
