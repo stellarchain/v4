@@ -97,13 +97,13 @@ export default function StatCard({ stat, onClick }: StatCardProps) {
   return (
     <div
       onClick={onClick}
-      className={`bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-4 transition-all ${onClick ? 'cursor-pointer hover:border-[var(--primary)]/50 hover:bg-[var(--bg-secondary)]' : ''
+      className={`bg-[var(--bg-secondary)] rounded-2xl p-4 transition-all shadow-sm ${onClick ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''
         }`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-[var(--text-muted)] text-xs mb-1">{stat.label}</p>
-          <p className="text-[var(--text-primary)] text-lg font-semibold">
+          <p className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wider mb-1.5">{stat.label}</p>
+          <p className="text-[var(--text-primary)] text-lg font-semibold font-mono">
             {formatValue(stat.value, stat.prefix, stat.suffix)}
           </p>
           {stat.change !== undefined && (

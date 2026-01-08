@@ -24,7 +24,9 @@ export default function StatisticsView({ stats }: StatisticsViewProps) {
                 <div>
                     <div className="flex items-center gap-2">
                         <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Statistics</h1>
-                        <span className="w-1.5 h-1.5 bg-[var(--primary)] rounded-full animate-pulse-soft" />
+                        <span className="px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[10px] font-medium text-[#777]">
+                            Live
+                        </span>
                     </div>
                     <p className="text-[var(--text-muted)] text-xs">Real-time Stellar network metrics and market data</p>
                 </div>
@@ -76,7 +78,7 @@ export default function StatisticsView({ stats }: StatisticsViewProps) {
             </section>
 
             {/* Info Card */}
-            <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-4">
+            <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm">
                 <div className="flex items-start gap-3">
                     <div className="w-8 h-8 bg-[var(--bg-tertiary)] rounded-xl flex items-center justify-center flex-shrink-0">
                         <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,7 +86,7 @@ export default function StatisticsView({ stats }: StatisticsViewProps) {
                         </svg>
                     </div>
                     <div>
-                        <p className="text-xs text-[var(--text-muted)]">
+                        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
                             Data is aggregated from multiple sources including CoinGecko, Stellar Horizon, and StellarExpert APIs.
                             Statistics are updated every 60 seconds. Blockchain metrics are calculated from the last 50 ledgers.
                         </p>

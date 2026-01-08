@@ -1,0 +1,764 @@
+{
+  "projects": [
+    {
+      "id": "31",
+      "slug": "hoops-finance",
+      "name": "Hoops Finance",
+      "description": "An analytics and DeFi platform that indexes Soroban liquidity pools, offering risk analysis, performance metrics, and aggregated saving accounts.",
+      "category": "Indexing Service",
+      "website": "https://hoops.finance",
+      "github": "https://github.com/alexanderkoh/hoops",
+      "socials": {
+        "twitter": "https://x.com/bastiankoh"
+      },
+      "scfAward": {
+        "amount": "$50,000",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "Bastian Koh",
+          "role": "Builder/Designer",
+          "github": "https://github.com/alexanderkoh"
+        },
+        {
+          "name": "Timothy Baker",
+          "role": "Smart Contract Developer",
+          "github": "https://github.com/silence48",
+          "linkedin": "https://linkedin.com/in/tim4802"
+        }
+      ],
+      "resources": {
+        "video": "https://vimeo.com/984089944?share=copy",
+        "pitchDeck": null,
+        "technicalDocs": null
+      }
+    },
+    {
+      "id": "1",
+      "slug": "yeo-your-eyes-only",
+      "name": "YEO! Your Eyes Only",
+      "description": "A web3 social messenger built on the Stellar Blockchain empowering creators to enhance engagement with their communities through decentralized communication tools. Features include creator wallets, private messaging, custom token integration, and multi-currency payments.",
+      "category": "End-User Application",
+      "website": null,
+      "github": null,
+      "socials": {
+        "linkedin": "https://www.linkedin.com/in/unitedcoin/"
+      },
+      "scfAward": {
+        "amount": "$50,000",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "DJ (Derek Jones)",
+          "role": "Founder/Lead"
+        }
+      ],
+      "resources": {
+        "video": null,
+        "pitchDeck": null,
+        "technicalDocs": null
+      }
+    },
+    {
+      "id": "32",
+      "slug": "sendin",
+      "name": "SendIN",
+      "description": "A payments platform built on Stellar enabling fast, affordable US-to-India money transfers with custodial wallets, KYC management, and bank account deposits arriving within 15 minutes.",
+      "category": "Payments",
+      "website": null,
+      "github": "https://github.com/SendIN-Org/sendIN",
+      "socials": {},
+      "scfAward": {
+        "amount": "$37,500",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "Arsalaan Alam",
+          "role": "CEO & Tech Lead"
+        },
+        {
+          "name": "Antariksh Verma",
+          "role": "Fullstack Developer"
+        },
+        {
+          "name": "Tanvi Sanghai",
+          "role": "Chief Product Officer"
+        }
+      ],
+      "resources": {
+        "video": "https://vimeo.com/986988672?share=copy",
+        "pitchDeck": "https://docs.google.com/presentation/d/1ykG2ocfy3c2EjjK9U5YQn-FP3TeRfOEJsk3wNd-qVs4/edit",
+        "technicalDocs": "https://drive.google.com/file/d/12vl16cH9Eogn6ibe8rH92tBXJSpdbACE/view"
+      }
+    },
+    {
+      "id": "33",
+      "slug": "assetnest",
+      "name": "AssetNest - Hyperliquid Vaults",
+      "description": "A decentralized platform connecting professional crypto traders with on-chain investors. Enables traders to establish and oversee public vaults with real-time performance metrics and secure asset handling.",
+      "category": "AMM & Swap",
+      "website": "https://asset-nest-three.vercel.app/",
+      "github": "https://github.com/AssetNest",
+      "socials": {},
+      "scfAward": {
+        "amount": "$25,000",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "amaan4576",
+          "role": "Developer"
+        }
+      ],
+      "resources": {
+        "video": "https://youtu.be/OPJwIrHO49M",
+        "pitchDeck": "https://docs.google.com/presentation/d/1qASsnY1MR0dfVTGoo3d-GerGmHZLnx1Kt_xCgwsqe-0/edit",
+        "technicalDocs": null
+      }
+    },
+    {
+      "id": "34",
+      "slug": "attestellar",
+      "name": "ATTESTELLAR",
+      "description": "An open-source infrastructure for verifying and attesting information on the Stellar blockchain, promoting trust in digital interactions through on-chain attestations and schema creation.",
+      "category": "Data Exploration",
+      "website": "https://atte-stellar-dunbdtp69-programmer-shivanshs-projects.vercel.app/",
+      "github": "https://github.com/Programmer-Shivansh/AtteStellar",
+      "socials": {
+        "twitter": "https://x.com/SHIVANSH1858742",
+        "linkedin": "https://www.linkedin.com/in/shivansh-chauhan-07014b244",
+        "discord": "shivansh7374"
+      },
+      "scfAward": {
+        "amount": "$16,000",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "Shivansh",
+          "role": "Founder & Lead Developer"
+        }
+      ],
+      "resources": {
+        "video": null,
+        "pitchDeck": null,
+        "technicalDocs": null
+      }
+    },
+    {
+      "id": "107",
+      "slug": "sora",
+      "name": "SORA",
+      "description": "Essential companion toolkit for Stellar development providing a graphical interface for stellar-cli. Features include transaction signing/simulation, contract interaction, local network setup, and AI assistance.",
+      "category": "Developer Tooling",
+      "website": "https://thesora.app/",
+      "github": "https://github.com/tolgayayci/sora",
+      "socials": {
+        "discord": "tolgayayci"
+      },
+      "scfAward": {
+        "amount": "$99,996",
+        "round": "SCF #29",
+        "type": "Community Award"
+      },
+      "team": [
+        {
+          "name": "Tolga Yaycı",
+          "role": "Developer",
+          "github": "https://github.com/tolgayayci",
+          "linkedin": "https://www.linkedin.com/in/tolgayayci/"
+        },
+        {
+          "name": "Mert Köklü",
+          "role": "Developer",
+          "github": "https://github.com/justmert",
+          "linkedin": "https://www.linkedin.com/in/mertkoklu/"
+        }
+      ],
+      "resources": {
+        "video": null,
+        "pitchDeck": null,
+        "technicalDocs": "https://docs.thesora.app/docs/getting-started/installation"
+      }
+    },
+    {
+      "id": "35",
+      "slug": "potforleo",
+      "name": "Potforleo",
+      "description": "An on-chain social trading platform that brings crypto traders together into one decentralized ecosystem where governance, fees, profits, losses, and experiences are shared socially.",
+      "category": "AMM & Swap",
+      "website": "https://potforleo.com",
+      "github": "https://github.com/Potforleo",
+      "socials": {},
+      "scfAward": {
+        "amount": "$50,000",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "idanielnicholas",
+          "role": "Founder"
+        }
+      ],
+      "resources": {
+        "video": "https://youtu.be/GC63sNitEPE",
+        "pitchDeck": "https://www.canva.com/design/DAGKQ9vUN2w/KaRba8QfthWjs_ompRfYPw/edit",
+        "technicalDocs": "https://docs.google.com/document/d/18o29ybetp3D2MA1rFcoGnbTFDP8jjTrUABmjajoZFxk/edit"
+      }
+    },
+    {
+      "id": "108",
+      "slug": "local-fiat-stablecoin",
+      "name": "Local Fiat Stablecoin On-Ramp",
+      "description": "An integrated fiat and web3 ecosystem combining a centralized exchange, payment platform with debit account integration, and mobile wallet for minting local fiat stablecoins starting with USD 'Buoy'.",
+      "category": "End-User Application",
+      "website": "https://storehouse.gold/",
+      "github": "https://github.com/Dinesh08Agarwal/Soroban-ERC20-Token-Contract",
+      "socials": {},
+      "scfAward": {
+        "amount": "$98,850",
+        "round": "SCF #29",
+        "type": "Community Award"
+      },
+      "team": [
+        {
+          "name": "Patrick Mulcahy",
+          "role": "Product/Strategy"
+        },
+        {
+          "name": "Mitish Chitnavis",
+          "role": "Director of Development"
+        },
+        {
+          "name": "Kaushik Daspute",
+          "role": "Senior Software Engineer"
+        }
+      ],
+      "resources": {
+        "video": null,
+        "pitchDeck": null,
+        "technicalDocs": null
+      }
+    },
+    {
+      "id": "36",
+      "slug": "sorostarter",
+      "name": "SoroStarter: Soroban LaunchPad",
+      "description": "A secured and decentralized IDO and fundraising platform for Soroban and the Stellar ecosystem, facilitating token launches and community engagement through quest mechanisms.",
+      "category": "Financial Protocol",
+      "website": "https://www.sorostarter.com/",
+      "github": "https://github.com/orgs/SoroStarter/repositories",
+      "socials": {},
+      "scfAward": {
+        "amount": "$47,175",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "Allaa Alhasan",
+          "role": "Co-founder & Business Strategist",
+          "linkedin": "https://www.linkedin.com/in/allaa-alhasan-7785bb200/"
+        },
+        {
+          "name": "Sandhya Madne",
+          "role": "Fullstack Developer",
+          "linkedin": "https://www.linkedin.com/in/sandhya-madne-5b2410bb"
+        },
+        {
+          "name": "Kirill Leontiev",
+          "role": "Blockchain Developer",
+          "linkedin": "https://www.linkedin.com/in/kirill-leontiev-5a424a231/"
+        }
+      ],
+      "resources": {
+        "video": "https://www.youtube.com/watch?v=HqvnP30uaa4",
+        "pitchDeck": null,
+        "technicalDocs": "https://docs.sorostarter.com/sorostarter-technical-details"
+      }
+    },
+    {
+      "id": "37",
+      "slug": "zero",
+      "name": "Zero - Social Sharing App",
+      "description": "A social sharing platform that eliminates traditional metrics like followers, emphasizing meaningful interactions through the creation and management of private boards for sharing with friends and family.",
+      "category": "End-User Application",
+      "website": "https://zeroverse.io",
+      "github": null,
+      "socials": {},
+      "scfAward": {
+        "amount": "$38,000",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "Abdul Oluwaseyi",
+          "role": "Founder/Team Lead",
+          "linkedin": "https://www.linkedin.com/in/oluwaseyi-abdul-735ba0169"
+        },
+        {
+          "name": "Muritala David",
+          "role": "Backend Engineer",
+          "linkedin": "https://www.linkedin.com/in/muritala-david-ab8019189/"
+        },
+        {
+          "name": "Abdullahi Hussein",
+          "role": "Frontend/Mobile Engineer",
+          "linkedin": "https://www.linkedin.com/in/abdullahi-hussein"
+        }
+      ],
+      "resources": {
+        "video": null,
+        "pitchDeck": null,
+        "technicalDocs": null
+      }
+    },
+    {
+      "id": "38",
+      "slug": "fnt-crypto",
+      "name": "Stellar Prepaid Cards for EEA",
+      "description": "Platform enabling users to spend cryptocurrency holdings through Mastercard for daily transactions, integrating Stellar blockchain with XLM and USDC support.",
+      "category": "Financial Protocol",
+      "website": "https://portal.fntworld.io/login",
+      "github": null,
+      "socials": {
+        "linkedin": "https://www.linkedin.com/in/valentinsokolnikov/",
+        "twitter": "https://twitter.com/vs_sokolnikov",
+        "discord": "valentinsokolnikov"
+      },
+      "scfAward": {
+        "amount": "$36,800",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "Valentin Sokolnikov",
+          "role": "CEO"
+        },
+        {
+          "name": "Artur Polishuk",
+          "role": "CTO"
+        },
+        {
+          "name": "Nikita H.",
+          "role": "Senior Frontend Developer"
+        },
+        {
+          "name": "Ivan V.",
+          "role": "Senior Frontend Developer"
+        },
+        {
+          "name": "Egor P.",
+          "role": "DevOps Engineer"
+        },
+        {
+          "name": "Yauheni K.",
+          "role": "Backend Developer"
+        },
+        {
+          "name": "Maksim B.",
+          "role": "Backend Developer"
+        },
+        {
+          "name": "Yulia L.",
+          "role": "QA Engineer"
+        },
+        {
+          "name": "Alexandr B.",
+          "role": "UI Designer"
+        }
+      ],
+      "resources": {
+        "video": null,
+        "pitchDeck": null,
+        "technicalDocs": "https://api.portal.fntworld.io/docs"
+      }
+    },
+    {
+      "id": "39",
+      "slug": "build-myanmar",
+      "name": "Build Myanmar Community",
+      "description": "A transparent and efficient ERP system to address corruption in Myanmar utilizing Stellar Blockchain for donation tracking and community resource management with smart contracts for fund allocation.",
+      "category": "End-User Application",
+      "website": "https://www.buildmyanmar.org/",
+      "github": null,
+      "socials": {
+        "linkedin": "https://www.linkedin.com/in/james-win/",
+        "youtube": "https://youtu.be/aNHlYRdIG24"
+      },
+      "scfAward": {
+        "amount": "$50,000",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "James Win",
+          "role": "Lead",
+          "linkedin": "https://www.linkedin.com/in/james-win/"
+        }
+      ],
+      "resources": {
+        "video": "https://youtu.be/aNHlYRdIG24",
+        "pitchDeck": null,
+        "technicalDocs": "https://build-myanmar-org.gitbook.io/build-myanmar-community-platform/"
+      }
+    },
+    {
+      "id": "40",
+      "slug": "peeswap",
+      "name": "Peeswap",
+      "description": "A decentralized exchange (DEX) built on the Stellar network, leveraging Soroban smart contracts to offer markets, swaps, buy/sell, liquidity, and bridge features.",
+      "category": "DEX",
+      "website": "https://peeswap.vercel.app/",
+      "github": "https://github.com/Flame-eth/peeswap/",
+      "socials": {},
+      "scfAward": {
+        "amount": "$500,000",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "Philip Owolabi",
+          "role": "Backend/Full-stack Developer"
+        },
+        {
+          "name": "Ephraim O. Oladepo",
+          "role": "Lead Blockchain Engineer"
+        },
+        {
+          "name": "John Danlami",
+          "role": "Smart Contract Developer"
+        },
+        {
+          "name": "Abdulsalam Bashar",
+          "role": "Software Engineer & Data Scientist"
+        },
+        {
+          "name": "Prince Eniola Egbedele",
+          "role": "DevRel/Community"
+        }
+      ],
+      "resources": {
+        "video": "https://drive.google.com/file/d/10jeUj35o_Ey8nUjUQ7kN3bc2M5e0cZhX/view",
+        "pitchDeck": null,
+        "technicalDocs": "https://docs.google.com/document/d/1ah2xeMQC6uH24MCqqvIpEkQUKLXajL0ACQK9DAdEEp4/edit"
+      }
+    },
+    {
+      "id": "41",
+      "slug": "tensfer",
+      "name": "Tensfer",
+      "description": "A non-custodial CEX on-ramp and portfolio tracker solution bridging centralized and decentralized finance for Stellar blockchain users.",
+      "category": "End-User Application",
+      "website": "https://tensfer.co/",
+      "github": null,
+      "socials": {
+        "linkedin": "https://www.linkedin.com/in/blessing-krofegha-a0277a161/"
+      },
+      "scfAward": {
+        "amount": "$45,150",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "Blessing Krofegha",
+          "role": "CEO, Co-founder",
+          "github": "https://github.com/krofax",
+          "linkedin": "https://www.linkedin.com/in/blessing-krofegha-a0277a161/"
+        },
+        {
+          "name": "Eto Olei",
+          "role": "VP Engineering, Co-founder",
+          "github": "https://github.com/teneeto",
+          "linkedin": "https://www.linkedin.com/in/teneeto/"
+        },
+        {
+          "name": "Chidera Anamekwe",
+          "role": "CBO, Co-founder",
+          "linkedin": "https://www.linkedin.com/in/chidera-anamekwe/"
+        },
+        {
+          "name": "Dennis Terna",
+          "role": "Product Owner & Web/Mobile Lead",
+          "github": "https://github.com/Denniman",
+          "linkedin": "https://www.linkedin.com/in/dennis-terna"
+        },
+        {
+          "name": "Damilola Adegbemile",
+          "role": "Frontend Lead",
+          "github": "https://github.com/damilola1ade",
+          "linkedin": "https://ng.linkedin.com/in/damilola-adegbemile-a768b6b8"
+        }
+      ],
+      "resources": {
+        "video": null,
+        "pitchDeck": null,
+        "technicalDocs": null
+      }
+    },
+    {
+      "id": "42",
+      "slug": "neona",
+      "name": "NEONA",
+      "description": "Cross-border payments solution designed for businesses and corporations operating in Africa, leveraging Stellar blockchain for USDC transactions and fiat payouts.",
+      "category": "Payments",
+      "website": "https://www.neonasynergy.com/",
+      "github": null,
+      "socials": {
+        "linkedin": "https://www.linkedin.com/in/heritagefalodun"
+      },
+      "scfAward": {
+        "amount": "$40,171",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "Heritage Falodun",
+          "role": "Blockchain Consultant",
+          "linkedin": "https://www.linkedin.com/in/heritagefalodun"
+        },
+        {
+          "name": "Kayode Osagie",
+          "role": "Business Analyst",
+          "linkedin": "https://www.linkedin.com/in/timilehin-kayode-810020192"
+        },
+        {
+          "name": "Chukwuma Edozie",
+          "role": "FinTech Lawyer"
+        }
+      ],
+      "resources": {
+        "video": "https://www.youtube.com/watch?v=srydIy09v-c",
+        "pitchDeck": null,
+        "technicalDocs": null
+      }
+    },
+    {
+      "id": "43",
+      "slug": "lul",
+      "name": "Lul - Serving the Unbanked",
+      "description": "Application serving financial inclusion for refugees and unbanked populations in Africa through remittance, ROSCA, virtual cards, and other financial services for the 350 million unbanked in sub-Saharan Africa.",
+      "category": "Payments",
+      "website": "https://lulpay.com/",
+      "github": "https://github.com/lulpay/mainproject",
+      "socials": {},
+      "scfAward": {
+        "amount": "$40,000",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "Zerayacob Araia Tedla",
+          "role": "Full-stack Developer"
+        },
+        {
+          "name": "Filimon Kidane Fitwi",
+          "role": "Senior Software Developer"
+        },
+        {
+          "name": "Natnael Yacob Asgedom",
+          "role": "Software/MLOps Developer"
+        },
+        {
+          "name": "Michael Tesfay Bisrat",
+          "role": "Senior Software Developer"
+        },
+        {
+          "name": "Solomon Okbagebriel",
+          "role": "Business Development Manager"
+        }
+      ],
+      "resources": {
+        "video": "https://youtu.be/WDvOVQAs64U",
+        "pitchDeck": "https://drive.google.com/file/d/1SLRKI_Q0KiIEo00DG9x3H1ozBFqmaFGD/view",
+        "technicalDocs": "https://drive.google.com/file/d/1ARFuSWSg1Br9VOlCdIY2EWW1Ci2Pyd8r/view"
+      }
+    },
+    {
+      "id": "44",
+      "slug": "renitrust",
+      "name": "Renitrust",
+      "description": "An all-in-one payment system powered by escrow, designed to provide secure and seamless financial transactions with four core services: Escrow, Wallet, Bill Payments, and Dispute Resolution.",
+      "category": "Payments",
+      "website": "https://renitrust.com/",
+      "github": null,
+      "socials": {
+        "twitter": "https://twitter.com/ayodeletim",
+        "linkedin": "https://www.linkedin.com/in/ayodeletim/",
+        "discord": "ayodeletim"
+      },
+      "scfAward": {
+        "amount": "$37,552",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "Ayodele Timothy",
+          "role": "Lead Developer",
+          "linkedin": "https://www.linkedin.com/in/ayodeletim/",
+          "twitter": "https://twitter.com/ayodeletim"
+        },
+        {
+          "name": "Ogunyemi Olayinka",
+          "role": "Blockchain Developer",
+          "linkedin": "https://www.linkedin.com/in/ogunyemi-olayinka/"
+        },
+        {
+          "name": "Ayodele Toluade",
+          "role": "Manager",
+          "linkedin": "https://www.linkedin.com/in/tolulope-adekuoroye-0a95aa11b/"
+        },
+        {
+          "name": "Adekuoroye Oluimmanuel",
+          "role": "Marketing/Communications",
+          "linkedin": "https://www.linkedin.com/in/oluimmanuel/",
+          "twitter": "https://twitter.com/OluImmanuel"
+        }
+      ],
+      "resources": {
+        "video": null,
+        "pitchDeck": null,
+        "technicalDocs": null
+      }
+    },
+    {
+      "id": "2",
+      "slug": "gladius",
+      "name": "Gladius II: play, learn, earn",
+      "description": "A gamification platform connecting parents, sports clubs, and students through NFT prizes and rewards. Features custodial wallets, automated reward distribution, and 3D gaming interface.",
+      "category": "Gaming",
+      "website": "https://gladiusclub.com/",
+      "github": "https://github.com/orgs/GladiusClub/repositories",
+      "socials": {},
+      "scfAward": {
+        "amount": "$75,000",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "Alexey Sirotkin",
+          "role": "Co-Founder & Product Owner"
+        },
+        {
+          "name": "David Crompton",
+          "role": "Co-Founder & Full-Stack Developer"
+        },
+        {
+          "name": "Ankit Gupta",
+          "role": "Front-end Software Engineer"
+        },
+        {
+          "name": "Andrei Kisseljov",
+          "role": "Junior Game Developer"
+        }
+      ],
+      "resources": {
+        "video": null,
+        "pitchDeck": "https://docs.google.com/presentation/d/1b_xxQ_6REdcaI5aORmADBWR9ZYbi7KkvLa3DCg7ck3A/edit",
+        "technicalDocs": null
+      }
+    },
+    {
+      "id": "45",
+      "slug": "koru",
+      "name": "Koru - Inclusive DeFi",
+      "description": "A lending protocol on Stellar that offers self-repaying loans to the underbanked by locking USDC in high-yielding DeFi protocols and paying borrowers future yields upfront.",
+      "category": "Lending & Borrowing",
+      "website": "https://www.koru.finance/",
+      "github": "https://github.com/wfalcon0x/koru/tree/main/contracts",
+      "socials": {},
+      "scfAward": {
+        "amount": "$47,000",
+        "round": "SCF #29",
+        "type": "Activation Award"
+      },
+      "team": [
+        {
+          "name": "Daniel Nehme",
+          "role": "Engineer"
+        },
+        {
+          "name": "Akos Erdos",
+          "role": "Engineer"
+        }
+      ],
+      "resources": {
+        "video": "https://www.youtube.com/watch?v=TZg_Z6HOVzw",
+        "pitchDeck": null,
+        "technicalDocs": null
+      }
+    },
+    {
+      "id": "109",
+      "slug": "orbitcdp",
+      "name": "OrbitCDP",
+      "description": "A collateralized stablecoin protocol enabling users to leverage cryptocurrency holdings as collateral to borrow stablecoins in multiple currencies (oUSD, oEUR, etc.) using overcollateralized XLM through blend pools.",
+      "category": "Collateralized Stablecoin",
+      "website": "https://orbitcdp.finance/",
+      "github": "https://github.com/orbit-cdp",
+      "socials": {},
+      "scfAward": {
+        "amount": "$80,000",
+        "round": "SCF #29",
+        "type": "Community Award"
+      },
+      "team": [
+        {
+          "name": "Ishan Singh",
+          "role": "Project Lead",
+          "github": "https://github.com/SoiledCold5",
+          "linkedin": "https://www.linkedin.com/in/ishan-singh-886551291/",
+          "discord": "soiledcold"
+        },
+        {
+          "name": "Robin Olthuis",
+          "role": "Full Stack Developer",
+          "github": "https://github.com/robeartt",
+          "linkedin": "https://www.linkedin.com/in/robin-olthuis-802194262/",
+          "discord": "robeart"
+        }
+      ],
+      "resources": {
+        "video": null,
+        "pitchDeck": null,
+        "technicalDocs": "https://docs.orbitcdp.finance/"
+      }
+    }
+  ],
+  "categories": [
+    "AMM & Swap",
+    "Collateralized Stablecoin",
+    "Data Exploration",
+    "DEX",
+    "Developer Tooling",
+    "End-User Application",
+    "Financial Protocol",
+    "Gaming",
+    "Indexing Service",
+    "Lending & Borrowing",
+    "Payments"
+  ],
+  "meta": {
+    "source": "stellarchain.dev",
+    "lastUpdated": "2025-01-09",
+    "totalProjects": 20
+  }
+}
