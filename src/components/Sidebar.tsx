@@ -125,7 +125,7 @@ export default function Sidebar() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search address, tx, ledger..."
-              className="w-full bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-md py-2.5 pl-10 pr-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] text-[13px] focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)]/20 transition-all shadow-sm"
+              className="w-full bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-2xl py-2.5 pl-10 pr-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] text-[13px] focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)]/20 transition-all shadow-sm"
             />
           </div>
         </form>
@@ -149,7 +149,7 @@ export default function Sidebar() {
                   href={item.href}
                   className={`flex items-center gap-3 py-3 pl-6 pr-4 transition-all duration-200 ${isActive
                     ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] border-y border-l border-[var(--border-subtle)] -mr-[1px] rounded-l-md rounded-r-none z-10 relative'
-                    : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-primary)]/50 hover:text-[var(--text-primary)] mx-3 rounded-md'
+                    : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-primary)]/50 hover:text-[var(--text-primary)] mx-3 rounded-2xl'
                     }`}
                 >
                   {isActive && (

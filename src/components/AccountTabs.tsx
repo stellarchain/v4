@@ -13,7 +13,7 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
   const [activeTab, setActiveTab] = useState<'transactions' | 'operations'>('transactions');
 
   return (
-    <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md overflow-hidden">
+    <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl overflow-hidden">
       {/* Tab Headers */}
       <div className="flex border-b border-[var(--border-subtle)]">
         <button

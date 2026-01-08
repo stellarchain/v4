@@ -89,7 +89,7 @@ export default function ProjectList({ initialProjects }: ProjectListProps) {
                 ))}
                 {filteredProjects.length === 0 && (
                     <div className="col-span-full py-20 text-center">
-                        <div className="w-16 h-16 bg-[var(--bg-tertiary)] rounded-md flex items-center justify-center mx-auto mb-4">
+                        <div className="w-16 h-16 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>

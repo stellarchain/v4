@@ -299,7 +299,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                     <div className="flex gap-1 bg-[var(--bg-tertiary)] p-1 rounded-lg">
                         <button
                             onClick={() => setViewMode('price')}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'price'
+                            className={`px-3 py-1.5 text-xs font-medium rounded-2xl transition-all ${viewMode === 'price'
                                 ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm'
                                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                 }`}
@@ -308,7 +308,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                         </button>
                         <button
                             onClick={() => setViewMode('volume')}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'volume'
+                            className={`px-3 py-1.5 text-xs font-medium rounded-2xl transition-all ${viewMode === 'volume'
                                 ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm'
                                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                 }`}
@@ -330,7 +330,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                         <button
                             key={opt.label}
                             onClick={() => setResolution(opt.value)}
-                            className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${resolution === opt.value
+                            className={`px-3 py-1 text-xs font-medium rounded-2xl transition-all ${resolution === opt.value
                                 ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm'
                                 : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                                 }`}

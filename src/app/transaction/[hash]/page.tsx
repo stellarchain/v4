@@ -75,7 +75,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Main Info */}
-        <div className="lg:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="lg:col-span-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">Overview</h2>
 
           <div className="space-y-4">
@@ -111,7 +111,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
         </div>
 
         {/* Stats */}
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">Details</h2>
 
           <div className="space-y-4">
@@ -136,7 +136,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
       </div>
 
       {/* Signatures */}
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
         <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">
           Signatures ({transaction.signatures.length})
         </h2>
@@ -150,7 +150,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
       </div>
 
       {/* Operations */}
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
         <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">
           Operations ({operations.length})
         </h2>
@@ -221,7 +221,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
 
       {/* Effects */}
       {effects.length > 0 && (
-        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
           <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">
             Effects ({effects.length})
           </h2>
@@ -249,7 +249,7 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
       )}
 
       {/* XDR Data */}
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-6">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm p-6">
         <h2 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider mb-4">Raw Data</h2>
         <div className="space-y-4">
           <div>

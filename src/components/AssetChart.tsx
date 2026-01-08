@@ -146,7 +146,7 @@ export default function AssetChart({ asset }: AssetChartProps) {
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${timeRange === range
+              className={`px-3 py-1.5 rounded-2xl text-[12px] font-medium transition-colors ${timeRange === range
                   ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm'
                   : 'text-[var(--text-tertiary)] hover:text-[var(--primary)]'
                 }`}
