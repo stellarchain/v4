@@ -36,21 +36,15 @@ export default function AccountDirectory({ initialAccounts }: AccountDirectoryPr
                             {/* Rank */}
                             <div className="col-span-1 flex items-center justify-center">
                                 <span className={`text-sm font-bold ${index < 3
-                                        ? 'text-[var(--primary)]'
-                                        : 'text-[var(--text-muted)]'
+                                    ? 'text-[var(--primary)]'
+                                    : 'text-[var(--text-muted)]'
                                     }`}>
                                     {index + 1}
                                 </span>
                             </div>
 
                             {/* Account Info */}
-                            <div className="col-span-5 flex items-center gap-3 min-w-0">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${isVerified
-                                        ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
-                                        : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
-                                    }`}>
-                                    {account.name.charAt(0).toUpperCase()}
-                                </div>
+                            <div className="col-span-5 flex items-center min-w-0">
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2">
                                         <span className="text-[var(--text-primary)] font-medium truncate group-hover:text-[var(--primary)] transition-colors">
