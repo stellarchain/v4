@@ -6,16 +6,18 @@ import { useState, useEffect } from 'react';
 
 const mainNavItems = [
   { name: 'Home', href: '/', icon: 'home' },
-  { name: 'Ledgers', href: '/ledgers', icon: 'cube' },
   { name: 'Txns', href: '/transactions', icon: 'arrows' },
-  { name: 'Markets', href: '/markets', icon: 'chart' },
+  // Hidden for now
+  // { name: 'Ledgers', href: '/ledgers', icon: 'cube' },
+  // { name: 'Markets', href: '/markets', icon: 'chart' },
 ];
 
-const moreItems = [
-  { name: 'Operations', href: '/operations', icon: 'bolt' },
-  { name: 'Accounts', href: '/accounts', icon: 'users' },
-  { name: 'Statistics', href: '/statistics', icon: 'stats' },
-  { name: 'Projects', href: '/projects', icon: 'globe' },
+const moreItems: typeof mainNavItems = [
+  // Hidden for now
+  // { name: 'Operations', href: '/operations', icon: 'bolt' },
+  // { name: 'Accounts', href: '/accounts', icon: 'users' },
+  // { name: 'Statistics', href: '/statistics', icon: 'stats' },
+  // { name: 'Projects', href: '/projects', icon: 'globe' },
 ];
 
 export default function MobileNav() {
@@ -169,7 +171,9 @@ export default function MobileNav() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setShowMore(!showMore);
+              if (moreItems.length > 0) {
+                setShowMore(!showMore);
+              }
             }}
             className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
               isMoreActive || showMore ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'

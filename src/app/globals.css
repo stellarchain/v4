@@ -1,48 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Enterprise Color Palette - Dark Mode (Default) */
-  --primary: #C9A227;
-  --primary-light: #E5C04D;
-  --primary-dark: #A68620;
-  --primary-hover: #D4AD32;
-  --primary-muted: rgba(201, 162, 39, 0.15);
-
-  /* Backgrounds - Deep slate with blue undertones */
-  --bg-primary: #0C0F14;
-  --bg-secondary: #12161D;
-  --bg-tertiary: #1A1F2B;
-  --bg-elevated: #222938;
-  --bg-hover: #2A3142;
-
-  /* Text hierarchy */
-  --text-primary: #F4F5F7;
-  --text-secondary: #9BA3B5;
-  --text-tertiary: #6B7280;
-  --text-muted: #4B5563;
-
-  /* Borders */
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-default: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.12);
-
-  /* Status colors */
-  --success: #22C55E;
-  --success-muted: rgba(34, 197, 94, 0.15);
-  --error: #EF4444;
-  --error-muted: rgba(239, 68, 68, 0.15);
-  --info: #3B82F6;
-  --info-muted: rgba(59, 130, 246, 0.15);
-
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-/* Light Mode - White background with gray cards */
-[data-theme="light"] {
-  /* Professional Neutral Color Palette */
+  /* Professional Neutral Color Palette (Light Mode Default) */
   --primary: #475569;
   /* Slate gray - professional and neutral */
   --primary-light: #64748B;
@@ -50,15 +9,15 @@
   --primary-hover: #334155;
   --primary-muted: rgba(71, 85, 105, 0.1);
 
-  /* Backgrounds - Inverted: White canvas, Gray cards */
-  --bg-primary: #FFFFFF;
-  /* White main background */
-  --bg-secondary: #F8F9FB;
-  /* Very light gray for cards */
-  --bg-tertiary: #F3F5F7;
-  /* Light gray for nested elements */
-  --bg-elevated: #FFFFFF;
-  --bg-hover: #EEF1F4;
+  /* Backgrounds - Gray theme */
+  --bg-primary: #F5F5F7;
+  /* Light gray main background */
+  --bg-secondary: #EBEBED;
+  /* Medium gray for cards */
+  --bg-tertiary: #E0E0E2;
+  /* Slightly darker gray for nested elements */
+  --bg-elevated: #F5F5F7;
+  --bg-hover: #D5D5D7;
 
   /* Text hierarchy */
   --text-primary: #111827;
