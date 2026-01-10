@@ -85,6 +85,14 @@ export interface Ledger {
   header_xdr: string;
 }
 
+export interface TransactionDisplayInfo {
+  type: 'payment' | 'contract' | 'other';
+  amount?: string;
+  rawAmount?: number; // For sorting
+  asset?: string;
+  functionName?: string;
+}
+
 export interface Transaction {
   id: string;
   paging_token: string;
@@ -105,6 +113,8 @@ export interface Transaction {
   memo_type: string;
   memo?: string;
   signatures: string[];
+  // Enhanced fields for display (populated by client)
+  displayInfo?: TransactionDisplayInfo;
 }
 
 export interface Operation {
@@ -337,6 +347,116 @@ export async function getTransactionEffects(
   );
 }
 
+// Helper to extract display info from operations
+// Format amount with appropriate precision (shows small values properly)
+function formatAmount(value: number): string {
+  if (value === 0) return '0';
+  if (value >= 1000000) {
+    return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  } else if (value >= 1000) {
+    return value.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  } else if (value >= 1) {
+    return value.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  } else if (value >= 0.0001) {
+    return value.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 7 });
+  } else {
+    // For very small values, use scientific notation or show all decimals
+    return value.toFixed(7).replace(/\.?0+$/, '');
+  }
+}
+
+export function getTransactionDisplayInfo(operations: Operation[]): TransactionDisplayInfo {
+  if (!operations || operations.length === 0) {
+    return { type: 'other' };
+  }
+
+  const firstOp = operations[0];
+
+  // Smart contract invocation
+  if (firstOp.type === 'invoke_host_function') {
+    // Try to decode the function name from parameters
+    let functionName = 'Contract Call';
+
+    try {
+      const parameters = firstOp.parameters as Array<{ type: string; value: string }> | undefined;
+      if (parameters && parameters.length >= 2) {
+        const symParam = parameters.find(p => p.type === 'Sym');
+        if (symParam) {
+          const decoded = atob(symParam.value);
+          const extractedName = decoded.slice(5).replace(/\0/g, '');
+          if (extractedName) {
+            functionName = extractedName;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error decoding contract function name:', error);
+    }
+
+    return {
+      type: 'contract',
+      functionName,
+    };
+  }
+
+  // Payment operations
+  if (firstOp.type === 'payment' || firstOp.type === 'path_payment_strict_send' || firstOp.type === 'path_payment_strict_receive') {
+    const rawAmount = firstOp.amount ? parseFloat(firstOp.amount) : 0;
+    const amount = formatAmount(rawAmount);
+    const asset = firstOp.asset_type === 'native' ? 'XLM' : (firstOp.asset_code || 'XLM');
+    return {
+      type: 'payment',
+      amount,
+      rawAmount,
+      asset,
+    };
+  }
+
+  // Create account
+  if (firstOp.type === 'create_account') {
+    const rawAmount = firstOp.starting_balance ? parseFloat(firstOp.starting_balance) : 0;
+    const amount = formatAmount(rawAmount);
+    return {
+      type: 'payment',
+      amount,
+      rawAmount,
+      asset: 'XLM',
+    };
+  }
+
+  return { type: 'other' };
+}
+
+// Fetch transactions with display info (batch operations fetch)
+export async function getTransactionsWithDisplayInfo(
+  limit: number = 10,
+  order: 'asc' | 'desc' = 'desc'
+): Promise<Transaction[]> {
+  const txResponse = await getTransactions(limit, order);
+  const transactions = txResponse._embedded.records;
+
+  // Fetch operations for each transaction in parallel
+  const transactionsWithOps = await Promise.all(
+    transactions.map(async (tx) => {
+      try {
+        const opsResponse = await getTransactionOperations(tx.hash, 1);
+        const operations = opsResponse._embedded.records;
+        return {
+          ...tx,
+          displayInfo: getTransactionDisplayInfo(operations),
+        };
+      } catch {
+        return {
+          ...tx,
+          displayInfo: { type: 'other' as const },
+        };
+      }
+    })
+  );
+
+  return transactionsWithOps;
+}
+
 // Account endpoints
 export async function getAccount(accountId: string): Promise<StellarAccount> {
   return fetchJSON<StellarAccount>(`${getBaseUrl()}/accounts/${accountId}`);
@@ -408,6 +528,61 @@ export async function getPayments(
   let url = `${getBaseUrl()}/payments?limit=${limit}&order=${order}`;
   if (cursor) url += `&cursor=${cursor}`;
   return fetchJSON<PaginatedResponse<Operation>>(url);
+}
+
+// Fetch payment operations and convert to Transaction format with displayInfo
+export async function getPaymentTransactions(
+  limit: number = 50
+): Promise<Transaction[]> {
+  try {
+    const payments = await getPayments(limit, 'desc');
+    const operations = payments._embedded.records;
+
+    // Group by transaction hash to get unique transactions
+    const txMap = new Map<string, { op: Operation; displayInfo: TransactionDisplayInfo }>();
+
+    for (const op of operations) {
+      // Skip if we already have this transaction
+      if (txMap.has(op.transaction_hash)) continue;
+
+      // Create display info from the operation
+      const displayInfo = getTransactionDisplayInfo([op]);
+
+      txMap.set(op.transaction_hash, { op, displayInfo });
+    }
+
+    // Convert to Transaction format
+    const transactions: Transaction[] = [];
+
+    for (const [hash, { op, displayInfo }] of txMap) {
+      transactions.push({
+        id: op.id,
+        paging_token: op.paging_token,
+        successful: op.transaction_successful,
+        hash: hash,
+        ledger: 0, // Will be populated if needed
+        created_at: op.created_at,
+        source_account: op.source_account,
+        source_account_sequence: '',
+        fee_account: op.source_account,
+        fee_charged: '0',
+        max_fee: '0',
+        operation_count: 1,
+        envelope_xdr: '',
+        result_xdr: '',
+        result_meta_xdr: '',
+        fee_meta_xdr: '',
+        memo_type: 'none',
+        signatures: [],
+        displayInfo,
+      });
+    }
+
+    return transactions;
+  } catch (error) {
+    console.error('Failed to fetch payment transactions:', error);
+    return []; // Return empty array on error
+  }
 }
 
 // Effects endpoints

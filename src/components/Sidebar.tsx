@@ -8,10 +8,11 @@ import ThemeToggle from './ThemeToggle';
 const navItems = [
   { name: 'Explorer', href: '/', icon: 'dashboard', count: null },
   { name: 'Wallet Track', href: '/graph', icon: 'graph', count: null },
-  { name: 'Projects', href: '/projects', icon: 'compass', count: null },
-  { name: 'Accounts', href: '/accounts', icon: 'users', count: null },
-  { name: 'Markets', href: '/markets', icon: 'coins', count: null },
-  { name: 'Statistics', href: '/statistics', icon: 'chart', count: null },
+  // Hidden for now
+  // { name: 'Projects', href: '/projects', icon: 'compass', count: null },
+  // { name: 'Accounts', href: '/accounts', icon: 'users', count: null },
+  // { name: 'Markets', href: '/markets', icon: 'coins', count: null },
+  // { name: 'Statistics', href: '/statistics', icon: 'chart', count: null },
 ];
 
 const icons: Record<string, ReactNode> = {

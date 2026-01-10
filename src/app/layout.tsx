@@ -29,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning data-theme="light">
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen transition-colors duration-300`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen transition-colors duration-300 overflow-x-hidden`}>
         <ThemeProvider>
           {/* Mobile Header */}
           <MobileHeader />
@@ -41,8 +41,8 @@ export default function RootLayout({
             </div>
 
             {/* Main Content */}
-            <main className="flex-1 min-h-screen p-4 pb-20 md:pb-4">
-              <div className="w-full max-w-none">
+            <main className="flex-1 min-h-screen p-4 pb-20 md:pb-4 overflow-x-hidden">
+              <div className="w-full max-w-full overflow-x-hidden">
                 {children}
               </div>
             </main>
