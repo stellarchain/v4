@@ -78,15 +78,15 @@ export default function TransactionMobileView({ transaction, operations, effects
   const feeXLM = (parseInt(transaction.fee_charged) / 10000000).toFixed(7);
 
   return (
-    <div className="w-full bg-white min-h-screen pb-20 font-sans">
+    <div className="w-full bg-[var(--bg-primary)] min-h-screen pb-20 font-sans">
       <div className="w-full pt-6">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-2 px-4">
-          <h1 className="text-2xl font-bold text-black tracking-tight">Transaction</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">Transaction</h1>
           <Link
             href="/transactions"
-            className="flex items-center gap-1 text-gray-500 font-medium text-sm hover:text-black transition-colors"
+            className="flex items-center gap-1 text-[var(--text-tertiary)] font-medium text-sm hover:text-[var(--text-primary)] transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -284,16 +284,16 @@ export default function TransactionMobileView({ transaction, operations, effects
 
           <div className="min-h-[100px] px-4">
             {activeTab === 'operations' && (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {operations.map((op, idx) => (
-                  <div key={op.id} className="bg-gray-50 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-xs font-bold shadow-sm">{idx + 1}</span>
-                        <span className="font-semibold text-gray-900 capitalize">{getOperationTypeLabel(op.type)}</span>
+                  <div key={op.id} className="bg-gray-50 rounded-xl p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-[10px] font-bold shadow-sm">{idx + 1}</span>
+                        <span className="text-sm font-semibold text-gray-900 capitalize">{getOperationTypeLabel(op.type)}</span>
                       </div>
                       {op.amount && (
-                        <span className="font-bold text-gray-900">
+                        <span className="text-sm font-bold text-gray-900">
                           {parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 7 })}
                           {' '}
                           {op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM'}
@@ -301,9 +301,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                       )}
                     </div>
                     {(op.from || op.to) && (
-                      <div className="flex items-center gap-2 text-xs text-gray-500 ml-9">
+                      <div className="flex items-center gap-2 text-xs font-mono text-gray-500 ml-7">
                         {op.from && (
-                          <Link href={`/account/${op.from}`} className="font-mono hover:text-gray-900 transition-colors">
+                          <Link href={`/account/${op.from}`} className="hover:text-gray-900 transition-colors">
                             {shortenAddress(op.from, 6)}
                           </Link>
                         )}
@@ -313,7 +313,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                           </svg>
                         )}
                         {op.to && (
-                          <Link href={`/account/${op.to}`} className="font-mono hover:text-gray-900 transition-colors">
+                          <Link href={`/account/${op.to}`} className="hover:text-gray-900 transition-colors">
                             {shortenAddress(op.to, 6)}
                           </Link>
                         )}
@@ -325,10 +325,10 @@ export default function TransactionMobileView({ transaction, operations, effects
             )}
 
             {activeTab === 'effects' && (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {effects.map((ef) => (
-                  <div key={ef.id} className="bg-gray-50 rounded-xl p-4">
-                    <div className="flex justify-between items-start mb-2">
+                  <div key={ef.id} className="bg-gray-50 rounded-xl p-3">
+                    <div className="flex justify-between items-start mb-1.5">
                       <span className="text-sm font-semibold text-gray-900 capitalize">
                         {ef.type.replace(/_/g, ' ')}
                       </span>
@@ -344,7 +344,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                         href={`/account/${ef.account}`}
                         className="text-xs font-mono text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1"
                       >
-                        {shortenAddress(ef.account, 8)}
+                        {shortenAddress(ef.account, 6)}
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
