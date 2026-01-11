@@ -687,16 +687,35 @@ async function getXLMPrice(): Promise<number> {
 }
 
 // Fetch market data from StellarExpert API (aggregated market data)
+// Fetch XLM data from CoinGecko
+async function getCoinGeckoXLMData() {
+  try {
+    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true', {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 60 },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return data.stellar;
+    }
+  } catch (error) {
+    console.error('Error fetching CoinGecko data:', error);
+  }
+  return null;
+}
+
+// Fetch market data from StellarExpert API (aggregated market data)
 export async function getMarketAssets(): Promise<MarketAsset[]> {
   try {
     // Fetch XLM price and assets in parallel
     // Sort by rating to get legitimate assets (filters out spam)
-    const [xlmPrice, assetsResponse] = await Promise.all([
+    const [xlmPrice, assetsResponse, coinGeckoData] = await Promise.all([
       getXLMPrice(),
       fetch('https://api.stellar.expert/explorer/public/asset?sort=rating&order=desc&limit=50', {
         headers: { 'Accept': 'application/json' },
         next: { revalidate: 60 },
-      })
+      }),
+      getCoinGeckoXLMData()
     ]);
 
     if (!assetsResponse.ok) {
@@ -706,7 +725,7 @@ export async function getMarketAssets(): Promise<MarketAsset[]> {
     const data = await assetsResponse.json();
 
     // Transform StellarExpert data to our MarketAsset format
-    return data._embedded?.records?.map((asset: Record<string, unknown>, index: number) => {
+    const assets = data._embedded?.records?.map((asset: Record<string, unknown>, index: number) => {
       const toml = asset.tomlInfo as Record<string, unknown> | undefined;
       const currentPrice = Number(asset.price) || 0;
 
@@ -757,6 +776,27 @@ export async function getMarketAssets(): Promise<MarketAsset[]> {
         sparkline: sparklineData.length > 0 ? sparklineData : generateMockSparkline(),
       };
     }) || [];
+
+    // Override XLM data with CoinGecko if available
+    if (coinGeckoData && assets.length > 0) {
+      // Assume the first asset is XLM (usually sorted by rating/volume)
+      // Or find it explicitly
+      const xlmIndex = assets.findIndex((a: MarketAsset) => a.code === 'XLM' && !a.issuer);
+
+      if (xlmIndex !== -1) {
+        assets[xlmIndex] = {
+          ...assets[xlmIndex],
+          price_usd: coinGeckoData.usd,
+          volume_24h: coinGeckoData.usd_24h_vol, // CoinGecko returns volume in USD
+          market_cap: coinGeckoData.usd_market_cap,
+          change_24h: coinGeckoData.usd_24h_change,
+          price_xlm: 1, // 1 XLM = 1 XLM
+        };
+      }
+    }
+
+    return assets;
+
   } catch (error) {
     console.error('Error fetching market assets:', error);
     // Return mock data as fallback

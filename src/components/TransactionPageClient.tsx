@@ -53,15 +53,9 @@ export default function TransactionPageClient({
   const seenIdsRef = useRef<Set<string>>(new Set(mergedInitial.map(t => t.hash)));
   const animatedIdsRef = useRef<Set<string>>(new Set(mergedInitial.map(t => t.hash)));
 
-  const fetchOperationsForTransaction = useCallback(async (txHash: string): Promise<Operation[]> => {
-    try {
-      const res = await fetch(`https://horizon.stellar.org/transactions/${txHash}/operations?limit=1`);
-      const data = await res.json();
-      return data._embedded?.records || [];
-    } catch {
-      return [];
-    }
-  }, []);
+  // Note: We no longer fetch operations for each transaction to prevent API rate limiting
+  // The transaction list view uses minimal data from the transaction itself
+  // Full operation details are only fetched on the individual transaction detail page
 
   // Convert payment operations to Transaction format with displayInfo
   const convertPaymentsToTransactions = useCallback((operations: Operation[]): Transaction[] => {
@@ -124,26 +118,18 @@ export default function TransactionPageClient({
       const allNewTransactions = [...newTransactions, ...paymentTransactions];
       const newHashes = allNewTransactions.filter(t => !seenIdsRef.current.has(t.hash)).map(t => t.hash);
 
-      // Process transactions - fetch operations for new ones without displayInfo
-      const transactionsWithOps = await Promise.all(
-        allNewTransactions.map(async (tx) => {
-          // Payment transactions already have displayInfo
-          if (tx.displayInfo) {
-            return tx;
-          }
-          if (newHashes.includes(tx.hash)) {
-            const operations = await fetchOperationsForTransaction(tx.hash);
-            return {
-              ...tx,
-              displayInfo: getTransactionDisplayInfo(operations),
-            };
-          }
-          return {
-            ...tx,
-            displayInfo: getTransactionDisplayInfo([]),
-          };
-        })
-      );
+      // Process transactions - use payment displayInfo or generate minimal displayInfo
+      const transactionsWithOps = allNewTransactions.map((tx) => {
+        // Payment transactions already have displayInfo
+        if (tx.displayInfo) {
+          return tx;
+        }
+        // For other transactions, generate minimal displayInfo without fetching operations
+        return {
+          ...tx,
+          displayInfo: getTransactionDisplayInfo([]),
+        };
+      });
 
       setTransactions(prevTransactions => {
         // Merge new transactions with existing ones, keeping unique by hash
@@ -192,7 +178,7 @@ export default function TransactionPageClient({
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
     }
-  }, [limit, fetchOperationsForTransaction, convertPaymentsToTransactions]);
+  }, [limit, convertPaymentsToTransactions]);
 
   // Load more older transactions
   const loadMoreTransactions = useCallback(async () => {
@@ -227,19 +213,16 @@ export default function TransactionPageClient({
       const oldestTx = olderTransactions[olderTransactions.length - 1];
       setOldestCursor(oldestTx.paging_token);
 
-      // Fetch operations for display info
-      const txsWithOps = await Promise.all(
-        olderTransactions.map(async (tx) => {
-          if (seenIdsRef.current.has(tx.hash)) {
-            return null; // Skip if we already have this
-          }
-          const operations = await fetchOperationsForTransaction(tx.hash);
-          return {
-            ...tx,
-            displayInfo: getTransactionDisplayInfo(operations),
-          };
-        })
-      );
+      // Process older transactions with minimal displayInfo (no operation fetching)
+      const txsWithOps = olderTransactions.map((tx) => {
+        if (seenIdsRef.current.has(tx.hash)) {
+          return null; // Skip if we already have this
+        }
+        return {
+          ...tx,
+          displayInfo: getTransactionDisplayInfo([]),
+        };
+      });
 
       const validTxs = txsWithOps.filter(tx => tx !== null) as Transaction[];
 
@@ -265,26 +248,21 @@ export default function TransactionPageClient({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, transactions, oldestCursor, fetchOperationsForTransaction]);
+  }, [isLoadingMore, transactions, oldestCursor]);
 
   useEffect(() => {
-    const initFetch = async () => {
-      // Use the merged initial (includes both regular and payment transactions)
-      const txsWithOps = await Promise.all(
-        mergedInitial.map(async (tx) => {
-          if (!tx.displayInfo) {
-            const operations = await fetchOperationsForTransaction(tx.hash);
-            return {
-              ...tx,
-              displayInfo: getTransactionDisplayInfo(operations),
-            };
-          }
-          return tx;
-        })
-      );
-      setTransactions(txsWithOps);
-    };
-    initFetch();
+    // Use the merged initial (includes both regular and payment transactions)
+    // No need to fetch operations - use existing displayInfo or generate minimal one
+    const txsWithOps = mergedInitial.map((tx) => {
+      if (!tx.displayInfo) {
+        return {
+          ...tx,
+          displayInfo: getTransactionDisplayInfo([]),
+        };
+      }
+      return tx;
+    });
+    setTransactions(txsWithOps);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -353,11 +331,10 @@ export default function TransactionPageClient({
           <button
             key={key}
             onClick={() => setFilter(key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              filter === key
-                ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm'
-                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === key
+              ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm'
+              : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+              }`}
           >
             {icon}
             <span>{label}</span>

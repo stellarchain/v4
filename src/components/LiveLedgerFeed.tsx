@@ -67,7 +67,7 @@ export default function LiveLedgerFeed({ initialLedgers, limit = 10 }: LiveLedge
   }, [limit]);
 
   useEffect(() => {
-    const interval = setInterval(fetchLedgers, 1000);
+    const interval = setInterval(fetchLedgers, 10000); // 10s interval to safely stay under rate limits
     return () => clearInterval(interval);
   }, [fetchLedgers]);
 
