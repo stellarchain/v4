@@ -2,12 +2,12 @@
 
 :root {
   /* Professional Neutral Color Palette (Light Mode Default) */
-  --primary: #475569;
-  /* Slate gray - professional and neutral */
-  --primary-light: #64748B;
-  --primary-dark: #334155;
-  --primary-hover: #334155;
-  --primary-muted: rgba(71, 85, 105, 0.1);
+  --primary: #171717;
+  /* Neutral 900 - professional and sharp */
+  --primary-light: #404040;
+  --primary-dark: #0a0a0a;
+  --primary-hover: #0a0a0a;
+  --primary-muted: rgba(23, 23, 23, 0.05);
 
   /* Backgrounds - Gray theme */
   --bg-primary: #F5F5F7;

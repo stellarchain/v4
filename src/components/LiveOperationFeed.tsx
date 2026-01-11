@@ -66,7 +66,7 @@ export default function LiveOperationFeed({ initialOperations, limit = 10 }: Liv
   }, [limit]);
 
   useEffect(() => {
-    const interval = setInterval(fetchOperations, 1000);
+    const interval = setInterval(fetchOperations, 10000); // 10s interval to safely stay under rate limits
     return () => clearInterval(interval);
   }, [fetchOperations]);
 

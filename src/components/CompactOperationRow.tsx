@@ -79,32 +79,39 @@ const CompactOperationRow = forwardRef<HTMLAnchorElement, CompactOperationRowPro
       <Link
         ref={ref}
         href={`/transaction/${operation.transaction_hash}`}
-        className="flex items-center justify-between py-4 px-5 bg-[var(--bg-secondary)] rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 group text-[13px]"
+        className="flex items-center justify-between py-4 px-5 bg-white border border-gray-100 rounded-2xl shadow-[0_2px_8px_rgb(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgb(0,0,0,0.06)] hover:border-gray-200 transition-all duration-300 group text-[13px]"
       >
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${operation.transaction_successful
-            ? 'bg-[var(--success-muted)] text-[var(--success)]'
-            : 'bg-[var(--error-muted)] text-[var(--error)]'
+        <div className="flex items-center gap-4">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${operation.transaction_successful
+            ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
+            : 'bg-red-50 border-red-100 text-red-600'
             }`}>
             {getOperationIcon(operation.type)}
           </div>
           <div>
-            <span className="text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors">
-              {getOperationTypeLabel(operation)}
-            </span>
-            <span className="text-[var(--text-tertiary)] ml-2 text-[12px]">{timeAgo(operation.created_at)}</span>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-gray-900 font-bold tracking-tight group-hover:text-black transition-colors capitalize">
+                {getOperationTypeLabel(operation.type)}
+              </span>
+            </div>
+            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+              {timeAgo(operation.created_at)}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-5">
           {amount && (
-            <span className="text-[var(--primary)] font-mono font-medium">{amount}</span>
+            <div className="text-right">
+              <span className="text-gray-900 font-bold font-mono">{formatXLM((amount || '').split(' ')[0])}</span>
+              <span className="text-gray-400 ml-1 text-[10px] uppercase font-bold tracking-wider">XLM</span>
+            </div>
           )}
           <div className="text-right hidden sm:block">
-            <span className="text-[var(--text-secondary)] font-mono text-[12px]">
+            <span className="text-gray-500 font-mono text-[12px] font-medium">
               {shortenAddress(operation.source_account, 4)}
             </span>
           </div>
-          <svg className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--primary)] group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-gray-300 group-hover:text-black group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </div>

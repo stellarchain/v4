@@ -1,11 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function MobileHeader() {
-  const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [baseFee, setBaseFee] = useState(100);
+
+  // Fetch base fee
+  useEffect(() => {
+    const fetchBaseFee = async () => {
+      try {
+        const res = await fetch('https://horizon.stellar.org/');
+        const data = await res.json();
+        setBaseFee(data.core_latest_ledger.base_fee || 100);
+      } catch (e) {
+        console.error('Failed to fetch base fee', e);
+      }
+    };
+    fetchBaseFee();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,63 +36,77 @@ export default function MobileHeader() {
       window.location.href = `/account/${query}`;
     }
     setSearchQuery('');
-    setSearchOpen(false);
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] md:hidden">
-      <div className="flex items-center justify-between h-14 px-4">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl flex items-center justify-center">
-            <svg className="w-4 h-4 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+    <header className="relative bg-[#020617] pt-12 pb-16 overflow-hidden md:hidden">
+      {/* Dot Pattern Background */}
+      <div
+        className="absolute inset-0 z-0 opacity-20 pointer-events-none"
+        style={{
+          backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px)',
+          backgroundSize: '20px 20px'
+        }}
+      />
+
+      {/* Top Bar: Logo & Notification */}
+      <div className="relative z-10 px-6 flex justify-between items-center mb-6">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <span className="text-[var(--text-primary)] font-semibold text-[14px]">
-            Stellar<span className="text-[var(--primary)]">Chain</span>
-          </span>
+          <span className="font-bold text-white tracking-tight text-lg">StellarChain</span>
         </Link>
-
-        <div className="flex items-center gap-1">
-          {/* Search Toggle */}
-          <button
-            onClick={() => setSearchOpen(!searchOpen)}
-            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors"
-          >
-            {searchOpen ? (
-              <svg className="w-5 h-5 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            )}
+        <div className="flex items-center gap-4">
+          <button className="text-white/70 hover:text-white transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
           </button>
         </div>
       </div>
 
-      {/* Search Panel */}
-      {searchOpen && (
-        <div className="px-4 pb-3 animate-in slide-in-from-top duration-200">
-          <form onSubmit={handleSearch}>
-            <div className="relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      {/* Hero Title */}
+      <div className="relative z-10 px-6 mb-8">
+        <h1 className="text-2xl font-bold text-white opacity-90">Explore</h1>
+        <p className="text-sm text-white/40 font-medium">Stellar Blockchain</p>
+      </div>
+
+      {/* Glass Search Bar */}
+      <div className="relative z-10 px-6">
+        <form onSubmit={handleSearch}>
+          <div className="bg-white/15 backdrop-blur-xl border border-white/20 rounded-2xl p-2 flex items-center shadow-2xl">
+            <span className="pl-3 pr-2 text-white/50">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search address, tx, ledger..."
-                autoFocus
-                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl py-2.5 pl-10 pr-4 text-[var(--text-primary)] placeholder-[var(--text-muted)] text-[13px] focus:outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-muted)]"
-              />
-            </div>
-          </form>
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-transparent border-none text-white placeholder-white/40 focus:ring-0 focus:outline-none flex-1 text-sm py-2 w-full"
+              placeholder="Search hash, ledger, account..."
+            />
+          </div>
+        </form>
+      </div>
+
+      {/* Inline Stats */}
+      <div className="relative z-10 px-8 mt-6 flex gap-6 text-[11px] font-medium tracking-wide uppercase">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span className="text-white/50">XLM Price:</span>
+          <span className="text-white">$0.12</span>
+          <span className="text-emerald-400">+2.5%</span>
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <span className="text-white/50">Fee:</span>
+          <span className="text-white font-mono">{(baseFee / 10000000).toFixed(7)} XLM</span>
+        </div>
+      </div>
     </header>
   );
 }
