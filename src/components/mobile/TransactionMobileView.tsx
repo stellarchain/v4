@@ -57,7 +57,9 @@ interface TransactionMobileViewProps {
 }
 
 export default function TransactionMobileView({ transaction, operations, effects }: TransactionMobileViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'effects' | 'details' | 'raw'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'effects' | 'details' | 'raw'>(
+    (operations.length > 0 && operations[0].type === 'invoke_host_function') ? 'effects' : 'operations'
+  );
   const [copied, setCopied] = useState(false);
   const [expandFrom, setExpandFrom] = useState(false);
   const [expandTo, setExpandTo] = useState(false);
@@ -112,6 +114,31 @@ export default function TransactionMobileView({ transaction, operations, effects
   };
 
   const dexSwap = detectDEXSwap();
+
+  // Logic to summarize effects (Sent/Received) from smart contracts
+  const getEffectsSummary = () => {
+    // Check effects regardless of operation type to ensure we capture Swaps/Contracts that might be complex
+    // if (operations.length > 0 && operations[0].type !== 'invoke_host_function') return null;
+
+    const debit = effects.find(ef => ef.type === 'account_debited' && ef.amount);
+    const credit = effects.find(ef => ef.type === 'account_credited' && ef.amount);
+
+    const sent = debit ? {
+      amount: debit.amount!,
+      asset: debit.asset_type === 'native' ? 'XLM' : debit.asset_code || 'Unknown',
+      account: debit.account
+    } : undefined;
+
+    const received = credit ? {
+      amount: credit.amount!,
+      asset: credit.asset_type === 'native' ? 'XLM' : credit.asset_code || 'Unknown',
+      recipient: credit.account
+    } : undefined;
+
+    if (!sent && !received) return null;
+    return { sent, received };
+  };
+  const effectsSummary = getEffectsSummary();
 
   const handleCopy = () => {
     navigator.clipboard.writeText(transaction.hash);
@@ -445,6 +472,57 @@ export default function TransactionMobileView({ transaction, operations, effects
                     </span>
                   )}
                 </div>
+
+                {effectsSummary?.sent && (
+                  <div className="mt-5 mb-1">
+                    <div className="bg-orange-50 rounded-2xl p-5 border border-orange-100/50 shadow-sm flex justify-between items-center relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-orange-200/20 rounded-full blur-xl -mr-4 -mt-4"></div>
+                      <div className="relative z-10 flex flex-col">
+                        <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1 flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+                          Sent
+                        </p>
+                        <p className="text-3xl font-bold text-orange-950 tracking-tight leading-none">
+                          {parseFloat(effectsSummary.sent.amount).toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                        </p>
+                        {effectsSummary.sent.account && effectsSummary.sent.account !== transaction.source_account && (
+                          <Link href={`/account/${effectsSummary.sent.account}`} className="text-[10px] font-mono text-orange-700/60 mt-0.5 hover:text-orange-800 transition-colors w-fit">
+                            from {shortenAddress(effectsSummary.sent.account, 4)}
+                          </Link>
+                        )}
+                      </div>
+                      <div className="relative z-10 bg-white px-3 py-1.5 rounded-xl text-orange-950 font-bold text-sm shadow-sm border border-orange-50">
+                        {effectsSummary.sent.asset}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {effectsSummary?.received && (!effectsSummary.sent || effectsSummary.sent.asset !== effectsSummary.received.asset) && (
+                  <div className="mt-5 mb-1">
+                    <div className="bg-[#ECFDF5] rounded-2xl p-5 border border-emerald-100/50 shadow-sm flex justify-between items-center relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-200/20 rounded-full blur-xl -mr-4 -mt-4"></div>
+
+                      <div className="relative z-10 flex flex-col">
+                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1 flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                          Received
+                        </p>
+                        <p className="text-3xl font-bold text-emerald-950 tracking-tight leading-none">
+                          {parseFloat(effectsSummary.received.amount).toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                        </p>
+                        {effectsSummary.received.recipient !== transaction.source_account && (
+                          <Link href={`/account/${effectsSummary.received.recipient}`} className="text-[10px] font-mono text-emerald-700/60 mt-0.5 hover:text-emerald-800 transition-colors w-fit">
+                            to {shortenAddress(effectsSummary.received.recipient, 4)}
+                          </Link>
+                        )}
+                      </div>
+                      <div className="relative z-10 bg-white px-3 py-1.5 rounded-xl text-emerald-950 font-bold text-sm shadow-sm border border-emerald-50">
+                        {effectsSummary.received.asset}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3 pt-4 border-t border-slate-200">
