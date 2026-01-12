@@ -115,6 +115,12 @@ export default function TransactionMobileView({ transaction, operations, effects
 
   const dexSwap = detectDEXSwap();
 
+  const offerOp = operations.length === 1 && (
+    operations[0].type === 'manage_sell_offer' ||
+    operations[0].type === 'manage_buy_offer' ||
+    operations[0].type === 'create_passive_sell_offer'
+  ) ? operations[0] : null;
+
   // Logic to summarize effects (Sent/Received) from smart contracts
   const getEffectsSummary = () => {
     // Check effects regardless of operation type to ensure we capture Swaps/Contracts that might be complex
@@ -472,6 +478,57 @@ export default function TransactionMobileView({ transaction, operations, effects
                     </span>
                   )}
                 </div>
+
+                {offerOp && (
+                  <div className="mt-5 mb-1">
+                    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 shadow-sm relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-slate-200/20 rounded-full blur-2xl -mr-8 -mt-8"></div>
+
+                      <div className="relative z-10">
+                        {/* Primary Action Section */}
+                        <div className="mb-4">
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                            <span className={`w-1.5 h-1.5 rounded-full ${offerOp.type === 'manage_buy_offer' ? 'bg-emerald-400' : 'bg-red-400'}`}></span>
+                            {offerOp.type === 'manage_buy_offer' ? 'Buying' : 'Selling'}
+                          </p>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-3xl font-bold text-slate-900 tracking-tighter">
+                              {parseFloat(offerOp.amount || '0').toLocaleString()}
+                            </span>
+                            <span className="text-lg font-bold text-slate-500">
+                              {offerOp.type === 'manage_buy_offer' ? ((offerOp as any).buying_asset_code || 'XLM') : ((offerOp as any).selling_asset_code || 'XLM')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Divider / Price */}
+                        <div className="flex items-center gap-3 my-4">
+                          <div className="h-px flex-1 bg-slate-200"></div>
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-full border border-slate-100 shadow-sm">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">Price</span>
+                            <span className="text-xs font-mono font-bold text-slate-700">
+                              {(offerOp as any).price}
+                            </span>
+                          </div>
+                          <div className="h-px flex-1 bg-slate-200"></div>
+                        </div>
+
+                        {/* Counter Asset Section */}
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                            <span className={`w-1.5 h-1.5 rounded-full ${offerOp.type === 'manage_buy_offer' ? 'bg-red-400' : 'bg-emerald-400'}`}></span>
+                            {offerOp.type === 'manage_buy_offer' ? 'With' : 'For'}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xl font-bold text-slate-900">
+                              {offerOp.type === 'manage_buy_offer' ? ((offerOp as any).selling_asset_code || 'XLM') : ((offerOp as any).buying_asset_code || 'XLM')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {effectsSummary?.sent && (
                   <div className="mt-5 mb-1">
