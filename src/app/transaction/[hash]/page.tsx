@@ -1,5 +1,5 @@
 import { getTransaction, getTransactionOperations, getTransactionEffects } from '@/lib/stellar';
-import TransactionMobileView from '@/components/TransactionMobileView';
+import TransactionMobileView from '@/components/mobile/TransactionMobileView';
 
 export const revalidate = 60;
 

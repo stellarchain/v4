@@ -4,10 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import gsap from 'gsap';
 import { Ledger, NetworkStats, Transaction, formatXLM } from '@/lib/stellar';
-import LiveTransactionFeed from './LiveTransactionFeed';
-import LiveLedgerFeed from './LiveLedgerFeed';
-import LiveOperationFeed from './LiveOperationFeed';
-import InfoTooltip from './InfoTooltip';
+import LiveTransactionFeed from '../LiveTransactionFeed';
+import LiveLedgerFeed from '../LiveLedgerFeed';
+import LiveOperationFeed from '../LiveOperationFeed';
+import InfoTooltip from '../InfoTooltip';
 
 interface DesktopHomePageProps {
     stats: NetworkStats;
