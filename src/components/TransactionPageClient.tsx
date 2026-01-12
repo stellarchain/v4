@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { gsap } from 'gsap';
 import CompactTransactionRow from './CompactTransactionRow';
-import { Transaction, getTransactionDisplayInfo, Operation } from '@/lib/stellar';
+import { Transaction, getTransactionDisplayInfo, Operation, getTransactionOperations } from '@/lib/stellar';
 
 type FilterType = 'all' | 'transfers' | 'contracts';
 
@@ -52,6 +52,7 @@ export default function TransactionPageClient({
   const rowRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
   const seenIdsRef = useRef<Set<string>>(new Set(mergedInitial.map(t => t.hash)));
   const animatedIdsRef = useRef<Set<string>>(new Set(mergedInitial.map(t => t.hash)));
+  const processedIdsRef = useRef<Set<string>>(new Set());
 
   // Note: We no longer fetch operations for each transaction to prevent API rate limiting
   // The transaction list view uses minimal data from the transaction itself
@@ -292,6 +293,54 @@ export default function TransactionPageClient({
   // Paginate the filtered transactions
   const visibleTransactions = filteredTransactions.slice(0, visibleCount);
   const hasMore = filteredTransactions.length > visibleCount || transactions.length >= PAGE_SIZE;
+
+  // Effect to progressively fetch details for visible transactions labeled as 'other' / 'unknown'
+  // This ensures we can properly identify Smart Contracts functions
+  useEffect(() => {
+    let mounted = true;
+
+    // Check if we need to enrich any visible transactions
+    const candidates = visibleTransactions.filter(tx =>
+      (tx.displayInfo?.type === 'other' || !tx.displayInfo) &&
+      !processedIdsRef.current.has(tx.hash)
+    );
+
+    if (candidates.length === 0) return;
+
+    const enrichTransactions = async () => {
+      // Process sequentially to be gentle on rate limits
+      for (const tx of candidates) {
+        if (!mounted) break;
+        processedIdsRef.current.add(tx.hash);
+
+        try {
+          // Fetches operations to determine if it's a contract call and what function
+          const opRes = await getTransactionOperations(tx.hash, 5);
+          const ops = opRes._embedded.records;
+
+          if (ops && ops.length > 0) {
+            const info = getTransactionDisplayInfo(ops);
+
+            // If we found something interesting (not 'other'), update the state
+            if (info.type !== 'other') {
+              setTransactions(prev => prev.map(t =>
+                t.hash === tx.hash ? { ...t, displayInfo: info } : t
+              ));
+            }
+          }
+
+          // Small delay between requests
+          await new Promise(r => setTimeout(r, 150));
+        } catch (e) {
+          // Ignore errors, we just keep default display
+        }
+      }
+    };
+
+    enrichTransactions();
+
+    return () => { mounted = false; };
+  }, [visibleTransactions]);
 
   const filters: { key: FilterType; label: string; icon: React.ReactNode }[] = [
     {
