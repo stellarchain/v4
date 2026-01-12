@@ -91,7 +91,12 @@ export interface TransactionDisplayInfo {
   rawAmount?: number; // For sorting
   asset?: string;
   functionName?: string;
+  // Swap specific
+  isSwap?: boolean;
+  sourceAmount?: string;
+  sourceAsset?: string;
 }
+
 
 export interface Transaction {
   id: string;
@@ -370,15 +375,27 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
     return { type: 'other' };
   }
 
-  const firstOp = operations[0];
+  // Determine primary operation based on priority
+  let primaryOp = operations[0];
+
+  // Priority: Contract > Swap > Payment > Create Account
+  const contractOp = operations.find(op => op.type === 'invoke_host_function');
+  const swapOp = operations.find(op => op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive');
+  const paymentOp = operations.find(op => op.type === 'payment');
+  const createAccountOp = operations.find(op => op.type === 'create_account');
+
+  if (contractOp) primaryOp = contractOp;
+  else if (swapOp) primaryOp = swapOp;
+  else if (paymentOp) primaryOp = paymentOp;
+  else if (createAccountOp) primaryOp = createAccountOp;
 
   // Smart contract invocation
-  if (firstOp.type === 'invoke_host_function') {
+  if (primaryOp.type === 'invoke_host_function') {
     // Try to decode the function name from parameters
     let functionName = 'Contract Call';
 
     try {
-      const parameters = firstOp.parameters as Array<{ type: string; value: string }> | undefined;
+      const parameters = primaryOp.parameters as Array<{ type: string; value: string }> | undefined;
       if (parameters && parameters.length >= 2) {
         const symParam = parameters.find(p => p.type === 'Sym');
         if (symParam) {
@@ -399,11 +416,33 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
     };
   }
 
-  // Payment operations
-  if (firstOp.type === 'payment' || firstOp.type === 'path_payment_strict_send' || firstOp.type === 'path_payment_strict_receive') {
-    const rawAmount = firstOp.amount ? parseFloat(firstOp.amount) : 0;
+  // Swap operations (Path Payment)
+  if (primaryOp.type === 'path_payment_strict_send' || primaryOp.type === 'path_payment_strict_receive') {
+    const rawAmount = primaryOp.amount ? parseFloat(primaryOp.amount) : 0;
     const amount = formatAmount(rawAmount);
-    const asset = firstOp.asset_type === 'native' ? 'XLM' : (firstOp.asset_code || 'XLM');
+    const asset = primaryOp.asset_type === 'native' ? 'XLM' : (primaryOp.asset_code || 'XLM');
+
+    // Extract source details
+    const sourceRawAmount = (primaryOp as any).source_amount ? parseFloat((primaryOp as any).source_amount) : 0;
+    const sourceAmount = formatAmount(sourceRawAmount);
+    const sourceAsset = (primaryOp as any).source_asset_type === 'native' ? 'XLM' : ((primaryOp as any).source_asset_code || 'XLM');
+
+    return {
+      type: 'payment',
+      amount,
+      rawAmount,
+      asset,
+      isSwap: true,
+      sourceAmount,
+      sourceAsset
+    };
+  }
+
+  // Standard Payment operations
+  if (primaryOp.type === 'payment') {
+    const rawAmount = primaryOp.amount ? parseFloat(primaryOp.amount) : 0;
+    const amount = formatAmount(rawAmount);
+    const asset = primaryOp.asset_type === 'native' ? 'XLM' : (primaryOp.asset_code || 'XLM');
     return {
       type: 'payment',
       amount,
@@ -411,16 +450,15 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
       asset,
     };
   }
-
   // Create account
-  if (firstOp.type === 'create_account') {
-    const rawAmount = firstOp.starting_balance ? parseFloat(firstOp.starting_balance) : 0;
+  if (primaryOp.type === 'create_account') {
+    const rawAmount = (primaryOp as any).starting_balance ? parseFloat((primaryOp as any).starting_balance) : 0;
     const amount = formatAmount(rawAmount);
     return {
       type: 'payment',
       amount,
       rawAmount,
-      asset: 'XLM',
+      asset: 'XLM', // Starting balance is always in XLM
     };
   }
 

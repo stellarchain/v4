@@ -1,21 +1,22 @@
-import { getLedgers, getTransactions, getOperations, getNetworkStats, formatXLM, formatStroopsToXLM, getMarketAssets } from '@/lib/stellar';
+import { getLedgers, getTransactions, getOperations, getNetworkStats, formatXLM, formatStroopsToXLM, getMarketAssets, getXLMUSDPriceFromHorizon } from '@/lib/stellar';
 import StatsCard from '@/components/StatsCard';
 import LiveLedgerFeed from '@/components/LiveLedgerFeed';
 import LiveTransactionFeed from '@/components/LiveTransactionFeed';
 import LiveOperationFeed from '@/components/LiveOperationFeed';
-import MobileHomePage from '@/components/MobileHomePage';
-import DesktopHomePage from '@/components/DesktopHomePage';
+import MobileHomePage from '@/components/mobile/MobileHomePage';
+import DesktopHomePage from '@/components/desktop/DesktopHomePage';
 import Link from 'next/link';
 
 export const revalidate = 10;
 
 export default async function HomePage() {
-  const [stats, ledgersResponse, transactionsResponse, operationsResponse, marketAssets] = await Promise.all([
+  const [stats, ledgersResponse, transactionsResponse, operationsResponse, marketAssets, xlmPrice] = await Promise.all([
     getNetworkStats(),
     getLedgers(8),
     getTransactions(8),
     getOperations(8),
     getMarketAssets(),
+    getXLMUSDPriceFromHorizon(),
   ]);
 
   const ledgers = ledgersResponse._embedded.records;
@@ -30,7 +31,12 @@ export default async function HomePage() {
     <>
       {/* Mobile Homepage */}
       <div className="md:hidden">
-        <MobileHomePage stats={stats} initialTransactions={transactions} xlmVolume={xlmVolume} />
+        <MobileHomePage
+          stats={stats}
+          initialTransactions={transactions}
+          xlmVolume={xlmVolume}
+          xlmPrice={xlmPrice}
+        />
       </div>
 
       {/* Desktop Homepage */}

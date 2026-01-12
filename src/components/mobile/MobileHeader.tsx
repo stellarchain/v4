@@ -2,24 +2,37 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function MobileHeader() {
   const [searchQuery, setSearchQuery] = useState('');
   const [baseFee, setBaseFee] = useState(100);
+  const [xlmPrice, setXlmPrice] = useState(0);
+  const pathname = usePathname();
+  const isHomePage = pathname === '/';
 
-  // Fetch base fee
+  // Fetch base fee & XLM Price
   useEffect(() => {
-    const fetchBaseFee = async () => {
+    if (!isHomePage) return; // Only fetch stats for homepage
+    const fetchStats = async () => {
       try {
-        const res = await fetch('https://horizon.stellar.org/');
-        const data = await res.json();
-        setBaseFee(data.core_latest_ledger.base_fee || 100);
+        // Fetch Base Fee
+        const feeRes = await fetch('https://horizon.stellar.org/');
+        const feeData = await feeRes.json();
+        setBaseFee(feeData.core_latest_ledger.base_fee || 100);
+
+        // Fetch XLM Price (XLM/USDC)
+        const priceRes = await fetch('https://horizon.stellar.org/trade_aggregations?base_asset_type=native&counter_asset_type=credit_alphanum4&counter_asset_code=USDC&counter_asset_issuer=GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN&resolution=900000&limit=1&order=desc');
+        const priceData = await priceRes.json();
+        if (priceData._embedded.records.length > 0) {
+          setXlmPrice(parseFloat(priceData._embedded.records[0].close));
+        }
       } catch (e) {
-        console.error('Failed to fetch base fee', e);
+        console.error('Failed to fetch header stats', e);
       }
     };
-    fetchBaseFee();
-  }, []);
+    fetchStats();
+  }, [isHomePage]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +51,55 @@ export default function MobileHeader() {
     setSearchQuery('');
   };
 
+  // Simplified Header for non-homepage
+  if (!isHomePage) {
+    return (
+      <header className="relative bg-[#020617] pt-6 pb-6 overflow-hidden md:hidden border-b border-white/5">
+        {/* Dot Pattern Background */}
+        <div
+          className="absolute inset-0 z-0 opacity-20 pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px)',
+            backgroundSize: '20px 20px'
+          }}
+        />
+
+        {/* Top: Logo */}
+        <div className="relative z-10 px-6 mb-4 flex justify-between items-center">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <span className="font-bold text-white tracking-tight text-lg">StellarChain</span>
+          </Link>
+        </div>
+
+        {/* Bottom: Search Bar */}
+        <div className="relative z-10 px-6">
+          <form onSubmit={handleSearch}>
+            <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center">
+              <span className="pl-3 pr-2 text-white/50">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-transparent border-none text-white placeholder-white/40 focus:ring-0 focus:outline-none flex-1 text-sm py-1 w-full"
+                placeholder="Search hash, ledger, account..."
+              />
+            </div>
+          </form>
+        </div>
+      </header>
+    );
+  }
+
+  // Full Header for Homepage
   return (
     <header className="relative bg-[#020617] pt-12 pb-16 overflow-hidden md:hidden">
       {/* Dot Pattern Background */}
@@ -99,8 +161,7 @@ export default function MobileHeader() {
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span className="text-white/50">XLM Price:</span>
-          <span className="text-white">$0.12</span>
-          <span className="text-emerald-400">+2.5%</span>
+          <span className="text-white font-mono">${xlmPrice > 0 ? xlmPrice.toFixed(4) : '...'}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-white/50">Fee:</span>

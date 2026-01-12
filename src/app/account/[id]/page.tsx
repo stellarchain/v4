@@ -1,6 +1,6 @@
 import { getAccount, getAccountTransactions, getAccountOperations, getXLMUSDPriceFromHorizon } from '@/lib/stellar';
 import Link from 'next/link';
-import AccountMobileView from '@/components/AccountMobileView';
+import AccountMobileView from '@/components/mobile/AccountMobileView';
 
 export const revalidate = 30;
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { gsap } from 'gsap';
 import { Ledger, formatXLM } from '@/lib/stellar';
-import LiveTransactionFeed from './LiveTransactionFeed';
+import LiveTransactionFeed from '../LiveTransactionFeed';
 
 interface MobileHomePageProps {
   stats: {
@@ -18,11 +18,12 @@ interface MobileHomePageProps {
   };
   initialTransactions: any[];
   xlmVolume: number;
+  xlmPrice: number;
 }
 
-import InfoTooltip from './InfoTooltip';
+import InfoTooltip from '../InfoTooltip';
 
-export default function MobileHomePage({ stats, initialTransactions, xlmVolume }: MobileHomePageProps) {
+export default function MobileHomePage({ stats, initialTransactions, xlmVolume, xlmPrice }: MobileHomePageProps) {
   const [liveStats, setLiveStats] = useState(stats);
   const ledgerCountRef = useRef<HTMLDivElement>(null);
   const tpsRef = useRef<HTMLDivElement>(null);
@@ -76,6 +77,15 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume }
     maximumFractionDigits: 1
   }).format(xlmVolume);
 
+  // Calculate Market Cap
+  const marketCap = parseFloat(liveStats.total_coins) * xlmPrice;
+  const formattedMarketCap = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    notation: 'compact',
+    maximumFractionDigits: 1
+  }).format(marketCap);
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-20">
       {/* Network Stats Card */}
@@ -97,7 +107,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume }
                 }
                 content="The total market value of all circulating XLM coins."
               />
-              <div className="text-lg font-bold text-gray-900 font-mono tracking-tight">{formatXLM(liveStats.total_coins)}</div>
+              <div className="text-lg font-bold text-gray-900 font-mono tracking-tight">{formattedMarketCap}</div>
             </div>
 
             <div className="space-y-1.5 pl-4">
@@ -163,7 +173,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume }
             {/* Divider */}
             <div className="col-span-2 h-px bg-gray-100"></div>
 
-            {/* Row 3: Ledger & Protocol */}
+            {/* Row 3: Ledger & Price */}
             <div className="space-y-1.5 border-r border-gray-100 pr-4">
               <InfoTooltip
                 label={
@@ -186,18 +196,18 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume }
                 label={
                   <>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Protocol</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider">XLM Price</span>
                   </>
                 }
-                content="The current version of the Stellar protocol software."
+                content="Current market price of 1 XLM in USD."
               />
               <div>
                 <div className="text-lg font-bold text-gray-900 font-mono tracking-tight">
-                  v{liveStats.protocol_version}
+                  <span className="text-emerald-600">${xlmPrice.toFixed(4)}</span>
                 </div>
-                <div className="text-[10px] text-emerald-500 mt-0.5 font-medium">Stable</div>
+                <div className="text-[10px] text-gray-400 mt-0.5 font-medium">USD</div>
               </div>
             </div>
 
@@ -220,7 +230,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume }
           </Link>
         </div>
 
-        <LiveTransactionFeed initialTransactions={initialTransactions} limit={20} />
+        <LiveTransactionFeed initialTransactions={initialTransactions} limit={30} filter="payments" />
       </div>
     </div>
   );
