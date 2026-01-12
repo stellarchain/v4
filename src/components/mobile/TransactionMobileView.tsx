@@ -70,6 +70,15 @@ export default function TransactionMobileView({ transaction, operations, effects
   const primaryOp = transferOps[0];
   const isMultiTransfer = transferOps.length > 1;
 
+  // Check if all batch ops are for the same asset
+  const isSameAsset = isMultiTransfer && transferOps.every(op =>
+    (op.asset_type === transferOps[0].asset_type) &&
+    (op.asset_code === transferOps[0].asset_code) &&
+    (op.asset_issuer === transferOps[0].asset_issuer)
+  );
+
+  const totalBatchAmount = isMultiTransfer ? transferOps.reduce((sum, op) => sum + parseFloat(op.amount || '0'), 0) : 0;
+
   // Check if this is a transfer transaction
   const isTransfer = transferOps.length > 0 && primaryOp?.amount && primaryOp?.to;
 
@@ -264,25 +273,43 @@ export default function TransactionMobileView({ transaction, operations, effects
               <div className="flex justify-between items-end px-1">
                 {isMultiTransfer ? (
                   <div className="w-full">
-                    <div className="flex flex-col gap-2 mb-2">
-                      {transferOps.slice(0, expandFrom ? undefined : 3).map((op, idx) => (
-                        <div key={idx} className="flex justify-between items-baseline border-b border-emerald-900/10 pb-1 last:border-0 last:pb-0">
-                          <span className="text-3xl font-bold text-emerald-950 tracking-tighter">
-                            {parseFloat(op.amount || '0').toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                    {isSameAsset ? (
+                      <div className="mb-2">
+                        <div className="flex justify-between items-baseline border-b border-emerald-900/10 pb-2 mb-1">
+                          <span className="text-4xl font-bold text-emerald-950 tracking-tighter">
+                            {totalBatchAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                           </span>
-                          <span className="text-lg font-bold text-emerald-900">
-                            {op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM'}
+                          <span className="text-xl font-bold text-emerald-900">
+                            {primaryOp?.asset_type === 'native' ? 'XLM' : primaryOp?.asset_code || 'XLM'}
                           </span>
                         </div>
-                      ))}
-                    </div>
-                    {transferOps.length > 3 && (
-                      <button
-                        onClick={() => setExpandFrom(!expandFrom)}
-                        className="text-xs text-emerald-800/70 font-medium italic text-right mb-1 hover:text-emerald-950 underline decoration-dotted underline-offset-2 w-full flex justify-end"
-                      >
-                        {expandFrom ? 'Show less' : `+ ${transferOps.length - 3} more`}
-                      </button>
+                        <div className="text-xs text-emerald-800/70 font-medium italic text-right">
+                          Batch of {transferOps.length} transfers
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex flex-col gap-2 mb-2">
+                          {transferOps.slice(0, expandFrom ? undefined : 3).map((op, idx) => (
+                            <div key={idx} className="flex justify-between items-baseline border-b border-emerald-900/10 pb-1 last:border-0 last:pb-0">
+                              <span className="text-3xl font-bold text-emerald-950 tracking-tighter">
+                                {parseFloat(op.amount || '0').toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                              </span>
+                              <span className="text-lg font-bold text-emerald-900">
+                                {op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        {transferOps.length > 3 && (
+                          <button
+                            onClick={() => setExpandFrom(!expandFrom)}
+                            className="text-xs text-emerald-800/70 font-medium italic text-right mb-1 hover:text-emerald-950 underline decoration-dotted underline-offset-2 w-full flex justify-end"
+                          >
+                            {expandFrom ? 'Show less' : `+ ${transferOps.length - 3} more`}
+                          </button>
+                        )}
+                      </>
                     )}
                     <div className="mt-1 flex items-center gap-1">
                       <Link href={`/account/${transaction.source_account}`} className="text-sm font-mono text-emerald-800/70 hover:text-emerald-950 transition-colors">
