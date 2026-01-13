@@ -9,6 +9,7 @@ export default function MobileHeader() {
   const [baseFee, setBaseFee] = useState(100);
   const [xlmPrice, setXlmPrice] = useState(0);
   const pathname = usePathname();
+
   const isHomePage = pathname === '/';
 
   // Fetch base fee & XLM Price
@@ -50,6 +51,9 @@ export default function MobileHeader() {
     }
     setSearchQuery('');
   };
+
+  // Hide header on Account page as it has its own custom header
+  if (pathname?.startsWith('/account/')) return null;
 
   // Simplified Header for non-homepage
   if (!isHomePage) {

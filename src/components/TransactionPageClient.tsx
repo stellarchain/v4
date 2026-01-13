@@ -321,6 +321,31 @@ export default function TransactionPageClient({
           if (ops && ops.length > 0) {
             const info = getTransactionDisplayInfo(ops);
 
+            // If we found a contract transaction, also fetch effects to get the received/sent amount
+            if (info.type === 'contract') {
+              try {
+                const effectsRes = await fetch(`https://horizon.stellar.org/transactions/${tx.hash}/effects?limit=10`);
+                const effectsData = await effectsRes.json();
+                const effects = effectsData._embedded?.records || [];
+
+                // Look for credit/debit effects
+                const credit = effects.find((e: { type: string; amount?: string }) => e.type === 'account_credited' && e.amount);
+                const debit = effects.find((e: { type: string; amount?: string }) => e.type === 'account_debited' && e.amount);
+
+                if (credit) {
+                  info.effectType = 'received';
+                  info.effectAmount = credit.amount;
+                  info.effectAsset = credit.asset_code || (credit.asset_type === 'native' ? 'XLM' : 'Unknown');
+                } else if (debit) {
+                  info.effectType = 'sent';
+                  info.effectAmount = debit.amount;
+                  info.effectAsset = debit.asset_code || (debit.asset_type === 'native' ? 'XLM' : 'Unknown');
+                }
+              } catch {
+                // Ignore effects fetch errors
+              }
+            }
+
             // If we found something interesting (not 'other'), update the state
             if (info.type !== 'other') {
               setTransactions(prev => prev.map(t =>
@@ -329,8 +354,8 @@ export default function TransactionPageClient({
             }
           }
 
-          // Small delay between requests
-          await new Promise(r => setTimeout(r, 150));
+          // Small delay between requests to avoid hitting rate limits too hard but fast enough for UI
+          await new Promise(r => setTimeout(r, 50));
         } catch (e) {
           // Ignore errors, we just keep default display
         }
@@ -373,27 +398,30 @@ export default function TransactionPageClient({
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Filter Tabs */}
-      <div className="flex gap-2 p-1 bg-[var(--bg-secondary)] rounded-xl w-fit">
-        {filters.map(({ key, label, icon }) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === key
-              ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm'
-              : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-              }`}
-          >
-            {icon}
-            <span>{label}</span>
-            {filter === key && (
-              <span className="ml-1 px-1.5 py-0.5 bg-[var(--primary)]/10 text-[var(--primary)] text-[11px] rounded-md font-semibold">
-                {filteredTransactions.length}
-              </span>
-            )}
-          </button>
-        ))}
+    <div className="space-y-6">
+      {/* Integrated Header & Filters */}
+      {/* Integrated Header & Filters - Title Removed */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-start gap-4">
+        {/* Sleek Filter Pills */}
+        <div className="flex p-0.5 bg-gray-100/80 backdrop-blur-sm rounded-xl border border-gray-200/50 self-start sm:self-auto">
+          {filters.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`relative px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${filter === key
+                ? 'bg-white text-gray-900 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                }`}
+            >
+              {label}
+              {filter === key && (
+                <span className="ml-1.5 text-[10px] bg-gray-900 text-white px-1 py-px rounded-md opacity-100">
+                  {filteredTransactions.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Transaction List */}

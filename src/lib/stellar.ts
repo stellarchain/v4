@@ -86,7 +86,7 @@ export interface Ledger {
 }
 
 export interface TransactionDisplayInfo {
-  type: 'payment' | 'contract' | 'other';
+  type: 'payment' | 'contract' | 'other' | 'manage_offer' | 'multi_send' | 'bulk_send';
   amount?: string;
   rawAmount?: number; // For sorting
   asset?: string;
@@ -95,6 +95,19 @@ export interface TransactionDisplayInfo {
   isSwap?: boolean;
   sourceAmount?: string;
   sourceAsset?: string;
+  // Contract effect (received/sent from effects)
+  effectType?: 'received' | 'sent';
+  effectAmount?: string;
+  effectAsset?: string;
+  // Multi/Bulk Send specific
+  elementCount?: number;
+  // Offer specific
+  offerDetails?: {
+    sellingAsset: string;
+    buyingAsset: string;
+    price: string;
+    amount: string;
+  };
 }
 
 
@@ -378,14 +391,18 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
   // Determine primary operation based on priority
   let primaryOp = operations[0];
 
-  // Priority: Contract > Swap > Payment > Create Account
+  // Priority: Contract > Swap > Multi Send > Offer > Payment > Create Account
   const contractOp = operations.find(op => op.type === 'invoke_host_function');
   const swapOp = operations.find(op => op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive');
+  const offerOp = operations.find(op => ['manage_buy_offer', 'manage_sell_offer', 'create_passive_sell_offer'].includes(op.type));
+  const paymentOps = operations.filter(op => op.type === 'payment' || op.type === 'create_account');
   const paymentOp = operations.find(op => op.type === 'payment');
   const createAccountOp = operations.find(op => op.type === 'create_account');
 
   if (contractOp) primaryOp = contractOp;
   else if (swapOp) primaryOp = swapOp;
+  else if (paymentOps.length > 1) primaryOp = paymentOps[0]; // Multi Send
+  else if (offerOp) primaryOp = offerOp;
   else if (paymentOp) primaryOp = paymentOp;
   else if (createAccountOp) primaryOp = createAccountOp;
 
@@ -435,6 +452,35 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
       isSwap: true,
       sourceAmount,
       sourceAsset
+    };
+  }
+
+  // Multi Send / Bulk Send
+  if (paymentOps.length > 1 && !swapOp && !contractOp) {
+    const isBulk = paymentOps.length > 10;
+    return {
+      type: isBulk ? 'bulk_send' : 'multi_send',
+      elementCount: paymentOps.length,
+      amount: formatAmount(paymentOps.reduce((acc, op) => acc + (op.amount ? parseFloat(op.amount) : 0), 0)), // Approx sum if same asset, effectively just a number
+      asset: 'Recipients'
+    };
+  }
+
+  // Manage Offer
+  if (offerOp && !swapOp && !contractOp) {
+    const sellingAsset = (offerOp as any).selling_asset_type === 'native' ? 'XLM' : ((offerOp as any).selling_asset_code || 'XLM');
+    const buyingAsset = (offerOp as any).buying_asset_type === 'native' ? 'XLM' : ((offerOp as any).buying_asset_code || 'XLM');
+    const price = (offerOp as any).price || '0';
+    const amount = (offerOp as any).amount || '0';
+
+    return {
+      type: 'manage_offer',
+      offerDetails: {
+        sellingAsset,
+        buyingAsset,
+        price,
+        amount
+      }
     };
   }
 
