@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Transaction, Operation, shortenAddress, timeAgo, getOperationTypeLabel, formatXLM } from '@/lib/stellar';
-import SimpleMobileHeader from './SimpleMobileHeader';
+import { Transaction, Operation, Effect, shortenAddress, timeAgo, formatXLM } from '@/lib/stellar';
 
 interface Balance {
   asset_type: string;
@@ -44,16 +44,113 @@ function getAssetUrl(code: string | undefined, issuer: string | undefined): stri
 export default function AccountMobileView({ account, transactions, operations, xlmPrice }: AccountMobileViewProps) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'balances' | 'activity' | 'info'>('balances');
+  const [activeTab, setActiveTab] = useState<'balances' | 'activity' | 'details'>('balances');
   const [activityType, setActivityType] = useState<'all' | 'payments' | 'contracts'>('all');
   const [assetPrices, setAssetPrices] = useState<Record<string, number>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = searchQuery.trim();
+    if (!query) return;
+
+    if (query.length === 56 && query.startsWith('G')) {
+      router.push(`/account/${query}`);
+    } else if (query.length === 64) {
+      router.push(`/transaction/${query}`);
+    } else if (/^\d+$/.test(query)) {
+      router.push(`/ledger/${query}`);
+    } else {
+      router.push(`/account/${query}`);
+    }
+    setSearchQuery('');
+  };
+
+  // Fetch effects for visible operations
+  useEffect(() => {
+    const fetchEffects = async () => {
+      // Compute visible ops inline to avoid reference issues
+      let visibleOps = operations;
+      if (activityType === 'payments') {
+        visibleOps = operations.filter(op =>
+          op.type === 'payment' ||
+          op.type === 'create_account' ||
+          op.type === 'path_payment_strict_send' ||
+          op.type === 'path_payment_strict_receive' ||
+          op.type === 'invoke_host_function'
+        );
+      } else if (activityType === 'contracts') {
+        visibleOps = operations.filter(op =>
+          op.type === 'invoke_host_function' ||
+          op.type === 'extend_footprint_ttl' ||
+          op.type === 'restore_footprint'
+        );
+      }
+
+      visibleOps = visibleOps.slice(0, 20);
+      const newEffects: Record<string, Effect[]> = {};
+
+      await Promise.all(visibleOps.map(async (op) => {
+        if (opEffects[op.id]) return;
+
+        try {
+          const res = await fetch(`https://horizon.stellar.org/operations/${op.id}/effects`);
+          const data = await res.json();
+          if (data._embedded && data._embedded.records) {
+            newEffects[op.id] = data._embedded.records;
+          }
+        } catch {
+          // swallow
+        }
+      }));
+
+      if (Object.keys(newEffects).length > 0) {
+        setOpEffects(prev => ({ ...prev, ...newEffects }));
+      }
+    };
+
+    fetchEffects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [operations, activityType, account.id]);
+
+  const getAmountFromEffects = (effects: Effect[] | undefined) => {
+    if (!effects || effects.length === 0) return null;
+
+    // First, try to find effects specifically for this account
+    let credit = effects.find(e => e.type === 'account_credited' && e.account === account.id && (e as any).amount);
+    let debit = effects.find(e => e.type === 'account_debited' && e.account === account.id && (e as any).amount);
+
+    // If no account-specific effects, look for any credit/debit with amount (like transaction page does)
+    if (!credit && !debit) {
+      credit = effects.find(e => e.type === 'account_credited' && (e as any).amount);
+      debit = effects.find(e => e.type === 'account_debited' && (e as any).amount);
+    }
+
+    // Prioritize showing received if we have a credit for this account, or any credit
+    if (credit) {
+      return {
+        type: 'received' as const,
+        amount: (credit as any).amount,
+        asset: (credit as any).asset_code || ((credit as any).asset_type === 'native' ? 'XLM' : 'Unknown'),
+      };
+    }
+
+    if (debit) {
+      return {
+        type: 'sent' as const,
+        amount: (debit as any).amount,
+        asset: (debit as any).asset_code || ((debit as any).asset_type === 'native' ? 'XLM' : 'Unknown'),
+      };
+    }
+
+    return null;
+  };
 
   const xlmBalance = account.balances.find(b => b.asset_type === 'native');
   const otherBalances = account.balances.filter(b => b.asset_type !== 'native');
-
   const xlmAmount = parseFloat(xlmBalance?.balance || '0');
 
-  // Calculate Total Value
   let totalValueUSD = xlmAmount * xlmPrice;
   otherBalances.forEach(b => {
     const key = `${b.asset_code}:${b.asset_issuer}`;
@@ -71,31 +168,30 @@ export default function AccountMobileView({ account, transactions, operations, x
         if (!b.asset_code || !b.asset_issuer) return;
         const key = `${b.asset_code}:${b.asset_issuer}`;
 
-        // Simple heuristic for USD stablecoins
         if (b.asset_code === 'USDC' || b.asset_code === 'yUSDC') {
           newPrices[key] = 1.0;
           return;
         }
 
         try {
-          // Fetch orderbook: Selling Asset, Buying XLM -> Price is XLM per Asset
-          const res = await fetch(`https://horizon.stellar.org/order_book?selling_asset_type=${b.asset_type}&selling_asset_code=${b.asset_code}&selling_asset_issuer=${b.asset_issuer}&buying_asset_type=native&limit=1`);
+          const res = await fetch(
+            `https://horizon.stellar.org/order_book?selling_asset_type=${b.asset_type}&selling_asset_code=${b.asset_code}&selling_asset_issuer=${b.asset_issuer}&buying_asset_type=native&limit=1`,
+          );
           const data = await res.json();
           if (data.bids && data.bids.length > 0) {
-            // Bid price is "price of 1 selling_asset in terms of buying_asset"
-            // i.e. How many XLM for 1 Asset.
             const priceInXlm = parseFloat(data.bids[0].price);
             newPrices[key] = priceInXlm * xlmPrice;
           }
-        } catch (e) {
-          // Silent failure
+        } catch {
+          // ignore pricing errors
         }
       }));
+
       setAssetPrices(prev => ({ ...prev, ...newPrices }));
     };
 
     fetchPrices();
-  }, [account, xlmPrice]);
+  }, [account, xlmPrice, xlmPrice]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(account.id);
@@ -103,27 +199,19 @@ export default function AccountMobileView({ account, transactions, operations, x
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Helper function to decode contract function name from parameters
   const decodeContractFunctionName = (op: Operation): string => {
     try {
-      // Look for the Sym parameter which contains the function name
       const parameters = op.parameters as Array<{ type: string; value: string }> | undefined;
       if (!parameters) return 'Contract Call';
-
       const symParam = parameters.find(p => p.type === 'Sym');
       if (!symParam) return 'Contract Call';
-
-      // Decode base64 and extract the function name
       const decoded = atob(symParam.value);
-      // The function name is in the decoded string, skip the first bytes (length prefix)
-      const functionName = decoded.slice(5).replace(/\0/g, '');
-      return functionName || 'Contract Call';
+      return decoded.slice(5).replace(/\0/g, '') || 'Contract Call';
     } catch {
       return 'Contract Call';
     }
   };
 
-  // Helper to check if a contract operation is payment-related
   const isPaymentContractOp = (op: Operation): boolean => {
     if (op.type !== 'invoke_host_function') return false;
     const functionName = decodeContractFunctionName(op).toLowerCase();
@@ -131,452 +219,662 @@ export default function AccountMobileView({ account, transactions, operations, x
     return paymentTerms.some(term => functionName.includes(term));
   };
 
-  // Filter operations for payments and contracts
   const paymentOps = operations.filter(op =>
     op.type === 'payment' ||
     op.type === 'create_account' ||
     op.type === 'path_payment_strict_send' ||
     op.type === 'path_payment_strict_receive' ||
-    isPaymentContractOp(op)
+    isPaymentContractOp(op),
   );
 
   const contractOps = operations.filter(op =>
     op.type === 'invoke_host_function' ||
     op.type === 'extend_footprint_ttl' ||
-    op.type === 'restore_footprint'
+    op.type === 'restore_footprint',
   );
 
   return (
-    <div className="w-full bg-[#F5F5F7] min-h-screen pb-20 font-sans">
-      <div className="w-full pt-6 px-4 max-w-2xl mx-auto">
+    <div className="w-full bg-[#F2F4F8] min-h-screen pb-24 font-sans relative">
+      <div className="bg-[#020617] rounded-b-[2.5rem] pb-8 pt-safe">
+        <div className="w-full px-5 max-w-2xl mx-auto pt-4">
+          <div className="flex items-center justify-between mb-6">
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="w-9 h-9 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md border border-white/5">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <span className="font-bold text-white tracking-tight text-base">StellarChain</span>
+            </Link>
 
-        {/* Header Section */}
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={() => router.back()}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-slate-100 hover:bg-slate-50 transition-colors text-slate-900 shadow-sm"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-          </button>
-          <span className="font-bold text-lg text-slate-900">Account</span>
-          <div className="w-10"></div>
-        </div>
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 text-white text-[10px] font-semibold hover:bg-white/20 transition-colors"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16h8M8 12h8m-6-8h10v16H6V4h6z" />
+              </svg>
+              <span>{copied ? 'Copied' : 'Copy address'}</span>
+            </button>
+          </div>
 
-        {/* Profile Header */}
-        <div className="flex flex-col gap-1 mb-8 px-1">
-          <h1 className="text-xl font-bold text-slate-900 leading-tight">Stellar Account</h1>
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="text-4xl font-bold text-slate-900 tracking-tight">
+          <div className="mb-4">
+            <p className="text-[11px] font-mono text-slate-300 break-all bg-white/5 rounded-2xl px-3 py-2 border border-white/5">
+              {account.id}
+            </p>
+          </div>
+
+          <div className="relative mb-8">
+            <form onSubmit={handleSearch}>
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search hash, ledger, account..."
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-xs font-medium backdrop-blur-sm"
+              />
+            </form>
+          </div>
+
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.back()}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+              </button>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Stellar Account</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 mb-2">
+            <h1 className="text-4xl font-bold text-white tracking-tight">
               ${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
+            </h1>
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 flex items-center gap-1">
+              <svg className="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <span className="text-[10px] font-bold text-emerald-400">+1.2%</span>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Tab Navigation (Pills) */}
-        <div className="flex gap-3 mb-8 overflow-x-auto no-scrollbar pb-2">
+      <div className="max-w-2xl mx-auto px-5 relative -mt-6">
+        <div className="bg-white rounded-2xl p-1.5 shadow-xl shadow-slate-200/50 flex mb-8">
           <button
             onClick={() => setActiveTab('balances')}
-            className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'balances'
-              ? 'bg-slate-900 text-white shadow-md'
-              : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
+            className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${activeTab === 'balances' ? 'bg-[#0F172A] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'
               }`}
           >
             Balances
           </button>
           <button
             onClick={() => setActiveTab('activity')}
-            className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'activity'
-              ? 'bg-slate-900 text-white shadow-md'
-              : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
+            className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${activeTab === 'activity' ? 'bg-[#0F172A] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'
               }`}
           >
             Activity
           </button>
           <button
-            onClick={() => setActiveTab('info')}
-            className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'info'
-              ? 'bg-slate-900 text-white shadow-md'
-              : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
+            onClick={() => setActiveTab('details')}
+            className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${activeTab === 'details' ? 'bg-[#0F172A] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'
               }`}
           >
             Details
           </button>
         </div>
 
-        {/* Balances Tab */}
-        {activeTab === 'balances' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-gray-900 text-lg font-semibold">Assets</h2>
-              <span className="text-blue-600 text-sm font-semibold">
-                {account.balances.length} {account.balances.length === 1 ? 'asset' : 'assets'}
-              </span>
-            </div>
-
-            {/* XLM Balance Card */}
-            <Link
-              href="/asset/XLM"
-              className="block bg-white rounded-2xl p-4 hover:bg-gray-50 transition-all"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-gray-900 font-bold text-base">Stellar Lumens</p>
-                  <p className="text-gray-500 text-xs mt-0.5">XLM</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-gray-900 font-bold text-lg">
-                    {formatXLM(xlmBalance?.balance || '0')}
-                  </p>
-                  <p className="text-gray-500 text-xs mt-0.5">
-                    ${(xlmAmount * xlmPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                </div>
+        <div className="space-y-6">
+          {activeTab === 'balances' && (
+            <>
+              <div className="flex items-center justify-between px-1">
+                <h2 className="text-base font-bold text-slate-900">Assets</h2>
               </div>
-            </Link>
 
-            {/* Other Balances */}
-            {otherBalances.map((balance, idx) => {
-              const amount = parseFloat(balance.balance);
-
-              return (
+              <div className="space-y-3">
                 <Link
-                  key={idx}
-                  href={getAssetUrl(balance.asset_code, balance.asset_issuer)}
-                  className="block bg-white rounded-2xl p-4 hover:bg-gray-50 transition-all"
+                  href="/asset/XLM"
+                  className="block bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100 hover:shadow-md transition-all"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-gray-900 font-bold text-base">
-                        {balance.asset_code || 'Liquidity Pool'}
-                      </p>
-                      {balance.asset_issuer && (
-                        <p className="text-gray-500 text-xs font-mono mt-0.5">
-                          {shortenAddress(balance.asset_issuer, 6)}
-                        </p>
-                      )}
+                    <div className="flex items-center gap-4">
+                      <Image
+                        src="/stellar-xlm9125.jpg"
+                        alt="Stellar Lumens"
+                        width={40}
+                        height={40}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-sm">Stellar Lumens</h3>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">XLM</p>
+                      </div>
                     </div>
+
                     <div className="text-right">
-                      <p className="text-gray-900 font-bold text-lg">
-                        {amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                      </p>
-                      <p className="text-gray-500 text-xs mt-0.5 font-medium">
-                        {(() => {
-                          const key = `${balance.asset_code}:${balance.asset_issuer}`;
-                          const price = assetPrices[key];
-                          if (price) {
-                            const val = amount * price;
-                            return `$${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                          }
-                          return balance.asset_code || 'LP';
-                        })()}
+                      <p className="font-bold text-slate-900 text-base">{formatXLM(xlmBalance?.balance || '0')}</p>
+                      <p className="text-xs font-semibold text-slate-400">
+                        ${(xlmAmount * xlmPrice).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </p>
                     </div>
                   </div>
                 </Link>
-              );
-            })}
-          </div>
-        )}
 
-        {/* Activity Tab */}
-        {activeTab === 'activity' && (
-          <div className="space-y-4">
-            {/* Activity Type Toggle */}
-            <div className="flex p-1 bg-gray-200 rounded-xl overflow-x-auto">
-              <button
-                onClick={() => setActivityType('all')}
-                className={`flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${activityType === 'all'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
-                  }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setActivityType('payments')}
-                className={`flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${activityType === 'payments'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
-                  }`}
-              >
-                Payments
-              </button>
-              <button
-                onClick={() => setActivityType('contracts')}
-                className={`flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${activityType === 'contracts'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
-                  }`}
-              >
-                Smart Contracts
-              </button>
-            </div>
-
-            {/* Combined List */}
-            <div className="space-y-3">
-              {(() => {
-                let displayOps = [];
-                if (activityType === 'all') {
-                  displayOps = [...operations].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-                } else if (activityType === 'payments') {
-                  displayOps = paymentOps;
-                } else {
-                  displayOps = contractOps;
-                }
-
-                if (displayOps.length === 0) {
-                  return (
-                    <div className="text-center py-12 bg-gray-100 rounded-2xl">
-                      <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <p className="text-gray-500">No transactions found</p>
-                    </div>
-                  );
-                }
-
-                return displayOps.slice(0, 30).map((op) => {
-                  const isStandardPayment = ['payment', 'create_account', 'path_payment_strict_send', 'path_payment_strict_receive'].includes(op.type);
-                  const isSwap = op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
-                  const isOffer = op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer';
-                  const isContractPayment = isPaymentContractOp(op);
-                  const isContract = ['invoke_host_function', 'extend_footprint_ttl', 'restore_footprint'].includes(op.type) && !isContractPayment;
-
-                  // Determine Direction
-                  const isSender = op.from === account.id || op.source_account === account.id;
-
-                  // Get function name for contract payments
-                  const contractFunctionName = isContractPayment ? decodeContractFunctionName(op) : '';
-                  const isWithdraw = contractFunctionName.toLowerCase().includes('withdraw');
-                  const isDeposit = contractFunctionName.toLowerCase().includes('deposit');
+                {otherBalances.map((balance, idx) => {
+                  const amount = parseFloat(balance.balance);
+                  const isUSDC = balance.asset_code === 'USDC';
+                  const bgColors = ['bg-blue-100', 'bg-purple-100', 'bg-emerald-100', 'bg-orange-100', 'bg-pink-100'];
+                  const textColors = ['text-blue-600', 'text-purple-600', 'text-emerald-600', 'text-orange-600', 'text-pink-600'];
+                  const colorIdx = (balance.asset_code || '').length % bgColors.length;
 
                   return (
                     <Link
-                      key={op.id}
-                      href={`/transaction/${op.transaction_hash}`}
-                      className="block bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all relative overflow-hidden group"
+                      key={idx}
+                      href={getAssetUrl(balance.asset_code, balance.asset_issuer)}
+                      className="block bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100 hover:shadow-md transition-all"
                     >
-                      <div className="flex items-start gap-3">
-                        {/* Icon */}
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${!op.transaction_successful ? 'bg-red-50 border-red-100 text-red-600' :
-                          isSwap ? 'bg-blue-50 border-blue-100 text-blue-600' :
-                            isOffer ? 'bg-indigo-50 border-indigo-100 text-indigo-600' :
-                              isContractPayment ? (isWithdraw ? 'bg-orange-50 border-orange-100 text-orange-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600') :
-                                isContract ? 'bg-purple-50 border-purple-100 text-purple-600' :
-                                  isSender ? 'bg-orange-50 border-orange-100 text-orange-600' :
-                                    'bg-emerald-50 border-emerald-100 text-emerald-600'
-                          }`}>
-                          {!op.transaction_successful ? (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                          ) : isSwap ? (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
-                          ) : isOffer ? (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
-                          ) : isContractPayment ? (
-                            isWithdraw ? (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isUSDC ? 'bg-[#2775CA]' : bgColors[colorIdx]
+                              }`}
+                          >
+                            {isUSDC ? (
+                              <span className="text-white font-bold text-[10px]">USDC</span>
                             ) : (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
-                            )
-                          ) : isContract ? (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-                          ) : isSender ? (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
-                          ) : (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
-                          )}
+                              <span className={`font-bold text-base ${textColors[colorIdx]}`}>
+                                {(balance.asset_code || 'LP')[0]}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-slate-900 text-sm">
+                              {balance.asset_code || 'Liquidity Pool'}
+                            </h3>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide break-all max-w-[120px] truncate">
+                              {balance.asset_issuer ? shortenAddress(balance.asset_issuer, 4) : 'Native'}
+                            </p>
+                          </div>
                         </div>
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start mb-1">
-                            {/* Type Label */}
-                            <div className="flex flex-col">
-                              <span className={`text-[10px] uppercase font-bold tracking-wider mb-0.5 ${!op.transaction_successful ? 'text-red-500' :
-                                isSwap ? 'text-blue-500' :
-                                  isOffer ? 'text-indigo-500' :
-                                    isContractPayment ? (isWithdraw ? 'text-orange-500' : 'text-emerald-500') :
-                                      isContract ? 'text-purple-500' :
-                                        isSender ? 'text-orange-500' : 'text-emerald-500'
-                                }`}>
-                                {!op.transaction_successful ? 'Failed' :
-                                  isSwap ? 'Swap' :
-                                    isOffer ? 'Manage Offer' :
-                                      isContractPayment ? contractFunctionName :
-                                        isContract ? 'Smart Contract' :
-                                          isSender ? 'Sent' : 'Received'}
-                              </span>
-
-                              {/* Main Value Display */}
-                              {isSwap ? (
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-bold text-gray-900">
-                                    {formatXLM((op as any).source_amount || '0')}
-                                    <span className="text-xs text-gray-500 ml-1">{(op as any).source_asset_code || 'XLM'}</span>
-                                  </span>
-                                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                                  <span className="font-bold text-gray-900">
-                                    {formatXLM(op.amount || '0')}
-                                    <span className="text-xs text-gray-500 ml-1">{op.asset_code || 'XLM'}</span>
-                                  </span>
-                                </div>
-                              ) : isOffer ? (
-                                <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 w-full mt-2 text-sm">
-                                  <span className="font-medium text-slate-400">Selling</span>
-                                  <span className="font-bold text-slate-900 text-right truncate">
-                                    {formatXLM(op.amount || '0')} <span className="text-slate-500 font-normal ml-0.5">{(op as any).selling_asset_code || 'XLM'}</span>
-                                  </span>
-
-                                  <span className="font-medium text-slate-400">Buying</span>
-                                  <span className="font-bold text-slate-900 text-right truncate">
-                                    {(op as any).buying_asset_code || 'XLM'}
-                                  </span>
-
-                                  <span className="font-medium text-slate-400">Price</span>
-                                  <span className="font-mono text-slate-600 text-right text-xs pt-0.5">
-                                    @ {(op as any).price} <span className="text-slate-400">{(op as any).buying_asset_code}/{((op as any).selling_asset_code || 'XLM')}</span>
-                                  </span>
-                                </div>
-                              ) : isContractPayment ? (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs text-gray-500 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">via Smart Contract</span>
-                                </div>
-                              ) : isContract ? (
-                                <span className="font-bold text-gray-900 text-sm">{decodeContractFunctionName(op)}</span>
-                              ) : (
-                                <span className="font-bold text-gray-900 text-base">
-                                  {formatXLM(op.amount || op.starting_balance || '0')}
-                                  <span className="text-xs text-gray-500 ml-1">{op.asset_code || (op.type === 'create_account' ? 'XLM' : 'XLM')}</span>
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Timestamp */}
-                            <span className="text-[10px] font-medium text-gray-400 whitespace-nowrap ml-2">{timeAgo(op.created_at)}</span>
-                          </div>
-
-                          {/* Address / Subtext */}
-                          {(op.from || op.to || op.funder || op.account) && (
-                            <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
-                              {isSender ? (
-                                <>
-                                  <span>To:</span>
-                                  <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
-                                    {shortenAddress(op.to || op.account || 'Unknown', 6)}
-                                  </span>
-                                </>
-                              ) : (
-                                <>
-                                  <span>From:</span>
-                                  <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
-                                    {shortenAddress(op.from || op.funder || 'Unknown', 6)}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          )}
+                        <div className="text-right">
+                          <p className="font-bold text-slate-900 text-base">
+                            {amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                          </p>
+                          <p className="text-xs font-semibold text-slate-400">
+                            {(() => {
+                              const key = `${balance.asset_code}:${balance.asset_issuer}`;
+                              const price = assetPrices[key];
+                              if (price) {
+                                return `$${(amount * price).toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}`;
+                              }
+                              return '$0.00';
+                            })()}
+                          </p>
                         </div>
                       </div>
                     </Link>
                   );
-                })
-              })()}
-            </div>
-          </div>
-        )}
-
-        {/* Details Tab */}
-        {activeTab === 'info' && (
-          <div className="space-y-4">
-            <h2 className="text-gray-900 text-lg font-semibold mb-4">Account Details</h2>
-
-            {/* Account ID */}
-            <div className="bg-gray-100 rounded-2xl p-4">
-              <p className="text-gray-500 text-sm mb-2">Account ID</p>
-              <p className="text-gray-900 font-mono text-xs break-all">{account.id}</p>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-100 rounded-2xl p-4">
-                <p className="text-gray-500 text-sm mb-1">Sequence</p>
-                <p className="text-gray-900 font-bold text-lg">{account.sequence}</p>
+                })}
               </div>
-              <div className="bg-gray-100 rounded-2xl p-4">
-                <p className="text-gray-500 text-sm mb-1">Subentries</p>
-                <p className="text-gray-900 font-bold text-lg">{account.subentry_count}</p>
-              </div>
-              <div className="bg-gray-100 rounded-2xl p-4">
-                <p className="text-gray-500 text-sm mb-1">Signers</p>
-                <p className="text-gray-900 font-bold text-lg">{account.signers.length}</p>
-              </div>
-              <div className="bg-gray-100 rounded-2xl p-4">
-                <p className="text-gray-500 text-sm mb-1">Last Ledger</p>
-                <Link
-                  href={`/ledger/${account.last_modified_ledger}`}
-                  className="text-blue-600 font-bold text-lg hover:underline"
+            </>
+          )}
+
+          {activeTab === 'activity' && (
+            <div className="space-y-4">
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <button
+                  onClick={() => setActivityType('all')}
+                  className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${activityType === 'all'
+                    ? 'bg-black text-white'
+                    : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
+                    }`}
                 >
-                  #{account.last_modified_ledger.toLocaleString()}
-                </Link>
+                  All
+                </button>
+                <button
+                  onClick={() => setActivityType('payments')}
+                  className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${activityType === 'payments'
+                    ? 'bg-black text-white'
+                    : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
+                    }`}
+                >
+                  Payments
+                </button>
+                <button
+                  onClick={() => setActivityType('contracts')}
+                  className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${activityType === 'contracts'
+                    ? 'bg-black text-white'
+                    : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
+                    }`}
+                >
+                  Smart Contracts
+                </button>
               </div>
+
+              {(activityType === 'all' ? operations : activityType === 'payments' ? paymentOps : contractOps).length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <p className="text-sm font-medium">No activity found</p>
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="absolute left-[27px] top-6 bottom-6 w-[2px] bg-slate-100 -z-10" />
+                  {(activityType === 'all' ? operations : activityType === 'payments' ? paymentOps : contractOps)
+                    .slice(0, 20)
+                    .map(op => {
+                      const isSwap =
+                        op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
+                      const isPayment = op.type === 'payment' || op.type === 'create_account';
+                      const isContract = op.type === 'invoke_host_function';
+
+                      let amountIn = '';
+                      let assetIn = '';
+                      let amountOut = '';
+                      let assetOut = '';
+                      let typeDisplay = op.type.replace(/_/g, ' ').toUpperCase();
+                      let counterparty = '';
+                      let counterpartyLabel = 'To:';
+
+                      const effects = opEffects[op.id];
+                      const effectInfo = getAmountFromEffects(effects);
+
+                      // Get function name for contracts first
+                      let contractFunctionName = '';
+                      if (isContract) {
+                        contractFunctionName = decodeContractFunctionName(op);
+                      }
+
+                      if (effectInfo) {
+                        if (effectInfo.type === 'received') {
+                          amountOut = formatXLM(effectInfo.amount || '0');
+                          assetOut = effectInfo.asset;
+                          typeDisplay = 'RECEIVED';
+                          if (isContract && contractFunctionName && contractFunctionName !== 'Contract Call') {
+                            typeDisplay = contractFunctionName.toUpperCase();
+                          } else if (isContract) {
+                            typeDisplay = 'SMART CONTRACT';
+                          }
+                        } else if (effectInfo.type === 'sent') {
+                          amountOut = formatXLM(effectInfo.amount || '0');
+                          assetOut = effectInfo.asset;
+                          typeDisplay = 'SENT';
+                          if (isContract && contractFunctionName && contractFunctionName !== 'Contract Call') {
+                            typeDisplay = contractFunctionName.toUpperCase();
+                          } else if (isContract) {
+                            typeDisplay = 'SMART CONTRACT';
+                          }
+                        }
+                      }
+
+                      if (isSwap) {
+                        typeDisplay = 'SWAP';
+                        const sourceAmount = (op as any).source_amount;
+                        const sourceAsset =
+                          (op as any).source_asset_type === 'native'
+                            ? 'XLM'
+                            : (op as any).source_asset_code || 'XLM';
+                        const destAmount = op.amount;
+                        const destAsset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
+
+                        amountIn = formatXLM(sourceAmount || '0');
+                        assetIn = sourceAsset;
+                        amountOut = formatXLM(destAmount || '0');
+                        assetOut = destAsset;
+
+                        if (op.to && op.to !== account.id) {
+                          counterparty = op.to;
+                          counterpartyLabel = 'To:';
+                        } else if (op.source_account && op.source_account !== account.id) {
+                          counterparty = op.source_account;
+                          counterpartyLabel = 'From:';
+                        } else {
+                          counterparty = op.to || op.source_account || '';
+                        }
+                      } else if (isPayment && !effectInfo) {
+                        const isReceive = op.to === account.id;
+                        typeDisplay = isReceive ? 'RECEIVED' : 'SENT';
+                        amountOut = formatXLM(op.amount || (op as any).starting_balance || '0');
+                        assetOut = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
+
+                        if (isReceive) {
+                          counterparty = op.source_account || (op as any).from || '';
+                          counterpartyLabel = 'From:';
+                        } else {
+                          counterparty = op.to || (op as any).account || '';
+                          counterpartyLabel = 'To:';
+                        }
+                      } else if (isContract && !effectInfo) {
+                        typeDisplay = 'SMART CONTRACT';
+                      }
+
+                      return (
+                        <Link
+                          href={`/transaction/${op.transaction_hash}`}
+                          key={op.id}
+                          className="block bg-white rounded-2xl p-3 shadow-sm border border-slate-100 mb-2.5 active:scale-[0.99] transition-transform"
+                        >
+                          <div className="flex justify-between items-center mb-1.5">
+                            <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest pl-1">
+                              {typeDisplay}
+                            </span>
+                            <span className="text-[10px] font-medium text-slate-400">
+                              {timeAgo(op.created_at)}
+                            </span>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${isSwap
+                                ? 'bg-blue-50 text-blue-500'
+                                : typeDisplay === 'RECEIVED' || effectInfo?.type === 'received'
+                                  ? 'bg-emerald-50 text-emerald-500'
+                                  : typeDisplay === 'SENT' || effectInfo?.type === 'sent'
+                                    ? 'bg-orange-50 text-orange-500'
+                                    : 'bg-slate-50 text-slate-500'
+                                }`}
+                            >
+                              {isSwap ? (
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                                  />
+                                </svg>
+                              ) : typeDisplay === 'RECEIVED' || effectInfo?.type === 'received' ? (
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                                  />
+                                </svg>
+                              ) : typeDisplay === 'SENT' || effectInfo?.type === 'sent' ? (
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M5 10l7-7m0 0l7 7m-7-7v18"
+                                  />
+                                </svg>
+                              ) : (
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="mb-1.5">
+                                {isSwap ? (
+                                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                                    <div className="flex items-baseline gap-1">
+                                      <span className="font-bold text-slate-900 text-sm">{amountIn}</span>
+                                      <span className="text-[10px] font-bold text-slate-400">{assetIn}</span>
+                                    </div>
+                                    <svg
+                                      className="w-3 h-3 text-slate-300"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M17 8l4 4m0 0l-4 4m4-4H3"
+                                      />
+                                    </svg>
+                                    <div className="flex items-baseline gap-1">
+                                      <span className="font-bold text-slate-900 text-sm">{amountOut}</span>
+                                      <span className="text-[10px] font-bold text-slate-400">{assetOut}</span>
+                                    </div>
+                                  </div>
+                                ) : isContract && effectInfo ? (
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className={`text-[9px] font-bold uppercase tracking-wide ${effectInfo.type === 'received' ? 'text-emerald-500' : 'text-orange-500'
+                                        }`}>
+                                        {effectInfo.type === 'received' ? '↓ received' : '↑ sent'}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-baseline gap-1.5">
+                                      <span className="font-bold text-slate-900 text-sm">{amountOut}</span>
+                                      <span className="text-[10px] font-bold text-slate-400">{assetOut}</span>
+                                    </div>
+                                  </div>
+                                ) : isPayment || effectInfo ? (
+                                  <div className="flex items-baseline gap-1.5">
+                                    <span className="font-bold text-slate-900 text-sm">{amountOut}</span>
+                                    <span className="text-[10px] font-bold text-slate-400">{assetOut}</span>
+                                  </div>
+                                ) : isContract ? (
+                                  <div className="font-bold text-slate-900 text-sm">
+                                    {contractFunctionName && contractFunctionName !== 'Contract Call'
+                                      ? contractFunctionName
+                                      : 'Contract Interaction'}
+                                  </div>
+                                ) : (
+                                  <div className="font-bold text-slate-900 text-xs break-all">
+                                    Operation
+                                  </div>
+                                )}
+                              </div>
+
+                              {counterparty && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">
+                                    {counterpartyLabel}
+                                  </span>
+                                  <div className="bg-slate-50 px-1.5 py-0.5 rounded-[0.4rem] border border-slate-100">
+                                    <span className="text-[10px] font-mono font-bold text-slate-500 block">
+                                      {shortenAddress(counterparty)}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                </div>
+              )}
             </div>
+          )}
 
-            {/* Thresholds */}
-            <div className="bg-gray-100 rounded-2xl p-4">
-              <p className="text-gray-500 text-sm mb-3">Thresholds</p>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="text-center">
-                  <p className="text-gray-500 text-xs mb-1">Low</p>
-                  <p className="text-gray-900 font-bold text-xl">{account.thresholds.low_threshold}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-gray-500 text-xs mb-1">Medium</p>
-                  <p className="text-gray-900 font-bold text-xl">{account.thresholds.med_threshold}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-gray-500 text-xs mb-1">High</p>
-                  <p className="text-gray-900 font-bold text-xl">{account.thresholds.high_threshold}</p>
+          {activeTab === 'details' && (
+            <div className="space-y-4">
+              {/* Account ID */}
+              <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Account ID</label>
+                <p className="text-[10px] font-mono text-slate-900 break-all mt-1 bg-slate-50 p-2 rounded-lg">
+                  {account.id}
+                </p>
+              </div>
+
+              {/* Basic Info Grid */}
+              <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Sequence</label>
+                    <p className="text-sm font-bold text-slate-900">{account.sequence}</p>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Subentries</label>
+                    <p className="text-sm font-bold text-slate-900">{account.subentry_count}</p>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Last Modified</label>
+                    <p className="text-xs font-medium text-slate-900">{timeAgo(account.last_modified_time)}</p>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Modified Ledger</label>
+                    <Link href={`/ledger/${account.last_modified_ledger}`} className="text-sm font-bold text-blue-600 hover:text-blue-700">
+                      {account.last_modified_ledger.toLocaleString()}
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Home Domain */}
-            {account.home_domain && (
-              <div className="bg-gray-100 rounded-2xl p-4">
-                <p className="text-gray-500 text-sm mb-2">Home Domain</p>
-                <p className="text-gray-900 font-semibold">{account.home_domain}</p>
-              </div>
-            )}
-
-            {/* Flags */}
-            <div className="bg-gray-100 rounded-2xl p-4">
-              <p className="text-gray-500 text-sm mb-3">Flags</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { label: 'Auth Required', active: account.flags.auth_required },
-                  { label: 'Revocable', active: account.flags.auth_revocable },
-                  { label: 'Immutable', active: account.flags.auth_immutable },
-                  { label: 'Clawback', active: account.flags.auth_clawback_enabled },
-                ].map((flag) => (
-                  <span
-                    key={flag.label}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold ${flag.active
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-200 text-gray-500'
-                      }`}
+              {/* Home Domain */}
+              {account.home_domain && (
+                <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Home Domain</label>
+                  <a
+                    href={`https://${account.home_domain}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 mt-1"
                   >
-                    {flag.active ? '✓' : '✗'} {flag.label}
-                  </span>
-                ))}
+                    {account.home_domain}
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              )}
+
+              {/* Signers */}
+              {account.signers && account.signers.length > 0 && (
+                <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2 block">
+                    Signers ({account.signers.length})
+                  </label>
+                  <div className="space-y-2">
+                    {account.signers.map((signer, idx) => (
+                      <div key={idx} className="bg-slate-50 rounded-lg p-2 flex items-center justify-between">
+                        <div className="min-w-0 flex-1">
+                          <Link
+                            href={`/account/${signer.key}`}
+                            className="text-[10px] font-mono text-blue-600 hover:text-blue-700 break-all"
+                          >
+                            {shortenAddress(signer.key, 8)}
+                          </Link>
+                          <span className="text-[9px] text-slate-400 ml-2 uppercase">{signer.type}</span>
+                        </div>
+                        <div className="bg-slate-200 px-2 py-0.5 rounded text-[10px] font-bold text-slate-600">
+                          Weight: {signer.weight}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Thresholds */}
+              <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-3 block">Thresholds</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-emerald-50 rounded-xl p-3 text-center">
+                    <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-wide">Low</p>
+                    <p className="text-lg font-bold text-emerald-700">{account.thresholds.low_threshold}</p>
+                  </div>
+                  <div className="bg-amber-50 rounded-xl p-3 text-center">
+                    <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wide">Medium</p>
+                    <p className="text-lg font-bold text-amber-700">{account.thresholds.med_threshold}</p>
+                  </div>
+                  <div className="bg-red-50 rounded-xl p-3 text-center">
+                    <p className="text-[9px] font-bold text-red-600 uppercase tracking-wide">High</p>
+                    <p className="text-lg font-bold text-red-700">{account.thresholds.high_threshold}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sponsorship */}
+              <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-3 block">Sponsorship</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50 rounded-xl p-3 text-center">
+                    <p className="text-[9px] font-bold text-blue-600 uppercase tracking-wide">Sponsoring</p>
+                    <p className="text-lg font-bold text-blue-700">{account.num_sponsoring}</p>
+                  </div>
+                  <div className="bg-purple-50 rounded-xl p-3 text-center">
+                    <p className="text-[9px] font-bold text-purple-600 uppercase tracking-wide">Sponsored</p>
+                    <p className="text-lg font-bold text-purple-700">{account.num_sponsored}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Flags */}
+              <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-3 block">Account Flags</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className={`rounded-lg p-2 flex items-center gap-2 ${account.flags.auth_required ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_required ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                    <span className={`text-[10px] font-medium ${account.flags.auth_required ? 'text-emerald-700' : 'text-slate-400'}`}>
+                      Auth Required
+                    </span>
+                  </div>
+                  <div className={`rounded-lg p-2 flex items-center gap-2 ${account.flags.auth_revocable ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_revocable ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                    <span className={`text-[10px] font-medium ${account.flags.auth_revocable ? 'text-emerald-700' : 'text-slate-400'}`}>
+                      Auth Revocable
+                    </span>
+                  </div>
+                  <div className={`rounded-lg p-2 flex items-center gap-2 ${account.flags.auth_immutable ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_immutable ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                    <span className={`text-[10px] font-medium ${account.flags.auth_immutable ? 'text-emerald-700' : 'text-slate-400'}`}>
+                      Auth Immutable
+                    </span>
+                  </div>
+                  <div className={`rounded-lg p-2 flex items-center gap-2 ${account.flags.auth_clawback_enabled ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_clawback_enabled ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                    <span className={`text-[10px] font-medium ${account.flags.auth_clawback_enabled ? 'text-emerald-700' : 'text-slate-400'}`}>
+                      Clawback Enabled
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
 }
+

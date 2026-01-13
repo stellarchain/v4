@@ -41,7 +41,7 @@ export default function RootLayout({
             </div>
 
             {/* Main Content */}
-            <main className="flex-1 min-h-screen p-4 pb-20 md:pb-4 overflow-x-hidden">
+            <main className="flex-1 min-h-screen p-0 pb-20 md:p-4 overflow-x-hidden">
               <div className="w-full max-w-full overflow-x-hidden">
                 {children}
               </div>
@@ -55,4 +55,3 @@ export default function RootLayout({
     </html>
   );
 }
-
