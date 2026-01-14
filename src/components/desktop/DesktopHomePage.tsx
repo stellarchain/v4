@@ -275,7 +275,7 @@ export default function DesktopHomePage({
                         <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <h3 className="text-xs font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#06b6d4]"></span>
-                                Unified Activity Stream
+                                Live Network Activity
                             </h3>
                             <div className="flex items-center gap-4">
                                 <button className="text-gray-400 hover:text-[#06b6d4]">

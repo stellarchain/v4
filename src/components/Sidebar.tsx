@@ -68,7 +68,7 @@ export default function Sidebar() {
           </div>
           <div>
             <h1 className="font-sans font-bold text-sm text-[#F8FAFC] tracking-wider uppercase">STELLARCHAIN</h1>
-            <p className="text-[10px] text-[#94A3B8] font-mono tracking-[0.15em]">NODE_OPERATOR_V2</p>
+            <p className="text-[10px] text-[#94A3B8] font-mono tracking-[0.15em]">Blockchain Explorer</p>
           </div>
         </Link>
 

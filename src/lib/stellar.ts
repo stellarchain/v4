@@ -447,11 +447,11 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
   // Smart contract invocation
   if (primaryOp.type === 'invoke_host_function') {
     // Try to decode the function name from parameters
-    let functionName = 'Contract Call';
+    let functionName = (primaryOp as any).function || 'Contract Call';
 
     try {
       const parameters = primaryOp.parameters as Array<{ type: string; value: string }> | undefined;
-      if (parameters && parameters.length >= 2) {
+      if (parameters) {
         const symParam = parameters.find(p => p.type === 'Sym');
         if (symParam) {
           const decoded = atob(symParam.value);
