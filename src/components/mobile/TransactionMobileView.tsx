@@ -305,7 +305,7 @@ export default function TransactionMobileView({ transaction, operations, effects
     <div className="bg-[#F8FAFC] text-slate-800 min-h-screen flex flex-col font-sans pb-24">
 
       {/* Main Content Area */}
-      <main className="flex-1 px-4 py-4 max-w-lg mx-auto w-full">
+      <main className="flex-1 px-4 pt-2 pb-8 max-w-lg mx-auto w-full">
         {isContractCall ? (
           <>
             <div className="flex items-center justify-between mb-4 mt-1">
@@ -337,8 +337,8 @@ export default function TransactionMobileView({ transaction, operations, effects
               <div className="flex justify-between items-start">
                 <div>
                   <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Transaction Type</div>
-                  <div className="text-lg font-bold text-slate-900 mt-1">{contractFunctionName || 'Smart Contract'}</div>
-                  <div className="inline-flex items-center bg-violet-50 text-violet-600 border border-violet-100 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide mt-2">
+                  <div className="text-base font-bold text-slate-900 mt-1">{contractFunctionName || 'Smart Contract'}</div>
+                  <div className="inline-flex items-center bg-violet-50 text-violet-600 border border-violet-100 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide mt-2">
                     Smart Contract
                   </div>
                 </div>
@@ -368,9 +368,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                           </svg>
                         </div>
                         <div>
-                          <div className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Sent</div>
-                          <div className="font-mono text-sm font-bold text-slate-900">
-                            {formatTokenAmount(contractSentAmount)} <span className="text-xs font-normal text-slate-500">{contractSentAsset}</span>
+                          <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Sent</div>
+                          <div className="font-mono text-xs font-bold text-slate-900">
+                            {formatTokenAmount(contractSentAmount)} <span className="text-[10px] font-normal text-slate-500">{contractSentAsset}</span>
                           </div>
                         </div>
                       </div>
@@ -388,9 +388,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                           </svg>
                         </div>
                         <div>
-                          <div className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Received</div>
-                          <div className="font-mono text-sm font-bold text-slate-900">
-                            {formatTokenAmount(contractReceivedAmount)} <span className="text-xs font-normal text-slate-500">{contractReceivedAsset}</span>
+                          <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Received</div>
+                          <div className="font-mono text-xs font-bold text-slate-900">
+                            {formatTokenAmount(contractReceivedAmount)} <span className="text-[10px] font-normal text-slate-500">{contractReceivedAsset}</span>
                           </div>
                         </div>
                       </div>
@@ -410,12 +410,15 @@ export default function TransactionMobileView({ transaction, operations, effects
                         </svg>
                         {contractHeaderLabel}
                       </div>
-                      <div className="text-2xl font-bold text-slate-900 tracking-tight">
+                      <div className="text-xl font-bold text-slate-900 tracking-tight">
                         {formatTokenAmount(contractHeaderAmount)}
                       </div>
                       {contractHeaderAccount && (
                         <div className="text-[10px] text-slate-400 mt-1 font-mono">
-                          {contractHeaderIsCredit ? 'from' : 'to'} {shortenAddress(contractHeaderAccount, 4)}
+                          <span className="opacity-75">{contractHeaderIsCredit ? 'from ' : 'to '}</span>
+                          <Link href={`/account/${contractHeaderAccount}`} className="hover:text-indigo-600 transition-colors border-b border-transparent hover:border-indigo-600/30 font-medium">
+                            {shortenAddress(contractHeaderAccount, 4)}
+                          </Link>
                         </div>
                       )}
                     </div>
@@ -428,8 +431,8 @@ export default function TransactionMobileView({ transaction, operations, effects
 
               <div className="mt-4 pt-4 border-t border-slate-100">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400 text-xs font-medium">Network Fee</span>
-                  <span className="font-mono text-xs font-bold text-slate-700">{feeXLM} XLM</span>
+                  <span className="text-slate-400 text-[10px] font-medium">Network Fee</span>
+                  <span className="font-mono text-[10px] font-bold text-slate-700">{feeXLM} XLM</span>
                 </div>
               </div>
             </div>
@@ -438,62 +441,59 @@ export default function TransactionMobileView({ transaction, operations, effects
           </>
         ) : (
           <>
-            {/* Top Navigation Row */}
-            <div className="flex items-center justify-between mb-4 mt-2">
-              <Link
-                href="/transactions"
-                className="flex items-center text-slate-500 hover:text-slate-800 transition-colors text-sm font-medium"
-              >
-                <svg className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Back
-              </Link>
-
-              <div className={`flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${transaction.successful
-                ? 'bg-green-100 text-green-700 border-green-200'
-                : 'bg-red-100 text-red-700 border-red-200'
-                }`}>
-                <svg className="w-3.5 h-3.5 mr-1" fill={transaction.successful ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
-                  {transaction.successful
-                    ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  }
-                </svg>
-                {transaction.successful ? 'Successful' : 'Failed'}
+            {/* Compact Header */}
+            <div className="mb-3">
+              <div className="flex items-center gap-3 mb-2">
+                <Link
+                  href="/transactions"
+                  className="flex-shrink-0 w-8 h-8 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 hover:text-slate-800 hover:scale-105 transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </Link>
+                <h2 className="text-lg font-bold text-slate-900">{typeLabel}</h2>
               </div>
-            </div>
 
-            {/* Title & Meta */}
-            <div className="mb-5">
-              <h2 className="text-xl font-bold text-slate-900 mb-1">{typeLabel}</h2>
-              <div className="flex items-center text-xs text-slate-500 space-x-3">
+              {/* Meta Data Row - Aligned Left */}
+              <div className="flex flex-wrap items-center text-[10px] text-slate-500 gap-x-3 gap-y-2 pl-1">
                 <div className="flex items-center">
-                  <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-3 h-3 mr-1 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   {formatDate(transaction.created_at)}
                 </div>
-                <span>•</span>
-                <span className="font-medium">{timeAgo(transaction.created_at)}</span>
-                <span>•</span>
+
+                <div className={`flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border ${transaction.successful
+                  ? 'bg-green-50 text-green-700 border-green-200'
+                  : 'bg-red-50 text-red-700 border-red-200'
+                  }`}>
+                  <svg className="w-2.5 h-2.5 mr-1" fill={transaction.successful ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                    {transaction.successful
+                      ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    }
+                  </svg>
+                  {transaction.successful ? 'Successful' : 'Failed'}
+                </div>
+
                 <button
                   onClick={handleCopy}
-                  className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider hover:bg-slate-200 transition-colors flex items-center gap-1"
+                  className="font-mono bg-white border border-slate-200 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider hover:border-slate-300 transition-colors flex items-center gap-1 shadow-sm"
                 >
                   #{transaction.hash.slice(0, 4)}...{transaction.hash.slice(-3)}
-                  {copied && <span className="text-green-500 text-[8px]">✓</span>}
+                  {copied && <span className="text-green-500 font-bold">✓</span>}
                 </button>
               </div>
             </div>
 
             {/* Visual Flow */}
-            <div className="space-y-3 mb-8 relative">
+            <div className="space-y-2 mb-4 relative">
               {/* Connector Line */}
-              <div className="absolute left-[1.6rem] top-10 bottom-10 w-0.5 bg-gradient-to-b from-slate-200 via-slate-300 to-slate-200 -z-10"></div>
+              <div className="absolute left-[1.6rem] top-8 bottom-8 w-0.5 bg-gradient-to-b from-slate-200 via-slate-300 to-slate-200 -z-10"></div>
 
               {/* FIRST CARD (From / Sold / Selling) */}
-              <div className={`relative overflow-hidden rounded-2xl p-4 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-white group transition-all duration-300 hover:shadow-md`}>
+              <div className={`relative overflow-hidden rounded-2xl p-3 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-white group transition-all duration-300 hover:shadow-md`}>
                 {/* Subtle Background Gradient */}
                 <div className={`absolute inset-0 opacity-30 bg-gradient-to-r ${isSwap || isOffer ? 'from-indigo-50 via-white to-white' : 'from-emerald-50 via-white to-white'
                   }`}></div>
@@ -521,17 +521,17 @@ export default function TransactionMobileView({ transaction, operations, effects
                     </div>
 
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{fromLabel}</div>
+                      <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{fromLabel}</div>
                       {isOffer ? (
-                        <span className="font-mono text-sm text-slate-700 font-bold">
-                          {offerDetails?.amount ? parseFloat(offerDetails.amount).toLocaleString() : '0'} <span className="text-xs font-normal text-slate-500">{offerDetails?.selling}</span>
+                        <span className="font-mono text-xs text-slate-700 font-bold">
+                          {offerDetails?.amount ? parseFloat(offerDetails.amount).toLocaleString() : '0'} <span className="text-[10px] font-normal text-slate-500">{offerDetails?.selling}</span>
                         </span>
                       ) : isSwap ? (
-                        <span className="font-mono text-sm text-slate-700 font-bold">
-                          {swapSold?.amount ? parseFloat(swapSold.amount).toLocaleString() : '0'} <span className="text-xs font-normal text-slate-500">{swapSold?.code}</span>
+                        <span className="font-mono text-xs text-slate-700 font-bold">
+                          {swapSold?.amount ? parseFloat(swapSold.amount).toLocaleString() : '0'} <span className="text-[10px] font-normal text-slate-500">{swapSold?.code}</span>
                         </span>
                       ) : (
-                        <Link href={`/account/${transaction.source_account}`} className="font-mono text-sm text-slate-700 truncate w-32 sm:w-48 block hover:text-emerald-600 transition-colors">
+                        <Link href={`/account/${transaction.source_account}`} className="font-mono text-xs text-slate-700 truncate w-32 sm:w-48 block hover:text-emerald-600 transition-colors">
                           {shortenAddress(transaction.source_account, 8)}
                         </Link>
                       )}
@@ -542,20 +542,20 @@ export default function TransactionMobileView({ transaction, operations, effects
                   {!isOffer && !isSwap && (
                     <div className="text-right">
                       {displayAmount > 0 ? (
-                        <div className="text-base font-bold text-slate-900">
-                          - {displayAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-slate-500">{displayAsset}</span>
+                        <div className="text-sm font-bold text-slate-900">
+                          - {displayAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-[10px] font-normal text-slate-500">{displayAsset}</span>
                         </div>
                       ) : (
-                        <div className="text-base font-bold text-slate-900">--</div>
+                        <div className="text-sm font-bold text-slate-900">--</div>
                       )}
-                      <div className="text-[10px] uppercase font-bold text-emerald-600/80 tracking-wide">{isContractCall ? 'Called' : 'Sent'}</div>
+                      <div className="text-[9px] uppercase font-bold text-emerald-600/80 tracking-wide">{isContractCall ? 'Called' : 'Sent'}</div>
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Connect Icon */}
-              <div className="flex justify-center -my-4 relative z-20 pointer-events-none">
+              <div className="flex justify-center -my-3 relative z-20 pointer-events-none">
                 <div className="bg-white rounded-full p-1.5 shadow-md text-slate-300 ring-4 ring-[#F8FAFC]">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7" />
@@ -564,7 +564,7 @@ export default function TransactionMobileView({ transaction, operations, effects
               </div>
 
               {/* SECOND CARD (To / Bought / Buying) */}
-              <div className={`relative overflow-hidden rounded-2xl p-4 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-white group transition-all duration-300 hover:shadow-md`}>
+              <div className={`relative overflow-hidden rounded-2xl p-3 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-white group transition-all duration-300 hover:shadow-md`}>
                 <div className={`absolute inset-0 opacity-30 bg-gradient-to-r ${isSwap || isOffer ? 'from-violet-50 via-white to-white' : 'from-amber-50 via-white to-white'
                   }`}></div>
 
@@ -604,11 +604,11 @@ export default function TransactionMobileView({ transaction, operations, effects
                       ) : (
                         <>
                           {destination !== 'Smart Contract' && !destination.includes('Contract') ? (
-                            <Link href={`/account/${destination}`} className="font-mono text-sm text-slate-700 truncate w-32 sm:w-48 block hover:text-amber-600 transition-colors">
+                            <Link href={`/account/${destination}`} className="font-mono text-xs text-slate-700 truncate w-32 sm:w-48 block hover:text-amber-600 transition-colors">
                               {shortenAddress(destination, 8)}
                             </Link>
                           ) : (
-                            <div className="font-mono text-sm text-slate-700 truncate w-32 sm:w-48">
+                            <div className="font-mono text-xs text-slate-700 truncate w-32 sm:w-48">
                               {isContractCall ? contractFunctionName : 'Smart Contract'}
                             </div>
                           )}
@@ -619,21 +619,21 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                   <div className="text-right">
                     {isOffer ? (
-                      <div className="text-xs text-slate-500">Price per unit</div>
+                      <div className="text-[10px] text-slate-500">Price per unit</div>
                     ) : isMultiSend ? (
-                      <div className="text-base font-bold text-slate-900">
+                      <div className="text-sm font-bold text-slate-900">
                         {displayAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                       </div>
                     ) : parseFloat(amount) > 0 ? (
-                      <div className="text-base font-bold text-slate-900">
-                        {isSwap ? '' : '+ '}{parseFloat(amount).toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-xs font-normal text-slate-500">{assetCode}</span>
+                      <div className="text-sm font-bold text-slate-900">
+                        {isSwap ? '' : '+ '}{parseFloat(amount).toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-[10px] font-normal text-slate-500">{assetCode}</span>
                       </div>
                     ) : (
-                      <div className="text-base font-bold text-slate-900">--</div>
+                      <div className="text-sm font-bold text-slate-900">--</div>
                     )}
 
                     {!isOffer && (
-                      <div className={`text-[10px] font-bold uppercase tracking-wide ${isSwap ? 'text-violet-600/80' : 'text-amber-600/80'}`}>
+                      <div className={`text-[9px] font-bold uppercase tracking-wide ${isSwap ? 'text-violet-600/80' : 'text-amber-600/80'}`}>
                         {isSwap ? 'Received' : isMultiSend ? 'Total Amt' : isContractCall ? 'Effect Amt' : 'Received'}
                       </div>
                     )}
@@ -657,21 +657,32 @@ export default function TransactionMobileView({ transaction, operations, effects
                     <div className={`transition-all duration-300 ease-in-out overflow-hidden ${showRecipients ? 'max-h-[500px] opacity-100 pt-4' : 'max-h-0 opacity-0'}`}>
                       <div className="bg-slate-50 rounded-xl border border-slate-100/50 overflow-hidden">
                         <div className="max-h-[300px] overflow-y-auto">
-                          {paymentOps.map((op, idx) => (
-                            <div key={op.id} className="flex items-center justify-between p-3 border-b border-slate-100 last:border-0 hover:bg-slate-100/50">
-                              <div className="flex items-center gap-3 overflow-hidden">
+                          {Object.entries(
+                            paymentOps.reduce((acc, op) => {
+                              const to = op.to || (op as any).into || 'unknown';
+                              if (!acc[to]) acc[to] = [];
+                              acc[to].push(op);
+                              return acc;
+                            }, {} as Record<string, Operation[]>)
+                          ).map(([to, ops], idx) => (
+                            <div key={to} className="flex items-start justify-between p-3 border-b border-slate-100 last:border-0 hover:bg-slate-100/50">
+                              <div className="flex items-center gap-3 overflow-hidden mt-0.5">
                                 <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500 flex-shrink-0">
                                   {idx + 1}
                                 </div>
-                                <Link href={`/account/${op.to || (op as any).into}`} className="font-mono text-xs text-slate-600 truncate hover:text-indigo-600 transition-colors">
-                                  {shortenAddress((op.to || (op as any).into) || '', 10)}
+                                <Link href={`/account/${to}`} className="font-mono text-xs text-slate-600 truncate hover:text-indigo-600 transition-colors">
+                                  {shortenAddress(to, 10)}
                                 </Link>
                               </div>
-                              <div className="text-right">
-                                <span className="text-xs font-bold text-slate-900">
-                                  {op.amount ? parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
-                                </span>
-                                <span className="text-[10px] text-slate-400 ml-1">{op.asset_type === 'native' ? 'XLM' : (op.asset_code || '')}</span>
+                              <div className="text-right space-y-1">
+                                {ops.map((op, opIdx) => (
+                                  <div key={op.id || opIdx} className="text-right">
+                                    <span className="text-xs font-bold text-slate-900">
+                                      {op.amount ? parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 ml-1">{op.asset_type === 'native' ? 'XLM' : (op.asset_code || '')}</span>
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           ))}
@@ -684,9 +695,9 @@ export default function TransactionMobileView({ transaction, operations, effects
             </div>
 
             {/* Network Fee Bar */}
-            <div className="flex justify-between items-center bg-slate-50 rounded-lg px-3 py-2 mb-6 border border-slate-100">
-              <span className="text-xs font-medium text-slate-500">Network Fee</span>
-              <span className="text-xs font-mono font-medium text-slate-700">{feeXLM} XLM</span>
+            <div className="flex justify-between items-center bg-slate-50 rounded-lg px-3 py-1.5 mb-3 border border-slate-100">
+              <span className="text-[10px] font-medium text-slate-500">Network Fee</span>
+              <span className="text-[10px] font-mono font-medium text-slate-700">{feeXLM} XLM</span>
             </div>
           </>
         )}
@@ -703,7 +714,7 @@ export default function TransactionMobileView({ transaction, operations, effects
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(activeTab === tab.id ? null : tab.id as any)}
-                className={`py-2 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${activeTab === tab.id
+                className={`py-2 px-1 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${activeTab === tab.id
                   ? 'border-slate-900 text-slate-900 font-semibold'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                   }`}
@@ -730,12 +741,12 @@ export default function TransactionMobileView({ transaction, operations, effects
             <div className="space-y-3">
               {operations.map((op, idx) => (
                 <div key={op.id} className="bg-white border border-slate-200 rounded-xl p-0 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center p-3 gap-3">
+                  <div className="flex items-center p-2.5 gap-2.5">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500">
                       {idx + 1}
                     </div>
                     <div className="flex-1 min-w-0 grid grid-cols-[auto_1fr] gap-x-2 items-center">
-                      <span className="text-sm font-semibold text-slate-900 capitalize truncate">
+                      <span className="text-xs font-semibold text-slate-900 capitalize truncate">
                         {op.type === 'invoke_host_function'
                           ? decodeContractFunctionName(op)
                           : op.type === 'payment' && isMultiSend
@@ -743,7 +754,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                             : getOperationTypeLabel(op.type).replace(/_/g, ' ')
                         }
                       </span>
-                      <div className="flex items-center text-xs text-slate-500 font-mono truncate">
+                      <div className="flex items-center text-[10px] text-slate-500 font-mono truncate">
                         {op.source_account && op.source_account !== transaction.source_account && (
                           <>
                             <Link href={`/account/${op.source_account}`} className="truncate max-w-[80px] hover:text-slate-900 transition-colors">
@@ -768,9 +779,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                     </div>
                     {op.amount && (
                       <div className="text-right flex-shrink-0">
-                        <span className="block text-sm font-bold text-slate-900">
+                        <span className="block text-xs font-bold text-slate-900">
                           {parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                          <span className="text-xs font-normal text-slate-500 ml-1">{op.asset_type === 'native' ? 'XLM' : op.asset_code || ''}</span>
+                          <span className="text-[10px] font-normal text-slate-500 ml-1">{op.asset_type === 'native' ? 'XLM' : op.asset_code || ''}</span>
                         </span>
                       </div>
                     )}
@@ -787,10 +798,15 @@ export default function TransactionMobileView({ transaction, operations, effects
                 <div className="text-center py-8 text-slate-400 text-sm">
                   No effects found for this transaction.
                 </div>
-              ) : isContractCall ? (
-                Object.entries(contractEffectsByAccount).map(([account, accountEffects]) => (
-                  <div key={account} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
+              ) : (
+                Object.entries(effects.reduce((acc, ef) => {
+                  const key = ef.account || 'unknown';
+                  if (!acc[key]) acc[key] = [];
+                  acc[key].push(ef);
+                  return acc;
+                }, {} as Record<string, Effect[]>)).map(([account, accountEffects]: [string, Effect[]]) => (
+                  <div key={account} className="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
                       {account === 'unknown' ? (
                         <span className="text-xs font-mono text-slate-400">Unknown account</span>
                       ) : (
@@ -802,44 +818,34 @@ export default function TransactionMobileView({ transaction, operations, effects
                         {accountEffects.length} effects
                       </span>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       {accountEffects.map((ef) => {
                         const isCredit = ef.type.includes('credited');
-                        const effectLabel = isCredit ? 'Received' : ef.type.includes('debited') ? 'Sent' : ef.type.replace(/_/g, ' ');
+                        const isDebit = ef.type.includes('debited');
+                        const effectLabel = isCredit ? 'Received' : isDebit ? 'Sent' : ef.type.replace(/_/g, ' ');
                         const effectAsset = ef.asset_type === 'native' ? 'XLM' : ef.asset_code;
                         return (
-                          <div key={ef.id} className="flex items-center justify-between">
-                            <div className={`text-[10px] uppercase font-semibold tracking-wide ${isCredit ? 'text-emerald-600' : 'text-slate-400'}`}>
+                          <div key={ef.id} className="flex items-center">
+                            <div className={`w-20 text-[9px] uppercase font-semibold tracking-wide ${isCredit ? 'text-emerald-600' : isDebit ? 'text-red-500' : 'text-slate-400'}`}>
                               {effectLabel}
                             </div>
-                            <div className="font-mono text-sm font-semibold text-slate-700">
-                              {ef.amount ? formatTokenAmount(ef.amount) : '--'}
-                              {effectAsset && <span className="text-[10px] font-normal text-slate-400 ml-1">{effectAsset}</span>}
+                            <div className="ml-auto flex items-center">
+                              <div className="font-mono text-xs font-semibold text-right">
+                                {ef.amount ? (
+                                  <span className={isCredit ? 'text-emerald-600' : isDebit ? 'text-red-500' : 'text-slate-700'}>
+                                    {isCredit ? '+' : isDebit ? '-' : ''}{formatTokenAmount(ef.amount)}
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-400">--</span>
+                                )}
+                              </div>
+                              <div className="w-12 text-left pl-2 text-[9px] font-normal text-slate-400 truncate">
+                                {ef.amount && effectAsset}
+                              </div>
                             </div>
                           </div>
                         );
                       })}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                effects.map((ef) => (
-                  <div key={ef.id} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{ef.type.replace(/_/g, ' ')}</span>
-                      {ef.amount && (
-                        <span className={`text-sm font-bold ${ef.type.includes('debited') ? 'text-red-500' :
-                          ef.type.includes('credited') ? 'text-green-500' : 'text-slate-700'
-                          }`}>
-                          {ef.type.includes('debited') ? '-' : '+'}{parseFloat(ef.amount).toLocaleString()}
-                          <span className="text-xs ml-1 opacity-70">{ef.asset_type === 'native' ? 'XLM' : ef.asset_code}</span>
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Link href={`/account/${ef.account}`} className="text-xs font-mono text-slate-400 hover:text-blue-500 transition-colors">
-                        {shortenAddress(ef.account, 12)}
-                      </Link>
                     </div>
                   </div>
                 ))
@@ -858,18 +864,18 @@ export default function TransactionMobileView({ transaction, operations, effects
                 { label: 'Sequence', value: transaction.source_account_sequence },
                 { label: 'Ledger', value: transaction.ledger.toString(), linkUrl: `/ledger/${transaction.ledger}` },
               ].map((item, i) => (
-                <div key={i} className="flex justify-between items-center py-3 border-b border-slate-100 last:border-0">
-                  <span className="text-sm text-slate-500 font-medium">{item.label}</span>
+                <div key={i} className="flex justify-between items-center py-2.5 border-b border-slate-100 last:border-0">
+                  <span className="text-xs text-slate-500 font-medium">{item.label}</span>
                   {item.isLink ? (
-                    <Link href={`/account/${item.value}`} className="text-sm font-mono text-blue-600 hover:underline">
+                    <Link href={`/account/${item.value}`} className="text-xs font-mono text-blue-600 hover:underline">
                       {shortenAddress(item.value!, 8)}
                     </Link>
                   ) : item.linkUrl ? (
-                    <Link href={item.linkUrl} className="text-sm font-bold text-blue-600 hover:underline">
+                    <Link href={item.linkUrl} className="text-xs font-bold text-blue-600 hover:underline">
                       {item.value}
                     </Link>
                   ) : (
-                    <span className="text-sm font-semibold text-slate-700 text-right">{item.value}</span>
+                    <span className="text-xs font-semibold text-slate-700 text-right">{item.value}</span>
                   )}
                 </div>
               ))}
@@ -891,13 +897,13 @@ export default function TransactionMobileView({ transaction, operations, effects
           {/* RAW DATA TAB */}
           {activeTab === 'raw' && (
             <div className="space-y-3">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <div className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Envelope XDR</div>
-                <p className="font-mono text-[10px] text-slate-600 break-all">{transaction.envelope_xdr}</p>
+              <div className="bg-slate-50 p-2 rounded-xl border border-slate-200">
+                <div className="text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">Envelope XDR</div>
+                <p className="font-mono text-[9px] text-slate-600 break-all">{transaction.envelope_xdr}</p>
               </div>
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <div className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">Result XDR</div>
-                <p className="font-mono text-[10px] text-slate-600 break-all">{transaction.result_xdr}</p>
+              <div className="bg-slate-50 p-2 rounded-xl border border-slate-200">
+                <div className="text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">Result XDR</div>
+                <p className="font-mono text-[9px] text-slate-600 break-all">{transaction.result_xdr}</p>
               </div>
             </div>
           )}

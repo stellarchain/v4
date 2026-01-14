@@ -39,7 +39,7 @@ export default function MobileNav() {
   }, [showMore]);
 
   const getIcon = (icon: string, active: boolean) => {
-    const color = active ? 'var(--primary)' : 'var(--text-tertiary)';
+    const color = "currentColor";
 
     switch (icon) {
       case 'home':
@@ -127,9 +127,8 @@ export default function MobileNav() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3.5 border-b border-[var(--border-subtle)] last:border-0 active:bg-[var(--bg-tertiary)] transition-colors ${
-                    active ? 'bg-[var(--bg-tertiary)]' : ''
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3.5 border-b border-[var(--border-subtle)] last:border-0 active:bg-[var(--bg-tertiary)] transition-colors ${active ? 'bg-[var(--bg-tertiary)]' : ''
+                    }`}
                   onClick={() => setShowMore(false)}
                 >
                   {getIcon(item.icon, active)}
@@ -147,20 +146,27 @@ export default function MobileNav() {
       )}
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--bg-secondary)] border-t border-[var(--border-subtle)] md:hidden safe-area-bottom">
-        <div className="flex items-center justify-around h-16">
+      <nav className="fixed bottom-0 w-full bg-white border-t border-slate-100 pb-safe pt-2 px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-30 md:hidden safe-area-bottom">
+        <div className="flex justify-between items-center h-14">
           {mainNavItems.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                  active ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'
-                }`}
+                className={`flex flex-col items-center justify-center space-y-1 w-16 transition-colors ${active
+                  ? 'text-slate-900'
+                  : 'text-slate-400 hover:text-slate-900'
+                  }`}
               >
-                {getIcon(item.icon, active)}
-                <span className={`text-[10px] mt-1 font-medium ${active ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}>
+                {active ? (
+                  <div className="bg-slate-100 rounded-full w-12 h-8 flex items-center justify-center mb-0.5">
+                    {getIcon(item.icon, true)}
+                  </div>
+                ) : (
+                  getIcon(item.icon, false)
+                )}
+                <span className={`text-[10px] ${active ? 'font-bold' : 'font-medium'}`}>
                   {item.name}
                 </span>
               </Link>
@@ -175,12 +181,19 @@ export default function MobileNav() {
                 setShowMore(!showMore);
               }
             }}
-            className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-              isMoreActive || showMore ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'
-            }`}
+            className={`flex flex-col items-center justify-center space-y-1 w-16 transition-colors ${isMoreActive || showMore
+              ? 'text-slate-900'
+              : 'text-slate-400 hover:text-slate-900'
+              }`}
           >
-            {getIcon('menu', isMoreActive || showMore)}
-            <span className={`text-[10px] mt-1 font-medium ${isMoreActive || showMore ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}`}>
+            {(isMoreActive || showMore) ? (
+              <div className="bg-slate-100 rounded-full w-12 h-8 flex items-center justify-center mb-0.5">
+                {getIcon('menu', true)}
+              </div>
+            ) : (
+              getIcon('menu', false)
+            )}
+            <span className={`text-[10px] ${isMoreActive || showMore ? 'font-bold' : 'font-medium'}`}>
               More
             </span>
           </button>
