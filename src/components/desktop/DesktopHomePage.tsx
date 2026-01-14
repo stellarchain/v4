@@ -177,23 +177,21 @@ export default function DesktopHomePage({
 
     const decodeContractFunctionName = (op: Operation): string => {
         try {
-            if ((op as any).function) return (op as any).function as string;
-
-            // If the type itself is the messed up string, try to parse it or just return Contract Call
-            const typeStr = String(op.type || '');
-            if (typeStr.includes('HostFunctionTypeHostFunctionTypeInvokeContract')) {
-                // Try to look for function name in other fields if available, otherwise just return 'Contract Call'
-                // But wait, if the type IS the function name (unlikely but possible in some API versions?), we just return Contract Call
-                // Actually, let's look for the function parameters
-            }
+            // Do NOT trust (op as any).function as it may contain raw XDR type strings
 
             const parameters = (op as any).parameters as Array<{ type: string; value: string }> | undefined;
             if (!parameters) return 'Contract Call';
+
             const symParam = parameters.find(p => p.type === 'Sym');
             if (!symParam) return 'Contract Call';
+
             const decoded = atob(symParam.value);
             const functionName = decoded.slice(5).replace(/\0/g, '');
-            return functionName || 'Contract Call';
+
+            // Fallback if the decoding produced something weird or empty
+            if (!functionName || functionName.includes('HostFunctionType')) return 'Contract Call';
+
+            return functionName;
         } catch {
             return 'Contract Call';
         }
