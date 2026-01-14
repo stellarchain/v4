@@ -56,8 +56,8 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
 
             <div className="flex flex-col">
               <span className="text-sm font-bold text-slate-900 leading-tight capitalize">
-                {info?.type === 'contract' && info.functionName
-                  ? info.functionName
+                {info?.type === 'contract'
+                  ? (info.functionName || 'Smart Contract')
                   : info?.type === 'payment'
                     ? 'Payment'
                     : 'Transaction'}
@@ -82,7 +82,7 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
               </span>
             ) : (
               <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                {info?.type === 'contract' ? 'Contract Call' : 'Details'}
+                {info?.type === 'contract' ? (info.functionName || 'Contract') : 'Details'}
               </span>
             )}
           </div>
