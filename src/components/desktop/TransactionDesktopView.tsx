@@ -343,6 +343,75 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   </div>
                 </div>
               </div>
+            ) : isOffer && offerDetails ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                  <div className="p-1.5 bg-sky-50 text-sky-600 rounded-lg">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-800">DEX Limit Order</h3>
+                </div>
+
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                  {/* Selling */}
+                  <div className="flex flex-col items-center md:items-start text-center md:text-left min-w-[140px]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Selling</span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 shadow-sm text-xs">
+                        {offerDetails.selling.substring(0, 2)}
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-slate-900 leading-none mb-1">
+                          {formatTokenAmount(offerDetails.amount)}
+                        </div>
+                        <div className="text-xs font-bold text-slate-500">{offerDetails.selling}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Price Info */}
+                  <div className="flex-1 flex flex-col items-center justify-center px-4 w-full md:w-auto">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Exchange Rate</div>
+                    <div className="flex items-center gap-2 w-full justify-center">
+                      <div className="h-px bg-slate-300 flex-1 opacity-50"></div>
+                      <div className="bg-white border border-slate-200 shadow-sm rounded px-3 py-1.5 font-mono text-xs font-bold text-slate-700 whitespace-nowrap">
+                        1 {offerDetails.selling} ≈ {formatTokenAmount(offerDetails.price)} {offerDetails.buying}
+                      </div>
+                      <div className="h-px bg-slate-300 flex-1 opacity-50"></div>
+                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Buying */}
+                  <div className="flex flex-col items-center md:items-end text-center md:text-right min-w-[140px]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Buying</span>
+                    <div className="flex items-center gap-3 flex-row-reverse">
+                      <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 shadow-sm text-xs">
+                        {offerDetails.buying.substring(0, 2)}
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-slate-900 leading-none mb-1">
+                          {/* Value = Amount * Price */}
+                          {formatTokenAmount((parseFloat(offerDetails.amount) * parseFloat(offerDetails.price)).toString())}
+                        </div>
+                        <div className="text-xs font-bold text-slate-500">{offerDetails.buying}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Initiator Footer */}
+                <div className="flex items-center justify-between text-xs px-2">
+                  <span className="text-slate-400">Order by</span>
+                  <Link href={`/account/${transaction.source_account}`} className="font-mono font-bold text-slate-700 hover:text-sky-600">
+                    {shortenAddress(transaction.source_account, 12)}
+                  </Link>
+                </div>
+              </div>
             ) : (
               <div className="flex flex-col gap-6 md:flex-row md:items-center">
                 <div className="flex-1">
