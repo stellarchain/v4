@@ -14,7 +14,7 @@ export default async function HomePage() {
     getNetworkStats(),
     getLedgers(8),
     getTransactions(8),
-    getOperations(8),
+    getOperations(50),
     getMarketAssets(),
     getXLMUSDPriceFromHorizon(),
   ]);
