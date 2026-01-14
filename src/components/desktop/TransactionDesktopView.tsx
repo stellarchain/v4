@@ -340,9 +340,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                     <div className="flex flex-col items-center md:items-start text-center md:text-left min-w-[140px]">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Selling</span>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 shadow-sm text-xs">
-                          {offerDetails.selling.substring(0, 2)}
-                        </div>
+
                         <div>
                           <div className="text-lg font-bold text-slate-900 leading-none mb-1">
                             {formatTokenAmount(offerDetails.amount)}
@@ -371,9 +369,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                     <div className="flex flex-col items-center md:items-end text-center md:text-right min-w-[140px]">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Buying</span>
                       <div className="flex items-center gap-3 flex-row-reverse">
-                        <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 shadow-sm text-xs">
-                          {offerDetails.buying.substring(0, 2)}
-                        </div>
+
                         <div>
                           <div className="text-lg font-bold text-slate-900 leading-none mb-1">
                             {/* Value = Amount * Price */}
