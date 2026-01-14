@@ -115,7 +115,7 @@ export default function DesktopHomePage({
                     const uniqueNewOps = newOps.filter(op => !existingIds.has(op.id));
 
                     if (uniqueNewOps.length > 0) {
-                        return [...uniqueNewOps, ...prevOps].slice(0, 50);
+                        return [...uniqueNewOps, ...prevOps].slice(0, 500);
                     }
                     return prevOps;
                 });
@@ -318,6 +318,25 @@ export default function DesktopHomePage({
                                                         <span className="text-gray-500">{op.asset_code || 'XLM'}</span>
                                                         <span className="text-gray-400 mx-1">→</span>
                                                         <span className="text-gray-500">{shortenAddress(op.to || (op as any).into || op.source_account, 4)}</span>
+                                                    </div>
+                                                ) : ['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type) ? (
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-blue-500 font-bold">
+                                                            {(op as any).amount ? formatTokenAmount((op as any).amount) : '0'}
+                                                        </span>
+                                                        <span className="text-gray-500">
+                                                            {(op as any).selling_asset_code || ((op as any).selling_asset_type === 'native' ? 'XLM' : '')}
+                                                        </span>
+                                                        <span className="text-gray-400 mx-1">@</span>
+                                                        <span className="text-gray-900 font-mono">{(op as any).price}</span>
+                                                        <span className="text-gray-500">
+                                                            {(op as any).buying_asset_code || ((op as any).buying_asset_type === 'native' ? 'XLM' : '')}
+                                                        </span>
+                                                    </div>
+                                                ) : op.type === 'create_account' ? (
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-gray-500">Fund Account:</span>
+                                                        <span className="font-bold text-gray-900">{formatTokenAmount((op as any).starting_balance)} XLM</span>
                                                     </div>
                                                 ) : op.type === 'invoke_host_function' ? (
                                                     <div>
