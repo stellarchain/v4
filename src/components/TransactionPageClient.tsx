@@ -367,70 +367,153 @@ export default function TransactionPageClient({
     return () => { mounted = false; };
   }, [visibleTransactions]);
 
+  // Helper for type styling
+  const getTypeStyle = (info: any) => {
+    const type = info?.type || 'other';
+    if (type === 'payment') return { color: 'text-orange-500', bg: 'bg-orange-500', label: 'PAYMENT' };
+    if (type === 'contract') return { color: 'text-purple-500', bg: 'bg-purple-500', label: 'CONTRACT CALL' };
+    if (type === 'swap') return { color: 'text-blue-500', bg: 'bg-blue-500', label: 'SWAP' };
+    return { color: 'text-gray-900', bg: 'bg-gray-400', label: 'TRANSACTION' };
+  };
+
+  const formatCompact = (numStr: string | undefined): string => {
+    if (!numStr) return '0';
+    const num = parseFloat(numStr);
+    if (isNaN(num)) return '0';
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
+    return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  };
+
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-slate-50 pb-20">
-      {/* Tabs */}
-      <div className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-4 py-3 shadow-sm">
-        <div className="flex space-x-1 bg-slate-200/50 p-1 rounded-lg">
-          <button
-            onClick={() => setFilter('all')}
-            className={`flex-1 rounded-md py-1.5 text-xs font-semibold text-center transition-all ${filter === 'all'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-              }`}
-          >
-            All <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${filter === 'all' ? 'bg-slate-100 text-slate-500' : 'bg-transparent'}`}>{transactions.length}</span>
-          </button>
-          <button
-            onClick={() => setFilter('transfers')}
-            className={`flex-1 py-1.5 text-xs font-medium text-center rounded-md transition-all ${filter === 'transfers'
-              ? 'bg-white text-slate-900 shadow-sm font-semibold'
-              : 'text-slate-500 hover:text-slate-700'
-              }`}
-          >
-            Payments
-          </button>
-          <button
-            onClick={() => setFilter('contracts')}
-            className={`flex-1 py-1.5 text-xs font-medium text-center rounded-md transition-all ${filter === 'contracts'
-              ? 'bg-white text-slate-900 shadow-sm font-semibold'
-              : 'text-slate-500 hover:text-slate-700'
-              }`}
-          >
-            Contracts
-          </button>
+    <div className="min-h-screen bg-[#f3f4f6] pb-20 pt-6">
+      <div className="max-w-[1600px] mx-auto px-6">
+        <div className="flex flex-col bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+          {/* Header & Tabs */}
+          <div className="flex flex-col flex-shrink-0">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h3 className="text-xs font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#06b6d4]"></span>
+                Unified Transaction Stream
+              </h3>
+            </div>
+            <div className="px-4 py-2 bg-white border-b border-gray-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+              {['all', 'transfers', 'contracts'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setFilter(tab as FilterType)}
+                  className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter whitespace-nowrap transition-colors ${filter === tab
+                    ? 'bg-[#06b6d4] text-white'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    }`}
+                >
+                  {tab === 'all' ? 'All Activity' : tab === 'transfers' ? 'Payments' : 'Smart Contracts'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="flex-1 overflow-auto" ref={containerRef}>
+            <table className="w-full text-left border-collapse">
+              <thead className="sticky top-0 bg-white text-[10px] text-gray-400 uppercase font-bold tracking-wider z-20 shadow-sm">
+                <tr>
+                  <th className="px-4 py-3 border-b border-gray-100">Time</th>
+                  <th className="px-4 py-3 border-b border-gray-100">Type</th>
+                  <th className="px-4 py-3 border-b border-gray-100">Detail / Amount</th>
+                  <th className="px-4 py-3 border-b border-gray-100">Hash</th>
+                </tr>
+              </thead>
+              <tbody className="text-[12px] font-mono divide-y divide-gray-50">
+                {visibleTransactions.length > 0 ? (
+                  visibleTransactions.map((tx) => {
+                    const info = tx.displayInfo;
+                    const style = getTypeStyle(info);
+                    // Shorten function name if needed
+                    const functionName = info?.functionName || 'Contract Call';
+
+                    return (
+                      <tr key={tx.hash} className="hover:bg-gray-50 transition-colors group h-[52px]">
+                        <td className="px-4 py-3 text-gray-400 whitespace-nowrap align-middle">
+                          {new Date(tx.created_at).toLocaleTimeString([], { hour12: false })}
+                        </td>
+                        <td className="px-4 py-3 align-middle">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${style.bg}`}></span>
+                            <span className="font-bold text-gray-900">
+                              {style.label}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 align-middle">
+                          <div className="h-6 flex items-center">
+                            {info?.type === 'payment' ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-orange-500 font-bold">
+                                  {formatCompact(info.amount)}
+                                </span>
+                                <span className="text-gray-500">{info.asset || 'XLM'}</span>
+                              </div>
+                            ) : info?.type === 'contract' ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-purple-500 font-bold">{functionName}</span>
+                                {info.effectAmount && (
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${info.effectType === 'received' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                                    }`}>
+                                    {info.effectType === 'received' ? '+' : '-'}{formatCompact(info.effectAmount)} {info.effectAsset}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-500 italic">View details</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 align-middle">
+                          <a href={`/transaction/${tx.hash}`} className="text-[#06b6d4] hover:underline truncate block w-32">
+                            {tx.hash.substring(0, 8)}...{tx.hash.substring(tx.hash.length - 8)}
+                          </a>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-12 text-center text-gray-400 italic">
+                      No transactions found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer / Load More */}
+          {visibleTransactions.length > 0 && hasMore && (
+            <div className="p-3 bg-gray-50 border-t border-gray-100 text-center">
+              <button
+                onClick={loadMoreTransactions}
+                disabled={isLoadingMore}
+                className="text-[10px] font-bold text-gray-400 hover:text-[#06b6d4] transition-colors flex items-center gap-1 mx-auto uppercase tracking-tighter disabled:opacity-50"
+              >
+                {isLoadingMore ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></span>
+                    Loading...
+                  </span>
+                ) : (
+                  <>
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                    Load More Activity
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Main List */}
-      <main className="w-full" ref={containerRef}>
-        {visibleTransactions.length > 0 ? (
-          visibleTransactions.map((tx) => (
-            <CompactTransactionRow
-              key={tx.hash}
-              ref={setRowRef(tx.hash)}
-              transaction={tx}
-            />
-          ))
-        ) : (
-          <div className="py-12 text-center text-slate-500">
-            No transactions found
-          </div>
-        )}
-
-        {/* Load More Button */}
-        {visibleTransactions.length > 0 && hasMore && (
-          <div className="p-4">
-            <button
-              onClick={loadMoreTransactions}
-              disabled={isLoadingMore}
-              className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
-            >
-              {isLoadingMore ? 'Loading...' : 'Load More Transactions'}
-            </button>
-          </div>
-        )}
-      </main>
     </div>
   );
 }
