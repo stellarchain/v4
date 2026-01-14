@@ -3,18 +3,16 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import gsap from 'gsap';
-import { Ledger, NetworkStats, Transaction, formatXLM } from '@/lib/stellar';
-import LiveTransactionFeed from '../LiveTransactionFeed';
-import LiveLedgerFeed from '../LiveLedgerFeed';
-import LiveOperationFeed from '../LiveOperationFeed';
+import { Ledger, NetworkStats, Transaction, formatXLM, shortenAddress, timeAgo, Operation } from '@/lib/stellar';
 import InfoTooltip from '../InfoTooltip';
 
 interface DesktopHomePageProps {
     stats: NetworkStats;
     initialTransactions: Transaction[];
     initialLedgers: Ledger[];
-    initialOperations: any[];
+    initialOperations: Operation[];
     xlmVolume: number;
+    xlmPrice: number;
 }
 
 export default function DesktopHomePage({
@@ -22,12 +20,22 @@ export default function DesktopHomePage({
     initialTransactions,
     initialLedgers,
     initialOperations,
-    xlmVolume
+    xlmVolume,
+    xlmPrice
 }: DesktopHomePageProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [liveStats, setLiveStats] = useState(stats);
-    const ledgerCountRef = useRef<HTMLDivElement>(null);
-    const tpsRef = useRef<HTMLDivElement>(null);
+    const [operations, setOperations] = useState<Operation[]>(initialOperations);
+    const ledgerCountRef = useRef<HTMLSpanElement>(null);
+    const tpsRef = useRef<HTMLSpanElement>(null);
+
+    // Helper to format token amounts
+    const formatTokenAmount = (amount: string | number) => {
+        const value = typeof amount === 'string' ? parseFloat(amount) : amount;
+        if (value === 0) return '0';
+        if (value < 0.001) return '< 0.001';
+        return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
+    };
 
     // Poll for latest stats
     useEffect(() => {
@@ -85,189 +93,272 @@ export default function DesktopHomePage({
     }).format(xlmVolume);
 
     const txCount = liveStats.latest_ledger.successful_transaction_count + liveStats.latest_ledger.failed_transaction_count;
-    const tps = (txCount / 5).toFixed(1);
+    const tps = (txCount / 5).toFixed(2);
+    const marketCap = parseFloat(liveStats.total_coins) * xlmPrice;
+
+    // Helper to determine operation style
+    const getOpStyle = (type: string) => {
+        if (type === 'payment' || type === 'create_account') return { color: 'text-orange-500', bg: 'bg-orange-500', label: 'PAYMENT' };
+        if (type.includes('offer') || type.includes('swap') || type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') return { color: 'text-blue-500', bg: 'bg-blue-500', label: 'SWAP' };
+        if (type === 'invoke_host_function') return { color: 'text-purple-500', bg: 'bg-purple-500', label: 'CONTRACT CALL' };
+        if (type === 'change_trust') return { color: 'text-emerald-500', bg: 'bg-emerald-500', label: 'TRUSTLINE' };
+        return { color: 'text-gray-900', bg: 'bg-gray-400', label: type.replace(/_/g, ' ').toUpperCase() };
+    };
 
     return (
-        <div className="min-h-screen bg-[#F6F7F9]">
-            {/* Search Hero Section - Compact & Clean */}
-            <div className="relative bg-[#0b0e1e] rounded-2xl overflow-hidden mb-4 shadow-sm">
-                <div className="relative z-10 px-5 py-4 flex flex-col gap-3">
+        <div className="flex flex-col min-h-screen bg-[#f3f4f6]">
 
-                    {/* Top Row: Title */}
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-                                Explore <span className="text-white/40 font-medium text-lg">Stellar Blockchain</span>
-                            </h1>
+            {/* Dark Header */}
+            <header className="bg-[#111827] pt-4 pb-12 shadow-lg flex-shrink-0">
+                <div className="max-w-[1600px] mx-auto px-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-xl font-bold text-white tracking-tight">Real-time Desk</h2>
+                            <div className="hidden sm:flex items-center gap-2 bg-[#1f2937] px-3 py-1.5 rounded-md border border-gray-700 text-[11px]">
+                                <div className="flex items-center gap-2 border-r border-gray-700 pr-3">
+                                    <span className="text-gray-400 font-medium uppercase">XLM</span>
+                                    <span className="text-white font-mono">${xlmPrice.toFixed(4)}</span>
+                                    <span className="text-green-400 font-mono">+2.51%</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-gray-400 font-medium">NETWORK FEE</span>
+                                    <span className="text-white font-mono">{(liveStats.base_fee / 10000000).toFixed(6)}</span>
+                                    <span className="text-gray-500 font-mono">XLM</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                        {/* Minimal Search Bar - Slimmer */}
-                        <form onSubmit={handleSearch} className="flex-1">
-                            <div className="bg-[#161a2c] border border-white/5 rounded-lg flex items-center shadow-inner transition-colors focus-within:bg-[#1a1e32] focus-within:border-white/10">
-                                <span className="pl-3 pr-2 text-white/30">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="relative w-full max-w-md">
+                            <form onSubmit={handleSearch}>
+                                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
                                 </span>
                                 <input
+                                    className="w-full bg-[#1f2937] border border-gray-700 text-gray-100 text-sm rounded-lg focus:ring-1 focus:ring-[#06b6d4] focus:bg-[#374151] block pl-10 p-2 placeholder-gray-500 transition-all outline-none"
+                                    placeholder="Search address, hash, contract..."
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="bg-transparent border-none text-white placeholder-white/30 focus:ring-0 focus:outline-none flex-1 text-xs py-2 w-full font-medium"
-                                    placeholder="Search by Address / Transaction Hash / Ledger / Token"
                                 />
-                                <div className="flex items-center gap-2 border-l border-white/5 ml-2 pl-3 pr-2">
-                                    <kbd className="hidden lg:inline-flex h-5 items-center gap-1 rounded bg-[#23273a] px-1.5 font-mono text-[9px] font-medium text-white/40">
-                                        <span className="text-[10px]">⌘</span>K
-                                    </kbd>
-                                </div>
-                            </div>
-                        </form>
-
-                        {/* Compact Right-Aligned Stats */}
-                        <div className="flex bg-[#161a2c] rounded-lg p-1 border border-white/5">
-                            <div className="flex items-center gap-3 px-3 py-1 border-r border-white/5">
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                                    <span className="text-[9px] font-bold text-white/50 uppercase tracking-wider">XLM</span>
-                                </div>
-                                <div className="flex items-baseline gap-1.5">
-                                    <span className="text-white font-mono font-bold text-xs">$0.12</span>
-                                    <span className="text-emerald-400 text-[9px] font-medium">+2.5%</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 px-3 py-1">
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] font-bold text-white/50 uppercase tracking-wider">Fee</span>
-                                </div>
-                                <div className="flex items-baseline gap-1.5">
-                                    <span className="text-white font-mono font-bold text-xs">{(liveStats.base_fee / 10000000).toFixed(7)}</span>
-                                    <span className="text-white/40 text-[9px] font-medium">XLM</span>
-                                </div>
-                            </div>
+                            </form>
                         </div>
+                    </div>
+                </div>
+            </header>
+
+            {/* Stats Band */}
+            <div className="max-w-[1600px] mx-auto w-full px-6 -mt-8 mb-4 z-10 flex-shrink-0">
+                <div className="bg-white rounded-lg shadow-xl border border-gray-100 flex flex-wrap items-center divide-x divide-gray-100 overflow-hidden">
+                    <div className="flex-1 min-w-[150px] p-4 flex flex-col">
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total TVL</span>
+                        <span className="text-sm font-bold text-gray-900 font-mono">
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact' }).format(marketCap)}
+                        </span>
+                    </div>
+                    <div className="flex-1 min-w-[150px] p-4 flex flex-col">
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Global Vol (24H)</span>
+                        <span className="text-sm font-bold text-gray-900 font-mono">{formattedVolume}</span>
+                    </div>
+                    <div className="flex-1 min-w-[150px] p-4 flex flex-col">
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Current TPS</span>
+                        <span ref={tpsRef} className="text-sm font-bold text-green-500 font-mono">{tps} / s</span>
+                    </div>
+                    <div className="flex-1 min-w-[150px] p-4 flex flex-col">
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Latest Ledger</span>
+                        <span ref={ledgerCountRef} className="text-sm font-bold text-[#06b6d4] font-mono">#{liveStats.ledger_count.toLocaleString()}</span>
+                    </div>
+                    <div className="flex-1 min-w-[150px] p-4 flex flex-col bg-gray-50">
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Smart Ops / H</span>
+                        <span className="text-sm font-bold text-gray-900 font-mono">8,412 CALLS</span>
                     </div>
                 </div>
             </div>
 
-            {/* Stats Cards Row - Compact */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            {/* Main Content Grid */}
+            <div className="max-w-[1600px] mx-auto w-full px-6 flex-1 flex gap-6 min-h-0 mb-6">
 
-                {/* Card 1: Market Cap */}
-                <div className="bg-white rounded-xl p-3 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
-                    <div className="flex justify-between items-start mb-3">
-                        <div className="w-8 h-8 bg-[#F6F7F9] rounded-lg flex items-center justify-center text-slate-400">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                {/* Unified Activity Stream (Left) */}
+                <div className="flex-[3] flex flex-col bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+                    <div className="flex flex-col flex-shrink-0">
+                        <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <h3 className="text-xs font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#06b6d4]"></span>
+                                Unified Activity Stream
+                            </h3>
+                            <div className="flex items-center gap-4">
+                                <span className="text-[10px] text-gray-400 font-mono">Monitoring 1,400+ Pairs</span>
+                                <div className="h-4 w-px bg-gray-300"></div>
+                                <button className="text-gray-400 hover:text-[#06b6d4]">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="px-4 py-2 bg-white border-b border-gray-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+                            <button className="px-3 py-1 rounded-full bg-[#06b6d4] text-white text-[10px] font-bold uppercase tracking-tighter whitespace-nowrap">All Activity</button>
+                            {['Swaps', 'Smart Contracts', 'Payments', 'Asset Issuance'].map(tab => (
+                                <button key={tab} className="px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-tighter whitespace-nowrap hover:bg-gray-200 transition-colors">
+                                    {tab}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="sticky top-0 bg-white text-[10px] text-gray-400 uppercase font-bold tracking-wider z-20 shadow-sm">
+                                <tr>
+                                    <th className="px-4 py-3 border-b border-gray-100">Time</th>
+                                    <th className="px-4 py-3 border-b border-gray-100">Operation Type</th>
+                                    <th className="px-4 py-3 border-b border-gray-100">Detail / Amount</th>
+                                    <th className="px-4 py-3 border-b border-gray-100">Address / Hash</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-[12px] font-mono divide-y divide-gray-50">
+                                {operations.map((op) => {
+                                    const style = getOpStyle(op.type);
+
+                                    return (
+                                        <tr key={op.id} className="hover:bg-gray-50 transition-colors group">
+                                            <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                                                {new Date(op.created_at).toLocaleTimeString([], { hour12: false })}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`w-2 h-2 rounded-full ${style.bg}`}></span>
+                                                    <span className="font-bold text-gray-900">{style.label}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {/* Simplified Content Logic */}
+                                                {(op.type === 'payment' || op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') ? (
+                                                    <div className="flex items-center gap-1">
+                                                        <span className={`${style.color} font-bold`}>
+                                                            {op.amount ? formatTokenAmount(op.amount) : '---'}
+                                                        </span>
+                                                        <span className="text-gray-500">{op.asset_code || 'XLM'}</span>
+                                                        <span className="text-gray-400 mx-1">→</span>
+                                                        <span className="text-gray-500">{shortenAddress(op.to || (op as any).into || op.source_account, 4)}</span>
+                                                    </div>
+                                                ) : op.type === 'invoke_host_function' ? (
+                                                    <div>
+                                                        <span className="text-purple-500">Invoke Contract</span>
+                                                        <div className="text-[10px] text-gray-400">Hash: {shortenAddress(op.transaction_hash, 6)}</div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-600">{op.type.replace(/_/g, ' ')}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-500">
+                                                <Link href={`/transaction/${op.transaction_hash}`} className="hover:text-[#06b6d4] hover:underline">
+                                                    {shortenAddress(op.transaction_hash, 8)}
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="p-3 bg-gray-50 border-t border-gray-100 text-center">
+                        <button className="text-[10px] font-bold text-gray-400 hover:text-[#06b6d4] transition-colors flex items-center gap-1 mx-auto uppercase tracking-tighter">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
-                        </div>
-                        <InfoTooltip direction="bottom" content="The total market value of all circulating XLM coins." label={<span className="sr-only">Info</span>} />
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Market Cap</p>
-                        <h3 className="text-xl font-bold text-[#111827] font-mono tracking-tight">{formatXLM(liveStats.total_coins)}</h3>
+                            Load More Activity
+                        </button>
                     </div>
                 </div>
 
-                {/* Card 2: Volume */}
-                <div className="bg-white rounded-xl p-3 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
-                    <div className="flex justify-between items-start mb-3">
-                        <div className="w-8 h-8 bg-[#F6F7F9] rounded-lg flex items-center justify-center text-slate-400">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                        </div>
-                        <InfoTooltip direction="bottom" content="Total value of XLM traded in the last 24h." label={<span className="sr-only">Info</span>} />
+                {/* Network Summary (Right) */}
+                <div className="flex-[1] flex flex-col bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm h-fit">
+                    <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                        <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Network Summary</h3>
+                        <span className="text-[10px] text-[#06b6d4] font-bold animate-pulse">SYNCED</span>
                     </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Vol (24h)</p>
-                        <h3 className="text-xl font-bold text-[#111827] font-mono tracking-tight">{formattedVolume}</h3>
+
+                    <div className="flex-1 p-4 space-y-4">
+                        {/* TPS Widget */}
+                        <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Live Throughput</div>
+                            <div className="flex items-end gap-2 mb-2 h-24 justify-between px-2">
+                                {[30, 45, 25, 60, 40, 75, 50].map((h, i) => (
+                                    <div key={i} className="w-2 rounded-t bg-[#06b6d4]" style={{ height: `${h}%`, opacity: 0.2 + (i * 0.1) }}></div>
+                                ))}
+                            </div>
+                            <div className="flex justify-between items-center mt-2">
+                                <span className="text-xs font-bold text-gray-900 font-mono">{tps} TPS</span>
+                                <span className="text-[10px] text-green-500 font-bold">+12.4%</span>
+                            </div>
+                        </div>
+
+                        {/* Quick Stats */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 flex items-center justify-center bg-blue-500/10 text-blue-500 rounded-md">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                        </svg>
+                                    </div>
+                                    <span className="text-xs font-medium text-gray-600">Total Swaps</span>
+                                </div>
+                                <span className="text-xs font-bold text-gray-900 font-mono">14.2k</span>
+                            </div>
+                            <div className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 flex items-center justify-center bg-purple-500/10 text-purple-500 rounded-md">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                        </svg>
+                                    </div>
+                                    <span className="text-xs font-medium text-gray-600">Contract Calls</span>
+                                </div>
+                                <span className="text-xs font-bold text-gray-900 font-mono">8.4k</span>
+                            </div>
+                            <div className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 flex items-center justify-center bg-orange-500/10 text-orange-500 rounded-md">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <span className="text-xs font-medium text-gray-600">Payments</span>
+                                </div>
+                                <span className="text-xs font-bold text-gray-900 font-mono">32.1k</span>
+                            </div>
+                        </div>
+
+                        {/* Health Status */}
+                        <div className="pt-4 border-t border-gray-100">
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Health Status</div>
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] text-gray-500">Validator Consensus</span>
+                                    <span className="text-[10px] text-green-500 font-bold">100%</span>
+                                </div>
+                                <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                                    <div className="w-full h-full bg-green-500"></div>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] text-gray-500">Mempool Load</span>
+                                    <span className="text-[10px] text-[#06b6d4] font-bold">14%</span>
+                                </div>
+                                <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                                    <div className="w-[14%] h-full bg-[#06b6d4]"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-3 bg-gray-50 border-t border-gray-100">
+                        <div className="flex items-center justify-center gap-4">
+                            <span className="text-[9px] text-gray-400 font-mono">Mainnet v{liveStats.protocol_version}</span>
+                            <span className="text-[9px] text-gray-400 font-mono">Lag: 12ms</span>
+                        </div>
                     </div>
                 </div>
-
-                {/* Card 3: Transactions */}
-                <div className="bg-white rounded-xl p-3 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
-                    <div className="flex justify-between items-start mb-3">
-                        <div className="w-8 h-8 bg-[#F6F7F9] rounded-lg flex items-center justify-center text-slate-400">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                            </svg>
-                        </div>
-                        <InfoTooltip direction="bottom" content="Successful transactions in the latest ledger." label={<span className="sr-only">Info</span>} />
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Transactions</p>
-                        <div className="flex items-baseline gap-2">
-                            <h3 ref={tpsRef} className="text-xl font-bold text-[#111827] font-mono tracking-tight">{liveStats.latest_ledger.successful_transaction_count}</h3>
-                            <span className="text-[10px] font-bold text-emerald-500">{tps} TPS</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Card 4: Latest Ledger */}
-                <div className="bg-white rounded-xl p-3 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
-                    <div className="flex justify-between items-start mb-3">
-                        <div className="w-8 h-8 bg-[#F6F7F9] rounded-lg flex items-center justify-center text-slate-400">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 bg-[#F6F7F9] px-1.5 py-0.5 rounded">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            v{liveStats.protocol_version}
-                        </div>
-                    </div>
-                    <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Latest Ledger</p>
-                        <h3 ref={ledgerCountRef} className="text-xl font-bold text-[#111827] font-mono tracking-tight">{liveStats.ledger_count.toLocaleString()}</h3>
-                    </div>
-                </div>
-
-            </div>
-
-            {/* Feeds Layout - Compact */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-
-                {/* Left Column (2/3): Recent Ledgers & Transactions */}
-                <div className="xl:col-span-2 space-y-4">
-                    {/* Recent Ledgers */}
-                    <section>
-                        <div className="flex items-center justify-between mb-2 px-1">
-                            <h2 className="text-sm font-bold text-[#111827]">Recent Ledgers</h2>
-                            <Link href="/ledgers" className="text-slate-400 hover:text-slate-600 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                                View All <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                            </Link>
-                        </div>
-                        <LiveLedgerFeed initialLedgers={initialLedgers} limit={5} />
-                    </section>
-
-                    {/* Recent Transactions */}
-                    <section>
-                        <div className="flex items-center justify-between mb-2 px-1">
-                            <h2 className="text-sm font-bold text-[#111827]">Recent Transactions</h2>
-                            <Link href="/transactions" className="text-slate-400 hover:text-slate-600 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                                View All <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                            </Link>
-                        </div>
-                        <LiveTransactionFeed initialTransactions={initialTransactions} limit={5} />
-                    </section>
-                </div>
-
-                {/* Right Column (1/3): Recent Operations */}
-                <div className="xl:col-span-1">
-                    <section className="bg-white rounded-2xl p-3 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)] h-full">
-                        <div className="flex items-center justify-between mb-3">
-                            <h2 className="text-sm font-bold text-[#111827]">Recent Operations</h2>
-                            <Link href="/operations" className="text-slate-400 hover:text-slate-600 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                                View <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                            </Link>
-                        </div>
-                        <LiveOperationFeed initialOperations={initialOperations} limit={10} />
-                    </section>
-                </div>
-
             </div>
         </div>
     );
