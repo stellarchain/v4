@@ -315,21 +315,59 @@ export async function getLedger(sequence: number): Promise<Ledger> {
 export async function getLedgerTransactions(
   sequence: number,
   limit: number = 10,
-  order: 'asc' | 'desc' = 'desc'
+  order: 'asc' | 'desc' = 'desc',
+  cursor?: string
 ): Promise<PaginatedResponse<Transaction>> {
-  return fetchJSON<PaginatedResponse<Transaction>>(
-    `${getBaseUrl()}/ledgers/${sequence}/transactions?limit=${limit}&order=${order}`
+  let url = `${getBaseUrl()}/ledgers/${sequence}/transactions?limit=${limit}&order=${order}`;
+  if (cursor) {
+    url += `&cursor=${cursor}`;
+  }
+  return fetchJSON<PaginatedResponse<Transaction>>(url);
+}
+
+// Fetch ledger transactions with display info (batch operations fetch)
+export async function getLedgerTransactionsWithDisplayInfo(
+  sequence: number,
+  limit: number = 10,
+  order: 'asc' | 'desc' = 'desc',
+  cursor?: string
+): Promise<Transaction[]> {
+  const txResponse = await getLedgerTransactions(sequence, limit, order, cursor);
+  const transactions = txResponse._embedded.records;
+
+  // Fetch operations for each transaction in parallel
+  const transactionsWithOps = await Promise.all(
+    transactions.map(async (tx) => {
+      try {
+        const opsResponse = await getTransactionOperations(tx.hash, 20); // slightly higher limit to catch more complex ops
+        const operations = opsResponse._embedded.records;
+        return {
+          ...tx,
+          displayInfo: getTransactionDisplayInfo(operations),
+        };
+      } catch {
+        return {
+          ...tx,
+          displayInfo: { type: 'other' as const },
+        };
+      }
+    })
   );
+
+  return transactionsWithOps;
 }
 
 export async function getLedgerOperations(
   sequence: number,
   limit: number = 10,
-  order: 'asc' | 'desc' = 'desc'
+  order: 'asc' | 'desc' = 'desc',
+  cursor?: string
 ): Promise<PaginatedResponse<Operation>> {
-  return fetchJSON<PaginatedResponse<Operation>>(
-    `${getBaseUrl()}/ledgers/${sequence}/operations?limit=${limit}&order=${order}`
-  );
+  let url = `${getBaseUrl()}/ledgers/${sequence}/operations?limit=${limit}&order=${order}`;
+  if (cursor) {
+    url += `&cursor=${cursor}`;
+  }
+  return fetchJSON<PaginatedResponse<Operation>>(url);
 }
 
 // Transaction endpoints
