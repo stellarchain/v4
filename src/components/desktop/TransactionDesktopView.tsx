@@ -319,85 +319,111 @@ export default function TransactionDesktopView({ transaction, operations, effect
 
         <div className="flex flex-col lg:flex-row gap-6 mb-6">
           <div className="flex-1 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-6 md:flex-row md:items-center">
-              <div className="flex-1">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">{fromLabel}</div>
-                <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-4 transition-all hover:border-slate-200 hover:shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 text-white text-sm font-bold flex items-center justify-center shadow-sm">
-                      {transaction.source_account.slice(0, 1)}
-                    </div>
-                    <div>
-                      {isOffer || isSwap ? (
-                        <div className="font-mono text-[13px] font-medium text-slate-800">
-                          {isOffer
-                            ? `${offerDetails?.amount ? formatTokenAmount(offerDetails.amount, 2) : '0'} ${offerDetails?.selling || ''}`
-                            : `${swapSold?.amount ? formatTokenAmount(swapSold.amount, 2) : '0'} ${swapSold?.code || ''}`}
-                        </div>
-                      ) : (
-                        <Link href={`/account/${transaction.source_account}`} className="font-mono text-[14px] font-medium text-slate-800 hover:text-sky-600 transition-colors">
-                          {shortenAddress(transaction.source_account, 8)}
-                        </Link>
-                      )}
-                      <div className="text-[11px] text-slate-500 mt-0.5">Source account</div>
-                    </div>
+            {isContractCall && fromCardAmount === 0 && toCardAmount === 0 ? (
+              <div className="flex items-center gap-4 bg-slate-50 border border-slate-100 rounded-xl p-4">
+                <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-slate-800">
+                    Invoked Contract Function: <span className="font-mono text-purple-600">{typeLabel.replace('(Contract)', '').trim()}</span>
                   </div>
-                  {!isOffer && !isSwap && (
-                    <div className="text-right">
-                      <div className="text-sm font-bold text-rose-500">
-                        {fromCardAmount > 0 ? `- ${fromCardAmount.toLocaleString(undefined, { maximumFractionDigits: 7 })}` : '--'}{' '}
-                        <span className="text-[11px] font-mono font-normal text-slate-500">{fromCardAsset}</span>
-                      </div>
-                      <div className="text-[10px] font-medium uppercase text-slate-400 mt-0.5">Sent</div>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[11px] text-slate-500">Initiator:</span>
+                    <Link href={`/account/${transaction.source_account}`} className="text-[11px] font-mono font-bold text-slate-700 hover:text-sky-600">
+                      {shortenAddress(transaction.source_account, 6)}
+                    </Link>
+                    <span className="text-slate-300 mx-1">→</span>
+                    <span className="text-[11px] text-slate-500">Contract:</span>
+                    <Link href={`/account/${contractOp?.to || (contractOp as any).into || transaction.source_account}`} className="text-[11px] font-mono font-bold text-slate-700 hover:text-sky-600">
+                      {shortenAddress(contractOp?.to || (contractOp as any).into || 'Smart Contract', 6)}
+                    </Link>
+                  </div>
                 </div>
               </div>
-              <div className="hidden md:flex items-center justify-center text-slate-300 pt-6">
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">{toLabel}</div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 transition-all hover:border-slate-200 hover:shadow-sm">
-                  <div className="flex items-center justify-between">
+            ) : (
+              <div className="flex flex-col gap-6 md:flex-row md:items-center">
+                <div className="flex-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">{fromLabel}</div>
+                  <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-4 transition-all hover:border-slate-200 hover:shadow-sm">
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center text-sm font-semibold shadow-sm">
-                        {isMultiSend ? 'Tx' : destination.slice(0, 1)}
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 text-white text-sm font-bold flex items-center justify-center shadow-sm">
+                        {transaction.source_account.slice(0, 1)}
                       </div>
                       <div>
-                        {isOffer ? (
-                          <div className="text-sm font-bold text-slate-800">At {offerDetails?.price} {offerDetails?.buying}</div>
-                        ) : isSwap ? (
-                          <div className="text-sm font-bold text-slate-800">{formatTokenAmount(swapBought?.amount || '0', 2)} {swapBought?.code}</div>
-                        ) : isMultiSend ? (
-                          <div className="text-sm font-bold text-slate-800">{multiSendCount} Recipients</div>
+                        {isOffer || isSwap ? (
+                          <div className="font-mono text-[13px] font-medium text-slate-800">
+                            {isOffer
+                              ? `${offerDetails?.amount ? formatTokenAmount(offerDetails.amount, 2) : '0'} ${offerDetails?.selling || ''}`
+                              : `${swapSold?.amount ? formatTokenAmount(swapSold.amount, 2) : '0'} ${swapSold?.code || ''}`}
+                          </div>
                         ) : (
-                          <Link href={`/account/${destination}`} className="font-mono text-[14px] font-medium text-slate-800 hover:text-sky-600 transition-colors">
-                            {shortenAddress(destination, 8)}
+                          <Link href={`/account/${transaction.source_account}`} className="font-mono text-[14px] font-medium text-slate-800 hover:text-sky-600 transition-colors">
+                            {shortenAddress(transaction.source_account, 8)}
                           </Link>
                         )}
-                        {isMultiSend && (
-                          <div className="mt-1 flex -space-x-1">
-                            {paymentOps.slice(0, 3).map((op, idx) => (
-                              <div key={op.id || idx} className="h-4 w-4 rounded-full border border-white bg-indigo-500"></div>
-                            ))}
-                          </div>
-                        )}
+                        <div className="text-[11px] text-slate-500 mt-0.5">Source account</div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-bold text-emerald-500">
-                        {displayAmount > 0 ? displayAmount.toLocaleString(undefined, { maximumFractionDigits: 7 }) : '--'}{' '}
-                        <span className="text-[11px] font-mono font-normal text-slate-500">{totalAssetLabel}</span>
+                    {!isOffer && !isSwap && (
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-rose-500">
+                          {fromCardAmount > 0 ? `- ${fromCardAmount.toLocaleString(undefined, { maximumFractionDigits: 7 })}` : '--'}{' '}
+                          <span className="text-[11px] font-mono font-normal text-slate-500">{fromCardAsset}</span>
+                        </div>
+                        <div className="text-[10px] font-medium uppercase text-slate-400 mt-0.5">Sent</div>
                       </div>
-                      <div className="text-[10px] font-medium uppercase text-slate-400 mt-0.5">{isMultiSend ? 'Total Amt' : 'Received'}</div>
+                    )}
+                  </div>
+                </div>
+                <div className="hidden md:flex items-center justify-center text-slate-300 pt-6">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">{toLabel}</div>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 transition-all hover:border-slate-200 hover:shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-xl bg-slate-200 text-slate-500 flex items-center justify-center text-sm font-semibold shadow-sm">
+                          {isMultiSend ? 'Tx' : destination.slice(0, 1)}
+                        </div>
+                        <div>
+                          {isOffer ? (
+                            <div className="text-sm font-bold text-slate-800">At {offerDetails?.price} {offerDetails?.buying}</div>
+                          ) : isSwap ? (
+                            <div className="text-sm font-bold text-slate-800">{formatTokenAmount(swapBought?.amount || '0', 2)} {swapBought?.code}</div>
+                          ) : isMultiSend ? (
+                            <div className="text-sm font-bold text-slate-800">{multiSendCount} Recipients</div>
+                          ) : (
+                            <Link href={`/account/${destination}`} className="font-mono text-[14px] font-medium text-slate-800 hover:text-sky-600 transition-colors">
+                              {shortenAddress(destination, 8)}
+                            </Link>
+                          )}
+                          {isMultiSend && (
+                            <div className="mt-1 flex -space-x-1">
+                              {paymentOps.slice(0, 3).map((op, idx) => (
+                                <div key={op.id || idx} className="h-4 w-4 rounded-full border border-white bg-indigo-500"></div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-emerald-500">
+                          {displayAmount > 0 ? displayAmount.toLocaleString(undefined, { maximumFractionDigits: 7 }) : '--'}{' '}
+                          <span className="text-[11px] font-mono font-normal text-slate-500">{totalAssetLabel}</span>
+                        </div>
+                        <div className="text-[10px] font-medium uppercase text-slate-400 mt-0.5">{isMultiSend ? 'Total Amt' : 'Received'}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
           <div className="w-full lg:w-80 space-y-6 flex-shrink-0">
             <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
