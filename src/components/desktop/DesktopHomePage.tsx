@@ -26,6 +26,7 @@ export default function DesktopHomePage({
     const [searchQuery, setSearchQuery] = useState('');
     const [liveStats, setLiveStats] = useState(stats);
     const [operations, setOperations] = useState<Operation[]>(initialOperations);
+    const [activeTab, setActiveTab] = useState('All Activity');
     const ledgerCountRef = useRef<HTMLSpanElement>(null);
     const tpsRef = useRef<HTMLSpanElement>(null);
 
@@ -37,13 +38,34 @@ export default function DesktopHomePage({
         return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
     };
 
-    // Poll for latest stats
+    // Filter operations based on active tab
+    const filteredOperations = operations.filter(op => {
+        if (activeTab === 'All Activity') return true;
+
+        const type = op.type;
+        if (activeTab === 'Swaps') {
+            return type.includes('swap') || type.includes('offer') || type.includes('path_payment');
+        }
+        if (activeTab === 'Smart Contracts') {
+            return type === 'invoke_host_function' || type === 'bump_sequence' || type === 'restore_footprint';
+        }
+        if (activeTab === 'Payments') {
+            return type === 'payment' || type === 'create_account' || type === 'account_merge';
+        }
+        if (activeTab === 'Asset Issuance') {
+            return type === 'change_trust' || type === 'allow_trust' || type === 'set_trust_line_flags' || type === 'manage_data';
+        }
+        return true;
+    });
+
+    // Poll for latest stats AND operations
     useEffect(() => {
-        const fetchLatestStats = async () => {
+        const fetchData = async () => {
             try {
-                const res = await fetch('https://horizon.stellar.org/ledgers?limit=1&order=desc');
-                const data = await res.json();
-                const latest: Ledger = data._embedded.records[0];
+                // 1. Fetch Stats
+                const ledgersRes = await fetch('https://horizon.stellar.org/ledgers?limit=1&order=desc');
+                const ledgersData = await ledgersRes.json();
+                const latest: Ledger = ledgersData._embedded.records[0];
 
                 if (latest.sequence > liveStats.ledger_count) {
                     setLiveStats(prev => ({
@@ -52,20 +74,34 @@ export default function DesktopHomePage({
                         latest_ledger: latest,
                     }));
 
-                    // Visual animations
-                    if (ledgerCountRef.current) {
-                        gsap.fromTo(ledgerCountRef.current, { scale: 1.1 }, { scale: 1, duration: 0.5, ease: 'power2.out' });
-                    }
-                    if (tpsRef.current) {
-                        gsap.fromTo(tpsRef.current, { scale: 1.1 }, { scale: 1, duration: 0.5, ease: 'power2.out' });
-                    }
+                    // Visual animations for stats
+                    if (ledgerCountRef.current) gsap.fromTo(ledgerCountRef.current, { scale: 1.1 }, { scale: 1, duration: 0.5, ease: 'power2.out' });
+                    if (tpsRef.current) gsap.fromTo(tpsRef.current, { scale: 1.1 }, { scale: 1, duration: 0.5, ease: 'power2.out' });
                 }
+
+                // 2. Fetch Latest Operations for Live Feed
+                const opsRes = await fetch('https://horizon.stellar.org/operations?limit=10&order=desc&include_failed=false');
+                const opsData = await opsRes.json();
+                const newOps: Operation[] = opsData._embedded.records;
+
+                setOperations(prevOps => {
+                    const existingIds = new Set(prevOps.map(op => op.id));
+                    const uniqueNewOps = newOps.filter(op => !existingIds.has(op.id));
+
+                    if (uniqueNewOps.length > 0) {
+                        // Prepend new ops and keep max 50
+                        return [...uniqueNewOps, ...prevOps].slice(0, 50);
+                    }
+                    return prevOps;
+                });
+
             } catch (e) {
-                console.error('Failed to fetch stats', e);
+                console.error('Failed to fetch live data', e);
             }
         };
 
-        const interval = setInterval(fetchLatestStats, 6000);
+        // Poll every 3 seconds
+        const interval = setInterval(fetchData, 3000);
         return () => clearInterval(interval);
     }, [liveStats.ledger_count]);
 
@@ -135,11 +171,11 @@ export default function DesktopHomePage({
                                     </svg>
                                 </span>
                                 <input
-                                    className="w-full bg-[#1f2937] border border-gray-700 text-gray-100 text-sm rounded-lg focus:ring-1 focus:ring-[#06b6d4] focus:bg-[#374151] block pl-10 p-2 placeholder-gray-500 transition-all outline-none"
                                     placeholder="Search address, hash, contract..."
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full bg-[#1f2937] border border-gray-700 text-gray-100 text-sm rounded-lg focus:ring-1 focus:ring-[#06b6d4] focus:bg-[#374151] block pl-10 p-2 placeholder-gray-500 transition-all outline-none"
                                 />
                             </form>
                         </div>
@@ -197,9 +233,15 @@ export default function DesktopHomePage({
                             </div>
                         </div>
                         <div className="px-4 py-2 bg-white border-b border-gray-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
-                            <button className="px-3 py-1 rounded-full bg-[#06b6d4] text-white text-[10px] font-bold uppercase tracking-tighter whitespace-nowrap">All Activity</button>
-                            {['Swaps', 'Smart Contracts', 'Payments', 'Asset Issuance'].map(tab => (
-                                <button key={tab} className="px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-tighter whitespace-nowrap hover:bg-gray-200 transition-colors">
+                            {['All Activity', 'Swaps', 'Smart Contracts', 'Payments', 'Asset Issuance'].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter whitespace-nowrap transition-colors ${activeTab === tab
+                                        ? 'bg-[#06b6d4] text-white'
+                                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                        }`}
+                                >
                                     {tab}
                                 </button>
                             ))}
@@ -217,7 +259,7 @@ export default function DesktopHomePage({
                                 </tr>
                             </thead>
                             <tbody className="text-[12px] font-mono divide-y divide-gray-50">
-                                {operations.map((op) => {
+                                {filteredOperations.map((op) => {
                                     const style = getOpStyle(op.type);
 
                                     return (
