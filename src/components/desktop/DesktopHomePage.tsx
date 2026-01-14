@@ -316,11 +316,11 @@ export default function DesktopHomePage({
                                     const style = getOpStyle(op.type);
 
                                     return (
-                                        <tr key={op.id} className="hover:bg-gray-50 transition-colors group">
-                                            <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                                        <tr key={op.id} className="hover:bg-gray-50 transition-colors group h-[52px]">
+                                            <td className="px-4 py-3 text-gray-400 whitespace-nowrap align-middle">
                                                 {new Date(op.created_at).toLocaleTimeString([], { hour12: false })}
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-4 py-3 align-middle">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`w-2 h-2 rounded-full ${style.bg}`}></span>
                                                     <span className="font-bold text-gray-900">
@@ -328,45 +328,47 @@ export default function DesktopHomePage({
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3">
-                                                {/* Simplified Content Logic */}
-                                                {(op.type === 'payment' || op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') ? (
-                                                    <div className="flex items-center gap-1">
-                                                        <span className={`${style.color} font-bold`}>
-                                                            {op.amount ? formatTokenAmount(op.amount) : '---'}
-                                                        </span>
-                                                        <span className="text-gray-500">{op.asset_code || 'XLM'}</span>
-                                                        <span className="text-gray-400 mx-1">→</span>
-                                                        <span className="text-gray-500">{shortenAddress(op.to || (op as any).into || op.source_account, 4)}</span>
-                                                    </div>
-                                                ) : ['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type) ? (
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="text-blue-500 font-bold">
-                                                            {(op as any).amount ? formatTokenAmount((op as any).amount) : '0'}
-                                                        </span>
-                                                        <span className="text-gray-500">
-                                                            {(op as any).selling_asset_code || ((op as any).selling_asset_type === 'native' ? 'XLM' : '')}
-                                                        </span>
-                                                        <span className="text-gray-400 mx-1">@</span>
-                                                        <span className="text-gray-900 font-mono">{(op as any).price}</span>
-                                                        <span className="text-gray-500">
-                                                            {(op as any).buying_asset_code || ((op as any).buying_asset_type === 'native' ? 'XLM' : '')}
-                                                        </span>
-                                                    </div>
-                                                ) : op.type === 'create_account' ? (
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="text-gray-500">Fund Account:</span>
-                                                        <span className="font-bold text-gray-900">{formatTokenAmount((op as any).starting_balance)} XLM</span>
-                                                    </div>
-                                                ) : (op.type === 'invoke_host_function' || String(op.type).toLowerCase().includes('invokecontract') || String(op.type).toLowerCase().includes('hostfunction')) ? (
-                                                    <div>
-                                                        <span className="text-purple-500">{decodeContractFunctionName(op)}</span>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-gray-600">{getOpStyle(op.type).label}</span>
-                                                )}
+                                            <td className="px-4 py-3 align-middle">
+                                                <div className="h-6 flex items-center">
+                                                    {/* Simplified Content Logic */}
+                                                    {(op.type === 'payment' || op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') ? (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className={`${style.color} font-bold`}>
+                                                                {op.amount ? formatTokenAmount(op.amount) : '---'}
+                                                            </span>
+                                                            <span className="text-gray-500">{op.asset_code || 'XLM'}</span>
+                                                            <span className="text-gray-400 mx-1">→</span>
+                                                            <span className="text-gray-500">{shortenAddress(op.to || (op as any).into || op.source_account, 4)}</span>
+                                                        </div>
+                                                    ) : ['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type) ? (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-blue-500 font-bold">
+                                                                {(op as any).amount ? formatTokenAmount((op as any).amount) : '0'}
+                                                            </span>
+                                                            <span className="text-gray-500">
+                                                                {(op as any).selling_asset_code || ((op as any).selling_asset_type === 'native' ? 'XLM' : '')}
+                                                            </span>
+                                                            <span className="text-gray-400 mx-1">@</span>
+                                                            <span className="text-gray-900 font-mono">{(op as any).price}</span>
+                                                            <span className="text-gray-500">
+                                                                {(op as any).buying_asset_code || ((op as any).buying_asset_type === 'native' ? 'XLM' : '')}
+                                                            </span>
+                                                        </div>
+                                                    ) : op.type === 'create_account' ? (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-gray-500">Fund Account:</span>
+                                                            <span className="font-bold text-gray-900">{formatTokenAmount((op as any).starting_balance)} XLM</span>
+                                                        </div>
+                                                    ) : (op.type === 'invoke_host_function' || String(op.type).toLowerCase().includes('invokecontract') || String(op.type).toLowerCase().includes('hostfunction')) ? (
+                                                        <div>
+                                                            <span className="text-purple-500">{decodeContractFunctionName(op)}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-600">{getOpStyle(op.type).label}</span>
+                                                    )}
+                                                </div>
                                             </td>
-                                            <td className="px-4 py-3 text-gray-500">
+                                            <td className="px-4 py-3 text-gray-500 align-middle">
                                                 <Link href={`/transaction/${op.transaction_hash}`} className="hover:text-[#06b6d4] hover:underline">
                                                     {shortenAddress(op.transaction_hash, 8)}
                                                 </Link>
@@ -409,7 +411,25 @@ export default function DesktopHomePage({
                             </div>
                         </div>
 
-                        {/* Quick Stats - REMOVED per user request */}
+                        {/* Network Stats Placeholders */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+                                <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Accounts</div>
+                                <div className="text-sm font-bold text-gray-900 font-mono">8.2M</div>
+                            </div>
+                            <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+                                <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Assets</div>
+                                <div className="text-sm font-bold text-gray-900 font-mono">142K</div>
+                            </div>
+                            <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+                                <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">DEX Trades</div>
+                                <div className="text-sm font-bold text-gray-900 font-mono">24.5M</div>
+                            </div>
+                            <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+                                <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">DEX Volume</div>
+                                <div className="text-sm font-bold text-gray-900 font-mono">$1.2B</div>
+                            </div>
+                        </div>
 
                         {/* Health Status */}
                         <div className="pt-4 border-t border-gray-100">
