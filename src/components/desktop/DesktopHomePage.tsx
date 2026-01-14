@@ -58,11 +58,16 @@ export default function DesktopHomePage({
         return true;
     });
 
-    // Poll for latest stats AND operations
+    // Poll for latest stats AND operations based on active tab
     useEffect(() => {
-        const fetchData = async () => {
+        const getUrl = () => {
+            // For "Payments" tab, specifically fetch payment operations to ensure density
+            if (activeTab === 'Payments') return 'https://horizon.stellar.org/payments';
+            return 'https://horizon.stellar.org/operations';
+        };
+
+        const fetchStats = async () => {
             try {
-                // 1. Fetch Stats
                 const ledgersRes = await fetch('https://horizon.stellar.org/ledgers?limit=1&order=desc');
                 const ledgersData = await ledgersRes.json();
                 const latest: Ledger = ledgersData._embedded.records[0];
@@ -78,32 +83,62 @@ export default function DesktopHomePage({
                     if (ledgerCountRef.current) gsap.fromTo(ledgerCountRef.current, { scale: 1.1 }, { scale: 1, duration: 0.5, ease: 'power2.out' });
                     if (tpsRef.current) gsap.fromTo(tpsRef.current, { scale: 1.1 }, { scale: 1, duration: 0.5, ease: 'power2.out' });
                 }
+            } catch (e) {
+                console.error('Failed to fetch stats', e);
+            }
+        };
 
-                // 2. Fetch Latest Operations for Live Feed
-                const opsRes = await fetch('https://horizon.stellar.org/operations?limit=10&order=desc&include_failed=false');
-                const opsData = await opsRes.json();
-                const newOps: Operation[] = opsData._embedded.records;
+        const fetchInitialData = async () => {
+            try {
+                const url = `${getUrl()}?limit=50&order=desc&include_failed=false`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data._embedded && data._embedded.records) {
+                    setOperations(data._embedded.records);
+                }
+            } catch (e) {
+                console.error('Failed to fetch initial tab data', e);
+            }
+        };
+
+        const pollData = async () => {
+            await fetchStats();
+
+            try {
+                const url = `${getUrl()}?limit=10&order=desc&include_failed=false`;
+                const res = await fetch(url);
+                const data = await res.json();
+                const newOps: Operation[] = data._embedded.records;
 
                 setOperations(prevOps => {
                     const existingIds = new Set(prevOps.map(op => op.id));
                     const uniqueNewOps = newOps.filter(op => !existingIds.has(op.id));
 
                     if (uniqueNewOps.length > 0) {
-                        // Prepend new ops and keep max 50
                         return [...uniqueNewOps, ...prevOps].slice(0, 50);
                     }
                     return prevOps;
                 });
-
             } catch (e) {
-                console.error('Failed to fetch live data', e);
+                console.error('Failed to poll data', e);
             }
         };
 
+        // If we are just mounting and tab is "All Activity", we might use initialOperations, 
+        // but activeTab change triggers this everywhere. 
+        // To avoid double fetch on mount, we could check if activeTab is default, 
+        // but fetching fresh 50 is safer to sync "Payments" tab immediately.
+        if (activeTab === 'Payments' || activeTab !== 'All Activity') {
+            fetchInitialData();
+        } else if (activeTab === 'All Activity' && operations !== initialOperations) {
+            // If returning to All Activity, RE-fetch to get 'operations' mix back
+            fetchInitialData();
+        }
+
         // Poll every 3 seconds
-        const interval = setInterval(fetchData, 3000);
+        const interval = setInterval(pollData, 3000);
         return () => clearInterval(interval);
-    }, [liveStats.ledger_count]);
+    }, [activeTab]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
