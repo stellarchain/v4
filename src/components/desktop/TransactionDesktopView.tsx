@@ -79,7 +79,7 @@ const formatTokenAmount = (value?: string, digits = 7) => {
 };
 
 export default function TransactionDesktopView({ transaction, operations, effects }: TransactionDesktopViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'effects' | 'raw' | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'operations' | 'effects' | 'raw' | null>(null);
   const [copied, setCopied] = useState(false);
   const contractOp = operations.find(op => op.type === 'invoke_host_function');
   const isContractCall = !!contractOp;
@@ -294,31 +294,11 @@ export default function TransactionDesktopView({ transaction, operations, effect
                 </div>
               </div>
             </div>
-            <div className="flex divide-x divide-slate-200 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-600 shadow-sm">
-              <div className="px-5 py-2">
-                <div className="text-[10px] font-bold uppercase tracking-tight text-slate-400 mb-0.5">Total Amount</div>
-                <div className="text-sm font-bold text-slate-900">
-                  {totalAmountLabel}{' '}
-                  <span className="text-[11px] font-mono font-normal text-slate-500">{totalAssetLabel}</span>
-                </div>
-              </div>
-              <div className="px-5 py-2">
-                <div className="text-[10px] font-bold uppercase tracking-tight text-slate-400 mb-0.5">Fee</div>
-                <div className="text-sm font-bold text-slate-900">
-                  {feeXLM}{' '}
-                  <span className="text-[11px] font-mono font-normal text-slate-500">XLM</span>
-                </div>
-              </div>
-              <div className="px-5 py-2">
-                <div className="text-[10px] font-bold uppercase tracking-tight text-slate-400 mb-0.5">Ops</div>
-                <div className="text-sm font-bold text-slate-900">{transaction.operation_count}</div>
-              </div>
-            </div>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6 mb-6 items-start">
-          <div className="flex-1 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-6 mb-6">
+          <div className="w-full rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             {isContractCall && fromCardAmount === 0 && toCardAmount === 0 ? (
               <div className="flex items-center gap-4 bg-slate-50 border border-slate-100 rounded-xl p-4">
                 <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
@@ -494,8 +474,31 @@ export default function TransactionDesktopView({ transaction, operations, effect
               </div>
             )}
           </div>
-          <div className="w-full lg:w-80 space-y-6 flex-shrink-0">
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        </div>
+
+        {/* Tabs Navigation */}
+        <div className="w-full border-b border-slate-200 flex gap-8 px-2">
+          {[
+            { id: 'overview', label: 'Overview' },
+            { id: 'details', label: 'Details' },
+            { id: 'operations', label: 'Operations' },
+            { id: 'effects', label: 'Effects' },
+            { id: 'raw', label: 'Raw Data' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(prev => prev === tab.id ? null : tab.id as typeof activeTab)}
+              className={`pb-3 text-sm font-bold transition-all ${activeTab === tab.id ? 'border-b-2 border-sky-500 text-sky-600' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="w-full space-y-6">
+          {activeTab === 'details' && (
+            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-sm font-bold text-slate-800">Details</h3>
                 <button type="button" className="text-[10px] font-bold uppercase tracking-wider text-sky-600 hover:underline">View JSON</button>
@@ -515,7 +518,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-slate-100">
                   <span className="text-[11px] text-slate-500">Fee Account</span>
-                  <Link href={`/account/${transaction.source_account}`} className="text-[10px] font-mono font-medium text-sky-600 truncate w-24 text-right">
+                  <Link href={`/account/${transaction.source_account}`} className="text-[10px] font-mono font-medium text-sky-600 truncate w-32 text-right">
                     {shortenAddress(transaction.source_account, 6)}
                   </Link>
                 </div>
@@ -541,27 +544,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                 </div>
               )}
             </section>
-          </div>
-        </div>
-
-        <div className="w-full space-y-6">
-          <div className="border-b border-slate-200 flex gap-8">
-            {[
-              { id: 'overview', label: 'Overview' },
-              { id: 'operations', label: 'Operations' },
-              { id: 'effects', label: 'Effects' },
-              { id: 'raw', label: 'Raw Data' },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(prev => prev === tab.id ? null : tab.id as typeof activeTab)}
-                className={`pb-3 text-sm font-bold transition-all ${activeTab === tab.id ? 'border-b-2 border-sky-500 text-sky-600' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          )}
 
           {activeTab === 'overview' && (
             <>
