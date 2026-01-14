@@ -47,6 +47,7 @@ export default async function HomePage() {
           initialLedgers={ledgers}
           initialOperations={operations}
           xlmVolume={xlmVolume}
+          xlmPrice={xlmPrice}
         />
       </div>
     </>
