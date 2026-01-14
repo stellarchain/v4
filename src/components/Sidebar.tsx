@@ -60,7 +60,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-[#0A111E] flex flex-col flex-shrink-0 h-full border-r border-[#1E293B] shadow-2xl transition-all font-sans sticky top-0">
+    <aside className="w-64 bg-[#0A111E] flex flex-col flex-shrink-0 h-screen border-r border-[#1E293B] shadow-2xl transition-all font-sans sticky top-0">
       <div className="p-6">
         <Link href="/" className="flex items-center space-x-3 mb-2 group">
           <div className="w-9 h-9 bg-[#10b981]/10 border border-[#10b981]/20 rounded-lg flex items-center justify-center text-[#10b981]">
