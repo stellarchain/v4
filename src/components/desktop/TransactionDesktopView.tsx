@@ -79,7 +79,7 @@ const formatTokenAmount = (value?: string, digits = 7) => {
 };
 
 export default function TransactionDesktopView({ transaction, operations, effects }: TransactionDesktopViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'effects' | 'raw'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'effects' | 'raw' | null>(null);
   const [copied, setCopied] = useState(false);
   const contractOp = operations.find(op => op.type === 'invoke_host_function');
   const isContractCall = !!contractOp;
@@ -317,7 +317,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6 mb-6">
+        <div className="flex flex-col lg:flex-row gap-6 mb-6 items-start">
           <div className="flex-1 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             {isContractCall && fromCardAmount === 0 && toCardAmount === 0 ? (
               <div className="flex items-center gap-4 bg-slate-50 border border-slate-100 rounded-xl p-4">
@@ -486,7 +486,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                onClick={() => setActiveTab(prev => prev === tab.id ? null : tab.id as typeof activeTab)}
                 className={`pb-3 text-sm font-bold transition-all ${activeTab === tab.id ? 'border-b-2 border-sky-500 text-sky-600' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 {tab.label}
