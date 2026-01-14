@@ -1,5 +1,6 @@
 import { getLedger, getLedgerTransactionsWithDisplayInfo, getLedgerOperations } from '@/lib/stellar';
 import LedgerMobileView from '@/components/mobile/LedgerMobileView';
+import LedgerDesktopView from '@/components/desktop/LedgerDesktopView';
 
 export const revalidate = 60;
 
@@ -20,10 +21,21 @@ export default async function LedgerPage({ params }: LedgerPageProps) {
   const operations = operationsResponse._embedded.records;
 
   return (
-    <LedgerMobileView
-      ledger={ledger}
-      transactions={transactions}
-      operations={operations}
-    />
+    <>
+      <div className="md:hidden">
+        <LedgerMobileView
+          ledger={ledger}
+          transactions={transactions}
+          operations={operations}
+        />
+      </div>
+      <div className="hidden md:block">
+        <LedgerDesktopView
+          ledger={ledger}
+          transactions={transactions}
+          operations={operations}
+        />
+      </div>
+    </>
   );
 }

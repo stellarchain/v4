@@ -1,6 +1,7 @@
 import { getAccount, getAccountTransactions, getAccountOperations, getXLMUSDPriceFromHorizon } from '@/lib/stellar';
 import Link from 'next/link';
 import AccountMobileView from '@/components/mobile/AccountMobileView';
+import AccountDesktopView from '@/components/desktop/AccountDesktopView';
 
 export const revalidate = 30;
 
@@ -21,7 +22,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
     [account, { _embedded: { records: transactions } }, { _embedded: { records: operations } }, xlmPrice] = await Promise.all([
       getAccount(id),
       getAccountTransactions(id, 25),
-      getAccountOperations(id, 25),
+      getAccountOperations(id, 100),
       getXLMUSDPriceFromHorizon(),
     ]);
   } catch (e) {
@@ -50,25 +51,39 @@ export default async function AccountPage({ params }: AccountPageProps) {
     );
   }
 
+  const accountData = {
+    id,
+    balances: account.balances,
+    subentry_count: account.subentry_count,
+    sequence: account.sequence,
+    last_modified_time: account.last_modified_time,
+    last_modified_ledger: account.last_modified_ledger,
+    signers: account.signers,
+    num_sponsoring: account.num_sponsoring,
+    num_sponsored: account.num_sponsored,
+    thresholds: account.thresholds,
+    flags: account.flags,
+    home_domain: account.home_domain,
+  };
+
   return (
-    <AccountMobileView
-      account={{
-        id,
-        balances: account.balances,
-        subentry_count: account.subentry_count,
-        sequence: account.sequence,
-        last_modified_time: account.last_modified_time,
-        last_modified_ledger: account.last_modified_ledger,
-        signers: account.signers,
-        num_sponsoring: account.num_sponsoring,
-        num_sponsored: account.num_sponsored,
-        thresholds: account.thresholds,
-        flags: account.flags,
-        home_domain: account.home_domain,
-      }}
-      transactions={transactions}
-      operations={operations}
-      xlmPrice={xlmPrice}
-    />
+    <>
+      <div className="hidden lg:block">
+        <AccountDesktopView
+          account={accountData}
+          transactions={transactions}
+          operations={operations}
+          xlmPrice={xlmPrice}
+        />
+      </div>
+      <div className="block lg:hidden">
+        <AccountMobileView
+          account={accountData}
+          transactions={transactions}
+          operations={operations}
+          xlmPrice={xlmPrice}
+        />
+      </div>
+    </>
   );
 }

@@ -90,16 +90,41 @@ export default function DesktopHomePage({
     return (
         <div className="min-h-screen bg-[#F6F7F9]">
             {/* Search Hero Section - Compact & Clean */}
-            <div className="relative bg-[#0b0e1e] rounded-2xl overflow-hidden mb-5 shadow-sm">
-                <div className="relative z-10 px-6 py-6 flex flex-col gap-5">
+            <div className="relative bg-[#0b0e1e] rounded-2xl overflow-hidden mb-4 shadow-sm">
+                <div className="relative z-10 px-5 py-4 flex flex-col gap-3">
 
-                    {/* Top Row: Title & Stats Pill */}
+                    {/* Top Row: Title */}
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
                                 Explore <span className="text-white/40 font-medium text-lg">Stellar Blockchain</span>
                             </h1>
                         </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                        {/* Minimal Search Bar - Slimmer */}
+                        <form onSubmit={handleSearch} className="flex-1">
+                            <div className="bg-[#161a2c] border border-white/5 rounded-lg flex items-center shadow-inner transition-colors focus-within:bg-[#1a1e32] focus-within:border-white/10">
+                                <span className="pl-3 pr-2 text-white/30">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </span>
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="bg-transparent border-none text-white placeholder-white/30 focus:ring-0 focus:outline-none flex-1 text-xs py-2 w-full font-medium"
+                                    placeholder="Search by Address / Transaction Hash / Ledger / Token"
+                                />
+                                <div className="flex items-center gap-2 border-l border-white/5 ml-2 pl-3 pr-2">
+                                    <kbd className="hidden lg:inline-flex h-5 items-center gap-1 rounded bg-[#23273a] px-1.5 font-mono text-[9px] font-medium text-white/40">
+                                        <span className="text-[10px]">⌘</span>K
+                                    </kbd>
+                                </div>
+                            </div>
+                        </form>
 
                         {/* Compact Right-Aligned Stats */}
                         <div className="flex bg-[#161a2c] rounded-lg p-1 border border-white/5">
@@ -124,37 +149,14 @@ export default function DesktopHomePage({
                             </div>
                         </div>
                     </div>
-
-                    {/* Minimal Search Bar - Slimmer */}
-                    <form onSubmit={handleSearch} className="max-w-[100%]">
-                        <div className="bg-[#161a2c] border border-white/5 rounded-lg flex items-center shadow-inner transition-colors focus-within:bg-[#1a1e32] focus-within:border-white/10">
-                            <span className="pl-3 pr-2 text-white/30">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </span>
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="bg-transparent border-none text-white placeholder-white/30 focus:ring-0 focus:outline-none flex-1 text-xs py-2.5 w-full font-medium"
-                                placeholder="Search by Address / Transaction Hash / Ledger / Token"
-                            />
-                            <div className="flex items-center gap-2 border-l border-white/5 ml-2 pl-3 pr-2">
-                                <kbd className="hidden lg:inline-flex h-5 items-center gap-1 rounded bg-[#23273a] px-1.5 font-mono text-[9px] font-medium text-white/40">
-                                    <span className="text-[10px]">⌘</span>K
-                                </kbd>
-                            </div>
-                        </div>
-                    </form>
                 </div>
             </div>
 
             {/* Stats Cards Row - Compact */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
 
                 {/* Card 1: Market Cap */}
-                <div className="bg-white rounded-xl p-4 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
+                <div className="bg-white rounded-xl p-3 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
                     <div className="flex justify-between items-start mb-3">
                         <div className="w-8 h-8 bg-[#F6F7F9] rounded-lg flex items-center justify-center text-slate-400">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -170,7 +172,7 @@ export default function DesktopHomePage({
                 </div>
 
                 {/* Card 2: Volume */}
-                <div className="bg-white rounded-xl p-4 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
+                <div className="bg-white rounded-xl p-3 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
                     <div className="flex justify-between items-start mb-3">
                         <div className="w-8 h-8 bg-[#F6F7F9] rounded-lg flex items-center justify-center text-slate-400">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,7 +188,7 @@ export default function DesktopHomePage({
                 </div>
 
                 {/* Card 3: Transactions */}
-                <div className="bg-white rounded-xl p-4 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
+                <div className="bg-white rounded-xl p-3 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
                     <div className="flex justify-between items-start mb-3">
                         <div className="w-8 h-8 bg-[#F6F7F9] rounded-lg flex items-center justify-center text-slate-400">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,7 +207,7 @@ export default function DesktopHomePage({
                 </div>
 
                 {/* Card 4: Latest Ledger */}
-                <div className="bg-white rounded-xl p-4 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
+                <div className="bg-white rounded-xl p-3 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)]">
                     <div className="flex justify-between items-start mb-3">
                         <div className="w-8 h-8 bg-[#F6F7F9] rounded-lg flex items-center justify-center text-slate-400">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,13 +228,13 @@ export default function DesktopHomePage({
             </div>
 
             {/* Feeds Layout - Compact */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
 
                 {/* Left Column (2/3): Recent Ledgers & Transactions */}
-                <div className="xl:col-span-2 space-y-6">
+                <div className="xl:col-span-2 space-y-4">
                     {/* Recent Ledgers */}
                     <section>
-                        <div className="flex items-center justify-between mb-3 px-1">
+                        <div className="flex items-center justify-between mb-2 px-1">
                             <h2 className="text-sm font-bold text-[#111827]">Recent Ledgers</h2>
                             <Link href="/ledgers" className="text-slate-400 hover:text-slate-600 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
                                 View All <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -243,7 +245,7 @@ export default function DesktopHomePage({
 
                     {/* Recent Transactions */}
                     <section>
-                        <div className="flex items-center justify-between mb-3 px-1">
+                        <div className="flex items-center justify-between mb-2 px-1">
                             <h2 className="text-sm font-bold text-[#111827]">Recent Transactions</h2>
                             <Link href="/transactions" className="text-slate-400 hover:text-slate-600 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
                                 View All <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -255,8 +257,8 @@ export default function DesktopHomePage({
 
                 {/* Right Column (1/3): Recent Operations */}
                 <div className="xl:col-span-1">
-                    <section className="bg-white rounded-2xl p-4 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)] h-full">
-                        <div className="flex items-center justify-between mb-4">
+                    <section className="bg-white rounded-2xl p-3 border border-slate-100/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.02)] h-full">
+                        <div className="flex items-center justify-between mb-3">
                             <h2 className="text-sm font-bold text-[#111827]">Recent Operations</h2>
                             <Link href="/operations" className="text-slate-400 hover:text-slate-600 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
                                 View <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
