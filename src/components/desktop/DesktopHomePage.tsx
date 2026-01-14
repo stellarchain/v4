@@ -205,7 +205,6 @@ export default function DesktopHomePage({
                 <div className="max-w-[1600px] mx-auto px-6">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-4">
-                            <h2 className="text-xl font-bold text-white tracking-tight">Real-time Desk</h2>
                             <div className="hidden sm:flex items-center gap-2 bg-[#1f2937] px-3 py-1.5 rounded-md border border-gray-700 text-[11px]">
                                 <div className="flex items-center gap-2 border-r border-gray-700 pr-3">
                                     <span className="text-gray-400 font-medium uppercase">XLM</span>
@@ -279,8 +278,6 @@ export default function DesktopHomePage({
                                 Unified Activity Stream
                             </h3>
                             <div className="flex items-center gap-4">
-                                <span className="text-[10px] text-gray-400 font-mono">Monitoring 1,400+ Pairs</span>
-                                <div className="h-4 w-px bg-gray-300"></div>
                                 <button className="text-gray-400 hover:text-[#06b6d4]">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -364,7 +361,6 @@ export default function DesktopHomePage({
                                                 ) : (op.type === 'invoke_host_function' || String(op.type).toLowerCase().includes('invokecontract') || String(op.type).toLowerCase().includes('hostfunction')) ? (
                                                     <div>
                                                         <span className="text-purple-500">{decodeContractFunctionName(op)}</span>
-                                                        <div className="text-[10px] text-gray-400">Hash: {shortenAddress(op.transaction_hash, 6)}</div>
                                                     </div>
                                                 ) : (
                                                     <span className="text-gray-600">{getOpStyle(op.type).label}</span>
