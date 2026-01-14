@@ -105,7 +105,7 @@ export default function MobileHeader() {
 
   // Full Header for Homepage
   return (
-    <header className="relative bg-[#020617] pt-12 pb-16 overflow-hidden md:hidden">
+    <header className="relative bg-[#020617] pt-safe pt-6 pb-12 overflow-hidden md:hidden">
       {/* Dot Pattern Background */}
       <div
         className="absolute inset-0 z-0 opacity-20 pointer-events-none"
@@ -116,7 +116,7 @@ export default function MobileHeader() {
       />
 
       {/* Top Bar: Logo & Notification */}
-      <div className="relative z-10 px-6 flex justify-between items-center mb-6">
+      <div className="relative z-10 px-6 flex justify-between items-center mb-4">
         <Link href="/" className="flex items-center gap-2">
           <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -132,12 +132,6 @@ export default function MobileHeader() {
             </svg>
           </button>
         </div>
-      </div>
-
-      {/* Hero Title */}
-      <div className="relative z-10 px-6 mb-8">
-        <h1 className="text-2xl font-bold text-white opacity-90">Explore</h1>
-        <p className="text-sm text-white/40 font-medium">Stellar Blockchain</p>
       </div>
 
       {/* Glass Search Bar */}
@@ -161,7 +155,7 @@ export default function MobileHeader() {
       </div>
 
       {/* Inline Stats */}
-      <div className="relative z-10 px-8 mt-6 flex gap-6 text-[11px] font-medium tracking-wide uppercase">
+      <div className="relative z-10 px-8 mt-4 flex gap-6 text-[11px] font-medium tracking-wide uppercase">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span className="text-white/50">XLM Price:</span>

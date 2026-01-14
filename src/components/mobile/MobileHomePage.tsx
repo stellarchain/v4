@@ -89,12 +89,13 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-20">
       {/* Network Stats Card */}
-      <div className="px-4 mb-6">
-        <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 reltive z-20">
-          <div className="grid grid-cols-2 gap-y-6">
+      {/* Network Stats Card */}
+      <div>
+        <div className="bg-white p-4 border-b border-gray-100 relative z-20">
+          <div className="grid grid-cols-2 gap-y-4">
 
             {/* Row 1: Market Cap & Volume */}
-            <div className="space-y-1.5 border-r border-gray-100 pr-4">
+            <div className="space-y-1 border-r border-gray-100 pr-4">
               <InfoTooltip
                 direction="bottom"
                 label={
@@ -110,7 +111,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
               <div className="text-lg font-bold text-gray-900 font-mono tracking-tight">{formattedMarketCap}</div>
             </div>
 
-            <div className="space-y-1.5 pl-4">
+            <div className="space-y-1 pl-4">
               <InfoTooltip
                 direction="bottom"
                 label={
@@ -130,7 +131,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
             <div className="col-span-2 h-px bg-gray-100"></div>
 
             {/* Row 2: Transactions & Base Fee */}
-            <div className="space-y-1.5 border-r border-gray-100 pr-4">
+            <div className="space-y-1 border-r border-gray-100 pr-4">
               <InfoTooltip
                 label={
                   <>
@@ -150,7 +151,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
               </div>
             </div>
 
-            <div className="space-y-1.5 pl-4">
+            <div className="space-y-1 pl-4">
               <InfoTooltip
                 label={
                   <>
@@ -174,7 +175,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
             <div className="col-span-2 h-px bg-gray-100"></div>
 
             {/* Row 3: Ledger & Price */}
-            <div className="space-y-1.5 border-r border-gray-100 pr-4">
+            <div className="space-y-1 border-r border-gray-100 pr-4">
               <InfoTooltip
                 label={
                   <>
@@ -191,7 +192,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
               </div>
             </div>
 
-            <div className="space-y-1.5 pl-4">
+            <div className="space-y-1 pl-4">
               <InfoTooltip
                 label={
                   <>
@@ -210,14 +211,14 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
                 <div className="text-[10px] text-gray-400 mt-0.5 font-medium">USD</div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
       {/* Live Transactions Section */}
-      <div className="px-4">
-        <div className="flex items-center justify-between mb-4">
+      {/* Live Transactions Section */}
+      <div className="bg-white">
+        <div className="flex items-center justify-between mb-2 px-4 pt-4">
           <h2 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">Live Transactions</h2>
           <Link
             href="/transactions"
@@ -230,7 +231,9 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
           </Link>
         </div>
 
-        <LiveTransactionFeed initialTransactions={initialTransactions} limit={30} filter="payments" />
+        <div className="border-t border-slate-100">
+          <LiveTransactionFeed initialTransactions={initialTransactions} limit={30} filter="payments" />
+        </div>
       </div>
     </div>
   );

@@ -367,65 +367,43 @@ export default function TransactionPageClient({
     return () => { mounted = false; };
   }, [visibleTransactions]);
 
-  const filters: { key: FilterType; label: string; icon: React.ReactNode }[] = [
-    {
-      key: 'all',
-      label: 'All',
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      ),
-    },
-    {
-      key: 'transfers',
-      label: 'Payments',
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
-    {
-      key: 'contracts',
-      label: 'Contracts',
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-        </svg>
-      ),
-    },
-  ];
-
   return (
-    <div className="space-y-6">
-      {/* Integrated Header & Filters */}
-      {/* Integrated Header & Filters - Title Removed */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-start gap-4">
-        {/* Sleek Filter Pills */}
-        <div className="flex p-0.5 bg-gray-100/80 backdrop-blur-sm rounded-xl border border-gray-200/50 self-start sm:self-auto">
-          {filters.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={`relative px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${filter === key
-                ? 'bg-white text-gray-900 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-                }`}
-            >
-              {label}
-              {filter === key && (
-                <span className="ml-1.5 text-[10px] bg-gray-900 text-white px-1 py-px rounded-md opacity-100">
-                  {filteredTransactions.length}
-                </span>
-              )}
-            </button>
-          ))}
+    <div className="min-h-[calc(100vh-80px)] bg-slate-50 pb-20">
+      {/* Tabs */}
+      <div className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-4 py-3 shadow-sm">
+        <div className="flex space-x-1 bg-slate-200/50 p-1 rounded-lg">
+          <button
+            onClick={() => setFilter('all')}
+            className={`flex-1 rounded-md py-1.5 text-xs font-semibold text-center transition-all ${filter === 'all'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+              }`}
+          >
+            All <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${filter === 'all' ? 'bg-slate-100 text-slate-500' : 'bg-transparent'}`}>{transactions.length}</span>
+          </button>
+          <button
+            onClick={() => setFilter('transfers')}
+            className={`flex-1 py-1.5 text-xs font-medium text-center rounded-md transition-all ${filter === 'transfers'
+              ? 'bg-white text-slate-900 shadow-sm font-semibold'
+              : 'text-slate-500 hover:text-slate-700'
+              }`}
+          >
+            Payments
+          </button>
+          <button
+            onClick={() => setFilter('contracts')}
+            className={`flex-1 py-1.5 text-xs font-medium text-center rounded-md transition-all ${filter === 'contracts'
+              ? 'bg-white text-slate-900 shadow-sm font-semibold'
+              : 'text-slate-500 hover:text-slate-700'
+              }`}
+          >
+            Contracts
+          </button>
         </div>
       </div>
 
-      {/* Transaction List */}
-      <div ref={containerRef} className="space-y-3">
+      {/* Main List */}
+      <main className="w-full" ref={containerRef}>
         {visibleTransactions.length > 0 ? (
           visibleTransactions.map((tx) => (
             <CompactTransactionRow
@@ -435,47 +413,24 @@ export default function TransactionPageClient({
             />
           ))
         ) : (
-          <div className="py-12 text-center">
-            <div className="w-12 h-12 mx-auto mb-3 bg-[var(--bg-tertiary)] rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="text-[var(--text-tertiary)] text-sm">
-              No {filter === 'transfers' ? 'payment' : 'contract'} transactions found
-            </p>
-            <p className="text-[var(--text-muted)] text-xs mt-1">
-              Waiting for new transactions...
-            </p>
+          <div className="py-12 text-center text-slate-500">
+            No transactions found
           </div>
         )}
 
         {/* Load More Button */}
         {visibleTransactions.length > 0 && hasMore && (
-          <button
-            onClick={loadMoreTransactions}
-            disabled={isLoadingMore}
-            className="w-full py-3 mt-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-sm font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isLoadingMore ? (
-              <>
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Loading...
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-                Load More Transactions
-              </>
-            )}
-          </button>
+          <div className="p-4">
+            <button
+              onClick={loadMoreTransactions}
+              disabled={isLoadingMore}
+              className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
+            >
+              {isLoadingMore ? 'Loading...' : 'Load More Transactions'}
+            </button>
+          </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
