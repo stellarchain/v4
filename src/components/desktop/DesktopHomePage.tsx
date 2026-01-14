@@ -52,9 +52,6 @@ export default function DesktopHomePage({
         if (activeTab === 'Payments') {
             return type === 'payment' || type === 'create_account' || type === 'account_merge';
         }
-        if (activeTab === 'Asset Issuance') {
-            return type === 'change_trust' || type === 'allow_trust' || type === 'set_trust_line_flags' || type === 'manage_data';
-        }
         return true;
     });
 
@@ -168,12 +165,38 @@ export default function DesktopHomePage({
     const marketCap = parseFloat(liveStats.total_coins) * xlmPrice;
 
     // Helper to determine operation style
-    const getOpStyle = (type: string) => {
+    // Helper to determine operation style
+    const getOpStyle = (typePath: string) => {
+        const type = String(typePath); // Ensure string
         if (type === 'payment' || type === 'create_account') return { color: 'text-orange-500', bg: 'bg-orange-500', label: 'PAYMENT' };
         if (type.includes('offer') || type.includes('swap') || type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') return { color: 'text-blue-500', bg: 'bg-blue-500', label: 'SWAP' };
-        if (type === 'invoke_host_function') return { color: 'text-purple-500', bg: 'bg-purple-500', label: 'CONTRACT CALL' };
+        if (type === 'invoke_host_function' || type.toLowerCase().includes('invokecontract') || type.toLowerCase().includes('hostfunction')) return { color: 'text-purple-500', bg: 'bg-purple-500', label: 'CONTRACT CALL' };
         if (type === 'change_trust') return { color: 'text-emerald-500', bg: 'bg-emerald-500', label: 'TRUSTLINE' };
         return { color: 'text-gray-900', bg: 'bg-gray-400', label: type.replace(/_/g, ' ').toUpperCase() };
+    };
+
+    const decodeContractFunctionName = (op: Operation): string => {
+        try {
+            if ((op as any).function) return (op as any).function as string;
+
+            // If the type itself is the messed up string, try to parse it or just return Contract Call
+            const typeStr = String(op.type || '');
+            if (typeStr.includes('HostFunctionTypeHostFunctionTypeInvokeContract')) {
+                // Try to look for function name in other fields if available, otherwise just return 'Contract Call'
+                // But wait, if the type IS the function name (unlikely but possible in some API versions?), we just return Contract Call
+                // Actually, let's look for the function parameters
+            }
+
+            const parameters = (op as any).parameters as Array<{ type: string; value: string }> | undefined;
+            if (!parameters) return 'Contract Call';
+            const symParam = parameters.find(p => p.type === 'Sym');
+            if (!symParam) return 'Contract Call';
+            const decoded = atob(symParam.value);
+            const functionName = decoded.slice(5).replace(/\0/g, '');
+            return functionName || 'Contract Call';
+        } catch {
+            return 'Contract Call';
+        }
     };
 
     return (
@@ -268,7 +291,7 @@ export default function DesktopHomePage({
                             </div>
                         </div>
                         <div className="px-4 py-2 bg-white border-b border-gray-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
-                            {['All Activity', 'Swaps', 'Smart Contracts', 'Payments', 'Asset Issuance'].map(tab => (
+                            {['All Activity', 'Swaps', 'Smart Contracts', 'Payments'].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
@@ -305,7 +328,9 @@ export default function DesktopHomePage({
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`w-2 h-2 rounded-full ${style.bg}`}></span>
-                                                    <span className="font-bold text-gray-900">{style.label}</span>
+                                                    <span className="font-bold text-gray-900">
+                                                        {style.label}
+                                                    </span>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3">
@@ -338,13 +363,13 @@ export default function DesktopHomePage({
                                                         <span className="text-gray-500">Fund Account:</span>
                                                         <span className="font-bold text-gray-900">{formatTokenAmount((op as any).starting_balance)} XLM</span>
                                                     </div>
-                                                ) : op.type === 'invoke_host_function' ? (
+                                                ) : (op.type === 'invoke_host_function' || String(op.type).toLowerCase().includes('invokecontract') || String(op.type).toLowerCase().includes('hostfunction')) ? (
                                                     <div>
-                                                        <span className="text-purple-500">Invoke Contract</span>
+                                                        <span className="text-purple-500">{decodeContractFunctionName(op)}</span>
                                                         <div className="text-[10px] text-gray-400">Hash: {shortenAddress(op.transaction_hash, 6)}</div>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-gray-600">{op.type.replace(/_/g, ' ')}</span>
+                                                    <span className="text-gray-600">{getOpStyle(op.type).label}</span>
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 text-gray-500">
