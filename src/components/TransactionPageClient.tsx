@@ -392,8 +392,7 @@ export default function TransactionPageClient({
           {/* Header & Tabs */}
           <div className="flex flex-col flex-shrink-0">
             <div className="p-3 md:p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <h3 className="text-[10px] md:text-xs font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#06b6d4]"></span>
+              <h3 className="text-[10px] md:text-xs font-bold text-gray-900 uppercase tracking-wider">
                 Transactions
               </h3>
             </div>
@@ -403,7 +402,7 @@ export default function TransactionPageClient({
                   key={tab}
                   onClick={() => setFilter(tab as FilterType)}
                   className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter whitespace-nowrap transition-colors ${filter === tab
-                    ? 'bg-[#06b6d4] text-white'
+                    ? 'bg-slate-900 text-white'
                     : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                     }`}
                 >
@@ -469,7 +468,7 @@ export default function TransactionPageClient({
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-500 align-middle">
-                          <a href={`/transaction/${tx.hash}`} className="text-[#06b6d4] hover:underline truncate block w-32">
+                          <a href={`/transaction/${tx.hash}`} className="text-slate-600 hover:text-slate-900 hover:underline truncate block w-32">
                             {tx.hash.substring(0, 8)}...{tx.hash.substring(tx.hash.length - 8)}
                           </a>
                         </td>
@@ -581,7 +580,7 @@ export default function TransactionPageClient({
               <button
                 onClick={loadMoreTransactions}
                 disabled={isLoadingMore}
-                className="text-[10px] font-bold text-gray-400 hover:text-[#06b6d4] transition-colors flex items-center gap-1 mx-auto uppercase tracking-tighter disabled:opacity-50"
+                className="text-[10px] font-bold text-gray-400 hover:text-slate-900 transition-colors flex items-center gap-1 mx-auto uppercase tracking-tighter disabled:opacity-50"
               >
                 {isLoadingMore ? (
                   <span className="flex items-center gap-2">
