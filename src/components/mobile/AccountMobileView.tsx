@@ -389,16 +389,10 @@ export default function AccountMobileView({ account, transactions, operations: i
             </button>
           </div>
 
-          <div className="flex items-center gap-3 mb-2">
+          <div className="mb-2">
             <h1 className="text-2xl font-bold text-white tracking-tight">
               ${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </h1>
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5 flex items-center gap-1">
-              <svg className="w-2.5 h-2.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              <span className="text-[9px] font-bold text-emerald-400">+1.2%</span>
-            </div>
           </div>
         </div>
       </div>
