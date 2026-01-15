@@ -819,33 +819,31 @@ export default function AccountMobileView({ account, transactions, operations: i
           )}
 
           {activeTab === 'details' && (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {/* Account ID */}
-              <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Account ID</label>
-                <p className="text-[10px] font-mono text-slate-900 break-all mt-1 bg-slate-50 p-2 rounded-lg">
-                  {account.id}
-                </p>
+              <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-100">
+                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Account ID</label>
+                <p className="text-[9px] font-mono text-slate-700 break-all mt-1">{account.id}</p>
               </div>
 
               {/* Basic Info Grid */}
-              <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Sequence</label>
-                    <p className="text-sm font-bold text-slate-900">{account.sequence}</p>
+              <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-100">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-medium text-slate-400">Sequence</span>
+                    <span className="text-[10px] font-bold text-slate-900 font-mono">{account.sequence}</span>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Subentries</label>
-                    <p className="text-sm font-bold text-slate-900">{account.subentry_count}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-medium text-slate-400">Subentries</span>
+                    <span className="text-[10px] font-bold text-slate-900">{account.subentry_count}</span>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Last Modified</label>
-                    <p className="text-xs font-medium text-slate-900">{timeAgo(account.last_modified_time)}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-medium text-slate-400">Last Modified</span>
+                    <span className="text-[10px] font-medium text-slate-700">{timeAgo(account.last_modified_time)}</span>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Modified Ledger</label>
-                    <Link href={`/ledger/${account.last_modified_ledger}`} className="text-sm font-bold text-blue-600 hover:text-blue-700">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-medium text-slate-400">Ledger</span>
+                    <Link href={`/ledger/${account.last_modified_ledger}`} className="text-[10px] font-bold text-blue-600">
                       {account.last_modified_ledger.toLocaleString()}
                     </Link>
                   </div>
@@ -854,16 +852,16 @@ export default function AccountMobileView({ account, transactions, operations: i
 
               {/* Home Domain */}
               {account.home_domain && (
-                <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Home Domain</label>
+                <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-100 flex items-center justify-between">
+                  <span className="text-[9px] font-medium text-slate-400">Home Domain</span>
                   <a
                     href={`https://${account.home_domain}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 mt-1"
+                    className="text-[10px] font-bold text-blue-600 flex items-center gap-1"
                   >
                     {account.home_domain}
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
                   </a>
@@ -872,91 +870,94 @@ export default function AccountMobileView({ account, transactions, operations: i
 
               {/* Signers */}
               {account.signers && account.signers.length > 0 && (
-                <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2 block">
+                <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-100">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">
                     Signers ({account.signers.length})
                   </label>
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {account.signers.map((signer, idx) => (
-                      <div key={idx} className="bg-slate-50 rounded-lg p-2 flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
+                      <div key={idx} className="flex items-center justify-between py-1 border-b border-slate-50 last:border-0">
+                        <div className="flex items-center gap-2 min-w-0">
                           <Link
                             href={`/account/${signer.key}`}
-                            className="text-[10px] font-mono text-blue-600 hover:text-blue-700 break-all"
+                            className="text-[10px] font-semibold text-blue-600"
                           >
-                            {shortenAddress(signer.key, 8)}
+                            {shortenAddress(signer.key, 6)}
                           </Link>
-                          <span className="text-[9px] text-slate-400 ml-2 uppercase">{signer.type}</span>
+                          <span className="text-[8px] text-slate-400 uppercase">{signer.type}</span>
                         </div>
-                        <div className="bg-slate-200 px-2 py-0.5 rounded text-[10px] font-bold text-slate-600">
-                          Weight: {signer.weight}
-                        </div>
+                        <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                          {signer.weight}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Thresholds */}
-              <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-3 block">Thresholds</label>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-emerald-50 rounded-xl p-3 text-center">
-                    <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-wide">Low</p>
-                    <p className="text-lg font-bold text-emerald-700">{account.thresholds.low_threshold}</p>
-                  </div>
-                  <div className="bg-amber-50 rounded-xl p-3 text-center">
-                    <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wide">Medium</p>
-                    <p className="text-lg font-bold text-amber-700">{account.thresholds.med_threshold}</p>
-                  </div>
-                  <div className="bg-red-50 rounded-xl p-3 text-center">
-                    <p className="text-[9px] font-bold text-red-600 uppercase tracking-wide">High</p>
-                    <p className="text-lg font-bold text-red-700">{account.thresholds.high_threshold}</p>
+              {/* Thresholds & Sponsorship Row */}
+              <div className="grid grid-cols-2 gap-2">
+                {/* Thresholds */}
+                <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-100">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2 block">Thresholds</label>
+                  <div className="flex justify-between gap-1">
+                    <div className="flex-1 bg-emerald-50 rounded-lg py-1.5 text-center">
+                      <p className="text-[8px] font-bold text-emerald-600 uppercase">Low</p>
+                      <p className="text-sm font-bold text-emerald-700">{account.thresholds.low_threshold}</p>
+                    </div>
+                    <div className="flex-1 bg-amber-50 rounded-lg py-1.5 text-center">
+                      <p className="text-[8px] font-bold text-amber-600 uppercase">Med</p>
+                      <p className="text-sm font-bold text-amber-700">{account.thresholds.med_threshold}</p>
+                    </div>
+                    <div className="flex-1 bg-red-50 rounded-lg py-1.5 text-center">
+                      <p className="text-[8px] font-bold text-red-600 uppercase">High</p>
+                      <p className="text-sm font-bold text-red-700">{account.thresholds.high_threshold}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Sponsorship */}
-              <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-3 block">Sponsorship</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-blue-50 rounded-xl p-3 text-center">
-                    <p className="text-[9px] font-bold text-blue-600 uppercase tracking-wide">Sponsoring</p>
-                    <p className="text-lg font-bold text-blue-700">{account.num_sponsoring}</p>
-                  </div>
-                  <div className="bg-purple-50 rounded-xl p-3 text-center">
-                    <p className="text-[9px] font-bold text-purple-600 uppercase tracking-wide">Sponsored</p>
-                    <p className="text-lg font-bold text-purple-700">{account.num_sponsored}</p>
+                {/* Sponsorship */}
+                <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-100">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2 block">Sponsorship</label>
+                  <div className="flex justify-between gap-1">
+                    <div className="flex-1 bg-blue-50 rounded-lg py-1.5 text-center">
+                      <p className="text-[8px] font-bold text-blue-600 uppercase">Out</p>
+                      <p className="text-sm font-bold text-blue-700">{account.num_sponsoring}</p>
+                    </div>
+                    <div className="flex-1 bg-purple-50 rounded-lg py-1.5 text-center">
+                      <p className="text-[8px] font-bold text-purple-600 uppercase">In</p>
+                      <p className="text-sm font-bold text-purple-700">{account.num_sponsored}</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Flags */}
-              <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-3 block">Account Flags</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className={`rounded-lg p-2 flex items-center gap-2 ${account.flags.auth_required ? 'bg-emerald-50' : 'bg-slate-50'}`}>
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_required ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                    <span className={`text-[10px] font-medium ${account.flags.auth_required ? 'text-emerald-700' : 'text-slate-400'}`}>
+              <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-100">
+                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wide mb-2 block">Account Flags</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className={`rounded-lg px-2 py-1.5 flex items-center gap-1.5 ${account.flags.auth_required ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${account.flags.auth_required ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                    <span className={`text-[9px] font-medium ${account.flags.auth_required ? 'text-emerald-700' : 'text-slate-400'}`}>
                       Auth Required
                     </span>
                   </div>
-                  <div className={`rounded-lg p-2 flex items-center gap-2 ${account.flags.auth_revocable ? 'bg-emerald-50' : 'bg-slate-50'}`}>
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_revocable ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                    <span className={`text-[10px] font-medium ${account.flags.auth_revocable ? 'text-emerald-700' : 'text-slate-400'}`}>
+                  <div className={`rounded-lg px-2 py-1.5 flex items-center gap-1.5 ${account.flags.auth_revocable ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${account.flags.auth_revocable ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                    <span className={`text-[9px] font-medium ${account.flags.auth_revocable ? 'text-emerald-700' : 'text-slate-400'}`}>
                       Auth Revocable
                     </span>
                   </div>
-                  <div className={`rounded-lg p-2 flex items-center gap-2 ${account.flags.auth_immutable ? 'bg-emerald-50' : 'bg-slate-50'}`}>
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_immutable ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                    <span className={`text-[10px] font-medium ${account.flags.auth_immutable ? 'text-emerald-700' : 'text-slate-400'}`}>
+                  <div className={`rounded-lg px-2 py-1.5 flex items-center gap-1.5 ${account.flags.auth_immutable ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${account.flags.auth_immutable ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                    <span className={`text-[9px] font-medium ${account.flags.auth_immutable ? 'text-emerald-700' : 'text-slate-400'}`}>
                       Auth Immutable
                     </span>
                   </div>
-                  <div className={`rounded-lg p-2 flex items-center gap-2 ${account.flags.auth_clawback_enabled ? 'bg-emerald-50' : 'bg-slate-50'}`}>
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_clawback_enabled ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                    <span className={`text-[10px] font-medium ${account.flags.auth_clawback_enabled ? 'text-emerald-700' : 'text-slate-400'}`}>
-                      Clawback Enabled
+                  <div className={`rounded-lg px-2 py-1.5 flex items-center gap-1.5 ${account.flags.auth_clawback_enabled ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${account.flags.auth_clawback_enabled ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                    <span className={`text-[9px] font-medium ${account.flags.auth_clawback_enabled ? 'text-emerald-700' : 'text-slate-400'}`}>
+                      Clawback
                     </span>
                   </div>
                 </div>
