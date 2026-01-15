@@ -833,9 +833,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                         </button>
                       </div>
 
-                      <div className={`transition-all duration-300 ease-in-out overflow-hidden ${showRecipients ? 'max-h-[500px] opacity-100 pt-4' : 'max-h-0 opacity-0'}`}>
+                      <div className={`transition-all duration-300 ease-in-out overflow-hidden ${showRecipients ? 'max-h-[70vh] opacity-100 pt-4' : 'max-h-0 opacity-0'}`}>
                         <div className="bg-slate-50 rounded-xl border border-slate-100/50 overflow-hidden">
-                          <div className="max-h-[300px] overflow-y-auto">
+                          <div className="max-h-[60vh] overflow-y-auto">
                             {Object.entries(
                               paymentOps.reduce((acc, op) => {
                                 const to = op.to || (op as any).into || 'unknown';
