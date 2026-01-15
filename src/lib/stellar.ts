@@ -455,7 +455,11 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
         const symParam = parameters.find(p => p.type === 'Sym');
         if (symParam) {
           const decoded = atob(symParam.value);
-          const extractedName = decoded.slice(5).replace(/\0/g, '');
+          // Remove all non-printable characters and keep only valid function name characters
+          const extractedName = decoded
+            .replace(/[^\x20-\x7E]/g, '') // Remove non-printable ASCII
+            .replace(/^[^a-zA-Z_]+/, '') // Remove leading non-letter characters
+            .trim();
           if (extractedName) {
             functionName = extractedName;
           }

@@ -122,10 +122,22 @@ export default function TransactionDesktopView({ transaction, operations, effect
     typeLabel = 'Swap Transaction';
     const swapOp = operations.find(op => op.type.includes('path_payment'));
     if (swapOp) {
-      const soldAmount = (swapOp as any).source_amount || '0';
-      const soldAsset = (swapOp as any).source_asset_type === 'native' ? 'XLM' : ((swapOp as any).source_asset_code || 'XLM');
-      const boughtAmount = swapOp.amount || '0';
-      const boughtAsset = swapOp.asset_type === 'native' ? 'XLM' : (swapOp.asset_code || 'XLM');
+      // Try to get actual amounts from effects first (more accurate than operation amounts)
+      // Use includes() to match various effect types (account_debited, contract_debited, etc.)
+      const debitEffect = effects.find(e => e.type.includes('debited'));
+      const creditEffect = effects.find(e => e.type.includes('credited'));
+
+      // Source = Sold (prefer effect amount if available)
+      const soldAmount = debitEffect?.amount || (swapOp as any).source_amount || '0';
+      const soldAsset = debitEffect
+        ? (debitEffect.asset_type === 'native' ? 'XLM' : (debitEffect.asset_code || 'XLM'))
+        : ((swapOp as any).source_asset_type === 'native' ? 'XLM' : ((swapOp as any).source_asset_code || 'XLM'));
+
+      // Dest = Bought (prefer effect amount if available)
+      const boughtAmount = creditEffect?.amount || swapOp.amount || '0';
+      const boughtAsset = creditEffect
+        ? (creditEffect.asset_type === 'native' ? 'XLM' : (creditEffect.asset_code || 'XLM'))
+        : (swapOp.asset_type === 'native' ? 'XLM' : (swapOp.asset_code || 'XLM'));
 
       swapSold = { amount: soldAmount, code: soldAsset };
       swapBought = { amount: boughtAmount, code: boughtAsset };
@@ -181,7 +193,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
     if (isMultiSend) return multiSendSum;
     const parsedAmount = parseFloat(amount);
     if (parsedAmount > 0) return parsedAmount;
-    const creditEffect = effects.find(e => e.type === 'account_credited' || e.type === 'account_debited');
+    const creditEffect = effects.find(e => e.type.includes('credited') || e.type.includes('debited'));
     if (creditEffect && creditEffect.amount) {
       return parseFloat(creditEffect.amount);
     }
@@ -192,7 +204,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
     if (isMultiSend) return multiSendAsset;
     const parsedAmount = parseFloat(amount);
     if (parsedAmount > 0) return assetCode;
-    const creditEffect = effects.find(e => e.type === 'account_credited' || e.type === 'account_debited');
+    const creditEffect = effects.find(e => e.type.includes('credited') || e.type.includes('debited'));
     if (creditEffect) {
       return creditEffect.asset_type === 'native' ? 'XLM' : (creditEffect.asset_code || 'XLM');
     }
@@ -202,8 +214,8 @@ export default function TransactionDesktopView({ transaction, operations, effect
   const displayAmount = getDisplayAmount();
   const displayAsset = getDisplayAsset();
 
-  const sentEffect = effects.find(e => e.type === 'account_debited');
-  const receivedEffect = effects.find(e => e.type === 'account_credited');
+  const sentEffect = effects.find(e => e.type.includes('debited'));
+  const receivedEffect = effects.find(e => e.type.includes('credited'));
 
   const sentAmountFromEffect = sentEffect?.amount ? parseFloat(sentEffect.amount) : 0;
   const sentAssetFromEffect = sentEffect ? (sentEffect.asset_type === 'native' ? 'XLM' : (sentEffect.asset_code || 'XLM')) : 'XLM';

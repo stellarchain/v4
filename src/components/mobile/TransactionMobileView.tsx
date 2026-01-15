@@ -112,13 +112,22 @@ export default function TransactionMobileView({ transaction, operations, effects
     typeLabel = 'Swap Transaction';
     const swapOp = operations.find(op => op.type.includes('path_payment'));
     if (swapOp) {
-      // Source = Sold
-      const soldAmount = (swapOp as any).source_amount || '0';
-      const soldAsset = (swapOp as any).source_asset_type === 'native' ? 'XLM' : ((swapOp as any).source_asset_code || 'XLM');
+      // Try to get actual amounts from effects first (more accurate than operation amounts)
+      // Use includes() to match various effect types (account_debited, contract_debited, etc.)
+      const debitEffect = effects.find(e => e.type.includes('debited'));
+      const creditEffect = effects.find(e => e.type.includes('credited'));
 
-      // Dest = Bought
-      const boughtAmount = swapOp.amount || '0';
-      const boughtAsset = swapOp.asset_type === 'native' ? 'XLM' : (swapOp.asset_code || 'XLM');
+      // Source = Sold (prefer effect amount if available)
+      const soldAmount = debitEffect?.amount || (swapOp as any).source_amount || '0';
+      const soldAsset = debitEffect
+        ? (debitEffect.asset_type === 'native' ? 'XLM' : (debitEffect.asset_code || 'XLM'))
+        : ((swapOp as any).source_asset_type === 'native' ? 'XLM' : ((swapOp as any).source_asset_code || 'XLM'));
+
+      // Dest = Bought (prefer effect amount if available)
+      const boughtAmount = creditEffect?.amount || swapOp.amount || '0';
+      const boughtAsset = creditEffect
+        ? (creditEffect.asset_type === 'native' ? 'XLM' : (creditEffect.asset_code || 'XLM'))
+        : (swapOp.asset_type === 'native' ? 'XLM' : (swapOp.asset_code || 'XLM'));
 
       swapSold = { amount: soldAmount, code: soldAsset };
       swapBought = { amount: boughtAmount, code: boughtAsset };
@@ -194,8 +203,8 @@ export default function TransactionMobileView({ transaction, operations, effects
 
     // 1. Swap Search (Same Account)
     for (const account of accounts) {
-      const d = effects.find(e => e.account === account && e.type === 'account_debited');
-      const c = effects.find(e => e.account === account && e.type === 'account_credited');
+      const d = effects.find(e => e.account === account && e.type.includes('debited'));
+      const c = effects.find(e => e.account === account && e.type.includes('credited'));
       if (d && c) {
         validDebit = d;
         validCredit = c;
@@ -205,8 +214,8 @@ export default function TransactionMobileView({ transaction, operations, effects
 
     // 2. General Flow Search (if no swap found)
     if (!validDebit && !validCredit) {
-      validDebit = effects.find(e => e.type === 'account_debited');
-      validCredit = effects.find(e => e.type === 'account_credited');
+      validDebit = effects.find(e => e.type.includes('debited'));
+      validCredit = effects.find(e => e.type.includes('credited'));
     }
 
     if (validDebit && validCredit) {
@@ -237,7 +246,7 @@ export default function TransactionMobileView({ transaction, operations, effects
     if (parsedAmount > 0) return parsedAmount;
 
     // Fallback: Check for effects if amount is 0/invalid (common in complex ops or merges)
-    const creditEffect = effects.find(e => e.type === 'account_credited' || e.type === 'account_debited');
+    const creditEffect = effects.find(e => e.type.includes('credited') || e.type.includes('debited'));
     if (creditEffect && creditEffect.amount) {
       return parseFloat(creditEffect.amount);
     }
@@ -253,7 +262,7 @@ export default function TransactionMobileView({ transaction, operations, effects
     if (parsedAmount > 0) return assetCode;
 
     // Fallback based on effect
-    const creditEffect = effects.find(e => e.type === 'account_credited' || e.type === 'account_debited');
+    const creditEffect = effects.find(e => e.type.includes('credited') || e.type.includes('debited'));
     if (creditEffect) {
       return creditEffect.asset_type === 'native' ? 'XLM' : (creditEffect.asset_code || 'XLM');
     }
@@ -265,8 +274,8 @@ export default function TransactionMobileView({ transaction, operations, effects
   const displayAsset = getDisplayAsset();
 
   // Dedicated effect extraction for From/To cards
-  const sentEffect = effects.find(e => e.type === 'account_debited');
-  const receivedEffect = effects.find(e => e.type === 'account_credited');
+  const sentEffect = effects.find(e => e.type.includes('debited'));
+  const receivedEffect = effects.find(e => e.type.includes('credited'));
 
   const sentAmountFromEffect = sentEffect?.amount ? parseFloat(sentEffect.amount) : 0;
   const sentAssetFromEffect = sentEffect ? (sentEffect.asset_type === 'native' ? 'XLM' : (sentEffect.asset_code || 'XLM')) : 'XLM';
@@ -288,10 +297,10 @@ export default function TransactionMobileView({ transaction, operations, effects
   };
 
   const contractTransferEffects = effects.filter(ef =>
-    ef.type === 'account_credited' || ef.type === 'account_debited'
+    ef.type.includes('credited') || ef.type.includes('debited')
   );
-  const contractHeaderEffect = contractTransferEffects.find(ef => ef.type === 'account_credited')
-    || contractTransferEffects.find(ef => ef.type === 'account_debited');
+  const contractHeaderEffect = contractTransferEffects.find(ef => ef.type.includes('credited'))
+    || contractTransferEffects.find(ef => ef.type.includes('debited'));
   const contractHeaderIsCredit = contractHeaderEffect?.type.includes('credited') || false;
   const contractHeaderAmount = contractHeaderEffect?.amount || '0';
   const contractHeaderAsset = contractHeaderEffect?.asset_type === 'native'
@@ -321,7 +330,11 @@ export default function TransactionMobileView({ transaction, operations, effects
       if (!symParam) return 'Contract Call';
 
       const decoded = atob(symParam.value);
-      const functionName = decoded.slice(5).replace(/\0/g, '');
+      // Remove all non-printable characters and keep only valid function name characters
+      const functionName = decoded
+        .replace(/[^\x20-\x7E]/g, '') // Remove non-printable ASCII
+        .replace(/^[^a-zA-Z_]+/, '') // Remove leading non-letter characters
+        .trim();
       return functionName || 'Contract Call';
     } catch {
       return 'Contract Call';
@@ -391,50 +404,96 @@ export default function TransactionMobileView({ transaction, operations, effects
 
               {/* Smart Contract Summary Card */}
               <div className="mt-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm relative overflow-hidden transition-all duration-300">
-                {/* Background decoration */}
-                <div className="absolute top-0 right-0 p-4 opacity-5">
-                  <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                </div>
-
                 {contractEffectType === 'both' ? (
-                  // ... Keep existing logic for 'both' case ...
-                  <div className="relative z-10 space-y-4">
-                    {/* Sent Row */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                          </svg>
+                  <div className="relative z-10">
+                    <div className="space-y-4">
+                      {/* Sent Row */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                            </svg>
+                          </div>
+                          <div>
+                            <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Sent</div>
+                            <div className="font-mono text-xs font-bold text-slate-900">
+                              {formatTokenAmount(contractSentAmount)} <span className="text-[10px] font-normal text-slate-500">{contractSentAsset}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Sent</div>
-                          <div className="font-mono text-xs font-bold text-slate-900">
-                            {formatTokenAmount(contractSentAmount)} <span className="text-[10px] font-normal text-slate-500">{contractSentAsset}</span>
+                      </div>
+
+                      {/* Connector */}
+                      <div className="absolute left-[15px] top-8 bottom-8 w-0.5 bg-slate-100 -z-10"></div>
+
+                      {/* Received Row */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                            </svg>
+                          </div>
+                          <div>
+                            <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Received</div>
+                            <div className="font-mono text-xs font-bold text-slate-900">
+                              {formatTokenAmount(contractReceivedAmount)} <span className="text-[10px] font-normal text-slate-500">{contractReceivedAsset}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Connector */}
-                    <div className="absolute left-[15px] top-8 bottom-8 w-0.5 bg-slate-100 -z-10"></div>
-
-                    {/* Received Row */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    {/* Show expand button if there are more than 2 transfer effects */}
+                    {contractTransferEffects.length > 2 && (
+                      <div className="mt-4 pt-3 border-t border-slate-100">
+                        <button
+                          onClick={() => setIsExpanded(!isExpanded)}
+                          className="w-full flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-slate-700 transition-colors py-1"
+                        >
+                          <span>{isExpanded ? 'Hide' : 'Show'} all {contractTransferEffects.length} effects</span>
+                          <svg className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
-                        </div>
-                        <div>
-                          <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Received</div>
-                          <div className="font-mono text-xs font-bold text-slate-900">
-                            {formatTokenAmount(contractReceivedAmount)} <span className="text-[10px] font-normal text-slate-500">{contractReceivedAsset}</span>
+                        </button>
+
+                        {/* Expanded Effects List */}
+                        {isExpanded && (
+                          <div className="mt-3 space-y-2 max-h-[300px] overflow-y-auto">
+                            {contractTransferEffects.map((effect, idx) => {
+                              const isCredit = effect.type.includes('credited');
+                              const isDebit = effect.type.includes('debited');
+                              const effectAsset = effect.asset_type === 'native' ? 'XLM' : (effect.asset_code || 'XLM');
+                              return (
+                                <div key={effect.id || idx} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-slate-50">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${isCredit ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
+                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        {isCredit ? (
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7" />
+                                        ) : (
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7" />
+                                        )}
+                                      </svg>
+                                    </div>
+                                    <span className={`text-[9px] font-bold uppercase ${isCredit ? 'text-emerald-600' : isDebit ? 'text-orange-600' : 'text-slate-500'}`}>
+                                      {isCredit ? 'Received' : isDebit ? 'Sent' : effect.type.replace(/_/g, ' ')}
+                                    </span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className={`font-mono text-xs font-bold ${isCredit ? 'text-emerald-600' : isDebit ? 'text-red-500' : 'text-slate-700'}`}>
+                                      {isCredit ? '+' : isDebit ? '-' : ''}{formatTokenAmount(effect.amount)}
+                                    </span>
+                                    <span className="text-[10px] text-slate-500 ml-1">{effectAsset}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        </div>
+                        )}
                       </div>
-                    </div>
+                    )}
                   </div>
                 ) : (
                   <div className="relative z-10">
@@ -469,7 +528,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       </div>
 
                       {/* Only show expand button if there are multiple items of same type */}
-                      {contractTransferEffects.filter(e => contractHeaderIsCredit ? e.type === 'account_credited' : e.type === 'account_debited').length > 1 && (
+                      {contractTransferEffects.filter(e => contractHeaderIsCredit ? e.type.includes('credited') : e.type.includes('debited')).length > 1 && (
                         <button
                           onClick={() => setIsExpanded(!isExpanded)}
                           className="bg-slate-50 border border-slate-100 rounded-lg p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all ml-4"
@@ -485,9 +544,8 @@ export default function TransactionMobileView({ transaction, operations, effects
                     {isExpanded && (
                       <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
                         {contractTransferEffects
-                          .filter(e => contractHeaderIsCredit ? e.type === 'account_credited' : e.type === 'account_debited')
-                          .slice(1) // Skip the first one as it's already shown? Or show all including first? Usually implies "more". Let's show all and maybe highlight first? Or simpler, just show list below.
-                          // Actually, let's show ALL in the list if expanded, potentially hiding the main text? No, list below is better.
+                          .filter(e => contractHeaderIsCredit ? e.type.includes('credited') : e.type.includes('debited'))
+                          .slice(1)
                           .map((effect, idx) => (
                             <div key={effect.id || idx} className="flex justify-between items-center text-sm">
                               <div className="flex items-center gap-2">
@@ -611,7 +669,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                         </span>
                       ) : isSwap ? (
                         <span className="font-mono text-xs text-slate-700 font-bold">
-                          {swapSold?.amount ? parseFloat(swapSold.amount).toLocaleString() : '0'} <span className="text-[10px] font-normal text-slate-500">{swapSold?.code}</span>
+                          {formatTokenAmount(swapSold?.amount)} <span className="text-[10px] font-normal text-slate-500">{swapSold?.code}</span>
                         </span>
                       ) : (
                         <Link href={`/account/${transaction.source_account}`} className="font-mono text-xs text-slate-700 truncate w-32 sm:w-48 block hover:text-emerald-600 transition-colors">
@@ -678,7 +736,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                         </span>
                       ) : isSwap ? (
                         <span className="font-mono text-sm text-slate-700 font-bold">
-                          {swapBought?.amount ? parseFloat(swapBought.amount).toLocaleString() : '0'} <span className="text-xs font-normal text-slate-500">{swapBought?.code}</span>
+                          {formatTokenAmount(swapBought?.amount)} <span className="text-xs font-normal text-slate-500">{swapBought?.code}</span>
                         </span>
                       ) : isMultiSend ? (
                         <div className="font-mono text-sm text-slate-700 font-bold">
@@ -700,27 +758,29 @@ export default function TransactionMobileView({ transaction, operations, effects
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    {isOffer ? (
-                      <div className="text-[10px] text-slate-500">Price per unit</div>
-                    ) : isMultiSend ? (
-                      <div className="text-sm font-bold text-slate-900">
-                        {displayAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                      </div>
-                    ) : toCardAmount > 0 ? (
-                      <div className="text-sm font-bold text-slate-900">
-                        {isSwap ? '' : '+ '}{toCardAmount.toLocaleString(undefined, { maximumFractionDigits: 7 })} <span className="text-[10px] font-normal text-slate-500">{toCardAsset}</span>
-                      </div>
-                    ) : (
-                      <div className="text-sm font-bold text-slate-900">--</div>
-                    )}
+                  {!isSwap && (
+                    <div className="text-right">
+                      {isOffer ? (
+                        <div className="text-[10px] text-slate-500">Price per unit</div>
+                      ) : isMultiSend ? (
+                        <div className="text-sm font-bold text-slate-900">
+                          {displayAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </div>
+                      ) : toCardAmount > 0 ? (
+                        <div className="text-sm font-bold text-slate-900">
+                          + {toCardAmount.toLocaleString(undefined, { maximumFractionDigits: 7 })} <span className="text-[10px] font-normal text-slate-500">{toCardAsset}</span>
+                        </div>
+                      ) : (
+                        <div className="text-sm font-bold text-slate-900">--</div>
+                      )}
 
-                    {!isOffer && (
-                      <div className={`text-[9px] font-bold uppercase tracking-wide ${isSwap ? 'text-violet-600/80' : 'text-amber-600/80'}`}>
-                        {isSwap ? 'Received' : isMultiSend ? 'Total Amt' : isContractCall ? 'Effect Amt' : 'Received'}
-                      </div>
-                    )}
-                  </div>
+                      {!isOffer && (
+                        <div className="text-[9px] font-bold uppercase tracking-wide text-amber-600/80">
+                          {isMultiSend ? 'Total Amt' : isContractCall ? 'Effect Amt' : 'Received'}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Expanded Recipients List */}
