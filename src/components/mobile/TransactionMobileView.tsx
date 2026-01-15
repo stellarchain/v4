@@ -802,7 +802,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       <div className="text-right">
                         {isMultiSend ? (
                           <div className="text-sm font-bold text-slate-900">
-                            {displayAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            {displayAmount.toLocaleString(undefined, { maximumFractionDigits: 7 })}
                           </div>
                         ) : toCardAmount > 0 ? (
                           <div className="text-sm font-bold text-slate-900">
@@ -857,7 +857,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                                   {ops.map((op, opIdx) => (
                                     <div key={op.id || opIdx} className="text-right">
                                       <span className="text-xs font-bold text-slate-900">
-                                        {op.amount ? parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
+                                        {op.amount ? parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 7 }) : '0'}
                                       </span>
                                       <span className="text-[10px] text-slate-400 ml-1">{op.asset_type === 'native' ? 'XLM' : (op.asset_code || '')}</span>
                                     </div>
@@ -977,7 +977,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                           </span>
                         ) : (
                           <span className="block text-xs font-bold text-slate-900">
-                            {parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            {parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 7 })}
                             <span className="text-[10px] font-normal text-slate-500 ml-1">{op.asset_type === 'native' ? 'XLM' : op.asset_code || ''}</span>
                           </span>
                         )}
