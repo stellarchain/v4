@@ -6,7 +6,8 @@ import { useState, useEffect } from 'react';
 
 const navItems = [
   { name: 'Network Explorer', href: '/', icon: 'explore' },
-  { name: 'Wallet Tracker', href: '/graph', icon: 'account_balance_wallet' }, // Using graph route for wallet tracker? Or maybe just Wallet Registry as per snippet? Reverting to existing href /graph which was Wallet Track
+  { name: 'Smart Contracts', href: '/contracts', icon: 'contract' },
+  { name: 'Wallet Tracker', href: '/graph', icon: 'account_balance_wallet' },
 ];
 
 // Inline icons to match the design style (Material Symbols look-alike)
@@ -22,6 +23,9 @@ const icons: Record<string, React.ReactNode> = {
   ),
   account_balance_wallet: (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+  ),
+  contract: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
   )
 };
 
@@ -47,13 +51,24 @@ export default function Sidebar() {
     const query = searchQuery.trim();
     if (!query) return;
 
-    if (query.length === 56 && query.startsWith('G')) {
+    // Contract ID (starts with C, 56 chars)
+    if (query.length === 56 && query.startsWith('C')) {
+      window.location.href = `/contract/${query}`;
+    }
+    // Account ID (starts with G, 56 chars)
+    else if (query.length === 56 && query.startsWith('G')) {
       window.location.href = `/account/${query}`;
-    } else if (query.length === 64) {
+    }
+    // Transaction hash (64 chars hex)
+    else if (query.length === 64) {
       window.location.href = `/transaction/${query}`;
-    } else if (/^\d+$/.test(query)) {
+    }
+    // Ledger sequence (all digits)
+    else if (/^\d+$/.test(query)) {
       window.location.href = `/ledger/${query}`;
-    } else {
+    }
+    // Default to account search
+    else {
       window.location.href = `/account/${query}`;
     }
     setSearchQuery('');
