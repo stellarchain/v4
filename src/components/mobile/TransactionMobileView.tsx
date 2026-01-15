@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { shortenAddress, timeAgo, getOperationTypeLabel, formatDate, formatXLM } from '@/lib/stellar';
+import { shortenAddress, timeAgo, getOperationTypeLabel, formatDate, formatXLM, extractContractAddress, detectContractFunctionType } from '@/lib/stellar';
+import type { ContractFunctionType } from '@/lib/types/token';
 
 interface Operation {
   id: string;
@@ -399,9 +400,15 @@ export default function TransactionMobileView({ transaction, operations, effects
     }
   };
 
+  // Extract contract address and function type for contract calls
+  let contractAddress: string | null = null;
+  let contractFunctionType: ContractFunctionType = 'unknown';
+
   if (isContractCall && contractOp) {
     contractFunctionName = decodeContractFunctionName(contractOp);
     typeLabel = contractFunctionName === 'Contract Call' ? 'Smart Contract Call' : `${contractFunctionName} (Contract)`;
+    contractAddress = extractContractAddress(contractOp as any);
+    contractFunctionType = detectContractFunctionType(contractFunctionName);
   }
   const handleCopy = () => {
     navigator.clipboard.writeText(transaction.hash);
@@ -448,8 +455,24 @@ export default function TransactionMobileView({ transaction, operations, effects
                 <div>
                   <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Transaction Type</div>
                   <div className="text-base font-bold text-slate-900 mt-1">{contractFunctionName || 'Smart Contract'}</div>
-                  <div className="inline-flex items-center bg-violet-50 text-violet-600 border border-violet-100 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide mt-2">
-                    Smart Contract
+                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                    <div className="inline-flex items-center bg-violet-50 text-violet-600 border border-violet-100 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
+                      Smart Contract
+                    </div>
+                    {contractFunctionType !== 'unknown' && (
+                      <div className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide border ${
+                        contractFunctionType === 'transfer' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                        contractFunctionType === 'swap' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                        contractFunctionType === 'mint' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                        contractFunctionType === 'burn' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                        contractFunctionType === 'approve' ? 'bg-cyan-50 text-cyan-600 border-cyan-100' :
+                        contractFunctionType === 'deposit' ? 'bg-green-50 text-green-600 border-green-100' :
+                        contractFunctionType === 'withdraw' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                        'bg-slate-50 text-slate-600 border-slate-100'
+                      }`}>
+                        {contractFunctionType}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
@@ -459,6 +482,24 @@ export default function TransactionMobileView({ transaction, operations, effects
                   </Link>
                 </div>
               </div>
+
+              {/* Contract Address */}
+              {contractAddress && (
+                <div className="mt-3 pt-3 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Contract</span>
+                    <Link
+                      href={`/contract/${contractAddress}`}
+                      className="text-xs font-mono font-semibold text-indigo-600 hover:text-indigo-700 transition-colors flex items-center gap-1"
+                    >
+                      {shortenAddress(contractAddress, 6)}
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </Link>
+                  </div>
+                </div>
+              )}
 
               {/* Smart Contract Summary Card */}
               <div className="mt-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm relative overflow-hidden transition-all duration-300">
