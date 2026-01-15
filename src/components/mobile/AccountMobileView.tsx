@@ -98,7 +98,11 @@ export default function AccountMobileView({ account, transactions, operations: i
 
   // Get operations for current page
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const operations = allOperations.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  // Reset page when switching activity type
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activityType]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,25 +124,30 @@ export default function AccountMobileView({ account, transactions, operations: i
   // Fetch effects for visible operations
   useEffect(() => {
     const fetchEffects = async () => {
-      // Compute visible ops inline to avoid reference issues
-      let visibleOps = operations;
-      if (activityType === 'payments') {
-        visibleOps = operations.filter(op =>
+      // Compute visible ops based on current activity type and page
+      let visibleOps: Operation[] = [];
+      const start = (currentPage - 1) * ITEMS_PER_PAGE;
+
+      if (activityType === 'all') {
+        visibleOps = allOperations.slice(start, start + ITEMS_PER_PAGE);
+      } else if (activityType === 'payments') {
+        const paymentFiltered = allOperations.filter(op =>
           op.type === 'payment' ||
           op.type === 'create_account' ||
           op.type === 'path_payment_strict_send' ||
           op.type === 'path_payment_strict_receive' ||
           op.type === 'invoke_host_function'
         );
+        visibleOps = paymentFiltered.slice(start, start + ITEMS_PER_PAGE);
       } else if (activityType === 'contracts') {
-        visibleOps = operations.filter(op =>
+        const contractFiltered = allOperations.filter(op =>
           op.type === 'invoke_host_function' ||
           op.type === 'extend_footprint_ttl' ||
           op.type === 'restore_footprint'
         );
+        visibleOps = contractFiltered.slice(start, start + ITEMS_PER_PAGE);
       }
 
-      visibleOps = visibleOps.slice(0, 20);
       const newEffects: Record<string, Effect[]> = {};
 
       await Promise.all(visibleOps.map(async (op) => {
@@ -162,7 +171,7 @@ export default function AccountMobileView({ account, transactions, operations: i
 
     fetchEffects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [operations, activityType, account.id]);
+  }, [allOperations, activityType, currentPage, account.id]);
 
   const getAmountFromEffects = (effects: Effect[] | undefined) => {
     if (!effects || effects.length === 0) return null;
@@ -269,7 +278,8 @@ export default function AccountMobileView({ account, transactions, operations: i
     return paymentTerms.some(term => functionName.includes(term));
   };
 
-  const paymentOps = operations.filter(op =>
+  // Filter from ALL operations, not just the current page
+  const allPaymentOps = allOperations.filter(op =>
     op.type === 'payment' ||
     op.type === 'create_account' ||
     op.type === 'path_payment_strict_send' ||
@@ -277,11 +287,24 @@ export default function AccountMobileView({ account, transactions, operations: i
     isPaymentContractOp(op),
   );
 
-  const contractOps = operations.filter(op =>
+  const allContractOps = allOperations.filter(op =>
     op.type === 'invoke_host_function' ||
     op.type === 'extend_footprint_ttl' ||
     op.type === 'restore_footprint',
   );
+
+  // Get the current data source based on activity type
+  const getCurrentDataSource = () => {
+    if (activityType === 'payments') return allPaymentOps;
+    if (activityType === 'contracts') return allContractOps;
+    return allOperations;
+  };
+
+  const currentDataSource = getCurrentDataSource();
+  const currentTotalPages = Math.ceil(currentDataSource.length / ITEMS_PER_PAGE) + (activityType === 'all' && hasMoreToFetch ? 1 : 0);
+
+  // Get paginated items for current view
+  const paginatedOps = currentDataSource.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   return (
     <div className="w-full bg-[#F2F4F8] min-h-screen pb-24 font-sans relative">
@@ -512,15 +535,14 @@ export default function AccountMobileView({ account, transactions, operations: i
                 </button>
               </div>
 
-              {(activityType === 'all' ? operations : activityType === 'payments' ? paymentOps : contractOps).length === 0 ? (
+              {currentDataSource.length === 0 ? (
                 <div className="text-center py-8 text-slate-400">
                   <p className="text-xs font-medium">No activity found</p>
                 </div>
               ) : (
                 <div className="relative">
                   <div className="absolute left-[21px] top-4 bottom-4 w-[2px] bg-slate-100 -z-10" />
-                  {(activityType === 'all' ? operations : activityType === 'payments' ? paymentOps : contractOps)
-                    .map(op => {
+                  {paginatedOps.map(op => {
                       const isSwap =
                         op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
                       const isPayment = op.type === 'payment' || op.type === 'create_account';
@@ -705,7 +727,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     })}
 
                   {/* Pagination */}
-                  {activityType === 'all' && totalPages > 1 && (
+                  {currentTotalPages > 1 && (
                     <div className="flex items-center justify-center gap-1 mt-4 pt-3 border-t border-slate-100">
                       <button
                         onClick={() => goToPage(currentPage - 1)}
@@ -722,7 +744,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                         const pages = [];
                         const showPages = 5;
                         let start = Math.max(1, currentPage - Math.floor(showPages / 2));
-                        const end = Math.min(totalPages, start + showPages - 1);
+                        const end = Math.min(currentTotalPages, start + showPages - 1);
                         if (end - start < showPages - 1) {
                           start = Math.max(1, end - showPages + 1);
                         }
@@ -755,17 +777,17 @@ export default function AccountMobileView({ account, transactions, operations: i
                           );
                         }
 
-                        if (end < totalPages) {
-                          if (end < totalPages - 1) {
+                        if (end < currentTotalPages) {
+                          if (end < currentTotalPages - 1) {
                             pages.push(<span key="dots2" className="text-slate-400 text-xs px-1">...</span>);
                           }
                           pages.push(
                             <button
-                              key={totalPages}
-                              onClick={() => goToPage(totalPages)}
+                              key={currentTotalPages}
+                              onClick={() => goToPage(currentTotalPages)}
                               className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-100 transition-colors"
                             >
-                              {hasMoreToFetch ? '...' : totalPages}
+                              {activityType === 'all' && hasMoreToFetch ? '...' : currentTotalPages}
                             </button>
                           );
                         }
@@ -775,7 +797,7 @@ export default function AccountMobileView({ account, transactions, operations: i
 
                       <button
                         onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage >= totalPages && !hasMoreToFetch || loadingPage}
+                        disabled={(currentPage >= currentTotalPages && !(activityType === 'all' && hasMoreToFetch)) || loadingPage}
                         className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
