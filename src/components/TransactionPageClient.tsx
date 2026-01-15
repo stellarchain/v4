@@ -45,9 +45,10 @@ export default function TransactionPageClient({
 
   const [transactions, setTransactions] = useState<Transaction[]>(mergedInitial);
   const [filter, setFilter] = useState<FilterType>('all');
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [oldestCursor, setOldestCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
   const seenIdsRef = useRef<Set<string>>(new Set(mergedInitial.map(t => t.hash)));
@@ -181,9 +182,11 @@ export default function TransactionPageClient({
     }
   }, [limit, convertPaymentsToTransactions]);
 
-  // Load more older transactions
-  const loadMoreTransactions = useCallback(async () => {
-    if (isLoadingMore) return;
+  // Fetch more transactions when navigating to pages that need it
+  const fetchMoreIfNeeded = useCallback(async (targetPage: number) => {
+    const neededItems = targetPage * PAGE_SIZE;
+    if (neededItems <= transactions.length || !hasMore || isLoadingMore) return;
+
     setIsLoadingMore(true);
 
     try {
@@ -195,6 +198,7 @@ export default function TransactionPageClient({
 
       if (!cursor) {
         setIsLoadingMore(false);
+        setHasMore(false);
         return;
       }
 
@@ -207,12 +211,14 @@ export default function TransactionPageClient({
 
       if (olderTransactions.length === 0) {
         setIsLoadingMore(false);
+        setHasMore(false);
         return;
       }
 
       // Update oldest cursor for next load
       const oldestTx = olderTransactions[olderTransactions.length - 1];
       setOldestCursor(oldestTx.paging_token);
+      setHasMore(olderTransactions.length >= PAGE_SIZE);
 
       // Process older transactions with minimal displayInfo (no operation fetching)
       const txsWithOps = olderTransactions.map((tx) => {
@@ -241,15 +247,22 @@ export default function TransactionPageClient({
         seenIdsRef.current = new Set(merged.map(t => t.hash));
         return merged;
       });
-
-      // Increase visible count to show the newly loaded transactions
-      setVisibleCount(prev => prev + PAGE_SIZE);
     } catch (error) {
       console.error('Failed to load more transactions:', error);
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, transactions, oldestCursor]);
+  }, [isLoadingMore, transactions, oldestCursor, hasMore]);
+
+  const goToPage = useCallback((page: number) => {
+    setCurrentPage(page);
+    fetchMoreIfNeeded(page);
+  }, [fetchMoreIfNeeded]);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter]);
 
   useEffect(() => {
     // Use the merged initial (includes both regular and payment transactions)
@@ -290,9 +303,10 @@ export default function TransactionPageClient({
     return true;
   });
 
-  // Paginate the filtered transactions
-  const visibleTransactions = filteredTransactions.slice(0, visibleCount);
-  const hasMore = filteredTransactions.length > visibleCount || transactions.length >= PAGE_SIZE;
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredTransactions.length / PAGE_SIZE) + (hasMore ? 1 : 0);
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const visibleTransactions = filteredTransactions.slice(startIndex, startIndex + PAGE_SIZE);
 
   // Effect to progressively fetch details for visible transactions labeled as 'other' / 'unknown'
   // This ensures we can properly identify Smart Contracts functions
@@ -574,28 +588,68 @@ export default function TransactionPageClient({
             )}
           </div>
 
-          {/* Footer / Load More */}
-          {visibleTransactions.length > 0 && hasMore && (
-            <div className="p-3 bg-gray-50 border-t border-gray-100 text-center">
-              <button
-                onClick={loadMoreTransactions}
-                disabled={isLoadingMore}
-                className="text-[10px] font-bold text-gray-400 hover:text-slate-900 transition-colors flex items-center gap-1 mx-auto uppercase tracking-tighter disabled:opacity-50"
-              >
-                {isLoadingMore ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></span>
-                    Loading...
-                  </span>
-                ) : (
-                  <>
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                    Load More Activity
-                  </>
+          {/* Footer / Pagination */}
+          {totalPages > 1 && (
+            <div className="p-3 bg-gray-50 border-t border-gray-100">
+              <div className="flex items-center justify-center gap-1">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1 || isLoadingMore}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => goToPage(pageNum)}
+                      disabled={isLoadingMore}
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
+                        currentPage === pageNum
+                          ? 'bg-slate-900 text-white'
+                          : 'text-slate-500 hover:bg-slate-100'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+
+                {hasMore && totalPages > 5 && (
+                  <span className="text-slate-400 text-xs px-1">...</span>
                 )}
-              </button>
+
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={(currentPage >= totalPages && !hasMore) || isLoadingMore}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+
+                {isLoadingMore && (
+                  <svg className="w-4 h-4 animate-spin ml-2 text-slate-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                )}
+              </div>
             </div>
           )}
         </div>
