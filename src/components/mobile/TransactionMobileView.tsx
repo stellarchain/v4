@@ -84,6 +84,18 @@ export default function TransactionMobileView({ transaction, operations, effects
   const paymentOps = operations.filter(op => op.type === 'payment' || op.type === 'create_account');
   const isMultiSend = paymentOps.length > 1;
 
+  // Check if this is an account operation (no transfer of value)
+  const accountOperationTypes = [
+    'change_trust', 'set_options', 'manage_data', 'bump_sequence',
+    'allow_trust', 'set_trustline_flags', 'liquidity_pool_deposit',
+    'liquidity_pool_withdraw', 'begin_sponsoring_future_reserves',
+    'end_sponsoring_future_reserves', 'revoke_sponsorship', 'clawback',
+    'clawback_claimable_balance', 'create_claimable_balance', 'claim_claimable_balance'
+  ];
+  const isAccountOperation = operations.length > 0 &&
+    operations.every(op => accountOperationTypes.includes(op.type)) &&
+    !isSwap && !isOffer && !isMultiSend;
+
   // Find primary transfer info (fallback for legacy logic)
   const transferOps = operations.filter(op =>
     ['payment', 'create_account', 'path_payment_strict_send', 'path_payment_strict_receive'].includes(op.type)
@@ -109,6 +121,29 @@ export default function TransactionMobileView({ transaction, operations, effects
   let typeLabel = 'Transaction';
   let fromLabel = 'From Account';
   let toLabel = 'To Destination';
+
+  // Set type label for account operations
+  if (isAccountOperation && operations[0]) {
+    const opType = operations[0].type;
+    const opTypeLabels: Record<string, string> = {
+      'change_trust': 'Trustline Change',
+      'set_options': 'Account Settings',
+      'manage_data': 'Data Entry',
+      'bump_sequence': 'Sequence Bump',
+      'allow_trust': 'Trust Authorization',
+      'set_trustline_flags': 'Trustline Flags',
+      'liquidity_pool_deposit': 'LP Deposit',
+      'liquidity_pool_withdraw': 'LP Withdraw',
+      'begin_sponsoring_future_reserves': 'Begin Sponsorship',
+      'end_sponsoring_future_reserves': 'End Sponsorship',
+      'revoke_sponsorship': 'Revoke Sponsorship',
+      'clawback': 'Clawback',
+      'clawback_claimable_balance': 'Clawback Balance',
+      'create_claimable_balance': 'Create Claimable Balance',
+      'claim_claimable_balance': 'Claim Balance',
+    };
+    typeLabel = opTypeLabels[opType] || opType.replace(/_/g, ' ');
+  }
 
   // Swap Data
   let swapSold: { amount: string, code: string } | null = null;
@@ -695,8 +730,59 @@ export default function TransactionMobileView({ transaction, operations, effects
                   </Link>
                 </div>
               </div>
+            ) : isAccountOperation ? (
+              /* Account Operation Card (no transfer) */
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Account Operation</div>
+                    <div className="text-sm font-bold text-slate-900 capitalize">
+                      {operations[0]?.type.replace(/_/g, ' ') || 'Operation'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Operation Details */}
+                <div className="bg-slate-50 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Account</span>
+                    <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold text-slate-700 hover:text-indigo-600 transition-colors">
+                      {shortenAddress(transaction.source_account, 4)}
+                    </Link>
+                  </div>
+
+                  {/* Show asset info for trustline operations */}
+                  {operations[0]?.type === 'change_trust' && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Asset</span>
+                      <span className="text-xs font-semibold text-slate-700">
+                        {(operations[0] as any).asset_code || 'Unknown'}
+                        {(operations[0] as any).asset_issuer && (
+                          <span className="text-slate-400 ml-1">({shortenAddress((operations[0] as any).asset_issuer, 4)})</span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Show effect summary */}
+                  {effects.length > 0 && (
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Effect</span>
+                      <span className="text-xs font-semibold text-indigo-600 capitalize">
+                        {effects[0]?.type.replace(/_/g, ' ') || 'None'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : (
-              /* Visual Flow for non-offer transactions */
+              /* Visual Flow for transfer transactions */
               <div className="space-y-2 mb-4 relative">
                 {/* Connector Line */}
                 <div className="absolute left-[1.6rem] top-8 bottom-8 w-0.5 bg-gradient-to-b from-slate-200 via-slate-300 to-slate-200 -z-10"></div>
