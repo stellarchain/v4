@@ -1054,9 +1054,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                       </span>
                       <div className="flex items-center text-[10px] text-slate-500 font-medium truncate">
                         {['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type) ? (
-                          <span className="text-slate-500">
+                          <span className="text-slate-500" title={`@ ${(op as any).price}`}>
                             → {(op as any).buying_asset_type === 'native' ? 'XLM' : ((op as any).buying_asset_code || 'XLM')}
-                            <span className="text-slate-400 ml-1">@ {(op as any).price}</span>
+                            <span className="text-slate-400 ml-1">@ {formatCompactNumber((op as any).price)}</span>
                           </span>
                         ) : (
                           <>
@@ -1085,17 +1085,17 @@ export default function TransactionMobileView({ transaction, operations, effects
                       </div>
                     </div>
                     {op.amount && (
-                      <div className="text-right flex-shrink-0">
+                      <div className="text-right flex-shrink-0" title={op.amount}>
                         {['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type) ? (
                           <span className="block text-xs font-bold text-slate-900">
-                            {parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                            {formatCompactNumber(op.amount)}
                             <span className="text-[10px] font-normal text-slate-500 ml-1">
                               {(op as any).selling_asset_type === 'native' ? 'XLM' : ((op as any).selling_asset_code || 'XLM')}
                             </span>
                           </span>
                         ) : (
                           <span className="block text-xs font-bold text-slate-900">
-                            {parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                            {formatCompactNumber(op.amount)}
                             <span className="text-[10px] font-normal text-slate-500 ml-1">{op.asset_type === 'native' ? 'XLM' : op.asset_code || ''}</span>
                           </span>
                         )}
