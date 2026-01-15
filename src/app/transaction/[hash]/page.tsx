@@ -13,8 +13,8 @@ export default async function TransactionPage({ params }: TransactionPageProps) 
 
   const [transaction, operationsResponse, effectsResponse] = await Promise.all([
     getTransaction(hash),
-    getTransactionOperations(hash, 20),
-    getTransactionEffects(hash, 20),
+    getTransactionOperations(hash, 200),
+    getTransactionEffects(hash, 200),
   ]);
 
   const operations = operationsResponse._embedded.records;
