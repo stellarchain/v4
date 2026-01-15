@@ -167,10 +167,14 @@ export default function TransactionMobileView({ transaction, operations, effects
   let multiSendSum = 0;
   let multiSendAsset = '';
 
+  // Compute unique recipients
+  const uniqueRecipients = new Set(paymentOps.map(op => op.to || (op as any).into || 'unknown'));
+  const uniqueRecipientCount = uniqueRecipients.size;
+
   if (isMultiSend) {
     typeLabel = paymentOps.length > 10 ? 'Bulk Send' : 'Multi Send';
     toLabel = 'Recipients';
-    multiSendCount = paymentOps.length;
+    multiSendCount = uniqueRecipientCount;
 
     // Sum
     multiSendSum = paymentOps.reduce((sum, op) => sum + parseFloat(op.amount || '0'), 0);
@@ -786,7 +790,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                           </span>
                         ) : isMultiSend ? (
                           <div className="font-mono text-sm text-slate-700 font-bold">
-                            {paymentOps.length} Recipients
+                            {uniqueRecipientCount} Recipients
                           </div>
                         ) : (
                           <>
