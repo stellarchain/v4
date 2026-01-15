@@ -237,34 +237,18 @@ export default function AccountMobileView({ account, transactions, operations, x
     <div className="w-full bg-[#F2F4F8] min-h-screen pb-24 font-sans relative">
       <div className="bg-[#020617] rounded-b-[2.5rem] pb-8 pt-safe">
         <div className="w-full px-5 max-w-2xl mx-auto pt-4">
-          <div className="flex items-center justify-between mb-6">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md border border-white/5">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center mb-5">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md border border-white/5">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <span className="font-bold text-white tracking-tight text-base">StellarChain</span>
+              <span className="font-bold text-white tracking-tight text-sm">StellarChain</span>
             </Link>
-
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 text-white text-[10px] font-semibold hover:bg-white/20 transition-colors"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16h8M8 12h8m-6-8h10v16H6V4h6z" />
-              </svg>
-              <span>{copied ? 'Copied' : 'Copy address'}</span>
-            </button>
           </div>
 
-          <div className="mb-4">
-            <p className="text-[11px] font-mono text-slate-300 break-all bg-white/5 rounded-2xl px-3 py-2 border border-white/5">
-              {account.id}
-            </p>
-          </div>
-
-          <div className="relative mb-8">
+          <div className="relative mb-6">
             <form onSubmit={handleSearch}>
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                 <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -281,60 +265,70 @@ export default function AccountMobileView({ account, transactions, operations, x
             </form>
           </div>
 
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => router.back()}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
               </button>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Stellar Account</span>
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Stellar Account</span>
             </div>
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10 text-white/80 text-[9px] font-mono hover:bg-white/20 transition-colors"
+            >
+              <span>{shortenAddress(account.id, 4)}</span>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              {copied && <span className="text-emerald-400">✓</span>}
+            </button>
           </div>
 
-          <div className="flex items-center gap-4 mb-2">
-            <h1 className="text-4xl font-bold text-white tracking-tight">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-2xl font-bold text-white tracking-tight">
               ${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </h1>
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 flex items-center gap-1">
-              <svg className="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5 flex items-center gap-1">
+              <svg className="w-2.5 h-2.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
-              <span className="text-[10px] font-bold text-emerald-400">+1.2%</span>
+              <span className="text-[9px] font-bold text-emerald-400">+1.2%</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-5 relative -mt-6">
-        <div className="bg-white rounded-2xl p-1.5 shadow-xl shadow-slate-200/50 flex mb-8">
+      <div className="max-w-2xl mx-auto px-5 relative -mt-5">
+        <div className="bg-white rounded-xl p-1 shadow-lg shadow-slate-200/50 flex mb-4">
           <button
             onClick={() => setActiveTab('balances')}
-            className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${activeTab === 'balances' ? 'bg-[#0F172A] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'
+            className={`flex-1 py-2 text-[11px] font-bold rounded-lg transition-all ${activeTab === 'balances' ? 'bg-[#0F172A] text-white shadow-sm' : 'text-slate-500 hover:text-slate-900'
               }`}
           >
             Balances
           </button>
           <button
             onClick={() => setActiveTab('activity')}
-            className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${activeTab === 'activity' ? 'bg-[#0F172A] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'
+            className={`flex-1 py-2 text-[11px] font-bold rounded-lg transition-all ${activeTab === 'activity' ? 'bg-[#0F172A] text-white shadow-sm' : 'text-slate-500 hover:text-slate-900'
               }`}
           >
             Activity
           </button>
           <button
             onClick={() => setActiveTab('details')}
-            className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${activeTab === 'details' ? 'bg-[#0F172A] text-white shadow-md' : 'text-slate-500 hover:text-slate-900'
+            className={`flex-1 py-2 text-[11px] font-bold rounded-lg transition-all ${activeTab === 'details' ? 'bg-[#0F172A] text-white shadow-sm' : 'text-slate-500 hover:text-slate-900'
               }`}
           >
             Details
           </button>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {activeTab === 'balances' && (
             <>
               <div className="flex items-center justify-between px-1">
@@ -437,11 +431,11 @@ export default function AccountMobileView({ account, transactions, operations, x
           )}
 
           {activeTab === 'activity' && (
-            <div className="space-y-4">
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="space-y-3">
+              <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
                 <button
                   onClick={() => setActivityType('all')}
-                  className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${activityType === 'all'
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${activityType === 'all'
                     ? 'bg-black text-white'
                     : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
                     }`}
@@ -450,7 +444,7 @@ export default function AccountMobileView({ account, transactions, operations, x
                 </button>
                 <button
                   onClick={() => setActivityType('payments')}
-                  className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${activityType === 'payments'
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${activityType === 'payments'
                     ? 'bg-black text-white'
                     : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
                     }`}
@@ -459,7 +453,7 @@ export default function AccountMobileView({ account, transactions, operations, x
                 </button>
                 <button
                   onClick={() => setActivityType('contracts')}
-                  className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${activityType === 'contracts'
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${activityType === 'contracts'
                     ? 'bg-black text-white'
                     : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
                     }`}
@@ -469,12 +463,12 @@ export default function AccountMobileView({ account, transactions, operations, x
               </div>
 
               {(activityType === 'all' ? operations : activityType === 'payments' ? paymentOps : contractOps).length === 0 ? (
-                <div className="text-center py-12 text-slate-400">
-                  <p className="text-sm font-medium">No activity found</p>
+                <div className="text-center py-8 text-slate-400">
+                  <p className="text-xs font-medium">No activity found</p>
                 </div>
               ) : (
                 <div className="relative">
-                  <div className="absolute left-[27px] top-6 bottom-6 w-[2px] bg-slate-100 -z-10" />
+                  <div className="absolute left-[21px] top-4 bottom-4 w-[2px] bg-slate-100 -z-10" />
                   {(activityType === 'all' ? operations : activityType === 'payments' ? paymentOps : contractOps)
                     .slice(0, 20)
                     .map(op => {
@@ -567,20 +561,20 @@ export default function AccountMobileView({ account, transactions, operations, x
                         <Link
                           href={`/transaction/${op.transaction_hash}`}
                           key={op.id}
-                          className="block bg-white rounded-2xl p-3 shadow-sm border border-slate-100 mb-2.5 active:scale-[0.99] transition-transform"
+                          className="block bg-white rounded-xl p-2.5 shadow-sm border border-slate-100 mb-2 active:scale-[0.99] transition-transform"
                         >
-                          <div className="flex justify-between items-center mb-1.5">
-                            <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest pl-1">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-[9px] font-bold text-blue-500 uppercase tracking-wider">
                               {typeDisplay}
                             </span>
-                            <span className="text-[10px] font-medium text-slate-400">
+                            <span className="text-[9px] font-medium text-slate-400">
                               {timeAgo(op.created_at)}
                             </span>
                           </div>
 
-                          <div className="flex items-start gap-3">
+                          <div className="flex items-center gap-2">
                             <div
-                              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${isSwap
+                              className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${isSwap
                                 ? 'bg-blue-50 text-blue-500'
                                 : typeDisplay === 'RECEIVED' || effectInfo?.type === 'received'
                                   ? 'bg-emerald-50 text-emerald-500'
@@ -590,131 +584,69 @@ export default function AccountMobileView({ account, transactions, operations, x
                                 }`}
                             >
                               {isSwap ? (
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                                  />
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                 </svg>
                               ) : typeDisplay === 'RECEIVED' || effectInfo?.type === 'received' ? (
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                                  />
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                                 </svg>
                               ) : typeDisplay === 'SENT' || effectInfo?.type === 'sent' ? (
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M5 10l7-7m0 0l7 7m-7-7v18"
-                                  />
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
                                 </svg>
                               ) : (
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                                  />
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
                               )}
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <div className="mb-1.5">
-                                {isSwap ? (
-                                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                                    <div className="flex items-baseline gap-1">
-                                      <span className="font-bold text-slate-900 text-sm">{amountIn}</span>
-                                      <span className="text-[10px] font-bold text-slate-400">{assetIn}</span>
-                                    </div>
-                                    <svg
-                                      className="w-3 h-3 text-slate-300"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M17 8l4 4m0 0l-4 4m4-4H3"
-                                      />
-                                    </svg>
-                                    <div className="flex items-baseline gap-1">
-                                      <span className="font-bold text-slate-900 text-sm">{amountOut}</span>
-                                      <span className="text-[10px] font-bold text-slate-400">{assetOut}</span>
-                                    </div>
+                              {isSwap ? (
+                                <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                                  <div className="flex items-baseline gap-0.5">
+                                    <span className="font-bold text-slate-900 text-xs">{amountIn}</span>
+                                    <span className="text-[9px] font-bold text-slate-400">{assetIn}</span>
                                   </div>
-                                ) : isContract && effectInfo ? (
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className={`text-[9px] font-bold uppercase tracking-wide ${effectInfo.type === 'received' ? 'text-emerald-500' : 'text-orange-500'
-                                        }`}>
-                                        {effectInfo.type === 'received' ? '↓ received' : '↑ sent'}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-baseline gap-1.5">
-                                      <span className="font-bold text-slate-900 text-sm">{amountOut}</span>
-                                      <span className="text-[10px] font-bold text-slate-400">{assetOut}</span>
-                                    </div>
+                                  <svg className="w-2.5 h-2.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                  </svg>
+                                  <div className="flex items-baseline gap-0.5">
+                                    <span className="font-bold text-slate-900 text-xs">{amountOut}</span>
+                                    <span className="text-[9px] font-bold text-slate-400">{assetOut}</span>
                                   </div>
-                                ) : isPayment || effectInfo ? (
-                                  <div className="flex items-baseline gap-1.5">
-                                    <span className="font-bold text-slate-900 text-sm">{amountOut}</span>
-                                    <span className="text-[10px] font-bold text-slate-400">{assetOut}</span>
-                                  </div>
-                                ) : isContract ? (
-                                  <div className="font-bold text-slate-900 text-sm">
-                                    {contractFunctionName && contractFunctionName !== 'Contract Call'
-                                      ? contractFunctionName
-                                      : 'Contract Interaction'}
-                                  </div>
-                                ) : (
-                                  <div className="font-bold text-slate-900 text-xs break-all">
-                                    Operation
-                                  </div>
-                                )}
-                              </div>
+                                </div>
+                              ) : isContract && effectInfo ? (
+                                <div className="flex items-baseline gap-1">
+                                  <span className="font-bold text-slate-900 text-xs">{amountOut}</span>
+                                  <span className="text-[9px] font-bold text-slate-400">{assetOut}</span>
+                                </div>
+                              ) : isPayment || effectInfo ? (
+                                <div className="flex items-baseline gap-1">
+                                  <span className="font-bold text-slate-900 text-xs">{amountOut}</span>
+                                  <span className="text-[9px] font-bold text-slate-400">{assetOut}</span>
+                                </div>
+                              ) : isContract ? (
+                                <div className="font-bold text-slate-900 text-xs">
+                                  {contractFunctionName && contractFunctionName !== 'Contract Call'
+                                    ? contractFunctionName
+                                    : 'Contract Interaction'}
+                                </div>
+                              ) : (
+                                <div className="font-bold text-slate-900 text-[11px]">
+                                  Operation
+                                </div>
+                              )}
 
                               {counterparty && (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <span className="text-[8px] font-bold text-slate-400 uppercase">
                                     {counterpartyLabel}
                                   </span>
-                                  <div className="bg-slate-50 px-1.5 py-0.5 rounded-[0.4rem] border border-slate-100">
-                                    <span className="text-[10px] font-mono font-bold text-slate-500 block">
-                                      {shortenAddress(counterparty)}
-                                    </span>
-                                  </div>
+                                  <span className="text-[9px] font-mono text-slate-500">
+                                    {shortenAddress(counterparty, 4)}
+                                  </span>
                                 </div>
                               )}
                             </div>
