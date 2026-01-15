@@ -6,6 +6,33 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Transaction, Operation, Effect, shortenAddress, timeAgo, formatXLM } from '@/lib/stellar';
 
+// Format large numbers with abbreviations (K, M, B, T)
+function formatCompactNumber(value: number): string {
+  if (value === 0) return '0';
+
+  const absValue = Math.abs(value);
+
+  if (absValue >= 1_000_000_000_000) {
+    return (value / 1_000_000_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) + 'T';
+  }
+  if (absValue >= 1_000_000_000) {
+    return (value / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) + 'B';
+  }
+  if (absValue >= 1_000_000) {
+    return (value / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) + 'M';
+  }
+  if (absValue >= 10_000) {
+    return (value / 1_000).toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'K';
+  }
+  // For smaller numbers, show with appropriate decimal places
+  return value.toLocaleString(undefined, { maximumFractionDigits: 4 });
+}
+
+// Format exact number for tooltips
+function formatExactNumber(value: number): string {
+  return value.toLocaleString(undefined, { maximumFractionDigits: 7 });
+}
+
 interface Balance {
   asset_type: string;
   asset_code?: string;
@@ -429,7 +456,12 @@ export default function AccountMobileView({ account, transactions, operations: i
                     </div>
 
                     <div className="text-right">
-                      <p className="font-bold text-slate-900 text-base">{formatXLM(xlmBalance?.balance || '0')}</p>
+                      <p
+                        className="font-bold text-slate-900 text-base cursor-help"
+                        title={formatExactNumber(xlmAmount)}
+                      >
+                        {formatCompactNumber(xlmAmount)}
+                      </p>
                       <p className="text-xs font-semibold text-slate-400">
                         ${(xlmAmount * xlmPrice).toLocaleString(undefined, {
                           minimumFractionDigits: 2,
@@ -478,8 +510,11 @@ export default function AccountMobileView({ account, transactions, operations: i
                         </div>
 
                         <div className="text-right">
-                          <p className="font-bold text-slate-900 text-base">
-                            {amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                          <p
+                            className="font-bold text-slate-900 text-base cursor-help"
+                            title={formatExactNumber(amount)}
+                          >
+                            {formatCompactNumber(amount)}
                           </p>
                           <p className="text-xs font-semibold text-slate-400">
                             {(() => {
