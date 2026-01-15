@@ -396,7 +396,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                 </div>
                 <div className="text-right">
                   <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Account</div>
-                  <Link href={`/account/${transaction.source_account}`} className="text-xs font-mono font-bold text-slate-700 hover:text-indigo-600 block mt-1">
+                  <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold text-slate-700 hover:text-indigo-600 block mt-1">
                     {shortenAddress(transaction.source_account, 4)}
                   </Link>
                 </div>
@@ -628,214 +628,251 @@ export default function TransactionMobileView({ transaction, operations, effects
               </div>
             </div>
 
-            {/* Visual Flow */}
-            <div className="space-y-2 mb-4 relative">
-              {/* Connector Line */}
-              <div className="absolute left-[1.6rem] top-8 bottom-8 w-0.5 bg-gradient-to-b from-slate-200 via-slate-300 to-slate-200 -z-10"></div>
+            {/* DEX Limit Order Card for Offers */}
+            {isOffer ? (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-4">
+                {/* Header */}
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-bold text-slate-900">DEX Limit Order</span>
+                </div>
 
-              {/* FIRST CARD (From / Sold / Selling) */}
-              <div className={`relative overflow-hidden rounded-2xl p-3 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-white group transition-all duration-300 hover:shadow-md`}>
-                {/* Subtle Background Gradient */}
-                <div className={`absolute inset-0 opacity-30 bg-gradient-to-r ${isSwap || isOffer ? 'from-indigo-50 via-white to-white' : 'from-emerald-50 via-white to-white'
-                  }`}></div>
-
-                {/* Left Accent Strip (Optional, lighter touch) */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1 ${isSwap || isOffer ? 'bg-indigo-400' : 'bg-emerald-400'} opacity-0`}></div>
-
-                <div className="relative flex items-center justify-between z-10">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${isSwap || isOffer ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
-                      }`}>
-                      {isSwap ? (
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                        </svg>
-                      ) : isOffer ? (
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 transform -rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                        </svg>
-                      )}
-                    </div>
-
-                    <div>
-                      <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{fromLabel}</div>
-                      {isOffer ? (
-                        <span className="font-mono text-xs text-slate-700 font-bold">
-                          {offerDetails?.amount ? parseFloat(offerDetails.amount).toLocaleString() : '0'} <span className="text-[10px] font-normal text-slate-500">{offerDetails?.selling}</span>
-                        </span>
-                      ) : isSwap ? (
-                        <span className="font-mono text-xs text-slate-700 font-bold">
-                          {formatTokenAmount(swapSold?.amount)} <span className="text-[10px] font-normal text-slate-500">{swapSold?.code}</span>
-                        </span>
-                      ) : (
-                        <Link href={`/account/${transaction.source_account}`} className="font-mono text-xs text-slate-700 truncate w-32 sm:w-48 block hover:text-emerald-600 transition-colors">
-                          {shortenAddress(transaction.source_account, 8)}
-                        </Link>
-                      )}
+                {/* Vertical Trade Flow */}
+                <div className="bg-slate-50 rounded-xl p-4 mb-4 space-y-4">
+                  {/* SELLING ROW */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Selling</div>
+                    <div className="text-right">
+                      <span className="text-lg font-bold text-slate-900">
+                        {offerDetails?.amount ? parseFloat(offerDetails.amount).toLocaleString(undefined, { maximumFractionDigits: 7 }) : '0'}
+                      </span>
+                      <span className="text-sm text-slate-500 ml-1">{offerDetails?.selling}</span>
                     </div>
                   </div>
 
-                  {/* Right side of First Card */}
-                  {!isOffer && !isSwap && (
-                    <div className="text-right">
-                      {fromCardAmount > 0 ? (
-                        <div className="text-sm font-bold text-slate-900">
-                          - {fromCardAmount.toLocaleString(undefined, { maximumFractionDigits: 7 })} <span className="text-[10px] font-normal text-slate-500">{fromCardAsset}</span>
-                        </div>
-                      ) : (
-                        <div className="text-sm font-bold text-slate-900">--</div>
-                      )}
-                      <div className="text-[9px] uppercase font-bold text-emerald-600/80 tracking-wide">{isContractCall ? 'Called' : 'Sent'}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Connect Icon */}
-              <div className="flex justify-center -my-3 relative z-20 pointer-events-none">
-                <div className="bg-white rounded-full p-1.5 shadow-md text-slate-300 ring-4 ring-[#F8FAFC]">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* SECOND CARD (To / Bought / Buying) */}
-              <div className={`relative overflow-hidden rounded-2xl p-3 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-white group transition-all duration-300 hover:shadow-md`}>
-                <div className={`absolute inset-0 opacity-30 bg-gradient-to-r ${isSwap || isOffer ? 'from-violet-50 via-white to-white' : 'from-amber-50 via-white to-white'
-                  }`}></div>
-
-                {/* Left Accent Strip (Optional) */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1 ${isSwap || isOffer ? 'bg-violet-400' : 'bg-amber-400'} opacity-0`}></div>
-
-                <div className="relative flex items-center justify-between z-10">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${isSwap || isOffer ? 'bg-violet-50 text-violet-600' : 'bg-amber-50 text-amber-600'
-                      }`}>
-                      {isSwap || isOffer ? (
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 transform rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                        </svg>
-                      )}
-                    </div>
-
-                    <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{toLabel}</div>
-
-                      {isOffer ? (
-                        <span className="font-mono text-sm text-slate-700 font-bold">
-                          At {offerDetails?.price} <span className="text-xs font-normal text-slate-500">{offerDetails?.buying}</span>
-                        </span>
-                      ) : isSwap ? (
-                        <span className="font-mono text-sm text-slate-700 font-bold">
-                          {formatTokenAmount(swapBought?.amount)} <span className="text-xs font-normal text-slate-500">{swapBought?.code}</span>
-                        </span>
-                      ) : isMultiSend ? (
-                        <div className="font-mono text-sm text-slate-700 font-bold">
-                          {paymentOps.length} Recipients
-                        </div>
-                      ) : (
-                        <>
-                          {destination !== 'Smart Contract' && !destination.includes('Contract') ? (
-                            <Link href={`/account/${destination}`} className="font-mono text-xs text-slate-700 truncate w-32 sm:w-48 block hover:text-amber-600 transition-colors">
-                              {shortenAddress(destination, 8)}
-                            </Link>
-                          ) : (
-                            <div className="font-mono text-xs text-slate-700 truncate w-32 sm:w-48">
-                              {isContractCall ? contractFunctionName : 'Smart Contract'}
-                            </div>
-                          )}
-                        </>
-                      )}
+                  {/* EXCHANGE RATE ROW */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Exchange Rate</div>
+                    <div className="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-xs font-mono text-slate-700 shadow-sm">
+                      1 {offerDetails?.selling} ≈ {offerDetails?.price} {offerDetails?.buying}
                     </div>
                   </div>
 
-                  {!isSwap && (
+                  {/* BUYING ROW */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Buying</div>
                     <div className="text-right">
-                      {isOffer ? (
-                        <div className="text-[10px] text-slate-500">Price per unit</div>
-                      ) : isMultiSend ? (
-                        <div className="text-sm font-bold text-slate-900">
-                          {displayAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                        </div>
-                      ) : toCardAmount > 0 ? (
-                        <div className="text-sm font-bold text-slate-900">
-                          + {toCardAmount.toLocaleString(undefined, { maximumFractionDigits: 7 })} <span className="text-[10px] font-normal text-slate-500">{toCardAsset}</span>
-                        </div>
-                      ) : (
-                        <div className="text-sm font-bold text-slate-900">--</div>
-                      )}
+                      <span className="text-lg font-bold text-indigo-600">
+                        {offerDetails?.amount && offerDetails?.price
+                          ? (parseFloat(offerDetails.amount) * parseFloat(offerDetails.price)).toLocaleString(undefined, { maximumFractionDigits: 7 })
+                          : '0'
+                        }
+                      </span>
+                      <span className="text-sm text-slate-500 ml-1">{offerDetails?.buying}</span>
+                    </div>
+                  </div>
+                </div>
 
-                      {!isOffer && (
+                {/* Order By */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Order by</span>
+                  <Link href={`/account/${transaction.source_account}`} className="text-slate-600 font-semibold hover:text-indigo-600 transition-colors">
+                    {shortenAddress(transaction.source_account, 4)}
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              /* Visual Flow for non-offer transactions */
+              <div className="space-y-2 mb-4 relative">
+                {/* Connector Line */}
+                <div className="absolute left-[1.6rem] top-8 bottom-8 w-0.5 bg-gradient-to-b from-slate-200 via-slate-300 to-slate-200 -z-10"></div>
+
+                {/* FIRST CARD (From / Sold / Selling) */}
+                <div className={`relative overflow-hidden rounded-2xl p-3 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-white group transition-all duration-300 hover:shadow-md`}>
+                  {/* Subtle Background Gradient */}
+                  <div className={`absolute inset-0 opacity-30 bg-gradient-to-r ${isSwap ? 'from-indigo-50 via-white to-white' : 'from-emerald-50 via-white to-white'
+                    }`}></div>
+
+                  <div className="relative flex items-center justify-between z-10">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${isSwap ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
+                        }`}>
+                        {isSwap ? (
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5 transform -rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                          </svg>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{fromLabel}</div>
+                        {isSwap ? (
+                          <span className="font-mono text-xs text-slate-700 font-bold">
+                            {formatTokenAmount(swapSold?.amount)} <span className="text-[10px] font-normal text-slate-500">{swapSold?.code}</span>
+                          </span>
+                        ) : (
+                          <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold text-slate-700 block hover:text-emerald-600 transition-colors">
+                            {shortenAddress(transaction.source_account, 4)}
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right side of First Card */}
+                    {!isSwap && (
+                      <div className="text-right">
+                        {fromCardAmount > 0 ? (
+                          <div className="text-sm font-bold text-slate-900">
+                            - {fromCardAmount.toLocaleString(undefined, { maximumFractionDigits: 7 })} <span className="text-[10px] font-normal text-slate-500">{fromCardAsset}</span>
+                          </div>
+                        ) : (
+                          <div className="text-sm font-bold text-slate-900">--</div>
+                        )}
+                        <div className="text-[9px] uppercase font-bold text-emerald-600/80 tracking-wide">{isContractCall ? 'Called' : 'Sent'}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Connect Icon */}
+                <div className="flex justify-center -my-3 relative z-20 pointer-events-none">
+                  <div className="bg-white rounded-full p-1.5 shadow-md text-slate-300 ring-4 ring-[#F8FAFC]">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* SECOND CARD (To / Bought / Buying) */}
+                <div className={`relative overflow-hidden rounded-2xl p-3 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-white group transition-all duration-300 hover:shadow-md`}>
+                  <div className={`absolute inset-0 opacity-30 bg-gradient-to-r ${isSwap ? 'from-violet-50 via-white to-white' : 'from-amber-50 via-white to-white'
+                    }`}></div>
+
+                  <div className="relative flex items-center justify-between z-10">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${isSwap ? 'bg-violet-50 text-violet-600' : 'bg-amber-50 text-amber-600'
+                        }`}>
+                        {isSwap ? (
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5 transform rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                          </svg>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{toLabel}</div>
+
+                        {isSwap ? (
+                          <span className="font-mono text-sm text-slate-700 font-bold">
+                            {formatTokenAmount(swapBought?.amount)} <span className="text-xs font-normal text-slate-500">{swapBought?.code}</span>
+                          </span>
+                        ) : isMultiSend ? (
+                          <div className="font-mono text-sm text-slate-700 font-bold">
+                            {paymentOps.length} Recipients
+                          </div>
+                        ) : (
+                          <>
+                            {destination !== 'Smart Contract' && !destination.includes('Contract') ? (
+                              <Link href={`/account/${destination}`} className="text-xs font-semibold text-slate-700 block hover:text-amber-600 transition-colors">
+                                {shortenAddress(destination, 4)}
+                              </Link>
+                            ) : (
+                              <div className="font-mono text-xs text-slate-700 truncate w-32 sm:w-48">
+                                {isContractCall ? contractFunctionName : 'Smart Contract'}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {!isSwap && (
+                      <div className="text-right">
+                        {isMultiSend ? (
+                          <div className="text-sm font-bold text-slate-900">
+                            {displayAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          </div>
+                        ) : toCardAmount > 0 ? (
+                          <div className="text-sm font-bold text-slate-900">
+                            + {toCardAmount.toLocaleString(undefined, { maximumFractionDigits: 7 })} <span className="text-[10px] font-normal text-slate-500">{toCardAsset}</span>
+                          </div>
+                        ) : (
+                          <div className="text-sm font-bold text-slate-900">--</div>
+                        )}
+
                         <div className="text-[9px] font-bold uppercase tracking-wide text-amber-600/80">
                           {isMultiSend ? 'Total Amt' : isContractCall ? 'Effect Amt' : 'Received'}
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    )}
+                  </div>
 
-                {/* Expanded Recipients List */}
-                {isMultiSend && (
-                  <div className="relative mt-2">
-                    <div className="absolute left-0 right-0 -top-4 flex justify-center z-10">
-                      <button
-                        onClick={() => setShowRecipients(!showRecipients)}
-                        className="bg-white border border-slate-100 rounded-full w-6 h-6 flex items-center justify-center shadow-sm text-slate-400 hover:text-slate-600 hover:scale-105 transition-all"
-                      >
-                        <svg className={`w-4 h-4 transition-transform duration-200 ${showRecipients ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                    </div>
+                  {/* Expanded Recipients List */}
+                  {isMultiSend && (
+                    <div className="relative mt-2">
+                      <div className="absolute left-0 right-0 -top-4 flex justify-center z-10">
+                        <button
+                          onClick={() => setShowRecipients(!showRecipients)}
+                          className="bg-white border border-slate-100 rounded-full w-6 h-6 flex items-center justify-center shadow-sm text-slate-400 hover:text-slate-600 hover:scale-105 transition-all"
+                        >
+                          <svg className={`w-4 h-4 transition-transform duration-200 ${showRecipients ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
 
-                    <div className={`transition-all duration-300 ease-in-out overflow-hidden ${showRecipients ? 'max-h-[500px] opacity-100 pt-4' : 'max-h-0 opacity-0'}`}>
-                      <div className="bg-slate-50 rounded-xl border border-slate-100/50 overflow-hidden">
-                        <div className="max-h-[300px] overflow-y-auto">
-                          {Object.entries(
-                            paymentOps.reduce((acc, op) => {
-                              const to = op.to || (op as any).into || 'unknown';
-                              if (!acc[to]) acc[to] = [];
-                              acc[to].push(op);
-                              return acc;
-                            }, {} as Record<string, Operation[]>)
-                          ).map(([to, ops], idx) => (
-                            <div key={to} className="flex items-start justify-between p-3 border-b border-slate-100 last:border-0 hover:bg-slate-100/50">
-                              <div className="flex items-center gap-3 overflow-hidden mt-0.5">
-                                <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500 flex-shrink-0">
-                                  {idx + 1}
-                                </div>
-                                <Link href={`/account/${to}`} className="font-mono text-xs text-slate-600 truncate hover:text-indigo-600 transition-colors">
-                                  {shortenAddress(to, 10)}
-                                </Link>
-                              </div>
-                              <div className="text-right space-y-1">
-                                {ops.map((op, opIdx) => (
-                                  <div key={op.id || opIdx} className="text-right">
-                                    <span className="text-xs font-bold text-slate-900">
-                                      {op.amount ? parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
-                                    </span>
-                                    <span className="text-[10px] text-slate-400 ml-1">{op.asset_type === 'native' ? 'XLM' : (op.asset_code || '')}</span>
+                      <div className={`transition-all duration-300 ease-in-out overflow-hidden ${showRecipients ? 'max-h-[500px] opacity-100 pt-4' : 'max-h-0 opacity-0'}`}>
+                        <div className="bg-slate-50 rounded-xl border border-slate-100/50 overflow-hidden">
+                          <div className="max-h-[300px] overflow-y-auto">
+                            {Object.entries(
+                              paymentOps.reduce((acc, op) => {
+                                const to = op.to || (op as any).into || 'unknown';
+                                if (!acc[to]) acc[to] = [];
+                                acc[to].push(op);
+                                return acc;
+                              }, {} as Record<string, Operation[]>)
+                            ).map(([to, ops], idx) => (
+                              <div key={to} className="flex items-start justify-between p-3 border-b border-slate-100 last:border-0 hover:bg-slate-100/50">
+                                <div className="flex items-center gap-3 overflow-hidden mt-0.5">
+                                  <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500 flex-shrink-0">
+                                    {idx + 1}
                                   </div>
-                                ))}
+                                  <Link href={`/account/${to}`} className="text-xs font-semibold text-slate-600 truncate hover:text-indigo-600 transition-colors">
+                                    {shortenAddress(to, 4)}
+                                  </Link>
+                                </div>
+                                <div className="text-right space-y-1">
+                                  {ops.map((op, opIdx) => (
+                                    <div key={op.id || opIdx} className="text-right">
+                                      <span className="text-xs font-bold text-slate-900">
+                                        {op.amount ? parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
+                                      </span>
+                                      <span className="text-[10px] text-slate-400 ml-1">{op.asset_type === 'native' ? 'XLM' : (op.asset_code || '')}</span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Network Fee Bar */}
             <div className="flex justify-between items-center bg-slate-50 rounded-lg px-3 py-1.5 mb-3 border border-slate-100">
@@ -897,35 +934,53 @@ export default function TransactionMobileView({ transaction, operations, effects
                             : getOperationTypeLabel(op.type).replace(/_/g, ' ')
                         }
                       </span>
-                      <div className="flex items-center text-[10px] text-slate-500 font-mono truncate">
-                        {op.source_account && op.source_account !== transaction.source_account && (
-                          <>
-                            <Link href={`/account/${op.source_account}`} className="truncate max-w-[80px] hover:text-slate-900 transition-colors">
-                              {shortenAddress(op.source_account, 4)}
-                            </Link>
-                            <svg className="w-3 h-3 mx-1 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                            </svg>
-                          </>
-                        )}
-                        {(op.to || (op as any).into) ? (
-                          <span className="flex items-center">
-                            {(op.source_account === transaction.source_account) && <span className="mr-1 text-slate-400">To</span>}
-                            <Link href={`/account/${op.to || (op as any).into}`} className="truncate max-w-[100px] hover:text-slate-900 transition-colors">
-                              {shortenAddress(op.to || (op as any).into, 6)}
-                            </Link>
+                      <div className="flex items-center text-[10px] text-slate-500 font-medium truncate">
+                        {['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type) ? (
+                          <span className="text-slate-500">
+                            → {(op as any).buying_asset_type === 'native' ? 'XLM' : ((op as any).buying_asset_code || 'XLM')}
+                            <span className="text-slate-400 ml-1">@ {(op as any).price}</span>
                           </span>
                         ) : (
-                          <span className="text-slate-300">--</span>
+                          <>
+                            {op.source_account && op.source_account !== transaction.source_account && (
+                              <>
+                                <Link href={`/account/${op.source_account}`} className="truncate max-w-[80px] hover:text-slate-900 transition-colors">
+                                  {shortenAddress(op.source_account, 4)}
+                                </Link>
+                                <svg className="w-3 h-3 mx-1 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                </svg>
+                              </>
+                            )}
+                            {(op.to || (op as any).into) ? (
+                              <span className="flex items-center">
+                                {(op.source_account === transaction.source_account) && <span className="mr-1 text-slate-400">To</span>}
+                                <Link href={`/account/${op.to || (op as any).into}`} className="truncate max-w-[100px] hover:text-slate-900 transition-colors font-semibold">
+                                  {shortenAddress(op.to || (op as any).into, 4)}
+                                </Link>
+                              </span>
+                            ) : (
+                              <span className="text-slate-300">--</span>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
                     {op.amount && (
                       <div className="text-right flex-shrink-0">
-                        <span className="block text-xs font-bold text-slate-900">
-                          {parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                          <span className="text-[10px] font-normal text-slate-500 ml-1">{op.asset_type === 'native' ? 'XLM' : op.asset_code || ''}</span>
-                        </span>
+                        {['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type) ? (
+                          <span className="block text-xs font-bold text-slate-900">
+                            {parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                            <span className="text-[10px] font-normal text-slate-500 ml-1">
+                              {(op as any).selling_asset_type === 'native' ? 'XLM' : ((op as any).selling_asset_code || 'XLM')}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="block text-xs font-bold text-slate-900">
+                            {parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            <span className="text-[10px] font-normal text-slate-500 ml-1">{op.asset_type === 'native' ? 'XLM' : op.asset_code || ''}</span>
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -951,10 +1006,10 @@ export default function TransactionMobileView({ transaction, operations, effects
                   <div key={account} className="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
                       {account === 'unknown' ? (
-                        <span className="text-xs font-mono text-slate-400">Unknown account</span>
+                        <span className="text-xs text-slate-400">Unknown account</span>
                       ) : (
-                        <Link href={`/account/${account}`} className="text-xs font-mono text-slate-500 hover:text-slate-800 transition-colors">
-                          {shortenAddress(account, 8)}
+                        <Link href={`/account/${account}`} className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors">
+                          {shortenAddress(account, 4)}
                         </Link>
                       )}
                       <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">
@@ -1010,8 +1065,8 @@ export default function TransactionMobileView({ transaction, operations, effects
                 <div key={i} className="flex justify-between items-center py-2.5 border-b border-slate-100 last:border-0">
                   <span className="text-xs text-slate-500 font-medium">{item.label}</span>
                   {item.isLink ? (
-                    <Link href={`/account/${item.value}`} className="text-xs font-mono text-blue-600 hover:underline">
-                      {shortenAddress(item.value!, 8)}
+                    <Link href={`/account/${item.value}`} className="text-xs font-semibold text-blue-600 hover:underline">
+                      {shortenAddress(item.value!, 4)}
                     </Link>
                   ) : item.linkUrl ? (
                     <Link href={item.linkUrl} className="text-xs font-bold text-blue-600 hover:underline">
