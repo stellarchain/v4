@@ -65,6 +65,12 @@ export default function TransactionMobileView({ transaction, operations, effects
   const [copied, setCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Pagination state for operations and effects
+  const [opsPage, setOpsPage] = useState(1);
+  const [effectsPage, setEffectsPage] = useState(1);
+  const OPS_PER_PAGE = 10;
+  const EFFECTS_PER_PAGE = 10;
+
   // Continue with other transaction type checks
   const isSwap = operations.some(op =>
     op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive'
@@ -919,11 +925,11 @@ export default function TransactionMobileView({ transaction, operations, effects
           {/* OPERATIONS TAB */}
           {activeTab === 'operations' && (
             <div className="space-y-3">
-              {operations.map((op, idx) => (
+              {operations.slice((opsPage - 1) * OPS_PER_PAGE, opsPage * OPS_PER_PAGE).map((op, idx) => (
                 <div key={op.id} className="bg-white border border-slate-200 rounded-xl p-0 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-center p-2.5 gap-2.5">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500">
-                      {idx + 1}
+                      {(opsPage - 1) * OPS_PER_PAGE + idx + 1}
                     </div>
                     <div className="flex-1 min-w-0 grid grid-cols-[auto_1fr] gap-x-2 items-center">
                       <span className="text-xs font-semibold text-slate-900 capitalize truncate">
@@ -986,6 +992,45 @@ export default function TransactionMobileView({ transaction, operations, effects
                   </div>
                 </div>
               ))}
+
+              {/* Operations Pagination */}
+              {operations.length > OPS_PER_PAGE && (
+                <div className="flex items-center justify-center gap-1 mt-4 pt-3 border-t border-slate-100">
+                  <button
+                    onClick={() => setOpsPage(p => Math.max(1, p - 1))}
+                    disabled={opsPage === 1}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+
+                  {Array.from({ length: Math.ceil(operations.length / OPS_PER_PAGE) }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setOpsPage(page)}
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
+                        opsPage === page
+                          ? 'bg-slate-900 text-white'
+                          : 'text-slate-500 hover:bg-slate-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => setOpsPage(p => Math.min(Math.ceil(operations.length / OPS_PER_PAGE), p + 1))}
+                    disabled={opsPage >= Math.ceil(operations.length / OPS_PER_PAGE)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -997,56 +1042,103 @@ export default function TransactionMobileView({ transaction, operations, effects
                   No effects found for this transaction.
                 </div>
               ) : (
-                Object.entries(effects.reduce((acc, ef) => {
-                  const key = ef.account || 'unknown';
-                  if (!acc[key]) acc[key] = [];
-                  acc[key].push(ef);
-                  return acc;
-                }, {} as Record<string, Effect[]>)).map(([account, accountEffects]: [string, Effect[]]) => (
-                  <div key={account} className="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      {account === 'unknown' ? (
-                        <span className="text-xs text-slate-400">Unknown account</span>
-                      ) : (
-                        <Link href={`/account/${account}`} className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors">
-                          {shortenAddress(account, 4)}
-                        </Link>
-                      )}
-                      <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">
-                        {accountEffects.length} effects
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      {accountEffects.map((ef) => {
-                        const isCredit = ef.type.includes('credited');
-                        const isDebit = ef.type.includes('debited');
-                        const effectLabel = isCredit ? 'Received' : isDebit ? 'Sent' : ef.type.replace(/_/g, ' ');
-                        const effectAsset = ef.asset_type === 'native' ? 'XLM' : ef.asset_code;
-                        return (
-                          <div key={ef.id} className="flex items-center">
-                            <div className={`w-20 text-[9px] uppercase font-semibold tracking-wide ${isCredit ? 'text-emerald-600' : isDebit ? 'text-red-500' : 'text-slate-400'}`}>
-                              {effectLabel}
-                            </div>
-                            <div className="ml-auto flex items-center">
-                              <div className="font-mono text-xs font-semibold text-right">
-                                {ef.amount ? (
-                                  <span className={isCredit ? 'text-emerald-600' : isDebit ? 'text-red-500' : 'text-slate-700'}>
-                                    {isCredit ? '+' : isDebit ? '-' : ''}{formatTokenAmount(ef.amount)}
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-400">--</span>
-                                )}
+                <>
+                  {(() => {
+                    // Paginate effects
+                    const paginatedEffects = effects.slice((effectsPage - 1) * EFFECTS_PER_PAGE, effectsPage * EFFECTS_PER_PAGE);
+                    const groupedEffects = paginatedEffects.reduce((acc, ef) => {
+                      const key = ef.account || 'unknown';
+                      if (!acc[key]) acc[key] = [];
+                      acc[key].push(ef);
+                      return acc;
+                    }, {} as Record<string, Effect[]>);
+
+                    return Object.entries(groupedEffects).map(([account, accountEffects]: [string, Effect[]]) => (
+                      <div key={account} className="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          {account === 'unknown' ? (
+                            <span className="text-xs text-slate-400">Unknown account</span>
+                          ) : (
+                            <Link href={`/account/${account}`} className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors">
+                              {shortenAddress(account, 4)}
+                            </Link>
+                          )}
+                          <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">
+                            {accountEffects.length} effects
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          {accountEffects.map((ef) => {
+                            const isCredit = ef.type.includes('credited');
+                            const isDebit = ef.type.includes('debited');
+                            const effectLabel = isCredit ? 'Received' : isDebit ? 'Sent' : ef.type.replace(/_/g, ' ');
+                            const effectAsset = ef.asset_type === 'native' ? 'XLM' : ef.asset_code;
+                            return (
+                              <div key={ef.id} className="flex items-center">
+                                <div className={`w-20 text-[9px] uppercase font-semibold tracking-wide ${isCredit ? 'text-emerald-600' : isDebit ? 'text-red-500' : 'text-slate-400'}`}>
+                                  {effectLabel}
+                                </div>
+                                <div className="ml-auto flex items-center">
+                                  <div className="font-mono text-xs font-semibold text-right">
+                                    {ef.amount ? (
+                                      <span className={isCredit ? 'text-emerald-600' : isDebit ? 'text-red-500' : 'text-slate-700'}>
+                                        {isCredit ? '+' : isDebit ? '-' : ''}{formatTokenAmount(ef.amount)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-400">--</span>
+                                    )}
+                                  </div>
+                                  <div className="w-12 text-left pl-2 text-[9px] font-normal text-slate-400 truncate">
+                                    {ef.amount && effectAsset}
+                                  </div>
+                                </div>
                               </div>
-                              <div className="w-12 text-left pl-2 text-[9px] font-normal text-slate-400 truncate">
-                                {ef.amount && effectAsset}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ));
+                  })()}
+
+                  {/* Effects Pagination */}
+                  {effects.length > EFFECTS_PER_PAGE && (
+                    <div className="flex items-center justify-center gap-1 mt-4 pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => setEffectsPage(p => Math.max(1, p - 1))}
+                        disabled={effectsPage === 1}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+
+                      {Array.from({ length: Math.ceil(effects.length / EFFECTS_PER_PAGE) }, (_, i) => i + 1).map(page => (
+                        <button
+                          key={page}
+                          onClick={() => setEffectsPage(page)}
+                          className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
+                            effectsPage === page
+                              ? 'bg-slate-900 text-white'
+                              : 'text-slate-500 hover:bg-slate-100'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+
+                      <button
+                        onClick={() => setEffectsPage(p => Math.min(Math.ceil(effects.length / EFFECTS_PER_PAGE), p + 1))}
+                        disabled={effectsPage >= Math.ceil(effects.length / EFFECTS_PER_PAGE)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
                     </div>
-                  </div>
-                ))
+                  )}
+                </>
               )}
             </div>
           )}
