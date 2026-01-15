@@ -52,39 +52,53 @@ export default function AccountMobileView({ account, transactions, operations: i
 
   // Pagination state for operations
   const [allOperations, setAllOperations] = useState<Operation[]>(initialOperations);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(initialOperations.length >= 100);
-  const [cursor, setCursor] = useState<string | null>(
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loadingPage, setLoadingPage] = useState(false);
+  const [totalLoaded, setTotalLoaded] = useState(initialOperations.length);
+  const [hasMoreToFetch, setHasMoreToFetch] = useState(initialOperations.length >= 100);
+  const [lastCursor, setLastCursor] = useState<string | null>(
     initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
   );
 
-  const loadMoreOperations = async () => {
-    if (loadingMore || !hasMore || !cursor) return;
+  const ITEMS_PER_PAGE = 20;
+  const totalPages = Math.ceil(totalLoaded / ITEMS_PER_PAGE) + (hasMoreToFetch ? 1 : 0);
 
-    setLoadingMore(true);
+  // Fetch more operations when navigating to a page that needs more data
+  const fetchMoreIfNeeded = async (targetPage: number) => {
+    const neededItems = targetPage * ITEMS_PER_PAGE;
+    if (neededItems <= allOperations.length || !hasMoreToFetch || loadingPage) return;
+
+    setLoadingPage(true);
     try {
       const res = await fetch(
-        `https://horizon.stellar.org/accounts/${account.id}/operations?limit=100&order=desc&cursor=${cursor}`
+        `https://horizon.stellar.org/accounts/${account.id}/operations?limit=100&order=desc&cursor=${lastCursor}`
       );
       const data = await res.json();
       const newOps = data._embedded?.records || [];
 
       if (newOps.length > 0) {
         setAllOperations(prev => [...prev, ...newOps]);
-        setCursor(newOps[newOps.length - 1].paging_token);
-        setHasMore(newOps.length >= 100);
+        setLastCursor(newOps[newOps.length - 1].paging_token);
+        setTotalLoaded(prev => prev + newOps.length);
+        setHasMoreToFetch(newOps.length >= 100);
       } else {
-        setHasMore(false);
+        setHasMoreToFetch(false);
       }
     } catch (error) {
       console.error('Failed to load more operations:', error);
     } finally {
-      setLoadingMore(false);
+      setLoadingPage(false);
     }
   };
 
-  // Use allOperations instead of operations for display
-  const operations = allOperations;
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    fetchMoreIfNeeded(page);
+  };
+
+  // Get operations for current page
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const operations = allOperations.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -690,25 +704,92 @@ export default function AccountMobileView({ account, transactions, operations: i
                       );
                     })}
 
-                  {/* Load More Button */}
-                  {hasMore && activityType === 'all' && (
-                    <button
-                      onClick={loadMoreOperations}
-                      disabled={loadingMore}
-                      className="w-full mt-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-600 transition-colors disabled:opacity-50"
-                    >
-                      {loadingMore ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                          </svg>
-                          Loading...
-                        </span>
-                      ) : (
-                        `Load More (${operations.length} loaded)`
+                  {/* Pagination */}
+                  {activityType === 'all' && totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-1 mt-4 pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => goToPage(currentPage - 1)}
+                        disabled={currentPage === 1 || loadingPage}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+
+                      {/* Page numbers */}
+                      {(() => {
+                        const pages = [];
+                        const showPages = 5;
+                        let start = Math.max(1, currentPage - Math.floor(showPages / 2));
+                        const end = Math.min(totalPages, start + showPages - 1);
+                        if (end - start < showPages - 1) {
+                          start = Math.max(1, end - showPages + 1);
+                        }
+
+                        if (start > 1) {
+                          pages.push(
+                            <button key={1} onClick={() => goToPage(1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-100 transition-colors">
+                              1
+                            </button>
+                          );
+                          if (start > 2) {
+                            pages.push(<span key="dots1" className="text-slate-400 text-xs px-1">...</span>);
+                          }
+                        }
+
+                        for (let i = start; i <= end; i++) {
+                          pages.push(
+                            <button
+                              key={i}
+                              onClick={() => goToPage(i)}
+                              disabled={loadingPage}
+                              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
+                                currentPage === i
+                                  ? 'bg-slate-900 text-white'
+                                  : 'text-slate-500 hover:bg-slate-100'
+                              }`}
+                            >
+                              {i}
+                            </button>
+                          );
+                        }
+
+                        if (end < totalPages) {
+                          if (end < totalPages - 1) {
+                            pages.push(<span key="dots2" className="text-slate-400 text-xs px-1">...</span>);
+                          }
+                          pages.push(
+                            <button
+                              key={totalPages}
+                              onClick={() => goToPage(totalPages)}
+                              className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-100 transition-colors"
+                            >
+                              {hasMoreToFetch ? '...' : totalPages}
+                            </button>
+                          );
+                        }
+
+                        return pages;
+                      })()}
+
+                      <button
+                        onClick={() => goToPage(currentPage + 1)}
+                        disabled={currentPage >= totalPages && !hasMoreToFetch || loadingPage}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+
+                      {loadingPage && (
+                        <svg className="w-4 h-4 animate-spin ml-2 text-slate-400" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
                       )}
-                    </button>
+                    </div>
                   )}
                 </div>
               )}
