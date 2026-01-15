@@ -341,6 +341,19 @@ export default function TransactionMobileView({ transaction, operations, effects
     return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: digits });
   };
 
+  // Compact number formatter for DEX cards - max 4 decimals, K/M for large numbers
+  const formatCompactNumber = (value: string) => {
+    if (!value) return '0';
+    const num = parseFloat(value);
+    if (isNaN(num)) return value;
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+    if (num >= 10000) return (num / 1000).toFixed(1) + 'K';
+    if (num >= 1000) return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    if (num >= 1) return num.toLocaleString(undefined, { maximumFractionDigits: 4 });
+    // For small decimals, show up to 4 significant digits
+    return num.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  };
+
   const contractTransferEffects = effects.filter(ef =>
     ef.type.includes('credited') || ef.type.includes('debited')
   );
@@ -675,55 +688,64 @@ export default function TransactionMobileView({ transaction, operations, effects
 
             {/* DEX Limit Order Card for Offers */}
             {isOffer ? (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-4">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-3">
                 {/* Header */}
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
                   </div>
-                  <span className="text-sm font-bold text-slate-900">DEX Limit Order</span>
+                  <span className="text-xs font-bold text-slate-900">DEX Limit Order</span>
                 </div>
 
                 {/* Vertical Trade Flow */}
-                <div className="bg-slate-50 rounded-xl p-4 mb-4 space-y-4">
+                <div className="bg-slate-50 rounded-lg p-3 mb-3 space-y-2.5">
                   {/* SELLING ROW */}
                   <div className="flex items-center justify-between">
-                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Selling</div>
-                    <div className="text-right">
-                      <span className="text-lg font-bold text-slate-900">
-                        {offerDetails?.amount ? parseFloat(offerDetails.amount).toLocaleString(undefined, { maximumFractionDigits: 7 }) : '0'}
+                    <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Selling</div>
+                    <div className="text-right" title={offerDetails?.amount || '0'}>
+                      <span className="text-sm font-bold text-slate-900">
+                        {offerDetails?.amount ? formatCompactNumber(offerDetails.amount) : '0'}
                       </span>
-                      <span className="text-sm text-slate-500 ml-1">{offerDetails?.selling}</span>
+                      <span className="text-xs text-slate-500 ml-1">{offerDetails?.selling}</span>
                     </div>
                   </div>
 
                   {/* EXCHANGE RATE ROW */}
-                  <div className="flex items-center justify-between">
-                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Exchange Rate</div>
-                    <div className="bg-white border border-slate-200 rounded-full px-3 py-1.5 text-xs font-mono text-slate-700 shadow-sm">
-                      1 {offerDetails?.selling} ≈ {offerDetails?.price} {offerDetails?.buying}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider shrink-0">Rate</div>
+                    <div
+                      className="bg-white border border-slate-200 rounded-full px-2 py-1 text-[10px] font-mono text-slate-700 shadow-sm truncate"
+                      title={`1 ${offerDetails?.selling} ≈ ${offerDetails?.price} ${offerDetails?.buying}`}
+                    >
+                      1 {offerDetails?.selling} ≈ {formatCompactNumber(offerDetails?.price || '0')} {offerDetails?.buying}
                     </div>
                   </div>
 
                   {/* BUYING ROW */}
                   <div className="flex items-center justify-between">
-                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Buying</div>
-                    <div className="text-right">
-                      <span className="text-lg font-bold text-indigo-600">
+                    <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Buying</div>
+                    <div
+                      className="text-right"
+                      title={offerDetails?.amount && offerDetails?.price
+                        ? (parseFloat(offerDetails.amount) * parseFloat(offerDetails.price)).toString()
+                        : '0'
+                      }
+                    >
+                      <span className="text-sm font-bold text-indigo-600">
                         {offerDetails?.amount && offerDetails?.price
-                          ? (parseFloat(offerDetails.amount) * parseFloat(offerDetails.price)).toLocaleString(undefined, { maximumFractionDigits: 7 })
+                          ? formatCompactNumber((parseFloat(offerDetails.amount) * parseFloat(offerDetails.price)).toString())
                           : '0'
                         }
                       </span>
-                      <span className="text-sm text-slate-500 ml-1">{offerDetails?.buying}</span>
+                      <span className="text-xs text-slate-500 ml-1">{offerDetails?.buying}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Order By */}
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-[10px]">
                   <span className="text-slate-400">Order by</span>
                   <Link href={`/account/${transaction.source_account}`} className="text-slate-600 font-semibold hover:text-indigo-600 transition-colors">
                     {shortenAddress(transaction.source_account, 4)}
