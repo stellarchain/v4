@@ -386,18 +386,18 @@ export default function TransactionPageClient({
   };
 
   return (
-    <div className="min-h-screen bg-[#f3f4f6] pb-20 pt-6">
-      <div className="max-w-[1600px] mx-auto px-6">
+    <div className="min-h-screen bg-[#f3f4f6] pb-20 pt-4 md:pt-6">
+      <div className="max-w-[1600px] mx-auto px-3 md:px-6">
         <div className="flex flex-col bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
           {/* Header & Tabs */}
           <div className="flex flex-col flex-shrink-0">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <h3 className="text-xs font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
+            <div className="p-3 md:p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h3 className="text-[10px] md:text-xs font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#06b6d4]"></span>
-                Unified Transaction Stream
+                Transactions
               </h3>
             </div>
-            <div className="px-4 py-2 bg-white border-b border-gray-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            <div className="px-3 md:px-4 py-2 bg-white border-b border-gray-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
               {['all', 'transfers', 'contracts'].map(tab => (
                 <button
                   key={tab}
@@ -413,8 +413,8 @@ export default function TransactionPageClient({
             </div>
           </div>
 
-          {/* Table */}
-          <div className="flex-1 overflow-auto" ref={containerRef}>
+          {/* Desktop Table - Hidden on mobile */}
+          <div className="hidden md:block flex-1 overflow-auto" ref={containerRef}>
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 bg-white text-[10px] text-gray-400 uppercase font-bold tracking-wider z-20 shadow-sm">
                 <tr>
@@ -429,7 +429,6 @@ export default function TransactionPageClient({
                   visibleTransactions.map((tx) => {
                     const info = tx.displayInfo;
                     const style = getTypeStyle(info);
-                    // Shorten function name if needed
                     const functionName = info?.functionName || 'Contract Call';
 
                     return (
@@ -486,6 +485,94 @@ export default function TransactionPageClient({
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card List - Visible only on mobile (matches CompactTransactionRow style) */}
+          <div className="md:hidden flex-1 overflow-auto" ref={containerRef}>
+            {visibleTransactions.length > 0 ? (
+              <div>
+                {visibleTransactions.map((tx) => {
+                  const info = tx.displayInfo;
+                  const functionName = info?.functionName || 'Contract Call';
+
+                  // Helper for time ago
+                  const getTimeAgo = (dateStr: string) => {
+                    const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+                    if (seconds < 60) return `${seconds}s ago`;
+                    const minutes = Math.floor(seconds / 60);
+                    if (minutes < 60) return `${minutes}m ago`;
+                    const hours = Math.floor(minutes / 60);
+                    if (hours < 24) return `${hours}h ago`;
+                    const days = Math.floor(hours / 24);
+                    return `${days}d ago`;
+                  };
+
+                  return (
+                    <a
+                      key={tx.hash}
+                      href={`/transaction/${tx.hash}`}
+                      className="block bg-white border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between px-4 py-3">
+                        {/* Left Side: Icon & Title/Meta */}
+                        <div className="flex items-start space-x-3">
+                          <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${tx.successful
+                            ? 'bg-emerald-50 text-emerald-500'
+                            : 'bg-red-50 text-red-500'
+                            }`}>
+                            {tx.successful ? (
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-slate-900 leading-tight capitalize">
+                              {info?.type === 'contract'
+                                ? (functionName)
+                                : info?.type === 'payment'
+                                  ? 'Payment'
+                                  : 'Transaction'}
+                            </span>
+                            <span className="text-xs text-slate-400 font-medium font-mono mt-0.5 flex items-center">
+                              {tx.hash.substring(0, 4)}...{tx.hash.substring(tx.hash.length - 4)}
+                              <span className="mx-1 text-slate-300">•</span>
+                              {getTimeAgo(tx.created_at)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Right Side: Amount or Label */}
+                        <div className="text-right">
+                          {(info?.type === 'payment' && info.amount) || (info?.type === 'contract' && info.effectAmount) ? (
+                            <span className={`text-xs font-bold ${info?.effectType === 'received' || info?.type === 'payment'
+                              ? 'text-emerald-600'
+                              : 'text-slate-900'
+                              }`}>
+                              {info?.effectType === 'received' || info?.type === 'payment' ? '+' : ''}
+                              {formatCompact(info?.amount || info?.effectAmount)} {info?.asset || info?.effectAsset}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                              {info?.type === 'contract' ? (functionName) : 'Details'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="px-4 py-12 text-center text-gray-400 italic text-sm">
+                No transactions found
+              </div>
+            )}
           </div>
 
           {/* Footer / Load More */}
