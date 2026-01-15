@@ -41,7 +41,7 @@ function getAssetUrl(code: string | undefined, issuer: string | undefined): stri
   return `/asset/${encodeURIComponent(code)}${issuer ? `?issuer=${encodeURIComponent(issuer)}` : ''}`;
 }
 
-export default function AccountMobileView({ account, transactions, operations, xlmPrice }: AccountMobileViewProps) {
+export default function AccountMobileView({ account, transactions, operations: initialOperations, xlmPrice }: AccountMobileViewProps) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'balances' | 'activity' | 'details'>('balances');
@@ -49,6 +49,42 @@ export default function AccountMobileView({ account, transactions, operations, x
   const [assetPrices, setAssetPrices] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
+
+  // Pagination state for operations
+  const [allOperations, setAllOperations] = useState<Operation[]>(initialOperations);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(initialOperations.length >= 100);
+  const [cursor, setCursor] = useState<string | null>(
+    initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
+  );
+
+  const loadMoreOperations = async () => {
+    if (loadingMore || !hasMore || !cursor) return;
+
+    setLoadingMore(true);
+    try {
+      const res = await fetch(
+        `https://horizon.stellar.org/accounts/${account.id}/operations?limit=100&order=desc&cursor=${cursor}`
+      );
+      const data = await res.json();
+      const newOps = data._embedded?.records || [];
+
+      if (newOps.length > 0) {
+        setAllOperations(prev => [...prev, ...newOps]);
+        setCursor(newOps[newOps.length - 1].paging_token);
+        setHasMore(newOps.length >= 100);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Failed to load more operations:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // Use allOperations instead of operations for display
+  const operations = allOperations;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -470,7 +506,6 @@ export default function AccountMobileView({ account, transactions, operations, x
                 <div className="relative">
                   <div className="absolute left-[21px] top-4 bottom-4 w-[2px] bg-slate-100 -z-10" />
                   {(activityType === 'all' ? operations : activityType === 'payments' ? paymentOps : contractOps)
-                    .slice(0, 20)
                     .map(op => {
                       const isSwap =
                         op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
@@ -654,6 +689,27 @@ export default function AccountMobileView({ account, transactions, operations, x
                         </Link>
                       );
                     })}
+
+                  {/* Load More Button */}
+                  {hasMore && activityType === 'all' && (
+                    <button
+                      onClick={loadMoreOperations}
+                      disabled={loadingMore}
+                      className="w-full mt-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-600 transition-colors disabled:opacity-50"
+                    >
+                      {loadingMore ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Loading...
+                        </span>
+                      ) : (
+                        `Load More (${operations.length} loaded)`
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
