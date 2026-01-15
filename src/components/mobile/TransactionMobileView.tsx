@@ -893,9 +893,17 @@ export default function TransactionMobileView({ transaction, operations, effects
                         <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">{toLabel}</div>
 
                         {isSwap ? (
-                          <span className="font-mono text-sm text-slate-700 font-bold">
-                            {formatTokenAmount(swapBought?.amount)} <span className="text-xs font-normal text-slate-500">{swapBought?.code}</span>
-                          </span>
+                          <>
+                            <span className="font-mono text-sm text-slate-700 font-bold">
+                              {formatTokenAmount(swapBought?.amount)} <span className="text-xs font-normal text-slate-500">{swapBought?.code}</span>
+                            </span>
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className="text-[9px] text-slate-400">by</span>
+                              <Link href={`/account/${transaction.source_account}`} className="text-[9px] font-semibold text-slate-500 hover:text-indigo-600 transition-colors">
+                                {shortenAddress(transaction.source_account, 4)}
+                              </Link>
+                            </div>
+                          </>
                         ) : isMultiSend ? (
                           <div className="font-mono text-sm text-slate-700 font-bold">
                             {uniqueRecipientCount} Recipients
