@@ -51,17 +51,19 @@ export default function Sidebar() {
     const query = searchQuery.trim();
     if (!query) return;
 
-    // Contract ID (starts with C, 56 chars)
-    if (query.length === 56 && query.startsWith('C')) {
-      window.location.href = `/contract/${query}`;
+    const upperQuery = query.toUpperCase();
+
+    // Contract ID (starts with C, 56 chars) - case insensitive
+    if (query.length === 56 && upperQuery.startsWith('C')) {
+      window.location.href = `/contract/${upperQuery}`;
     }
-    // Account ID (starts with G, 56 chars)
-    else if (query.length === 56 && query.startsWith('G')) {
-      window.location.href = `/account/${query}`;
+    // Account ID (starts with G, 56 chars) - case insensitive
+    else if (query.length === 56 && upperQuery.startsWith('G')) {
+      window.location.href = `/account/${upperQuery}`;
     }
     // Transaction hash (64 chars hex)
     else if (query.length === 64) {
-      window.location.href = `/transaction/${query}`;
+      window.location.href = `/transaction/${query.toLowerCase()}`;
     }
     // Ledger sequence (all digits)
     else if (/^\d+$/.test(query)) {

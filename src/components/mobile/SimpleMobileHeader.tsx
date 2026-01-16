@@ -11,13 +11,26 @@ export default function SimpleMobileHeader() {
     const query = searchQuery.trim();
     if (!query) return;
 
-    if (query.length === 56 && query.startsWith('G')) {
-      window.location.href = `/account/${query}`;
-    } else if (query.length === 64) {
-      window.location.href = `/transaction/${query}`;
-    } else if (/^\d+$/.test(query)) {
+    const upperQuery = query.toUpperCase();
+
+    // Contract ID (starts with C, 56 chars) - case insensitive
+    if (query.length === 56 && upperQuery.startsWith('C')) {
+      window.location.href = `/contract/${upperQuery}`;
+    }
+    // Account ID (starts with G, 56 chars) - case insensitive
+    else if (query.length === 56 && upperQuery.startsWith('G')) {
+      window.location.href = `/account/${upperQuery}`;
+    }
+    // Transaction hash (64 chars hex)
+    else if (query.length === 64) {
+      window.location.href = `/transaction/${query.toLowerCase()}`;
+    }
+    // Ledger sequence (all digits)
+    else if (/^\d+$/.test(query)) {
       window.location.href = `/ledger/${query}`;
-    } else {
+    }
+    // Default to account search
+    else {
       window.location.href = `/account/${query}`;
     }
     setSearchQuery('');

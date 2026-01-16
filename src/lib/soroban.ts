@@ -249,7 +249,14 @@ export async function detectSAC(contractId: string): Promise<SACDetectionResult>
 
 // Check if an address is a contract (starts with 'C')
 export function isContractAddress(address: string): boolean {
-  return address.startsWith('C') && address.length === 56;
+  if (!address || address.length !== 56) return false;
+  const upper = address.toUpperCase();
+  return upper.startsWith('C');
+}
+
+// Normalize contract address to uppercase
+export function normalizeContractAddress(address: string): string {
+  return address.toUpperCase();
 }
 
 // Check if an address is an account (starts with 'G')
