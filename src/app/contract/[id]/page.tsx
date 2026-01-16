@@ -1,5 +1,5 @@
 import { getTokenMetadata } from '@/lib/tokenRegistry';
-import { isContractAddress } from '@/lib/soroban';
+import { isContractAddress, normalizeContractAddress } from '@/lib/soroban';
 import type { Operation } from '@/lib/stellar';
 import Link from 'next/link';
 import ContractMobileView from '@/components/mobile/ContractMobileView';
@@ -18,7 +18,10 @@ interface ContractPageProps {
 }
 
 export default async function ContractPage({ params }: ContractPageProps) {
-  const { id } = await params;
+  const { id: rawId } = await params;
+
+  // Normalize contract ID to uppercase
+  const id = normalizeContractAddress(rawId);
 
   // Validate contract ID format
   if (!isContractAddress(id)) {
