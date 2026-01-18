@@ -766,6 +766,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                 )}
               </div>
             )}
+
           </div>
 
           {/* Sidebar */}

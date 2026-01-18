@@ -805,6 +805,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
               ))}
             </div>
           )}
+
         </div>
       </main>
 

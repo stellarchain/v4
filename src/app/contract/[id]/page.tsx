@@ -63,7 +63,7 @@ export default async function ContractPage({ params }: ContractPageProps) {
   try {
     // Fetch all enhanced data in parallel
     // Note: We don't use getAccountOperations for contracts as Horizon doesn't support it
-    // Contracts use Soroban events as their activity feed instead
+    // Contracts use Soroban events as their activity feed
     const [
       metadataRes,
       verificationRes,

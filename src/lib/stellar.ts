@@ -768,6 +768,123 @@ export async function getActiveContracts(maxOperations: number = 1000): Promise<
   }
 }
 
+// Contract invocation record
+export interface ContractInvocation {
+  id: string;
+  txHash: string;
+  sourceAccount: string;
+  contractId: string;
+  functionName: string;
+  parameters: Array<{ type: string; value: string; decoded?: string }>;
+  createdAt: string;
+  ledger: number;
+  successful: boolean;
+}
+
+// Get invocations for a specific contract from Horizon
+export async function getContractInvocations(
+  contractId: string,
+  limit: number = 50,
+  maxOperationsToScan: number = 5000
+): Promise<ContractInvocation[]> {
+  try {
+    const invocations: ContractInvocation[] = [];
+    let cursor: string | undefined;
+    let totalScanned = 0;
+    const pageSize = 200;
+
+    // Scan invoke_host_function operations and filter by contract
+    while (totalScanned < maxOperationsToScan && invocations.length < limit) {
+      let url = `${getBaseUrl()}/operations?limit=${pageSize}&order=desc&type=invoke_host_function`;
+      if (cursor) url += `&cursor=${cursor}`;
+
+      const response = await fetchJSON<PaginatedResponse<Operation>>(url);
+      const operations = response._embedded.records;
+
+      if (operations.length === 0) break;
+
+      for (const op of operations) {
+        const params = op.parameters as Array<{ type: string; value: string }> | undefined;
+        if (!params || !Array.isArray(params)) continue;
+
+        // Decode contract address from first Address parameter
+        const addressParam = params.find(p => p.type === 'Address');
+        if (!addressParam?.value) continue;
+
+        const decodedContract = decodeContractAddress(addressParam.value);
+        if (decodedContract !== contractId) continue;
+
+        // Decode function name
+        let functionName = 'unknown';
+        const symParam = params.find(p => p.type === 'Sym');
+        if (symParam?.value) {
+          const decoded = decodeSymbol(symParam.value);
+          if (decoded) functionName = decoded;
+        }
+
+        // Decode other parameters for display
+        const decodedParams = params.map(p => {
+          const decoded: { type: string; value: string; decoded?: string } = { type: p.type, value: p.value };
+
+          if (p.type === 'Address') {
+            const addr = decodeContractAddress(p.value);
+            if (addr) decoded.decoded = addr;
+          } else if (p.type === 'Sym') {
+            const sym = decodeSymbol(p.value);
+            if (sym) decoded.decoded = sym;
+          } else if (p.type === 'I128' || p.type === 'U128') {
+            // Try to decode i128/u128 values
+            try {
+              const scVal = xdr.ScVal.fromXDR(p.value, 'base64');
+              if (scVal.switch().name === 'scvI128') {
+                const i128 = scVal.i128();
+                const lo = BigInt(i128.lo().toXDR().readBigUInt64BE(0));
+                const hi = BigInt(i128.hi().toXDR().readBigInt64BE(0));
+                const value = (hi << BigInt(64)) | lo;
+                decoded.decoded = value.toString();
+              } else if (scVal.switch().name === 'scvU128') {
+                const u128 = scVal.u128();
+                const lo = BigInt(u128.lo().toXDR().readBigUInt64BE(0));
+                const hi = BigInt(u128.hi().toXDR().readBigUInt64BE(0));
+                const value = (hi << BigInt(64)) | lo;
+                decoded.decoded = value.toString();
+              }
+            } catch {
+              // Keep original value if decoding fails
+            }
+          }
+
+          return decoded;
+        });
+
+        invocations.push({
+          id: op.id,
+          txHash: op.transaction_hash || '',
+          sourceAccount: op.source_account,
+          contractId: decodedContract,
+          functionName,
+          parameters: decodedParams,
+          createdAt: op.created_at,
+          ledger: typeof op.ledger === 'number' ? op.ledger : 0,
+          successful: op.transaction_successful,
+        });
+
+        if (invocations.length >= limit) break;
+      }
+
+      totalScanned += operations.length;
+      cursor = operations[operations.length - 1]?.paging_token;
+
+      if (operations.length < pageSize) break;
+    }
+
+    return invocations;
+  } catch (error) {
+    console.error('Error fetching contract invocations:', error);
+    return [];
+  }
+}
+
 // Payments (subset of operations)
 export async function getPayments(
   limit: number = 10,
