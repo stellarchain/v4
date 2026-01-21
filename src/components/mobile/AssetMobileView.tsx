@@ -90,15 +90,22 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         const endTime = Date.now();
         const startTime = timeframe.value > 0 ? endTime - timeframe.value : undefined;
 
+        // Calculate time range
+        const endTime = Date.now();
+        const startTime = endTime - timeframe.value;
+
         const data = await getTradeAggregations(
           { code: asset.code, issuer: asset.issuer },
           counterAsset,
           timeframe.resolution,
-          timeframe.limit
+          timeframe.limit,
+          startTime,
+          endTime
         );
 
         // First pass: get all close prices to calculate median
-        const rawData = data.reverse().map(item => {
+        // Data is already in chronological order (asc) from API
+        const rawData = data.map(item => {
           let close = parseFloat(item.close);
           let open = parseFloat(item.open);
           let high = parseFloat(item.high);
