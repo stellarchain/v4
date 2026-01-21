@@ -417,7 +417,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
       <div className="max-w-2xl mx-auto px-2 py-2 space-y-2">
 
         {/* Chart Section */}
-        <div className="bg-white rounded-xl p-2 border border-slate-100">
+        <div className="rounded-xl p-2">
           {/* Timeframe Selector */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex gap-1">
@@ -513,8 +513,8 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         </div>
 
         {/* Order Book Section */}
-        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+        <div className="rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">Order Book</h3>
             {!orderBookLoading && orderBook && spread > 0 && (
               <span className="text-[10px] font-medium text-slate-400">
@@ -617,14 +617,14 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         </div>
 
         {/* Statistics Section */}
-        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100">
+        <div className="rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-200">
             <h3 className="text-sm font-bold text-slate-900">Statistics</h3>
           </div>
 
           {/* 24h Range */}
           {asset.price_high_24h > 0 && asset.price_low_24h > 0 && (
-            <div className="p-4 border-b border-slate-50">
+            <div className="p-4 border-b border-slate-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">24h Range</span>
               </div>
@@ -648,7 +648,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
           )}
 
           {/* Market Stats */}
-          <div className="divide-y divide-slate-50">
+          <div className="divide-y divide-slate-200">
             <StatRow label="Market Cap" value={`$${formatNumber(asset.market_cap)}`} />
             <StatRow label="24h Volume" value={`$${formatNumber(asset.volume_24h)}`} />
             <StatRow label="Circulating Supply" value={`${formatNumber(asset.circulating_supply)} ${asset.code}`} />
@@ -664,7 +664,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
 
         {/* About Section */}
         {(asset.description || asset.domain || asset.issuer) && (
-          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+          <div className="rounded-xl overflow-hidden">
             <div className="p-4">
               {/* Header with icon */}
               <div className="flex items-center gap-3 mb-4">
@@ -760,8 +760,8 @@ function AssetConverterMobile({ asset }: { asset: AssetDetails }) {
   }, [usdAmount, asset.price_usd, activeInput]);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100">
+    <div className="rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-200">
         <h3 className="text-sm font-bold text-slate-900">{asset.code} to USD Converter</h3>
       </div>
       <div className="p-4 space-y-3">
