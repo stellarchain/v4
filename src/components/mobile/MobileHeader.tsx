@@ -68,6 +68,7 @@ export default function MobileHeader() {
   // Hide header on pages that have their own custom header
   if (pathname?.startsWith('/account/')) return null;
   if (pathname?.startsWith('/markets')) return null;
+  if (pathname?.startsWith('/asset/')) return null;
 
   // Simplified Header for non-homepage
   if (!isHomePage) {

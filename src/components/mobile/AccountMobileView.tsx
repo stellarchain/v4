@@ -375,7 +375,7 @@ export default function AccountMobileView({ account, transactions, operations: i
       <header className="pt-8 px-6 pb-2 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md">
         {/* Title Row */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Portfolio</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Account</h1>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-slate-500 font-mono">
               {shortenAddress(account.id, 4)}
@@ -561,11 +561,10 @@ export default function AccountMobileView({ account, transactions, operations: i
                 <button
                   key={type}
                   onClick={() => setActivityType(type as any)}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${
-                    activityType === type
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${activityType === type
                       ? 'bg-slate-900 text-white'
                       : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   {type === 'all' ? 'All' : type === 'payments' ? 'Payments' : 'Smart Contracts'}
                 </button>
