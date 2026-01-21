@@ -22,12 +22,14 @@ function formatNumber(num: number): string {
 }
 
 function formatPrice(price: number): string {
-  if (price === 0 || isNaN(price)) return '$--.--';
-  if (price >= 1000) return '$' + price.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  if (price === 0 || isNaN(price)) return '$--';
+  if (price >= 10000) return '$' + (price / 1000).toFixed(1) + 'K';
+  if (price >= 1000) return '$' + price.toLocaleString(undefined, { maximumFractionDigits: 0 });
   if (price >= 1) return '$' + price.toFixed(2);
-  if (price >= 0.01) return '$' + price.toFixed(4);
-  if (price >= 0.0001) return '$' + price.toFixed(6);
-  return '$' + price.toFixed(8);
+  if (price >= 0.01) return '$' + price.toFixed(3);
+  if (price >= 0.001) return '$' + price.toFixed(4);
+  if (price >= 0.0001) return '$' + price.toFixed(5);
+  return '$' + price.toExponential(1);
 }
 
 function formatXLMPrice(priceInXlm: number): string {
@@ -274,8 +276,8 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
                 </div>
 
                 {/* Price USD + XLM */}
-                <div className="w-20 text-right pr-2">
-                  <div className="font-bold text-slate-900 text-sm tracking-tight leading-tight">
+                <div className="w-24 text-right pr-1">
+                  <div className="font-bold text-slate-900 text-xs tracking-tight leading-tight">
                     {formatPrice(asset.price_usd || 0)}
                   </div>
                   <div className="text-[10px] text-slate-400 font-medium leading-tight">
