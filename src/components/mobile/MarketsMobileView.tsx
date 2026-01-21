@@ -31,12 +31,15 @@ function formatPrice(price: number): string {
 }
 
 function formatXLMPrice(priceInXlm: number): string {
-  if (priceInXlm === 0 || isNaN(priceInXlm)) return '--.-- XLM';
-  if (priceInXlm >= 1e9) return (priceInXlm / 1e9).toFixed(2) + 'B XLM';
-  if (priceInXlm >= 1e6) return (priceInXlm / 1e6).toFixed(2) + 'M XLM';
-  if (priceInXlm >= 1e3) return (priceInXlm / 1e3).toFixed(2) + 'K XLM';
+  if (priceInXlm === 0 || isNaN(priceInXlm)) return '-- XLM';
+  if (priceInXlm >= 1e9) return (priceInXlm / 1e9).toFixed(1) + 'B XLM';
+  if (priceInXlm >= 1e6) return (priceInXlm / 1e6).toFixed(1) + 'M XLM';
+  if (priceInXlm >= 1e3) return (priceInXlm / 1e3).toFixed(1) + 'K XLM';
+  if (priceInXlm >= 100) return priceInXlm.toFixed(0) + ' XLM';
   if (priceInXlm >= 1) return priceInXlm.toFixed(2) + ' XLM';
-  return priceInXlm.toFixed(5) + ' XLM';
+  if (priceInXlm >= 0.001) return priceInXlm.toFixed(3) + ' XLM';
+  // For tiny values, show as fraction of XLM
+  return '<0.001 XLM';
 }
 
 function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
