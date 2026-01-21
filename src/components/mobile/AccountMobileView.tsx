@@ -502,13 +502,13 @@ export default function AccountMobileView({ account, transactions, operations: i
       {/* Main Content */}
       <main className="px-6">
         {activeTab === 'assets' && (
-          <div className="space-y-3">
-            {/* XLM Card */}
+          <div className="divide-y divide-slate-100">
+            {/* XLM Row */}
             <div
-              className="bg-slate-50 rounded-2xl p-4 active:bg-slate-100 transition-colors cursor-pointer"
+              className="py-4 active:bg-slate-50 transition-colors cursor-pointer"
               onClick={() => router.push('/asset/XLM')}
             >
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -529,7 +529,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
+              <div className="flex items-center justify-between pl-[52px]">
                 <div className="text-xs">
                   <span className="text-slate-400">PNL </span>
                   <span className={`font-semibold ${xlmChange24h >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
@@ -553,17 +553,17 @@ export default function AccountMobileView({ account, transactions, operations: i
               const pnl = priceData ? valueUSD * (priceData.change24h / 100) : 0;
               const pnlPercent = priceData?.change24h || 0;
 
-              const bgColors = ['bg-blue-100', 'bg-purple-100', 'bg-emerald-100', 'bg-orange-100', 'bg-pink-100', 'bg-indigo-100', 'bg-violet-100'];
+              const bgColors = ['bg-blue-50', 'bg-purple-50', 'bg-emerald-50', 'bg-orange-50', 'bg-pink-50', 'bg-indigo-50', 'bg-violet-50'];
               const textColors = ['text-blue-600', 'text-purple-600', 'text-emerald-600', 'text-orange-600', 'text-pink-600', 'text-indigo-600', 'text-violet-600'];
               const colorIdx = (balance.asset_code || '').length % bgColors.length;
 
               return (
                 <div
                   key={idx}
-                  className="bg-slate-50 rounded-2xl p-4 active:bg-slate-100 transition-colors cursor-pointer"
+                  className="py-4 active:bg-slate-50 transition-colors cursor-pointer"
                   onClick={() => router.push(getAssetUrl(balance.asset_code, balance.asset_issuer))}
                 >
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-full ${bgColors[colorIdx]} flex items-center justify-center ${textColors[colorIdx]}`}>
                         <span className="font-bold text-base">{(balance.asset_code || 'LP')[0]}</span>
@@ -584,7 +584,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
+                  <div className="flex items-center justify-between pl-[52px]">
                     <div className="text-xs">
                       <span className="text-slate-400">PNL </span>
                       {priceData ? (
