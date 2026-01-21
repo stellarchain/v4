@@ -622,6 +622,12 @@ export default function AccountMobileView({ account, transactions, operations: i
 
                       if (isContract) {
                         typeDisplay = decodeContractFunctionName(op);
+                      } else if (isPayment) {
+                        // For payments, always use op.amount directly - it's the accurate value
+                        const isReceive = op.to === account.id;
+                        typeDisplay = isReceive ? 'Received' : 'Sent';
+                        amount = formatXLM(op.amount || (op as any).starting_balance || '0');
+                        asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
                       } else if (isSwap) {
                         typeDisplay = 'Swap';
                         amount = formatXLM(op.amount || '0');
@@ -631,14 +637,10 @@ export default function AccountMobileView({ account, transactions, operations: i
                         amount = formatXLM(op.amount || '0');
                         asset = (op as any).selling_asset_type === 'native' ? 'XLM' : (op as any).selling_asset_code || '';
                       } else if (effectInfo) {
+                        // For other operations, use effects data
                         amount = formatXLM(effectInfo.amount || '0');
                         asset = effectInfo.asset;
                         typeDisplay = effectInfo.type === 'received' ? 'Received' : 'Sent';
-                      } else if (isPayment) {
-                        const isReceive = op.to === account.id;
-                        typeDisplay = isReceive ? 'Received' : 'Sent';
-                        amount = formatXLM(op.amount || (op as any).starting_balance || '0');
-                        asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
                       }
 
                       const isReceive = effectInfo?.type === 'received' || op.to === account.id;
