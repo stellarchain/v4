@@ -335,27 +335,58 @@ export default function AccountMobileView({ account, transactions, operations: i
   const getAmountFromEffects = (effects: Effect[] | undefined) => {
     if (!effects || effects.length === 0) return null;
 
-    let credit = effects.find(e => e.type === 'account_credited' && e.account === account.id && (e as any).amount);
-    let debit = effects.find(e => e.type === 'account_debited' && e.account === account.id && (e as any).amount);
+    // Get all credits and debits for this account
+    const credits = effects.filter(e => e.type === 'account_credited' && e.account === account.id && (e as any).amount);
+    const debits = effects.filter(e => e.type === 'account_debited' && e.account === account.id && (e as any).amount);
 
-    if (!credit && !debit) {
-      credit = effects.find(e => e.type === 'account_credited' && (e as any).amount);
-      debit = effects.find(e => e.type === 'account_debited' && (e as any).amount);
+    // Find the largest credit and debit by amount
+    let largestCredit = credits.reduce((max, e) => {
+      const amount = parseFloat((e as any).amount) || 0;
+      const maxAmount = max ? parseFloat((max as any).amount) || 0 : 0;
+      return amount > maxAmount ? e : max;
+    }, null as Effect | null);
+
+    let largestDebit = debits.reduce((max, e) => {
+      const amount = parseFloat((e as any).amount) || 0;
+      const maxAmount = max ? parseFloat((max as any).amount) || 0 : 0;
+      return amount > maxAmount ? e : max;
+    }, null as Effect | null);
+
+    // Fallback to any account's effects if none for this account
+    if (!largestCredit && !largestDebit) {
+      const anyCredits = effects.filter(e => e.type === 'account_credited' && (e as any).amount);
+      const anyDebits = effects.filter(e => e.type === 'account_debited' && (e as any).amount);
+
+      largestCredit = anyCredits.reduce((max, e) => {
+        const amount = parseFloat((e as any).amount) || 0;
+        const maxAmount = max ? parseFloat((max as any).amount) || 0 : 0;
+        return amount > maxAmount ? e : max;
+      }, null as Effect | null);
+
+      largestDebit = anyDebits.reduce((max, e) => {
+        const amount = parseFloat((e as any).amount) || 0;
+        const maxAmount = max ? parseFloat((max as any).amount) || 0 : 0;
+        return amount > maxAmount ? e : max;
+      }, null as Effect | null);
     }
 
-    if (credit) {
+    // Return the larger of credit or debit (most significant effect)
+    const creditAmount = largestCredit ? parseFloat((largestCredit as any).amount) || 0 : 0;
+    const debitAmount = largestDebit ? parseFloat((largestDebit as any).amount) || 0 : 0;
+
+    if (creditAmount >= debitAmount && largestCredit) {
       return {
         type: 'received' as const,
-        amount: (credit as any).amount,
-        asset: (credit as any).asset_code || ((credit as any).asset_type === 'native' ? 'XLM' : 'Unknown'),
+        amount: (largestCredit as any).amount,
+        asset: (largestCredit as any).asset_code || ((largestCredit as any).asset_type === 'native' ? 'XLM' : 'Unknown'),
       };
     }
 
-    if (debit) {
+    if (largestDebit) {
       return {
         type: 'sent' as const,
-        amount: (debit as any).amount,
-        asset: (debit as any).asset_code || ((debit as any).asset_type === 'native' ? 'XLM' : 'Unknown'),
+        amount: (largestDebit as any).amount,
+        asset: (largestDebit as any).asset_code || ((largestDebit as any).asset_type === 'native' ? 'XLM' : 'Unknown'),
       };
     }
 
