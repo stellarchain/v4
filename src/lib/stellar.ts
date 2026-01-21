@@ -2504,7 +2504,9 @@ export async function getTradeAggregations(
   const baseType = baseAsset.code === 'XLM' ? 'native' : (baseAsset.code.length > 4 ? 'credit_alphanum12' : 'credit_alphanum4');
   const counterType = counterAsset.code === 'XLM' ? 'native' : (counterAsset.code.length > 4 ? 'credit_alphanum12' : 'credit_alphanum4');
 
-  let url = `${getBaseUrl()}/trade_aggregations?base_asset_type=${baseType}&counter_asset_type=${counterType}&resolution=${resolution}&limit=${limit}&order=desc`;
+  // Use asc order when time range specified to get chronological data
+  const order = startTime ? 'asc' : 'desc';
+  let url = `${getBaseUrl()}/trade_aggregations?base_asset_type=${baseType}&counter_asset_type=${counterType}&resolution=${resolution}&limit=${limit}&order=${order}`;
 
   if (baseAsset.code !== 'XLM' && baseAsset.issuer) {
     url += `&base_asset_code=${baseAsset.code}&base_asset_issuer=${baseAsset.issuer}`;
