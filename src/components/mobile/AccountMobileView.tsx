@@ -413,11 +413,12 @@ export default function AccountMobileView({ account, transactions, operations: i
     op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive'
   );
 
-  // Swaps: all DEX activity (path payments + offers)
+  // Swaps: all DEX activity (path payments + offers + contract swaps)
   const allSwapOps = allOperations.filter(op =>
     op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive' ||
     op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer' ||
-    op.type === 'create_passive_sell_offer'
+    op.type === 'create_passive_sell_offer' ||
+    (op.type === 'invoke_host_function' && decodeContractFunctionName(op).toLowerCase() === 'swap')
   );
 
   const allContractOps = allOperations.filter(op =>
