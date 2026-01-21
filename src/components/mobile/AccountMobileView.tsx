@@ -502,110 +502,112 @@ export default function AccountMobileView({ account, transactions, operations: i
       {/* Main Content */}
       <main className="px-6">
         {activeTab === 'assets' && (
-          <div className="w-full">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
-                  <th className="pb-3 font-bold">Asset</th>
-                  <th className="pb-3 text-right font-bold">Balance</th>
-                  <th className="pb-3 text-right font-bold">PNL / Price</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {/* XLM Row */}
-                <tr
-                  className="group active:bg-slate-50 transition-colors cursor-pointer"
-                  onClick={() => router.push('/asset/XLM')}
+          <div className="space-y-3">
+            {/* XLM Card */}
+            <div
+              className="bg-slate-50 rounded-2xl p-4 active:bg-slate-100 transition-colors cursor-pointer"
+              onClick={() => router.push('/asset/XLM')}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900">XLM</div>
+                    <div className="text-xs text-slate-500">Stellar Lumens</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-base font-bold text-slate-900" title={formatExactNumber(xlmAmount)}>
+                    {formatCompactNumber(xlmAmount)}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    ${(xlmAmount * xlmPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
+                <div className="text-xs">
+                  <span className="text-slate-400">PNL </span>
+                  <span className={`font-semibold ${xlmChange24h >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {xlmChange24h >= 0 ? '+' : ''}${((xlmAmount * xlmPrice) * (xlmChange24h / 100)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    {' '}({xlmChange24h >= 0 ? '+' : ''}{xlmChange24h.toFixed(2)}%)
+                  </span>
+                </div>
+                <div className="text-xs">
+                  <span className="text-slate-400">Price </span>
+                  <span className="font-semibold text-slate-700">${xlmPrice.toFixed(4)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Other Assets */}
+            {otherBalances.map((balance, idx) => {
+              const amount = parseFloat(balance.balance);
+              const key = `${balance.asset_code}:${balance.asset_issuer}`;
+              const priceData = assetPrices[key];
+              const valueUSD = priceData ? amount * priceData.price : 0;
+              const pnl = priceData ? valueUSD * (priceData.change24h / 100) : 0;
+              const pnlPercent = priceData?.change24h || 0;
+
+              const bgColors = ['bg-blue-100', 'bg-purple-100', 'bg-emerald-100', 'bg-orange-100', 'bg-pink-100', 'bg-indigo-100', 'bg-violet-100'];
+              const textColors = ['text-blue-600', 'text-purple-600', 'text-emerald-600', 'text-orange-600', 'text-pink-600', 'text-indigo-600', 'text-violet-600'];
+              const colorIdx = (balance.asset_code || '').length % bgColors.length;
+
+              return (
+                <div
+                  key={idx}
+                  className="bg-slate-50 rounded-2xl p-4 active:bg-slate-100 transition-colors cursor-pointer"
+                  onClick={() => router.push(getAssetUrl(balance.asset_code, balance.asset_issuer))}
                 >
-                  <td className="py-3 pr-2">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-white">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
+                      <div className={`w-10 h-10 rounded-full ${bgColors[colorIdx]} flex items-center justify-center ${textColors[colorIdx]}`}>
+                        <span className="font-bold text-base">{(balance.asset_code || 'LP')[0]}</span>
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-slate-900">XLM</div>
-                        <div className="text-[10px] text-slate-400 font-medium">Stellar Lumens</div>
+                        <div className="text-sm font-bold text-slate-900">{balance.asset_code || 'LP'}</div>
+                        <div className="text-xs text-slate-500 truncate max-w-[120px]">
+                          {balance.asset_issuer ? shortenAddress(balance.asset_issuer, 6) : 'Liquidity Pool'}
+                        </div>
                       </div>
                     </div>
-                  </td>
-                  <td className="py-3 text-right">
-                    <div className="text-sm font-bold text-slate-900 tracking-tight" title={formatExactNumber(xlmAmount)}>
-                      {formatCompactNumber(xlmAmount)}
+                    <div className="text-right">
+                      <div className="text-base font-bold text-slate-900" title={formatExactNumber(amount)}>
+                        {formatCompactNumber(amount)}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {valueUSD > 0 ? `$${valueUSD.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '--'}
+                      </div>
                     </div>
-                    <div className="text-[10px] text-slate-400 font-medium">
-                      ${(xlmAmount * xlmPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
+                    <div className="text-xs">
+                      <span className="text-slate-400">PNL </span>
+                      {priceData ? (
+                        <span className={`font-semibold ${pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                          {pnl >= 0 ? '+' : ''}${Math.abs(pnl).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          {' '}({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">--</span>
+                      )}
                     </div>
-                  </td>
-                  <td className="py-3 text-right">
-                    <div className={`text-[11px] font-bold ${xlmChange24h >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                      {xlmChange24h >= 0 ? '+' : ''}${((xlmAmount * xlmPrice) * (xlmChange24h / 100)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    <div className="text-xs">
+                      <span className="text-slate-400">Price </span>
+                      {priceData ? (
+                        <span className="font-semibold text-slate-700">${priceData.price.toFixed(priceData.price >= 1 ? 2 : 6)}</span>
+                      ) : (
+                        <span className="text-slate-300">--</span>
+                      )}
                     </div>
-                    <div className="text-[10px] text-slate-400 font-medium">${xlmPrice.toFixed(4)}</div>
-                  </td>
-                </tr>
-
-                {/* Other Assets */}
-                {otherBalances.map((balance, idx) => {
-                  const amount = parseFloat(balance.balance);
-                  const key = `${balance.asset_code}:${balance.asset_issuer}`;
-                  const priceData = assetPrices[key];
-                  const valueUSD = priceData ? amount * priceData.price : 0;
-                  const pnl = priceData ? valueUSD * (priceData.change24h / 100) : 0;
-                  const xlmEquiv = priceData ? amount * priceData.priceInXlm : 0;
-
-                  const bgColors = ['bg-blue-50', 'bg-purple-50', 'bg-emerald-50', 'bg-orange-50', 'bg-pink-50', 'bg-indigo-50', 'bg-violet-50'];
-                  const textColors = ['text-blue-600', 'text-purple-600', 'text-emerald-600', 'text-orange-600', 'text-pink-600', 'text-indigo-600', 'text-violet-600'];
-                  const colorIdx = (balance.asset_code || '').length % bgColors.length;
-
-                  return (
-                    <tr
-                      key={idx}
-                      className="group active:bg-slate-50 transition-colors cursor-pointer"
-                      onClick={() => router.push(getAssetUrl(balance.asset_code, balance.asset_issuer))}
-                    >
-                      <td className="py-3 pr-2">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full ${bgColors[colorIdx]} flex items-center justify-center ${textColors[colorIdx]}`}>
-                            <span className="font-bold text-sm">{(balance.asset_code || 'LP')[0]}</span>
-                          </div>
-                          <div>
-                            <div className="text-sm font-bold text-slate-900">{balance.asset_code || 'LP'}</div>
-                            <div className="text-[10px] text-slate-400 font-medium truncate max-w-[80px]">
-                              {balance.asset_issuer ? shortenAddress(balance.asset_issuer, 4) : 'Pool'}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 text-right">
-                        <div className="text-sm font-bold text-slate-900 tracking-tight" title={formatExactNumber(amount)}>
-                          {formatCompactNumber(amount)}
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-medium">
-                          {valueUSD > 0 ? `$${formatCompactNumber(valueUSD)}` : '--'}
-                        </div>
-                      </td>
-                      <td className="py-3 text-right">
-                        {priceData ? (
-                          <>
-                            <div className={`text-[11px] font-bold ${pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                              {pnl >= 0 ? '+' : ''}${Math.abs(pnl).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                            </div>
-                            <div className="text-[10px] text-slate-400 font-medium">${priceData.price.toFixed(priceData.price >= 1 ? 2 : 6)}</div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="text-[11px] font-bold text-slate-300">--</div>
-                            <div className="text-[10px] text-slate-400 font-medium">--</div>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
