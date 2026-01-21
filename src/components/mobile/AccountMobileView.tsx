@@ -292,7 +292,9 @@ export default function AccountMobileView({ account, transactions, operations: i
       const symParam = parameters.find(p => p.type === 'Sym');
       if (!symParam) return 'Contract Call';
       const decoded = atob(symParam.value);
-      return decoded.slice(5).replace(/\0/g, '') || 'Contract Call';
+      // Remove XDR header bytes and non-printable characters, keep only alphanumeric and underscores
+      const cleaned = decoded.replace(/[^\x20-\x7E]/g, '').replace(/^[^a-zA-Z]+/, '');
+      return cleaned || 'Contract Call';
     } catch {
       return 'Contract Call';
     }

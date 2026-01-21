@@ -1,6 +1,7 @@
 import { getTokenMetadata } from '@/lib/tokenRegistry';
 import { isContractAddress, normalizeContractAddress } from '@/lib/soroban';
-import type { Operation } from '@/lib/stellar';
+import type { Operation, ContractInvocation } from '@/lib/stellar';
+import { getContractInvocations } from '@/lib/stellar';
 import Link from 'next/link';
 import ContractMobileView from '@/components/mobile/ContractMobileView';
 import ContractDesktopView from '@/components/desktop/ContractDesktopView';
@@ -59,6 +60,7 @@ export default async function ContractPage({ params }: ContractPageProps) {
   let vaultInfoResult: PromiseSettledResult<Awaited<ReturnType<typeof getVaultInfo>>> | null = null;
   let eventsResult: PromiseSettledResult<ParsedEvent[]> | null = null;
   let storageResult: PromiseSettledResult<ContractStorageResult | null> | null = null;
+  let invocationsResult: PromiseSettledResult<ContractInvocation[]> | null = null;
 
   try {
     // Fetch all enhanced data in parallel
@@ -74,6 +76,7 @@ export default async function ContractPage({ params }: ContractPageProps) {
       vaultInfoRes,
       eventsRes,
       storageRes,
+      invocationsRes,
     ] = await Promise.allSettled([
       getTokenMetadata(id),
       verifyContract(id),
@@ -84,6 +87,7 @@ export default async function ContractPage({ params }: ContractPageProps) {
       getVaultInfo(id),
       getContractEvents(id, 50),
       getContractStorage(id),
+      getContractInvocations(id, 50),
     ]);
 
     // Extract core data results
@@ -100,6 +104,7 @@ export default async function ContractPage({ params }: ContractPageProps) {
     vaultInfoResult = vaultInfoRes;
     eventsResult = eventsRes;
     storageResult = storageRes;
+    invocationsResult = invocationsRes;
   } catch (e) {
     error = 'Error fetching contract data';
     console.error(e);
@@ -128,6 +133,7 @@ export default async function ContractPage({ params }: ContractPageProps) {
     events: eventsResult?.status === 'fulfilled' ? eventsResult.value : [],
     eventSummary: eventsResult?.status === 'fulfilled' ? getEventSummary(eventsResult.value) : null,
     storage: storageResult?.status === 'fulfilled' ? storageResult.value : null,
+    invocations: invocationsResult?.status === 'fulfilled' ? invocationsResult.value : [],
   };
 
   // If we couldn't fetch any data, show error

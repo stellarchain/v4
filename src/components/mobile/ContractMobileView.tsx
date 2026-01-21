@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { shortenAddress, timeAgo, getOperationTypeLabel } from '@/lib/stellar';
+import { shortenAddress, timeAgo, getOperationTypeLabel, ContractInvocation } from '@/lib/stellar';
 import type { TokenRegistryEntry, ContractVerification } from '@/lib/types/token';
 import type { ContractMetadataResult, ContractAccessControlResult } from '@/lib/contractMetadata';
 import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
@@ -53,6 +53,7 @@ interface ContractData {
   events?: ParsedEvent[];
   eventSummary?: EventSummary | null;
   storage?: ContractStorageResult | null;
+  invocations?: ContractInvocation[];
 }
 
 interface ContractMobileViewProps {
@@ -61,7 +62,7 @@ interface ContractMobileViewProps {
 }
 
 export default function ContractMobileView({ contract, operations }: ContractMobileViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'details'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'details' | 'history'>('overview');
   const [copied, setCopied] = useState(false);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
 
@@ -499,9 +500,10 @@ export default function ContractMobileView({ contract, operations }: ContractMob
           <nav aria-label="Tabs" className="-mb-px flex space-x-6 overflow-x-auto no-scrollbar">
             {[
               { id: 'overview', label: 'Overview' },
+              { id: 'history', label: 'History', count: contract.invocations?.length || 0 },
               { id: 'operations', label: 'Events', count: contract.events?.length || 0 },
               { id: 'details', label: 'Details' },
-            ].map((tab) => (
+            ].filter(tab => tab.id !== 'history' || (contract.invocations && contract.invocations.length > 0)).map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
@@ -658,6 +660,113 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* HISTORY TAB - Contract Invocations */}
+          {activeTab === 'history' && (
+            <div className="space-y-3">
+              {!contract.invocations || contract.invocations.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 text-sm">No transaction history found</div>
+              ) : (
+                contract.invocations.map((invocation, idx) => {
+                  // Find the I128/U128 parameter for display (often the amount)
+                  const amountParam = invocation.parameters.find(p => p.type === 'I128' || p.type === 'U128');
+                  const displayAmount = amountParam?.decoded;
+
+                  // Find address parameters (excluding the contract itself)
+                  const addressParams = invocation.parameters.filter(p =>
+                    p.type === 'Address' && p.decoded && p.decoded !== invocation.contractId
+                  );
+
+                  // Get result amount from effects (credited to source account)
+                  const resultAmt = invocation.resultAmount
+                    ? parseFloat(invocation.resultAmount).toLocaleString(undefined, { maximumFractionDigits: 7 })
+                    : null;
+                  const resultAsset = invocation.resultAsset || tokenInfo?.symbol || '';
+
+                  // Generate human-readable summary based on function name
+                  const getActionSummary = () => {
+                    const fn = invocation.functionName.toLowerCase();
+                    const symbol = tokenInfo?.symbol || '';
+                    const amount = displayAmount ? parseInt(displayAmount).toLocaleString() : '';
+                    const targetAddr = addressParams[0]?.decoded ? shortenAddress(addressParams[0].decoded, 4) : '';
+
+                    switch (fn) {
+                      case 'harvest':
+                        return resultAmt ? `Harvested ${resultAmt} ${resultAsset}` : 'Harvested rewards';
+                      case 'plant':
+                        return amount ? `Planted ${amount}${symbol ? ` ${symbol}` : ''}` : 'Planted tokens';
+                      case 'transfer':
+                        return resultAmt || amount ? `Sent ${resultAmt || amount}${symbol ? ` ${symbol}` : ''}${targetAddr ? ` to ${targetAddr}` : ''}` : 'Transferred tokens';
+                      case 'mint':
+                        return resultAmt || amount ? `Minted ${resultAmt || amount}${symbol ? ` ${symbol}` : ''}` : 'Minted tokens';
+                      case 'burn':
+                        return resultAmt || amount ? `Burned ${resultAmt || amount}${symbol ? ` ${symbol}` : ''}` : 'Burned tokens';
+                      case 'approve':
+                        return `Approved spending${targetAddr ? ` for ${targetAddr}` : ''}`;
+                      case 'deposit':
+                        return resultAmt || amount ? `Deposited ${resultAmt || amount}${symbol ? ` ${symbol}` : ''}` : 'Made a deposit';
+                      case 'withdraw':
+                        return resultAmt || amount ? `Withdrew ${resultAmt || amount} ${resultAsset}` : 'Made a withdrawal';
+                      case 'stake':
+                        return resultAmt || amount ? `Staked ${resultAmt || amount}${symbol ? ` ${symbol}` : ''}` : 'Staked tokens';
+                      case 'unstake':
+                        return resultAmt || amount ? `Unstaked ${resultAmt || amount}${symbol ? ` ${symbol}` : ''}` : 'Unstaked tokens';
+                      case 'claim':
+                        return resultAmt ? `Claimed ${resultAmt} ${resultAsset}` : 'Claimed rewards';
+                      case 'swap':
+                        return 'Swapped tokens';
+                      case 'initialize':
+                        return 'Initialized contract';
+                      default:
+                        return null; // No summary for unknown functions
+                    }
+                  };
+
+                  const summary = getActionSummary();
+
+                  return (
+                    <Link
+                      key={idx}
+                      href={`/transaction/${invocation.txHash}`}
+                      className="block bg-white rounded-xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-sky-100 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="font-mono text-xs text-sky-600">
+                              {shortenAddress(invocation.sourceAccount, 4)}
+                            </span>
+                            <span className="text-slate-400 text-xs">invoked</span>
+                            <span className="font-mono text-sm font-bold text-indigo-600">
+                              {invocation.functionName}
+                            </span>
+                          </div>
+                          {summary && (
+                            <div className="text-xs text-slate-600 mb-1">
+                              {summary}
+                            </div>
+                          )}
+                          <div className="text-[10px] text-slate-400 mt-1">
+                            {new Date(invocation.createdAt).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })
+              )}
             </div>
           )}
 

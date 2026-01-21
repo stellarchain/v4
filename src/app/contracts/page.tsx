@@ -1,13 +1,11 @@
-import Link from 'next/link';
 import verifiedContracts from '@/data/verified-contracts.json';
-import { shortenAddress, getActiveContracts, ActiveContract } from '@/lib/stellar';
-import { getTokenMetadata } from '@/lib/tokenRegistry';
+import { fetchContracts, APIContract } from '@/lib/stellar';
 import ContractsClient from './ContractsClient';
 
 export const revalidate = 60; // Revalidate every minute
 
-// Combine verified contracts with active contracts
-interface EnhancedContract {
+// Enhanced contract interface for display
+export interface EnhancedContract {
   id: string;
   name: string;
   type: string;
@@ -19,108 +17,81 @@ interface EnhancedContract {
   operationCount: number;
   lastActivity?: string;
   functions?: string[];
+  wasmId?: string;
+  createdAt?: string;
+  createTxHash?: string;
 }
 
-async function getEnhancedContracts(): Promise<EnhancedContract[]> {
-  // Fetch active contracts from Horizon (scan up to 5000 contract operations)
-  const activeContracts = await getActiveContracts(5000);
+// Transform API contract to display format
+function transformContract(apiContract: APIContract): EnhancedContract {
+  // Check if this is a verified contract from static data
+  const verifiedContract = verifiedContracts.contracts.find(
+    c => c.id.toLowerCase() === apiContract.contract_id.toLowerCase()
+  );
 
-  // Create a map of verified contracts for quick lookup
-  const verifiedMap = new Map<string, typeof verifiedContracts.contracts[0]>();
-  for (const contract of verifiedContracts.contracts) {
-    verifiedMap.set(contract.id, contract);
+  // Determine contract type
+  let type = 'contract';
+  if (apiContract.contract_type === 1 || apiContract.asset_code) {
+    type = 'token';
+  } else if (verifiedContract?.type) {
+    type = verifiedContract.type;
   }
 
-  // Create a map to track all contracts
-  const contractMap = new Map<string, EnhancedContract>();
-
-  // Add active contracts first (they have activity data)
-  for (const active of activeContracts) {
-    const verified = verifiedMap.get(active.contractId);
-
-    contractMap.set(active.contractId, {
-      id: active.contractId,
-      name: verified?.name || 'Unknown Contract',
-      type: verified?.type || 'contract',
-      symbol: verified?.symbol,
-      description: verified?.description,
-      verified: verified?.verified || false,
-      sep41: verified?.sep41,
-      website: verified?.website,
-      operationCount: active.operationCount,
-      lastActivity: active.lastActivity,
-      functions: active.functions,
-    });
+  // Build name from various sources
+  let name = 'Unknown Contract';
+  if (verifiedContract?.name) {
+    name = verifiedContract.name;
+  } else if (apiContract.asset_code) {
+    name = apiContract.asset_code;
   }
 
-  // Add verified contracts that aren't in active list
-  for (const verified of verifiedContracts.contracts) {
-    if (!contractMap.has(verified.id)) {
-      contractMap.set(verified.id, {
-        id: verified.id,
-        name: verified.name,
-        type: verified.type,
-        symbol: verified.symbol,
-        description: verified.description,
-        verified: verified.verified,
-        sep41: verified.sep41,
-        website: verified.website,
-        operationCount: 0,
-        lastActivity: undefined,
-        functions: [],
-      });
-    }
-  }
-
-  // Try to fetch metadata for unknown contracts
-  const unknownContracts = Array.from(contractMap.values()).filter(c => c.name === 'Unknown Contract');
-
-  // Fetch metadata in parallel (limit to 10 to avoid rate limiting)
-  const metadataPromises = unknownContracts.slice(0, 10).map(async (contract) => {
-    try {
-      const metadata = await getTokenMetadata(contract.id);
-      if (metadata) {
-        return { id: contract.id, metadata };
-      }
-    } catch {
-      // Ignore errors
-    }
-    return null;
-  });
-
-  const metadataResults = await Promise.all(metadataPromises);
-
-  // Update contracts with fetched metadata
-  for (const result of metadataResults) {
-    if (result && result.metadata) {
-      const contract = contractMap.get(result.id);
-      if (contract && contract.name === 'Unknown Contract') {
-        contract.name = result.metadata.name || result.metadata.symbol || 'Unknown Contract';
-        contract.symbol = result.metadata.symbol;
-        contract.type = 'token';
-        contract.sep41 = true;
-      }
-    }
-  }
-
-  // Convert to array and sort by operation count
-  const contracts = Array.from(contractMap.values());
-  contracts.sort((a, b) => b.operationCount - a.operationCount);
-
-  return contracts;
+  return {
+    id: apiContract.contract_id,
+    name,
+    type,
+    symbol: apiContract.asset_code || verifiedContract?.symbol,
+    description: verifiedContract?.description,
+    verified: apiContract.source_code_verified || verifiedContract?.verified || false,
+    sep41: apiContract.contract_type === 1 || !!apiContract.asset_code || verifiedContract?.sep41,
+    website: verifiedContract?.website,
+    operationCount: apiContract.transactions_count || 0,
+    lastActivity: apiContract.created_at,
+    wasmId: apiContract.wasm_id || undefined,
+    createdAt: apiContract.created_at,
+    createTxHash: apiContract.create_transaction?.hash,
+  };
 }
 
 export default async function ContractsPage() {
-  const contracts = await getEnhancedContracts();
+  // Fetch first page of contracts from API
+  const initialData = await fetchContracts(1, 30);
 
-  // Calculate stats
+  // Transform API contracts to display format
+  const contracts = initialData.data.map(transformContract);
+
+  // Calculate stats from current page (will be approximate for now)
   const stats = {
-    total: contracts.length,
+    total: initialData.total,
     active: contracts.filter(c => c.operationCount > 0).length,
     tokens: contracts.filter(c => c.type === 'token').length,
     dex: contracts.filter(c => c.type === 'dex').length,
     verified: contracts.filter(c => c.verified).length,
   };
 
-  return <ContractsClient contracts={contracts} stats={stats} categories={verifiedContracts.categories} />;
+  // Pagination info
+  const pagination = {
+    currentPage: initialData.current_page,
+    totalPages: initialData.last_page,
+    total: initialData.total,
+    perPage: initialData.per_page,
+  };
+
+  return (
+    <ContractsClient
+      contracts={contracts}
+      stats={stats}
+      categories={verifiedContracts.categories}
+      pagination={pagination}
+    />
+  );
 }

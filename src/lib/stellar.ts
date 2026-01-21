@@ -779,6 +779,9 @@ export interface ContractInvocation {
   createdAt: string;
   ledger: number;
   successful: boolean;
+  // Amount credited to source account (from effects) - useful for harvest/claim
+  resultAmount?: string;
+  resultAsset?: string;
 }
 
 // Get invocations for a specific contract from Horizon
@@ -876,6 +879,40 @@ export async function getContractInvocations(
       cursor = operations[operations.length - 1]?.paging_token;
 
       if (operations.length < pageSize) break;
+    }
+
+    // Fetch effects for each invocation to get credited amounts (for harvest/claim)
+    // Do this in parallel batches to avoid overwhelming the API
+    const batchSize = 10;
+    for (let i = 0; i < invocations.length; i += batchSize) {
+      const batch = invocations.slice(i, i + batchSize);
+      await Promise.all(batch.map(async (inv) => {
+        try {
+          const effectsUrl = `${getBaseUrl()}/operations/${inv.id}/effects?limit=10`;
+          const effectsResponse = await fetch(effectsUrl, {
+            headers: { 'Accept': 'application/json' },
+          });
+          if (effectsResponse.ok) {
+            const effectsData = await effectsResponse.json() as PaginatedResponse<Effect>;
+            const effects = effectsData._embedded?.records || [];
+            // Look for account_credited effect to the source account
+            const creditEffect = effects.find((e: Effect) =>
+              e.type === 'account_credited' && e.account === inv.sourceAccount
+            );
+            if (creditEffect) {
+              inv.resultAmount = (creditEffect as any).amount;
+              const assetType = (creditEffect as any).asset_type;
+              if (assetType === 'native') {
+                inv.resultAsset = 'XLM';
+              } else {
+                inv.resultAsset = (creditEffect as any).asset_code || '';
+              }
+            }
+          }
+        } catch {
+          // Ignore effect fetch errors
+        }
+      }));
     }
 
     return invocations;
@@ -1139,7 +1176,7 @@ export async function getMarketAssets(): Promise<MarketAsset[]> {
         volume_24h: volume24h,
         market_cap: supply * currentPrice,
         circulating_supply: supply,
-        sparkline: sparklineData.length > 0 ? sparklineData : generateMockSparkline(),
+        sparkline: sparklineData.length > 0 ? sparklineData : [],
       };
     }) || [];
 
@@ -1165,20 +1202,9 @@ export async function getMarketAssets(): Promise<MarketAsset[]> {
 
   } catch (error) {
     console.error('Error fetching market assets:', error);
-    // Return mock data as fallback
-    return generateMockMarketData();
+    // Return empty array instead of mock data
+    return [];
   }
-}
-
-// Generate mock sparkline data
-function generateMockSparkline(): number[] {
-  const points = [];
-  let value = 1;
-  for (let i = 0; i < 24; i++) {
-    value = value + (Math.random() - 0.5) * 0.1;
-    points.push(Math.max(0.1, value));
-  }
-  return points;
 }
 
 // Fetch detailed asset information
@@ -1392,38 +1418,6 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
   }
 }
 
-// Generate mock market data for development/fallback
-function generateMockMarketData(): MarketAsset[] {
-  const mockAssets = [
-    { code: 'XLM', name: 'Stellar Lumens', price: 0.12 },
-    { code: 'USDC', name: 'USD Coin', price: 1.0 },
-    { code: 'yUSDC', name: 'Ultra USDC', price: 1.0 },
-    { code: 'SHX', name: 'Stronghold', price: 0.001 },
-    { code: 'AQUA', name: 'Aquarius', price: 0.002 },
-    { code: 'yXLM', name: 'Ultra XLM', price: 0.12 },
-    { code: 'ARST', name: 'ARS Token', price: 0.001 },
-    { code: 'BTC', name: 'Bitcoin', price: 43000 },
-    { code: 'ETH', name: 'Ethereum', price: 2200 },
-    { code: 'EURC', name: 'Euro Coin', price: 1.08 },
-  ];
-
-  return mockAssets.map((asset, index) => ({
-    rank: index + 1,
-    code: asset.code,
-    issuer: '',
-    name: asset.name,
-    price_usd: asset.price,
-    price_xlm: asset.price / 0.12,
-    change_1h: (Math.random() - 0.5) * 5,
-    change_24h: (Math.random() - 0.5) * 15,
-    change_7d: (Math.random() - 0.5) * 30,
-    volume_24h: Math.random() * 100000000,
-    market_cap: Math.random() * 1000000000,
-    circulating_supply: Math.random() * 10000000000,
-    sparkline: generateMockSparkline(),
-  }));
-}
-
 // Known Accounts
 // List All Accounts sorted by XLM balance (Rich List) - using Stellarchain API
 export async function fetchAllAccounts(
@@ -1477,6 +1471,73 @@ export async function fetchAllAccounts(
   } catch (error) {
     console.error('Error fetching accounts:', error);
     return generateMockKnownAccounts(limit);
+  }
+}
+
+// Contracts API types
+export interface APIContract {
+  id: number;
+  contract_id: string;
+  contract_code: string | null;
+  asset_code: string | null;
+  asset_issuer: string | null;
+  created_at: string;
+  wasm_id: string | null;
+  contract_type: number; // 0 = wasm/address, 1 = asset/SAC
+  network: string;
+  source_code_verified: boolean;
+  transactions_count: number;
+  create_transaction: {
+    hash: string;
+    fee: string;
+    source_account: string;
+    host_functions: string[];
+  } | null;
+}
+
+export interface ContractsAPIResponse {
+  current_page: number;
+  total: number;
+  per_page: number;
+  last_page: number;
+  data: APIContract[];
+}
+
+// Fetch contracts from Stellarchain API
+export async function fetchContracts(
+  page: number = 1,
+  perPage: number = 20
+): Promise<ContractsAPIResponse> {
+  try {
+    const url = `https://api.stellarchain.io/v1/contracts/env/public?page=${page}&paginate=${perPage}`;
+
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 60 }, // Cache for 1 minute
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch contracts: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      current_page: data.current_page || 1,
+      total: data.total || 0,
+      per_page: data.per_page || perPage,
+      last_page: data.last_page || 1,
+      data: data.data || [],
+    };
+  } catch (error) {
+    console.error('Error fetching contracts:', error);
+    return {
+      current_page: 1,
+      total: 0,
+      per_page: perPage,
+      last_page: 1,
+      data: [],
+    };
   }
 }
 
@@ -2080,7 +2141,7 @@ async function fetchCoinGeckoData(): Promise<{
       volume: 150000000,
       circulatingSupply: 29000000000,
       priceChange24h: 2.5,
-      sparkline: generateMockSparkline(),
+      sparkline: [],
     };
   }
 }
@@ -2120,7 +2181,7 @@ async function fetchStellarExpertStats(): Promise<{
       totalAssets: 75000,
       payments24h: 2500000,
       trades24h: 450000,
-      operationsHistory: generateMockSparkline().map(v => v * 100000),
+      operationsHistory: [].map(v => v * 100000),
     };
   }
 }
@@ -2184,7 +2245,7 @@ async function fetchLedgerStats(): Promise<{
       avgOps: 450,
       avgTxPerLedger: 825,
       successRate: 99.2,
-      ledgerHistory: generateMockSparkline().map(v => v * 1000),
+      ledgerHistory: [].map(v => v * 1000),
     };
   }
 }
@@ -2252,7 +2313,7 @@ export async function getStatistics(): Promise<StatisticsData> {
         label: 'Market Price',
         value: coinGecko.price,
         change: coinGecko.priceChange24h,
-        sparkline: coinGecko.sparkline.length > 0 ? coinGecko.sparkline : generateMockSparkline(),
+        sparkline: coinGecko.sparkline.length > 0 ? coinGecko.sparkline : [],
         prefix: '$',
       },
       rank: {
