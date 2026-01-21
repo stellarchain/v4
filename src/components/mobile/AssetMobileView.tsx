@@ -414,8 +414,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-5 py-4 space-y-4">
 
-        {/* Chart Section - only show if we have data */}
-        {hasChartData && (
+        {/* Chart Section */}
         <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
           {/* Timeframe Selector */}
           <div className="flex items-center justify-between mb-3">
@@ -436,40 +435,60 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
             </div>
           </div>
 
-          {/* Chart */}
+          {/* Chart or Skeleton */}
           <div className="relative">
-            {/* Tooltip */}
-            {tooltipData && (
-              <div className="absolute top-0 left-0 z-20 bg-slate-900 text-white text-[10px] rounded-lg px-2.5 py-1.5 shadow-lg pointer-events-none">
-                <div className="text-slate-400 mb-1">{tooltipData.time}</div>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
-                  <span className="text-slate-400">O:</span>
-                  <span className="font-mono">{formatPrice(tooltipData.open)}</span>
-                  <span className="text-slate-400">H:</span>
-                  <span className="font-mono text-emerald-400">{formatPrice(tooltipData.high)}</span>
-                  <span className="text-slate-400">L:</span>
-                  <span className="font-mono text-red-400">{formatPrice(tooltipData.low)}</span>
-                  <span className="text-slate-400">C:</span>
-                  <span className={`font-mono ${tooltipData.close >= tooltipData.open ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {formatPrice(tooltipData.close)}
-                  </span>
+            {loading ? (
+              /* Chart Skeleton */
+              <div className="w-full h-[240px] animate-pulse">
+                <div className="h-full flex flex-col justify-end gap-1 px-2">
+                  {/* Fake candlesticks */}
+                  <div className="flex items-end justify-around h-[180px] gap-1">
+                    {[65, 45, 70, 55, 80, 60, 75, 50, 85, 65, 70, 55, 60, 75, 68, 72, 58, 82, 63, 77].map((h, i) => (
+                      <div key={i} className="flex flex-col items-center gap-0.5">
+                        <div className="w-0.5 bg-slate-200 rounded" style={{ height: `${h * 0.15}px` }} />
+                        <div className={`w-2 rounded-sm ${i % 3 === 0 ? 'bg-red-200' : 'bg-emerald-200'}`} style={{ height: `${h}px` }} />
+                        <div className="w-0.5 bg-slate-200 rounded" style={{ height: `${h * 0.1}px` }} />
+                      </div>
+                    ))}
+                  </div>
+                  {/* Volume bars */}
+                  <div className="flex items-end justify-around h-[40px] gap-1">
+                    {[20, 35, 25, 40, 30, 45, 28, 38, 32, 42, 26, 36, 30, 44, 34, 40, 28, 46, 32, 38].map((h, i) => (
+                      <div key={i} className={`w-2 rounded-sm ${i % 3 === 0 ? 'bg-red-100' : 'bg-emerald-100'}`} style={{ height: `${h}%` }} />
+                    ))}
+                  </div>
                 </div>
               </div>
+            ) : hasChartData ? (
+              <>
+                {/* Tooltip */}
+                {tooltipData && (
+                  <div className="absolute top-0 left-0 z-20 bg-slate-900 text-white text-[10px] rounded-lg px-2.5 py-1.5 shadow-lg pointer-events-none">
+                    <div className="text-slate-400 mb-1">{tooltipData.time}</div>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                      <span className="text-slate-400">O:</span>
+                      <span className="font-mono">{formatPrice(tooltipData.open)}</span>
+                      <span className="text-slate-400">H:</span>
+                      <span className="font-mono text-emerald-400">{formatPrice(tooltipData.high)}</span>
+                      <span className="text-slate-400">L:</span>
+                      <span className="font-mono text-red-400">{formatPrice(tooltipData.low)}</span>
+                      <span className="text-slate-400">C:</span>
+                      <span className={`font-mono ${tooltipData.close >= tooltipData.open ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {formatPrice(tooltipData.close)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <div ref={chartContainerRef} className="w-full h-[240px]" />
+              </>
+            ) : (
+              /* No data state */
+              <div className="w-full h-[240px] flex items-center justify-center text-slate-400 text-xs">
+                No chart data available
+              </div>
             )}
-            <div
-              ref={chartContainerRef}
-              className="w-full h-[240px]"
-            >
-              {loading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
-                  <div className="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
-            </div>
           </div>
-
         </div>
-        )}
 
         {/* Price Change Row - always show */}
         <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
@@ -480,8 +499,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
           </div>
         </div>
 
-        {/* Order Book Section - only show if we have meaningful data */}
-        {hasOrderBookData && (
+        {/* Order Book Section */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">Order Book</h3>
@@ -492,7 +510,46 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
             )}
           </div>
 
-          {(
+          {orderBookLoading ? (
+            /* Order Book Skeleton */
+            <div className="text-[10px] font-mono animate-pulse">
+              {/* Header */}
+              <div className="grid grid-cols-3 px-4 py-2 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-50">
+                <div>Price (USD)</div>
+                <div className="text-right">Amount</div>
+                <div className="text-right">Total</div>
+              </div>
+
+              {/* Skeleton Asks */}
+              <div className="flex flex-col-reverse">
+                {[70, 55, 80, 45, 65, 50].map((w, i) => (
+                  <div key={`ask-skel-${i}`} className="relative grid grid-cols-3 px-4 py-1.5">
+                    <div className="absolute top-0 bottom-0 right-0 bg-red-100" style={{ width: `${w}%` }} />
+                    <div className="relative h-3 w-16 bg-slate-200 rounded" />
+                    <div className="relative h-3 w-12 bg-slate-200 rounded ml-auto" />
+                    <div className="relative h-3 w-14 bg-slate-200 rounded ml-auto" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Spread indicator skeleton */}
+              <div className="py-2 border-y border-slate-100 bg-slate-50 flex items-center justify-center">
+                <div className="h-4 w-16 bg-slate-200 rounded" />
+              </div>
+
+              {/* Skeleton Bids */}
+              <div>
+                {[60, 75, 45, 80, 55, 70].map((w, i) => (
+                  <div key={`bid-skel-${i}`} className="relative grid grid-cols-3 px-4 py-1.5">
+                    <div className="absolute top-0 bottom-0 right-0 bg-emerald-100" style={{ width: `${w}%` }} />
+                    <div className="relative h-3 w-16 bg-slate-200 rounded" />
+                    <div className="relative h-3 w-12 bg-slate-200 rounded ml-auto" />
+                    <div className="relative h-3 w-14 bg-slate-200 rounded ml-auto" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : hasOrderBookData ? (
             <div className="text-[10px] font-mono">
               {/* Header */}
               <div className="grid grid-cols-3 px-4 py-2 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-50">
@@ -538,9 +595,13 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
                 })}
               </div>
             </div>
+          ) : (
+            /* No data state */
+            <div className="py-8 text-center text-slate-400 text-xs">
+              No order book data available
+            </div>
           )}
         </div>
-        )}
 
         {/* Statistics Section */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
