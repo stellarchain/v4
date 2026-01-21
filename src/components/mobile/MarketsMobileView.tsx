@@ -229,44 +229,54 @@ export default function MarketsMobileView({ initialAssets }: MarketsMobileViewPr
       </header>
 
       {/* Asset List */}
-      <main className="px-6 flex flex-col gap-3">
-        {paginatedAssets.map((asset) => {
-          const hasData = asset.price_usd > 0 && asset.market_cap > 0;
+      <main className="px-2">
+        {/* Column Headers */}
+        <div className="flex items-center px-3 py-2 text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+          <span className="w-8 text-center">Rank</span>
+          <span className="flex-1 pl-2">Market Cap</span>
+          <span className="w-24 text-center">Price</span>
+          <span className="w-20 text-right">Change</span>
+        </div>
 
-          return (
-            <div
-              key={`${asset.code}-${asset.issuer || 'native'}`}
-              className={`bg-white p-4 rounded-xl border border-slate-100 flex items-center justify-between hover:scale-[1.01] transition-transform active:scale-[0.99] cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
-              onClick={() => handleRowClick(asset)}
-            >
-              {/* Left: Rank + Name/MCap */}
-              <div className="flex items-center gap-4">
-                <span className="text-slate-300 font-semibold w-5 text-center text-sm">
+        <div className="bg-white rounded-xl border border-slate-100 divide-y divide-slate-50">
+          {paginatedAssets.map((asset) => {
+            const hasData = asset.price_usd > 0 && asset.market_cap > 0;
+
+            return (
+              <div
+                key={`${asset.code}-${asset.issuer || 'native'}`}
+                className={`px-3 py-2.5 flex items-center active:bg-slate-50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
+                onClick={() => handleRowClick(asset)}
+              >
+                {/* Rank */}
+                <span className="text-slate-300 font-semibold w-8 text-center text-xs">
                   {hasData ? asset.rank : '--'}
                 </span>
-                <div>
-                  <div className="font-bold text-slate-900 text-base">{asset.code}</div>
-                  <div className="text-xs text-slate-500 font-medium mt-0.5">
+
+                {/* Asset Name/MCap */}
+                <div className="flex-1 pl-2">
+                  <div className="font-bold text-slate-900 text-sm">{asset.code}</div>
+                  <div className="text-[10px] text-slate-400 font-medium">
                     {formatNumber(asset.market_cap || 0)}
                   </div>
                 </div>
-              </div>
 
-              {/* Right: Price + Sparkline/Change */}
-              <div className="flex-1 flex justify-end items-center gap-6">
-                <div className="text-right">
-                  <div className="font-bold text-slate-900 tracking-tight">
+                {/* Price */}
+                <div className="w-24 text-center">
+                  <div className="font-bold text-slate-900 text-sm tracking-tight">
                     {formatPrice(asset.price_usd || 0)}
                   </div>
                 </div>
+
+                {/* Sparkline/Change */}
                 <div className="flex flex-col items-end w-20">
                   <Sparkline data={asset.sparkline || []} positive={(asset.change_24h || 0) >= 0} />
                   <ChangeIndicator value={asset.change_24h || 0} />
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
 
         {/* Empty State */}
         {filteredAndSortedAssets.length === 0 && (
@@ -287,35 +297,23 @@ export default function MarketsMobileView({ initialAssets }: MarketsMobileViewPr
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-600 disabled:opacity-40"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
 
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-10 h-10 flex items-center justify-center rounded-xl text-sm font-semibold transition-colors ${
-                    currentPage === page
-                      ? 'bg-slate-900 text-white shadow-lg'
-                      : 'bg-white shadow-sm border border-slate-100 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
+            <span className="text-xs font-medium text-slate-500">
+              Page {currentPage} of {totalPages}
+            </span>
 
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-slate-100 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-600 disabled:opacity-40"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>

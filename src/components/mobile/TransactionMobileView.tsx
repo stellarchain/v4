@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { shortenAddress, timeAgo, getOperationTypeLabel, formatDate, formatXLM, extractContractAddress, detectContractFunctionType } from '@/lib/stellar';
 import type { ContractFunctionType } from '@/lib/types/token';
@@ -71,6 +72,7 @@ export default function TransactionMobileView({ transaction, operations, effects
   const [effectsPage, setEffectsPage] = useState(1);
   const OPS_PER_PAGE = 10;
   const EFFECTS_PER_PAGE = 10;
+  const router = useRouter();
 
   // Continue with other transaction type checks
   const isSwap = operations.some(op =>
@@ -426,15 +428,15 @@ export default function TransactionMobileView({ transaction, operations, effects
         {isContractCall ? (
           <>
             <div className="flex items-center justify-between mb-4 mt-1">
-              <Link
-                href="/transactions"
+              <button
+                onClick={() => router.back()}
                 className="flex items-center text-slate-400 hover:text-slate-700 transition-colors text-xs font-semibold uppercase tracking-wide"
               >
                 <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 Back
-              </Link>
+              </button>
 
               <div className={`flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${transaction.successful
                 ? 'bg-green-100 text-green-700 border-green-200'
@@ -684,14 +686,14 @@ export default function TransactionMobileView({ transaction, operations, effects
             {/* Compact Header */}
             <div className="mb-3">
               <div className="flex items-center gap-3 mb-2">
-                <Link
-                  href="/transactions"
+                <button
+                  onClick={() => router.back()}
                   className="flex-shrink-0 w-8 h-8 rounded-full bg-white border border-slate-100  flex items-center justify-center text-slate-500 hover:text-slate-800 hover:scale-105 transition-all"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
-                </Link>
+                </button>
                 <h2 className="text-lg font-bold text-slate-900">{typeLabel}</h2>
               </div>
 

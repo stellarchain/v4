@@ -74,7 +74,7 @@ export default function AccountMobileView({ account, transactions, operations: i
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'assets' | 'activity' | 'details'>('assets');
-  const [activityType, setActivityType] = useState<'all' | 'payments' | 'contracts'>('all');
+  const [activityType, setActivityType] = useState<'all' | 'payments' | 'swaps' | 'contracts'>('all');
   const [assetPrices, setAssetPrices] = useState<Record<string, AssetPriceData>>({});
   const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
   const [xlmChange24h, setXlmChange24h] = useState(0);
@@ -347,9 +347,13 @@ export default function AccountMobileView({ account, transactions, operations: i
 
   // Filter operations
   const allPaymentOps = allOperations.filter(op =>
-    op.type === 'payment' || op.type === 'create_account' ||
+    op.type === 'payment' || op.type === 'create_account'
+  );
+
+  const allSwapOps = allOperations.filter(op =>
     op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive' ||
-    op.type === 'invoke_host_function'
+    op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer' ||
+    op.type === 'create_passive_sell_offer'
   );
 
   const allContractOps = allOperations.filter(op =>
@@ -358,6 +362,7 @@ export default function AccountMobileView({ account, transactions, operations: i
 
   const getCurrentDataSource = () => {
     if (activityType === 'payments') return allPaymentOps;
+    if (activityType === 'swaps') return allSwapOps;
     if (activityType === 'contracts') return allContractOps;
     return allOperations;
   };
@@ -556,17 +561,17 @@ export default function AccountMobileView({ account, transactions, operations: i
         {activeTab === 'activity' && (
           <div className="space-y-3">
             {/* Activity Filters */}
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {['all', 'payments', 'contracts'].map((type) => (
+            <div className="flex gap-5 border-b border-slate-100 pb-3 mb-2">
+              {['all', 'payments', 'swaps', 'contracts'].map((type) => (
                 <button
                   key={type}
                   onClick={() => setActivityType(type as any)}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${activityType === type
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'
-                    }`}
+                  className={`text-xs font-semibold relative ${activityType === type
+                      ? 'text-slate-900 after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-slate-900'
+                      : 'text-slate-400 hover:text-slate-600'
+                    } transition-colors`}
                 >
-                  {type === 'all' ? 'All' : type === 'payments' ? 'Payments' : 'Smart Contracts'}
+                  {type === 'all' ? 'All' : type === 'payments' ? 'Payments' : type === 'swaps' ? 'Swaps' : 'Contracts'}
                 </button>
               ))}
             </div>
@@ -576,73 +581,103 @@ export default function AccountMobileView({ account, transactions, operations: i
                 <p className="text-xs font-medium">No activity found</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {paginatedOps.map(op => {
-                  const isSwap = op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
-                  const isPayment = op.type === 'payment' || op.type === 'create_account';
-                  const isContract = op.type === 'invoke_host_function';
+              <div className="w-full">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+                      <th className="pb-3 font-bold">Activity</th>
+                      <th className="pb-3 text-right font-bold">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {paginatedOps.map(op => {
+                      const isSwap = op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
+                      const isOffer = op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer' || op.type === 'create_passive_sell_offer';
+                      const isPayment = op.type === 'payment' || op.type === 'create_account';
+                      const isContract = op.type === 'invoke_host_function' || op.type === 'extend_footprint_ttl' || op.type === 'restore_footprint';
 
-                  const effects = opEffects[op.id];
-                  const effectInfo = getAmountFromEffects(effects);
+                      const effects = opEffects[op.id];
+                      const effectInfo = getAmountFromEffects(effects);
 
-                  let typeDisplay = op.type.replace(/_/g, ' ');
-                  let amount = '';
-                  let asset = '';
+                      let typeDisplay = op.type.replace(/_/g, ' ');
+                      let amount = '';
+                      let asset = '';
 
-                  if (isContract) {
-                    typeDisplay = decodeContractFunctionName(op);
-                  }
+                      if (isContract) {
+                        typeDisplay = decodeContractFunctionName(op);
+                      } else if (isSwap) {
+                        typeDisplay = 'Swap';
+                        amount = formatXLM(op.amount || '0');
+                        asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || '';
+                      } else if (isOffer) {
+                        typeDisplay = op.type === 'manage_sell_offer' ? 'Sell Offer' : op.type === 'manage_buy_offer' ? 'Buy Offer' : 'Passive Offer';
+                        amount = formatXLM(op.amount || '0');
+                        asset = (op as any).selling_asset_type === 'native' ? 'XLM' : (op as any).selling_asset_code || '';
+                      } else if (effectInfo) {
+                        amount = formatXLM(effectInfo.amount || '0');
+                        asset = effectInfo.asset;
+                        typeDisplay = effectInfo.type === 'received' ? 'Received' : 'Sent';
+                      } else if (isPayment) {
+                        const isReceive = op.to === account.id;
+                        typeDisplay = isReceive ? 'Received' : 'Sent';
+                        amount = formatXLM(op.amount || (op as any).starting_balance || '0');
+                        asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
+                      }
 
-                  if (effectInfo) {
-                    amount = formatXLM(effectInfo.amount || '0');
-                    asset = effectInfo.asset;
-                    if (!isContract) {
-                      typeDisplay = effectInfo.type === 'received' ? 'Received' : 'Sent';
-                    }
-                  } else if (isSwap) {
-                    typeDisplay = 'Swap';
-                    amount = formatXLM(op.amount || '0');
-                    asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || '';
-                  } else if (isPayment) {
-                    const isReceive = op.to === account.id;
-                    typeDisplay = isReceive ? 'Received' : 'Sent';
-                    amount = formatXLM(op.amount || (op as any).starting_balance || '0');
-                    asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
-                  }
+                      const isReceive = effectInfo?.type === 'received' || op.to === account.id;
+                      const isSwapOrOffer = isSwap || isOffer;
 
-                  const isReceive = effectInfo?.type === 'received' || op.to === account.id;
+                      // Color coding: green=receive, red=sent, blue=swap, purple=contract
+                      const colorIdx = isSwapOrOffer ? 2 : (isContract ? 3 : (isReceive ? 0 : 1));
+                      const bgColors = ['bg-emerald-50', 'bg-red-50', 'bg-blue-50', 'bg-purple-50', 'bg-orange-50'];
+                      const textColors = ['text-emerald-600', 'text-red-600', 'text-blue-600', 'text-purple-600', 'text-orange-600'];
 
-                  return (
-                    <Link
-                      key={op.id}
-                      href={`/transaction/${op.transaction_hash}`}
-                      className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 active:bg-slate-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isReceive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            {isReceive ? (
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                      const dateStr = new Date(op.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                      return (
+                        <tr
+                          key={op.id}
+                          className="group active:bg-slate-50 transition-colors cursor-pointer"
+                          onClick={() => router.push(`/transaction/${op.transaction_hash}`)}
+                        >
+                          <td className="py-3 pr-2">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-full ${bgColors[colorIdx]} flex items-center justify-center ${textColors[colorIdx]}`}>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  {isSwapOrOffer ? (
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                  ) : isReceive ? (
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                  ) : isContract ? (
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                  ) : (
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                  )}
+                                </svg>
+                              </div>
+                              <div>
+                                <div className="text-sm font-bold text-slate-900 capitalize">{typeDisplay}</div>
+                                <div className="text-[10px] text-slate-400 font-medium">{dateStr}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 text-right">
+                            {amount ? (
+                              <>
+                                <div className={`text-sm font-bold ${isReceive ? 'text-emerald-500' : 'text-slate-900'}`}>
+                                  {isReceive ? '+' : '-'}{amount}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-medium">{asset}</div>
+                              </>
                             ) : (
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                              <div className="text-sm font-bold text-slate-300">--</div>
                             )}
-                          </svg>
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-slate-900 capitalize">{typeDisplay}</div>
-                          <div className="text-[10px] text-slate-400">{new Date(op.created_at).toLocaleDateString()}</div>
-                        </div>
-                      </div>
-                      {amount && (
-                        <div className="text-right">
-                          <div className={`text-sm font-bold ${isReceive ? 'text-emerald-500' : 'text-slate-900'}`}>
-                            {isReceive ? '+' : '-'}{amount} {asset}
-                          </div>
-                        </div>
-                      )}
-                    </Link>
-                  );
-                })}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
 
                 {/* Pagination */}
                 {currentTotalPages > 1 && (
