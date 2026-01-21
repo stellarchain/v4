@@ -197,7 +197,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search assets..."
-              className="w-full h-10 pl-9 pr-3 bg-slate-100/80 border-none rounded-xl text-sm font-medium placeholder-slate-400 text-slate-900 focus:ring-2 focus:ring-slate-900 focus:outline-none transition-all"
+              className="w-full h-10 pl-9 pr-3 bg-slate-100/80 border border-slate-200 rounded-xl text-sm font-medium placeholder-slate-400 text-slate-900 focus:border-slate-400 focus:outline-none transition-all"
             />
           </div>
           <div className="relative">
