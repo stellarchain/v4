@@ -369,8 +369,9 @@ export default function AccountMobileView({ account, transactions, operations: i
     op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive'
   );
 
-  // Swaps: DEX offers only
+  // Swaps: all DEX activity (path payments + offers)
   const allSwapOps = allOperations.filter(op =>
+    op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive' ||
     op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer' ||
     op.type === 'create_passive_sell_offer'
   );
@@ -590,7 +591,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                       : 'text-slate-400 hover:text-slate-600'
                     } transition-colors`}
                 >
-                  {type === 'all' ? 'All' : type === 'payments' ? 'Payments' : type === 'swaps' ? 'Orders' : 'Contracts'}
+                  {type === 'all' ? 'All' : type === 'payments' ? 'Payments' : type === 'swaps' ? 'Swaps' : 'Contracts'}
                 </button>
               ))}
             </div>
