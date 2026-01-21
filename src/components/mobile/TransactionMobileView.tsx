@@ -419,10 +419,10 @@ export default function TransactionMobileView({ transaction, operations, effects
   const feeXLM = (parseInt(transaction.fee_charged) / 10000000).toFixed(7);
 
   return (
-    <div className="bg-[#F8FAFC] text-slate-800 min-h-screen flex flex-col font-sans pb-24">
+    <div className="bg-[#f0f4f3] text-slate-800 min-h-screen flex flex-col font-sans pb-24">
 
       {/* Main Content Area */}
-      <main className="flex-1 px-4 pt-2 pb-8 max-w-lg mx-auto w-full">
+      <main className="flex-1 px-6 pt-2 pb-8 max-w-lg mx-auto w-full">
         {isContractCall ? (
           <>
             <div className="flex items-center justify-between mb-4 mt-1">
@@ -450,7 +450,7 @@ export default function TransactionMobileView({ transaction, operations, effects
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-5">
+            <div className="bg-white rounded-xl border border-slate-100 p-4 mb-5">
               <div className="flex justify-between items-start">
                 <div>
                   <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Transaction Type</div>
@@ -502,7 +502,7 @@ export default function TransactionMobileView({ transaction, operations, effects
               )}
 
               {/* Smart Contract Summary Card */}
-              <div className="mt-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm relative overflow-hidden transition-all duration-300">
+              <div className="mt-4 bg-white border border-slate-100 rounded-xl p-4  relative overflow-hidden transition-all duration-300">
                 {contractEffectType === 'both' ? (
                   <div className="relative z-10">
                     <div className="space-y-4">
@@ -686,7 +686,7 @@ export default function TransactionMobileView({ transaction, operations, effects
               <div className="flex items-center gap-3 mb-2">
                 <Link
                   href="/transactions"
-                  className="flex-shrink-0 w-8 h-8 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 hover:text-slate-800 hover:scale-105 transition-all"
+                  className="flex-shrink-0 w-8 h-8 rounded-full bg-white border border-slate-100  flex items-center justify-center text-slate-500 hover:text-slate-800 hover:scale-105 transition-all"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -719,7 +719,7 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                 <button
                   onClick={handleCopy}
-                  className="font-mono bg-white border border-slate-200 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider hover:border-slate-300 transition-colors flex items-center gap-1 shadow-sm"
+                  className="font-mono bg-white border border-slate-100 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider hover:border-slate-300 transition-colors flex items-center gap-1 "
                 >
                   #{transaction.hash.slice(0, 4)}...{transaction.hash.slice(-3)}
                   {copied && <span className="text-green-500 font-bold">✓</span>}
@@ -729,7 +729,7 @@ export default function TransactionMobileView({ transaction, operations, effects
 
             {/* DEX Limit Order Card for Offers */}
             {isOffer ? (
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-3">
+              <div className="bg-white rounded-xl border border-slate-100  p-3 mb-3">
                 {/* Header */}
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
@@ -757,7 +757,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider shrink-0">Rate</div>
                     <div
-                      className="bg-white border border-slate-200 rounded-full px-2 py-1 text-[10px] font-mono text-slate-700 shadow-sm truncate"
+                      className="bg-white border border-slate-100 rounded-full px-2 py-1 text-[10px] font-mono text-slate-700  truncate"
                       title={`1 ${offerDetails?.selling} ≈ ${offerDetails?.price} ${offerDetails?.buying}`}
                     >
                       1 {offerDetails?.selling} ≈ {formatCompactNumber(offerDetails?.price || '0')} {offerDetails?.buying}
@@ -795,7 +795,7 @@ export default function TransactionMobileView({ transaction, operations, effects
               </div>
             ) : isAccountOperation ? (
               /* Account Operation Card (no transfer) */
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-4">
+              <div className="bg-white rounded-xl border border-slate-100 p-4 mb-4">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -835,7 +835,7 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                   {/* Show effect summary */}
                   {effects.length > 0 && (
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                       <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Effect</span>
                       <span className="text-xs font-semibold text-indigo-600 capitalize">
                         {effects[0]?.type.replace(/_/g, ' ') || 'None'}
@@ -851,14 +851,14 @@ export default function TransactionMobileView({ transaction, operations, effects
                 <div className="absolute left-[1.6rem] top-8 bottom-8 w-0.5 bg-gradient-to-b from-slate-200 via-slate-300 to-slate-200 -z-10"></div>
 
                 {/* FIRST CARD (From / Sold / Selling) */}
-                <div className={`relative overflow-hidden rounded-2xl p-3 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-white group transition-all duration-300 hover:shadow-md`}>
+                <div className={`relative overflow-hidden rounded-xl p-3 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-white group transition-all duration-300 hover:shadow-md`}>
                   {/* Subtle Background Gradient */}
                   <div className={`absolute inset-0 opacity-30 bg-gradient-to-r ${isSwap ? 'from-indigo-50 via-white to-white' : 'from-emerald-50 via-white to-white'
                     }`}></div>
 
                   <div className="relative flex items-center justify-between z-10">
                     <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${isSwap ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0  ${isSwap ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
                         }`}>
                         {isSwap ? (
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -903,7 +903,7 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                 {/* Connect Icon */}
                 <div className="flex justify-center -my-3 relative z-20 pointer-events-none">
-                  <div className="bg-white rounded-full p-1.5 shadow-md text-slate-300 ring-4 ring-[#F8FAFC]">
+                  <div className="bg-white rounded-full p-1.5 shadow-md text-slate-300 ring-4 ring-[#f0f4f3]">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7" />
                     </svg>
@@ -911,13 +911,13 @@ export default function TransactionMobileView({ transaction, operations, effects
                 </div>
 
                 {/* SECOND CARD (To / Bought / Buying) */}
-                <div className={`relative overflow-hidden rounded-2xl p-3 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-white group transition-all duration-300 hover:shadow-md`}>
+                <div className={`relative overflow-hidden rounded-xl p-3 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] bg-white group transition-all duration-300 hover:shadow-md`}>
                   <div className={`absolute inset-0 opacity-30 bg-gradient-to-r ${isSwap ? 'from-violet-50 via-white to-white' : 'from-amber-50 via-white to-white'
                     }`}></div>
 
                   <div className="relative flex items-center justify-between z-10">
                     <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${isSwap ? 'bg-violet-50 text-violet-600' : 'bg-amber-50 text-amber-600'
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0  ${isSwap ? 'bg-violet-50 text-violet-600' : 'bg-amber-50 text-amber-600'
                         }`}>
                         {isSwap ? (
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -992,7 +992,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       <div className="absolute left-0 right-0 -top-4 flex justify-center z-10">
                         <button
                           onClick={() => setShowRecipients(!showRecipients)}
-                          className="bg-white border border-slate-100 rounded-full w-6 h-6 flex items-center justify-center shadow-sm text-slate-400 hover:text-slate-600 hover:scale-105 transition-all"
+                          className="bg-white border border-slate-100 rounded-full w-6 h-6 flex items-center justify-center  text-slate-400 hover:text-slate-600 hover:scale-105 transition-all"
                         >
                           <svg className={`w-4 h-4 transition-transform duration-200 ${showRecipients ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1050,34 +1050,33 @@ export default function TransactionMobileView({ transaction, operations, effects
         )}
 
         {/* Tabs Navigation */}
-        <div className="border-b border-slate-200 mb-4">
-          <nav aria-label="Tabs" className="-mb-px flex space-x-6 overflow-x-auto no-scrollbar">
-            {[
-              { id: 'operations', label: 'Operations', count: transaction.operation_count },
-              { id: 'effects', label: 'Effects', count: effects.length > 0 ? effects.length : undefined },
-              { id: 'details', label: 'Details' },
-              { id: 'raw', label: 'Raw Data' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(activeTab === tab.id ? null : tab.id as any)}
-                className={`py-2 px-1 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${activeTab === tab.id
-                  ? 'border-slate-900 text-slate-900 font-semibold'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                  }`}
-              >
-                {tab.label}
-                {tab.count !== undefined && (
-                  <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[10px] ${activeTab === tab.id
-                    ? 'bg-slate-100 text-slate-600'
-                    : 'bg-slate-100 text-slate-500'
-                    }`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
+        <div className="flex gap-6 border-b border-slate-100 pb-4 mb-4">
+          {[
+            { id: 'operations', label: 'Operations', count: transaction.operation_count },
+            { id: 'effects', label: 'Effects', count: effects.length > 0 ? effects.length : undefined },
+            { id: 'details', label: 'Details' },
+            { id: 'raw', label: 'Raw Data' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(activeTab === tab.id ? null : tab.id as any)}
+              className={`text-sm font-semibold relative ${
+                activeTab === tab.id
+                  ? 'text-slate-900 after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-slate-900'
+                  : 'text-slate-400 hover:text-slate-600'
+              } transition-colors`}
+            >
+              {tab.label}
+              {tab.count !== undefined && (
+                <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[10px] ${activeTab === tab.id
+                  ? 'bg-slate-100 text-slate-600'
+                  : 'bg-slate-100 text-slate-500'
+                  }`}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Tab Content */}
@@ -1087,7 +1086,7 @@ export default function TransactionMobileView({ transaction, operations, effects
           {activeTab === 'operations' && (
             <div className="space-y-3">
               {operations.slice((opsPage - 1) * OPS_PER_PAGE, opsPage * OPS_PER_PAGE).map((op, idx) => (
-                <div key={op.id} className="bg-white border border-slate-200 rounded-xl p-0 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <div key={op.id} className="bg-white border border-slate-100 rounded-xl p-0 overflow-hidden">
                   <div className="flex items-center p-2.5 gap-2.5">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500">
                       {(opsPage - 1) * OPS_PER_PAGE + idx + 1}
@@ -1160,7 +1159,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                   <button
                     onClick={() => setOpsPage(p => Math.max(1, p - 1))}
                     disabled={opsPage === 1}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-100 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -1184,7 +1183,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                   <button
                     onClick={() => setOpsPage(p => Math.min(Math.ceil(operations.length / OPS_PER_PAGE), p + 1))}
                     disabled={opsPage >= Math.ceil(operations.length / OPS_PER_PAGE)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-100 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -1215,7 +1214,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                     }, {} as Record<string, Effect[]>);
 
                     return Object.entries(groupedEffects).map(([account, accountEffects]: [string, Effect[]]) => (
-                      <div key={account} className="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm">
+                      <div key={account} className="bg-white border border-slate-100 rounded-xl p-3 ">
                         <div className="flex items-center justify-between mb-2">
                           {account === 'unknown' ? (
                             <span className="text-xs text-slate-400">Unknown account</span>
@@ -1267,7 +1266,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       <button
                         onClick={() => setEffectsPage(p => Math.max(1, p - 1))}
                         disabled={effectsPage === 1}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-100 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -1291,7 +1290,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       <button
                         onClick={() => setEffectsPage(p => Math.min(Math.ceil(effects.length / EFFECTS_PER_PAGE), p + 1))}
                         disabled={effectsPage >= Math.ceil(effects.length / EFFECTS_PER_PAGE)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-100 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -1348,7 +1347,7 @@ export default function TransactionMobileView({ transaction, operations, effects
           {/* RAW DATA TAB */}
           {activeTab === 'raw' && (
             <div className="space-y-3">
-              <div className="bg-slate-50 p-2 rounded-xl border border-slate-200">
+              <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Envelope XDR</div>
                   <button
@@ -1357,7 +1356,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       setCopied(true);
                       setTimeout(() => setCopied(false), 1500);
                     }}
-                    className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors"
+                    className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-100 rounded-md hover:bg-slate-50 transition-colors"
                   >
                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -1367,7 +1366,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                 </div>
                 <p className="font-mono text-[9px] text-slate-600 break-all">{transaction.envelope_xdr}</p>
               </div>
-              <div className="bg-slate-50 p-2 rounded-xl border border-slate-200">
+              <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Result XDR</div>
                   <button
@@ -1376,7 +1375,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       setCopied(true);
                       setTimeout(() => setCopied(false), 1500);
                     }}
-                    className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors"
+                    className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-100 rounded-md hover:bg-slate-50 transition-colors"
                   >
                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
