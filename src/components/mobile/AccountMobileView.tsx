@@ -110,8 +110,21 @@ export default function AccountMobileView({ account, transactions, operations: i
 
   // Balances
   const xlmBalance = account.balances.find(b => b.asset_type === 'native');
-  const otherBalances = account.balances.filter(b => b.asset_type !== 'native');
+  const otherBalancesUnsorted = account.balances.filter(b => b.asset_type !== 'native');
   const xlmAmount = parseFloat(xlmBalance?.balance || '0');
+
+  // Sort other balances by USD value (highest first)
+  const otherBalances = useMemo(() => {
+    return [...otherBalancesUnsorted].sort((a, b) => {
+      const keyA = `${a.asset_code}:${a.asset_issuer}`;
+      const keyB = `${b.asset_code}:${b.asset_issuer}`;
+      const priceA = assetPrices[keyA];
+      const priceB = assetPrices[keyB];
+      const valueA = priceA ? parseFloat(a.balance) * priceA.price : 0;
+      const valueB = priceB ? parseFloat(b.balance) * priceB.price : 0;
+      return valueB - valueA;
+    });
+  }, [otherBalancesUnsorted, assetPrices]);
 
   // Calculate total balance in XLM
   const totalBalanceXLM = useMemo(() => {
