@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Transaction, Operation, Effect, shortenAddress, formatXLM } from '@/lib/stellar';
 
 function formatCompactNumber(value: number): string {
@@ -72,9 +72,26 @@ function getAssetUrl(code: string | undefined, issuer: string | undefined): stri
 
 export default function AccountMobileView({ account, transactions, operations: initialOperations, xlmPrice }: AccountMobileViewProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'assets' | 'activity' | 'details'>('assets');
+
+  // Read initial tab from URL params
+  const initialTab = (searchParams.get('tab') as 'assets' | 'activity' | 'details') || 'assets';
+  const [activeTab, setActiveTab] = useState<'assets' | 'activity' | 'details'>(initialTab);
   const [activityType, setActivityType] = useState<'all' | 'payments' | 'swaps' | 'contracts'>('all');
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: 'assets' | 'activity' | 'details') => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === 'assets') {
+      params.delete('tab');
+    } else {
+      params.set('tab', tab);
+    }
+    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+    router.replace(newUrl, { scroll: false });
+  };
   const [assetPrices, setAssetPrices] = useState<Record<string, AssetPriceData>>({});
   const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
   const [xlmChange24h, setXlmChange24h] = useState(0);
@@ -427,19 +444,19 @@ export default function AccountMobileView({ account, transactions, operations: i
         <div className="flex items-center justify-between px-2 mb-4 border-b border-slate-100 pb-4">
           <div className="flex gap-6">
             <button
-              onClick={() => setActiveTab('assets')}
+              onClick={() => handleTabChange('assets')}
               className={`text-sm font-semibold relative ${activeTab === 'assets' ? 'text-slate-900 after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-slate-900' : 'text-slate-400 hover:text-slate-600'} transition-colors`}
             >
               Assets
             </button>
             <button
-              onClick={() => setActiveTab('activity')}
+              onClick={() => handleTabChange('activity')}
               className={`text-sm font-semibold relative ${activeTab === 'activity' ? 'text-slate-900 after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-slate-900' : 'text-slate-400 hover:text-slate-600'} transition-colors`}
             >
               Activity
             </button>
             <button
-              onClick={() => setActiveTab('details')}
+              onClick={() => handleTabChange('details')}
               className={`text-sm font-semibold relative ${activeTab === 'details' ? 'text-slate-900 after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-slate-900' : 'text-slate-400 hover:text-slate-600'} transition-colors`}
             >
               Details
