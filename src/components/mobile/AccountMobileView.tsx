@@ -177,20 +177,29 @@ export default function AccountMobileView({ account, transactions, operations: i
             const priceInXlm = parseFloat(data.bids[0].price);
             const priceUSD = priceInXlm * xlmPrice;
 
-            // Get 24h ago price from trade aggregations
+            // Get 24h ago price from trade aggregations (use 1h resolution for better data availability)
             const endTime = Date.now();
             const startTime = endTime - 86400000;
             const aggRes = await fetch(
-              `https://horizon.stellar.org/trade_aggregations?base_asset_type=${b.asset_type}&base_asset_code=${b.asset_code}&base_asset_issuer=${b.asset_issuer}&counter_asset_type=native&resolution=86400000&start_time=${startTime}&end_time=${endTime}&limit=1&order=asc`
+              `https://horizon.stellar.org/trade_aggregations?base_asset_type=${b.asset_type}&base_asset_code=${b.asset_code}&base_asset_issuer=${b.asset_issuer}&counter_asset_type=native&resolution=3600000&start_time=${startTime}&end_time=${endTime}&limit=24&order=asc`
             );
             const aggData = await aggRes.json();
 
             let change24h = 0;
-            if (aggData._embedded?.records?.[0]?.open) {
-              const openPriceXlm = parseFloat(aggData._embedded.records[0].open);
+            const records = aggData._embedded?.records || [];
+            if (records.length > 0) {
+              // Get the oldest record's open price as our 24h ago reference
+              const oldestRecord = records[0];
+              const openPriceXlm = parseFloat(oldestRecord.open);
               if (openPriceXlm > 0) {
-                change24h = ((priceInXlm - openPriceXlm) / openPriceXlm) * 100;
+                // Calculate change in XLM terms
+                const xlmPriceChange = ((priceInXlm - openPriceXlm) / openPriceXlm) * 100;
+                // Add XLM's own USD change to get total USD change
+                change24h = xlmPriceChange + xlmChange24h;
               }
+            } else {
+              // No trade data, but still affected by XLM price change
+              change24h = xlmChange24h;
             }
 
             newPrices[key] = { price: priceUSD, priceInXlm, change24h };
@@ -204,7 +213,7 @@ export default function AccountMobileView({ account, transactions, operations: i
     };
 
     fetchPrices();
-  }, [account.balances, xlmPrice]);
+  }, [account.balances, xlmPrice, xlmChange24h]);
 
   // Fetch more operations
   const fetchMoreIfNeeded = async (targetPage: number) => {
