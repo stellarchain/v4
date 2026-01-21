@@ -197,13 +197,13 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search assets..."
-              className="w-full h-10 pl-9 pr-3 bg-slate-100/80 border border-slate-200 rounded-xl text-sm font-medium placeholder-slate-400 text-slate-900 focus:border-slate-400 focus:outline-none transition-all"
+              className="w-full h-10 pl-9 pr-3 bg-slate-100 rounded-xl text-sm font-medium placeholder-slate-400 text-slate-900 outline-none"
             />
           </div>
           <div className="relative">
             <button
               onClick={() => setShowSortMenu(!showSortMenu)}
-              className="flex items-center gap-1.5 h-10 px-3 bg-slate-100/80 border-none rounded-xl text-sm font-medium text-slate-700 whitespace-nowrap hover:bg-slate-200/80 transition-colors"
+              className="flex items-center gap-1.5 h-10 px-3 bg-slate-100 rounded-xl text-sm font-medium text-slate-700 whitespace-nowrap hover:bg-slate-200 transition-colors"
             >
               {sortLabels[sortField]}
               <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
