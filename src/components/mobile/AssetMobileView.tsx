@@ -366,6 +366,11 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
   const allOrders = [...processedBids, ...processedAsks];
   const maxTotal = Math.max(...allOrders.map(o => o.total), 1);
 
+  // Check if we have meaningful data to show
+  const hasChartData = chartData.length > 2;
+  const hasOrderBookData = processedBids.some(b => b.amount > 0 && b.price > 0) ||
+                           processedAsks.some(a => a.amount > 0 && a.price > 0);
+
   return (
     <div className="w-full bg-[#F2F4F8] min-h-screen pb-24 font-sans relative">
       {/* Price Header Section */}
@@ -409,7 +414,8 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-5 py-4 space-y-4">
 
-        {/* Chart Section */}
+        {/* Chart Section - only show if we have data */}
+        {hasChartData && (
         <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
           {/* Timeframe Selector */}
           <div className="flex items-center justify-between mb-3">
@@ -462,36 +468,31 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
             </div>
           </div>
 
-          {/* Price Change Row */}
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <div className="flex justify-around">
-              <PriceChangeItem label="1 hour" value={asset.change_1h} />
-              <PriceChangeItem label="24 hours" value={asset.change_24h} />
-              <PriceChangeItem label="7 days" value={asset.change_7d} />
-            </div>
+        </div>
+        )}
+
+        {/* Price Change Row - always show */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+          <div className="flex justify-around">
+            <PriceChangeItem label="1 hour" value={asset.change_1h} />
+            <PriceChangeItem label="24 hours" value={asset.change_24h} />
+            <PriceChangeItem label="7 days" value={asset.change_7d} />
           </div>
         </div>
 
-        {/* Order Book Section */}
+        {/* Order Book Section - only show if we have meaningful data */}
+        {hasOrderBookData && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">Order Book</h3>
-            {!orderBookLoading && orderBook && (
+            {!orderBookLoading && orderBook && spread > 0 && (
               <span className="text-[10px] font-medium text-slate-400">
                 Spread: ${formatOrderPrice(spread)} ({spreadPercent.toFixed(2)}%)
               </span>
             )}
           </div>
 
-          {orderBookLoading && !orderBook ? (
-            <div className="h-[200px] flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : processedBids.length === 0 && processedAsks.length === 0 ? (
-            <div className="h-[100px] flex items-center justify-center text-slate-400 text-xs">
-              No order book data available
-            </div>
-          ) : (
+          {(
             <div className="text-[10px] font-mono">
               {/* Header */}
               <div className="grid grid-cols-3 px-4 py-2 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-50">
@@ -539,6 +540,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
             </div>
           )}
         </div>
+        )}
 
         {/* Statistics Section */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
