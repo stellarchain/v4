@@ -772,83 +772,147 @@ export default function AccountMobileView({ account, transactions, operations: i
         )}
 
         {activeTab === 'details' && (
-          <div className="space-y-3">
-            <div className="bg-white rounded-xl p-4 border border-slate-100">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Account Info</h3>
+          <div className="space-y-4">
+            {/* Account Info Section */}
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+                Account Info
+              </div>
               <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Account ID</span>
-                  <span className="text-xs font-mono text-slate-900">{shortenAddress(account.id, 8)}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] text-slate-400 font-medium">Account ID</div>
+                    <div className="text-sm font-mono text-slate-900 truncate">{shortenAddress(account.id, 10)}</div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Sequence</span>
-                  <span className="text-xs font-mono text-slate-900">{account.sequence}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[10px] text-slate-400 font-medium">Sequence Number</div>
+                    <div className="text-sm font-mono text-slate-900">{account.sequence}</div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Subentries</span>
-                  <span className="text-xs font-mono text-slate-900">{account.subentry_count}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-500">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[10px] text-slate-400 font-medium">Subentries</div>
+                    <div className="text-sm font-bold text-slate-900">{account.subentry_count}</div>
+                  </div>
                 </div>
                 {account.home_domain && (
-                  <div className="flex justify-between">
-                    <span className="text-xs text-slate-500">Home Domain</span>
-                    <a href={`https://${account.home_domain}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
-                      {account.home_domain}
-                    </a>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[10px] text-slate-400 font-medium">Home Domain</div>
+                      <a href={`https://${account.home_domain}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline">
+                        {account.home_domain}
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-4 border border-slate-100">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Thresholds</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Low</span>
-                  <span className="text-xs font-mono text-slate-900">{account.thresholds.low_threshold}</span>
+            {/* Thresholds Section */}
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+                Thresholds
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-slate-50 rounded-xl p-3 text-center">
+                  <div className="text-[10px] text-slate-400 font-medium mb-1">Low</div>
+                  <div className="text-lg font-bold text-slate-900">{account.thresholds.low_threshold}</div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Medium</span>
-                  <span className="text-xs font-mono text-slate-900">{account.thresholds.med_threshold}</span>
+                <div className="bg-slate-50 rounded-xl p-3 text-center">
+                  <div className="text-[10px] text-slate-400 font-medium mb-1">Medium</div>
+                  <div className="text-lg font-bold text-slate-900">{account.thresholds.med_threshold}</div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">High</span>
-                  <span className="text-xs font-mono text-slate-900">{account.thresholds.high_threshold}</span>
+                <div className="bg-slate-50 rounded-xl p-3 text-center">
+                  <div className="text-[10px] text-slate-400 font-medium mb-1">High</div>
+                  <div className="text-lg font-bold text-slate-900">{account.thresholds.high_threshold}</div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-4 border border-slate-100">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Signers ({account.signers.length})</h3>
+            {/* Signers Section */}
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+                Signers ({account.signers.length})
+              </div>
               <div className="space-y-2">
                 {account.signers.map((signer, idx) => (
-                  <div key={idx} className="flex justify-between items-center">
-                    <span className="text-xs font-mono text-slate-600">{shortenAddress(signer.key, 6)}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">
-                      Weight: {signer.weight}
-                    </span>
+                  <div key={idx} className="flex items-center gap-3 py-2 border-b border-slate-50 last:border-0">
+                    <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Link href={`/account/${signer.key}`} className="text-sm font-mono text-slate-900 hover:text-blue-600 truncate block">
+                        {shortenAddress(signer.key, 8)}
+                      </Link>
+                      <div className="text-[10px] text-slate-400 capitalize">{signer.type.replace(/_/g, ' ')}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-bold text-slate-900">{signer.weight}</div>
+                      <div className="text-[10px] text-slate-400">weight</div>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-4 border border-slate-100">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Flags</h3>
-              <div className="flex flex-wrap gap-2">
-                {account.flags.auth_required && (
-                  <span className="text-[10px] px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-semibold">Auth Required</span>
-                )}
-                {account.flags.auth_revocable && (
-                  <span className="text-[10px] px-2 py-1 rounded-full bg-orange-50 text-orange-700 font-semibold">Auth Revocable</span>
-                )}
-                {account.flags.auth_immutable && (
-                  <span className="text-[10px] px-2 py-1 rounded-full bg-red-50 text-red-700 font-semibold">Auth Immutable</span>
-                )}
-                {account.flags.auth_clawback_enabled && (
-                  <span className="text-[10px] px-2 py-1 rounded-full bg-purple-50 text-purple-700 font-semibold">Clawback Enabled</span>
-                )}
-                {!account.flags.auth_required && !account.flags.auth_revocable && !account.flags.auth_immutable && !account.flags.auth_clawback_enabled && (
-                  <span className="text-[10px] px-2 py-1 rounded-full bg-slate-100 text-slate-500 font-semibold">No flags set</span>
-                )}
+            {/* Flags Section */}
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+                Account Flags
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className={`rounded-xl p-3 ${account.flags.auth_required ? 'bg-amber-50' : 'bg-slate-50'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_required ? 'bg-amber-500' : 'bg-slate-300'}`} />
+                    <span className={`text-xs font-semibold ${account.flags.auth_required ? 'text-amber-700' : 'text-slate-400'}`}>Auth Required</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Requires authorization for trustlines</p>
+                </div>
+                <div className={`rounded-xl p-3 ${account.flags.auth_revocable ? 'bg-orange-50' : 'bg-slate-50'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_revocable ? 'bg-orange-500' : 'bg-slate-300'}`} />
+                    <span className={`text-xs font-semibold ${account.flags.auth_revocable ? 'text-orange-700' : 'text-slate-400'}`}>Auth Revocable</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Can revoke trustlines</p>
+                </div>
+                <div className={`rounded-xl p-3 ${account.flags.auth_immutable ? 'bg-red-50' : 'bg-slate-50'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_immutable ? 'bg-red-500' : 'bg-slate-300'}`} />
+                    <span className={`text-xs font-semibold ${account.flags.auth_immutable ? 'text-red-700' : 'text-slate-400'}`}>Auth Immutable</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Flags cannot be changed</p>
+                </div>
+                <div className={`rounded-xl p-3 ${account.flags.auth_clawback_enabled ? 'bg-purple-50' : 'bg-slate-50'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_clawback_enabled ? 'bg-purple-500' : 'bg-slate-300'}`} />
+                    <span className={`text-xs font-semibold ${account.flags.auth_clawback_enabled ? 'text-purple-700' : 'text-slate-400'}`}>Clawback</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">Can clawback assets</p>
+                </div>
               </div>
             </div>
           </div>
