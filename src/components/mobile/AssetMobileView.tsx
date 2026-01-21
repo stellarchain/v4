@@ -414,10 +414,10 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-2xl mx-auto px-6 py-4 space-y-4">
+      <div className="max-w-2xl mx-auto px-2 py-2 space-y-2">
 
         {/* Chart Section */}
-        <div className="bg-white rounded-xl p-4 border border-slate-100">
+        <div className="bg-white rounded-xl p-2 border border-slate-100">
           {/* Timeframe Selector */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex gap-1">
@@ -490,14 +490,25 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Price Change Row - always show */}
-        <div className="bg-white rounded-xl p-4 border border-slate-100">
-          <div className="flex justify-around">
-            <PriceChangeItem label="1 hour" value={asset.change_1h} />
-            <PriceChangeItem label="24 hours" value={asset.change_24h} />
-            <PriceChangeItem label="7 days" value={asset.change_7d} />
+          {/* Price Change Row */}
+          <div className="flex justify-around pt-3 mt-2 border-t border-slate-100">
+            {loading && initialChartLoad ? (
+              <>
+                {['1 hour', '24 hours', '7 days'].map((label) => (
+                  <div key={label} className="text-center animate-pulse">
+                    <p className="text-[10px] text-slate-500 mb-0.5">{label}</p>
+                    <div className="h-4 w-12 bg-slate-200 rounded mx-auto"></div>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <>
+                <PriceChangeItem label="1 hour" value={asset.change_1h} />
+                <PriceChangeItem label="24 hours" value={asset.change_24h} />
+                <PriceChangeItem label="7 days" value={asset.change_7d} />
+              </>
+            )}
           </div>
         </div>
 
@@ -651,66 +662,51 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         {/* Converter Section */}
         <AssetConverterMobile asset={asset} />
 
-        {/* Links Section */}
-        {(asset.domain || asset.issuer) && (
-          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900">Links</h3>
-            </div>
-            <div className="divide-y divide-slate-50">
-              {asset.domain && (
-                <a
-                  href={`https://${asset.domain}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
-                      </svg>
-                    </div>
-                    <span className="text-xs font-medium text-slate-900">{asset.domain}</span>
-                  </div>
-                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              )}
-              {asset.issuer && (
-                <Link
-                  href={`/account/${asset.issuer}`}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <span className="text-xs font-medium text-slate-900">Issuer Account</span>
-                      <p className="text-[10px] text-slate-400 font-mono">{shortenAddress(asset.issuer, 6)}</p>
-                    </div>
-                  </div>
-                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* About Section */}
-        {asset.description && (
+        {(asset.description || asset.domain || asset.issuer) && (
           <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900">About {asset.name}</h3>
-            </div>
             <div className="p-4">
-              <p className="text-xs text-slate-600 leading-relaxed">{asset.description}</p>
+              {/* Header with icon */}
+              <div className="flex items-center gap-3 mb-4">
+                {asset.image ? (
+                  <img src={asset.image} alt={asset.code} className="w-12 h-12 rounded-full" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
+                    <span className="text-lg font-bold text-slate-500">{asset.code[0]}</span>
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">{asset.code}</h3>
+                  {asset.domain && (
+                    <a
+                      href={`https://${asset.domain}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-500 hover:underline"
+                    >
+                      https://{asset.domain}
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Description */}
+              {asset.description && (
+                <p className="text-xs text-slate-600 leading-relaxed mb-4">{asset.description}</p>
+              )}
+
+              {/* Issuer */}
+              {asset.issuer && (
+                <div className="mb-3">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Issuer:</span>
+                  <Link
+                    href={`/account/${asset.issuer}`}
+                    className="block text-xs text-blue-500 font-mono mt-1 break-all hover:underline"
+                  >
+                    {asset.issuer}
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}
