@@ -377,41 +377,48 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
 
   return (
     <div className="w-full bg-[#f0f4f3] min-h-screen pb-24 font-sans relative">
-      {/* Price Header Section */}
-      <div className="bg-slate-900 px-5 py-4">
-        <div className="flex items-center justify-between">
-          {/* Left: Back + Asset info */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <div>
-              <h1 className="text-white font-semibold text-base">{asset.name}</h1>
-              <span className="text-white/40 text-[11px] font-medium">{asset.code}</span>
+      {/* Header Section */}
+      <header className="pt-6 px-4 pb-4 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md">
+        {/* Top Row: Back + Title */}
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={() => router.back()}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          {asset.image ? (
+            <img src={asset.image} alt={asset.code} className="w-10 h-10 rounded-full" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center">
+              <span className="text-white font-bold text-sm">{asset.code[0]}</span>
             </div>
+          )}
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">{asset.code}</h1>
+            <p className="text-xs text-slate-500">{asset.name}</p>
           </div>
+        </div>
 
-          {/* Right: Price */}
+        {/* Price Card */}
+        <div className="flex items-end justify-between">
+          <div>
+            <span className="text-3xl font-bold text-slate-900">
+              {formatPrice(asset.price_usd)}
+            </span>
+            <span className={`ml-2 text-sm font-semibold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+              {isPositive ? '+' : ''}{change24h.toFixed(2)}%
+            </span>
+          </div>
           <div className="text-right">
-            <div className="flex items-center gap-2 justify-end">
-              <span className="text-xl font-bold text-white">
-                {formatPrice(asset.price_usd)}
-              </span>
-              <span className={`text-xs font-semibold ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-                {isPositive ? '+' : ''}{change24h.toFixed(2)}%
-              </span>
-            </div>
-            <span className="text-white/40 text-[11px]">
+            <span className="text-sm text-slate-500">
               {asset.price_xlm.toFixed(4)} XLM
             </span>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-2 py-2 space-y-2">
@@ -546,7 +553,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
               </div>
 
               {/* Spread indicator skeleton */}
-              <div className="py-2 border-y border-slate-100 bg-slate-50 flex items-center justify-center">
+              <div className="py-2 border-y border-slate-200 flex items-center justify-center">
                 <div className="h-4 w-16 bg-slate-200 rounded" />
               </div>
 
@@ -587,7 +594,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
               </div>
 
               {/* Spread indicator */}
-              <div className="py-2 border-y border-slate-100 bg-slate-50 flex items-center justify-center">
+              <div className="py-2 border-y border-slate-200 flex items-center justify-center">
                 <span className="text-xs font-bold text-slate-900">
                   ${bestBid > 0 ? formatOrderPrice((bestAsk + bestBid) / 2) : '---'}
                 </span>
