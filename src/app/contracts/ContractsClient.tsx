@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { shortenAddress, timeAgo } from '@/lib/stellar';
 
@@ -16,11 +16,21 @@ interface EnhancedContract {
   operationCount: number;
   lastActivity?: string;
   functions?: string[];
+  wasmId?: string;
+  createdAt?: string;
+  createTxHash?: string;
 }
 
 interface Category {
   id: string;
   name: string;
+}
+
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  total: number;
+  perPage: number;
 }
 
 interface ContractsClientProps {
@@ -33,12 +43,79 @@ interface ContractsClientProps {
     verified: number;
   };
   categories: Category[];
+  pagination: PaginationInfo;
 }
 
-export default function ContractsClient({ contracts, stats, categories }: ContractsClientProps) {
+// Verified contracts data for client-side enrichment
+import verifiedContracts from '@/data/verified-contracts.json';
+
+export default function ContractsClient({ contracts: initialContracts, stats, categories, pagination: initialPagination }: ContractsClientProps) {
+  const [contracts, setContracts] = useState<EnhancedContract[]>(initialContracts);
+  const [pagination, setPagination] = useState(initialPagination);
   const [filter, setFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<'activity' | 'name'>('activity');
+  const [sortBy, setSortBy] = useState<'activity' | 'name' | 'recent'>('recent');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch contracts for a specific page
+  const fetchPage = useCallback(async (page: number) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `https://api.stellarchain.io/v1/contracts/env/public?page=${page}&paginate=${pagination.perPage}`
+      );
+      const data = await response.json();
+
+      // Transform API contracts
+      const newContracts: EnhancedContract[] = (data.data || []).map((apiContract: any) => {
+        const verifiedContract = verifiedContracts.contracts.find(
+          c => c.id.toLowerCase() === apiContract.contract_id.toLowerCase()
+        );
+
+        let type = 'contract';
+        if (apiContract.contract_type === 1 || apiContract.asset_code) {
+          type = 'token';
+        } else if (verifiedContract?.type) {
+          type = verifiedContract.type;
+        }
+
+        let name = 'Unknown Contract';
+        if (verifiedContract?.name) {
+          name = verifiedContract.name;
+        } else if (apiContract.asset_code) {
+          name = apiContract.asset_code;
+        }
+
+        return {
+          id: apiContract.contract_id,
+          name,
+          type,
+          symbol: apiContract.asset_code || verifiedContract?.symbol,
+          description: verifiedContract?.description,
+          verified: apiContract.source_code_verified || verifiedContract?.verified || false,
+          sep41: apiContract.contract_type === 1 || !!apiContract.asset_code || verifiedContract?.sep41,
+          website: verifiedContract?.website,
+          operationCount: apiContract.transactions_count || 0,
+          lastActivity: apiContract.created_at,
+          wasmId: apiContract.wasm_id || undefined,
+          createdAt: apiContract.created_at,
+          createTxHash: apiContract.create_transaction?.hash,
+        };
+      });
+
+      setContracts(newContracts);
+      setPagination({
+        currentPage: data.current_page || page,
+        totalPages: data.last_page || 1,
+        total: data.total || 0,
+        perPage: data.per_page || pagination.perPage,
+      });
+    } catch (error) {
+      console.error('Error fetching contracts:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pagination.perPage]);
 
   const filteredContracts = useMemo(() => {
     let result = [...contracts];
@@ -65,9 +142,10 @@ export default function ContractsClient({ contracts, stats, categories }: Contra
     // Sort
     if (sortBy === 'name') {
       result.sort((a, b) => a.name.localeCompare(b.name));
-    } else {
+    } else if (sortBy === 'activity') {
       result.sort((a, b) => b.operationCount - a.operationCount);
     }
+    // 'recent' keeps the API order (most recent first)
 
     return result;
   }, [contracts, filter, search, sortBy]);
@@ -114,6 +192,29 @@ export default function ContractsClient({ contracts, stats, categories }: Contra
     }
   };
 
+  // Generate page numbers to show
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const { currentPage, totalPages } = pagination;
+
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('...');
+
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      for (let i = start; i <= end; i++) pages.push(i);
+
+      if (currentPage < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
+    }
+
+    return pages;
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900">
       <div className="mx-auto max-w-7xl p-4 lg:p-8">
@@ -130,7 +231,9 @@ export default function ContractsClient({ contracts, stats, categories }: Contra
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Smart Contracts</h1>
-              <p className="text-sm text-slate-500 mt-1">Active Soroban smart contracts on Stellar, ordered by recent activity</p>
+              <p className="text-sm text-slate-500 mt-1">
+                {pagination.total.toLocaleString()} Soroban smart contracts on Stellar
+              </p>
             </div>
           </div>
 
@@ -153,11 +256,12 @@ export default function ContractsClient({ contracts, stats, categories }: Contra
             {/* Sort */}
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'activity' | 'name')}
+              onChange={(e) => setSortBy(e.target.value as 'activity' | 'name' | 'recent')}
               className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="activity">Sort by Activity</option>
-              <option value="name">Sort by Name</option>
+              <option value="recent">Most Recent</option>
+              <option value="activity">Most Active</option>
+              <option value="name">By Name</option>
             </select>
           </div>
 
@@ -171,17 +275,7 @@ export default function ContractsClient({ contracts, stats, categories }: Contra
                   : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
             >
-              All ({stats.total})
-            </button>
-            <button
-              onClick={() => setFilter('active')}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
-                filter === 'active'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              Active ({stats.active})
+              All ({pagination.total.toLocaleString()})
             </button>
             <button
               onClick={() => setFilter('verified')}
@@ -192,6 +286,16 @@ export default function ContractsClient({ contracts, stats, categories }: Contra
               }`}
             >
               Verified ({stats.verified})
+            </button>
+            <button
+              onClick={() => setFilter('token')}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
+                filter === 'token'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              Tokens ({stats.tokens})
             </button>
             {categories.map(cat => (
               <button
@@ -210,17 +314,13 @@ export default function ContractsClient({ contracts, stats, categories }: Contra
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total</div>
-            <div className="text-2xl font-bold text-slate-900 mt-1">{stats.total}</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Contracts</div>
+            <div className="text-2xl font-bold text-slate-900 mt-1">{pagination.total.toLocaleString()}</div>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active</div>
-            <div className="text-2xl font-bold text-emerald-600 mt-1">{stats.active}</div>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tokens</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tokens (SAC)</div>
             <div className="text-2xl font-bold text-indigo-600 mt-1">{stats.tokens}</div>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -229,9 +329,22 @@ export default function ContractsClient({ contracts, stats, categories }: Contra
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Verified</div>
-            <div className="text-2xl font-bold text-blue-600 mt-1">{stats.verified}</div>
+            <div className="text-2xl font-bold text-emerald-600 mt-1">{stats.verified}</div>
           </div>
         </div>
+
+        {/* Loading overlay */}
+        {isLoading && (
+          <div className="fixed inset-0 bg-white/50 z-50 flex items-center justify-center">
+            <div className="bg-white rounded-2xl shadow-xl p-6 flex items-center gap-3">
+              <svg className="animate-spin h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span className="font-medium text-slate-700">Loading contracts...</span>
+            </div>
+          </div>
+        )}
 
         {/* Contracts Grid */}
         {filteredContracts.length === 0 ? (
@@ -294,23 +407,21 @@ export default function ContractsClient({ contracts, stats, categories }: Contra
                 <div className="mt-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {contract.operationCount > 0 ? (
-                      <>
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                          </svg>
-                          {contract.operationCount} ops
-                        </span>
-                        {contract.lastActivity && (
-                          <span className="text-[10px] text-slate-400">{timeAgo(contract.lastActivity)}</span>
-                        )}
-                      </>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                        {contract.operationCount.toLocaleString()} txs
+                      </span>
                     ) : (
                       <span className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-50 text-slate-500 text-xs font-medium">
-                        No recent activity
+                        No transactions
                       </span>
                     )}
                   </div>
+                  {contract.createdAt && (
+                    <span className="text-[10px] text-slate-400">{timeAgo(contract.createdAt)}</span>
+                  )}
                 </div>
 
                 {/* Functions */}
@@ -340,6 +451,60 @@ export default function ContractsClient({ contracts, stats, categories }: Contra
                 </div>
               </Link>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center gap-2">
+            {/* Previous button */}
+            <button
+              onClick={() => fetchPage(pagination.currentPage - 1)}
+              disabled={pagination.currentPage === 1 || isLoading}
+              className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Page numbers */}
+            <div className="flex items-center gap-1">
+              {getPageNumbers().map((page, idx) => (
+                page === '...' ? (
+                  <span key={`ellipsis-${idx}`} className="px-3 py-2 text-slate-400">...</span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => fetchPage(page as number)}
+                    disabled={isLoading}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      page === pagination.currentPage
+                        ? 'bg-indigo-600 text-white'
+                        : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    } disabled:cursor-not-allowed`}
+                  >
+                    {page}
+                  </button>
+                )
+              ))}
+            </div>
+
+            {/* Next button */}
+            <button
+              onClick={() => fetchPage(pagination.currentPage + 1)}
+              disabled={pagination.currentPage === pagination.totalPages || isLoading}
+              className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            {/* Page info */}
+            <span className="ml-4 text-sm text-slate-500">
+              Page {pagination.currentPage} of {pagination.totalPages}
+            </span>
           </div>
         )}
       </div>
