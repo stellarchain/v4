@@ -625,6 +625,11 @@ export default function AccountMobileView({ account, transactions, operations: i
 
                       if (isContract) {
                         typeDisplay = decodeContractFunctionName(op);
+                        // For contracts, get amounts from effects
+                        if (effectInfo) {
+                          amount = formatXLM(effectInfo.amount || '0');
+                          asset = effectInfo.asset;
+                        }
                       } else if (isPayment) {
                         // For payments, always use op.amount directly - it's the accurate value
                         const isReceive = op.to === account.id;
