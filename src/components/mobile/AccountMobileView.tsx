@@ -702,9 +702,10 @@ export default function AccountMobileView({ account, transactions, operations: i
 
                       const isReceive = effectInfo?.type === 'received' || op.to === account.id;
                       const isSwapOrOffer = isSwap || isOffer;
+                      const isSwapDisplay = typeDisplay.toLowerCase() === 'swap'; // Contract swaps also get swap styling
 
-                      // Color coding: green=receive, red=sent, blue=swap, purple=contract
-                      const colorIdx = isSwapOrOffer ? 2 : (isContract ? 3 : (isReceive ? 0 : 1));
+                      // Color coding: blue=swap, green=receive, red=sent, purple=contract
+                      const colorIdx = (isSwapOrOffer || isSwapDisplay) ? 2 : (isContract ? 3 : (isReceive ? 0 : 1));
                       const bgColors = ['bg-emerald-50', 'bg-red-50', 'bg-blue-50', 'bg-purple-50', 'bg-orange-50'];
                       const textColors = ['text-emerald-600', 'text-red-600', 'text-blue-600', 'text-purple-600', 'text-orange-600'];
 
@@ -720,7 +721,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                             <div className="flex items-center gap-3">
                               <div className={`w-8 h-8 rounded-full ${bgColors[colorIdx]} flex items-center justify-center ${textColors[colorIdx]}`}>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  {isSwapOrOffer ? (
+                                  {(isSwapOrOffer || isSwapDisplay) ? (
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                   ) : isReceive ? (
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
