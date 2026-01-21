@@ -378,44 +378,39 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
   return (
     <div className="w-full bg-[#f0f4f3] min-h-screen pb-24 font-sans relative">
       {/* Header Section */}
-      <header className="pt-6 px-4 pb-4 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md">
-        {/* Top Row: Back + Title */}
-        <div className="flex items-center gap-3 mb-4">
+      <header className="pt-4 px-4 pb-3 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md">
+        {/* Navigation Row */}
+        <div className="flex items-center justify-between mb-3">
           <button
             onClick={() => router.back()}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-700 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          {asset.image ? (
-            <img src={asset.image} alt={asset.code} className="w-10 h-10 rounded-full" />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">{asset.code[0]}</span>
-            </div>
-          )}
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">{asset.code}</h1>
-            <p className="text-xs text-slate-500">{asset.name}</p>
-          </div>
+          <span className="text-xs font-medium text-slate-400">{asset.name}</span>
+          <div className="w-8" /> {/* Spacer */}
         </div>
 
-        {/* Price Card */}
-        <div className="flex items-end justify-between">
-          <div>
-            <span className="text-3xl font-bold text-slate-900">
-              {formatPrice(asset.price_usd)}
-            </span>
-            <span className={`ml-2 text-sm font-semibold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
-              {isPositive ? '+' : ''}{change24h.toFixed(2)}%
+        {/* Asset Info Row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {asset.image ? (
+              <img src={asset.image} alt={asset.code} className="w-8 h-8 rounded-full" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center">
+                <span className="text-white font-bold text-xs">{asset.code[0]}</span>
+              </div>
+            )}
+            <span className="text-lg font-bold text-slate-900">{asset.code}</span>
+            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${isPositive ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+              {isPositive ? '↑' : '↓'} {Math.abs(change24h).toFixed(2)}%
             </span>
           </div>
           <div className="text-right">
-            <span className="text-sm text-slate-500">
-              {asset.price_xlm.toFixed(4)} XLM
-            </span>
+            <div className="text-lg font-bold text-slate-900">{formatPrice(asset.price_usd)}</div>
+            <div className="text-[10px] text-slate-400">{asset.price_xlm.toFixed(4)} XLM</div>
           </div>
         </div>
       </header>
