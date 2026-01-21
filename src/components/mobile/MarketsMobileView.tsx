@@ -170,9 +170,9 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
   return (
     <div className="w-full bg-[#f0f4f3] min-h-screen pb-24 font-sans">
       {/* Header - Sticky */}
-      <header className="pt-6 px-6 pb-4 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md">
+      <header className="pt-6 pb-4 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md">
         {/* Title Section */}
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-4 px-4">
           <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center shrink-0 shadow-md shadow-slate-900/20">
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -184,8 +184,8 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
           </div>
         </div>
 
-        {/* Search & Filter */}
-        <div className="flex gap-2 items-stretch">
+        {/* Search & Filter - aligned with list */}
+        <div className="flex gap-2 items-stretch px-2">
           <div className="relative flex-1">
             <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,7 +230,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
         </div>
 
         {/* Stats Row */}
-        <div className="flex justify-between items-center mt-4 px-1">
+        <div className="flex justify-between items-center mt-3 px-4">
           <span className="text-xs font-medium text-slate-500">
             {filteredAndSortedAssets.length} assets {totalPages > 1 && `• Page ${currentPage} of ${totalPages}`}
           </span>
