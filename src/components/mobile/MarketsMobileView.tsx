@@ -6,6 +6,7 @@ import { MarketAsset } from '@/lib/stellar';
 
 interface MarketsMobileViewProps {
   initialAssets: MarketAsset[];
+  xlmPrice: number;
 }
 
 type SortField = 'market_cap' | 'price_usd' | 'change_24h' | 'change_7d' | 'volume_24h';
@@ -29,17 +30,26 @@ function formatPrice(price: number): string {
   return '$' + price.toFixed(8);
 }
 
+function formatXLMPrice(priceInXlm: number): string {
+  if (priceInXlm === 0 || isNaN(priceInXlm)) return '--.-- XLM';
+  if (priceInXlm >= 1e9) return (priceInXlm / 1e9).toFixed(2) + 'B XLM';
+  if (priceInXlm >= 1e6) return (priceInXlm / 1e6).toFixed(2) + 'M XLM';
+  if (priceInXlm >= 1e3) return (priceInXlm / 1e3).toFixed(2) + 'K XLM';
+  if (priceInXlm >= 1) return priceInXlm.toFixed(2) + ' XLM';
+  return priceInXlm.toFixed(5) + ' XLM';
+}
+
 function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
   if (!data || data.length === 0) {
     return (
-      <svg className="overflow-visible mb-1" height="24" viewBox="0 0 60 24" width="60">
-        <path d="M0 12 L30 12 L60 12" fill="none" stroke="#94a3b8" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <svg className="overflow-visible" height="18" viewBox="0 0 48 18" width="48">
+        <path d="M0 9 L24 9 L48 9" fill="none" stroke="#94a3b8" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
       </svg>
     );
   }
 
-  const width = 60;
-  const height = 24;
+  const width = 48;
+  const height = 18;
   const padding = 2;
 
   const min = Math.min(...data);
@@ -55,7 +65,7 @@ function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
   const color = positive ? '#10b981' : '#ef4444';
 
   return (
-    <svg className="overflow-visible mb-1" height="24" viewBox="0 0 60 24" width="60">
+    <svg className="overflow-visible" height="18" viewBox="0 0 48 18" width="48">
       <path
         d={`M ${points}`}
         fill="none"
@@ -91,7 +101,7 @@ function getAssetUrl(asset: MarketAsset): string {
 
 const ASSETS_PER_PAGE = 50;
 
-export default function MarketsMobileView({ initialAssets }: MarketsMobileViewProps) {
+export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMobileViewProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('market_cap');
@@ -231,45 +241,49 @@ export default function MarketsMobileView({ initialAssets }: MarketsMobileViewPr
       {/* Asset List */}
       <main className="px-2">
         {/* Column Headers */}
-        <div className="flex items-center px-3 py-2 text-[10px] uppercase tracking-widest text-slate-400 font-bold">
-          <span className="w-8 text-center">Rank</span>
-          <span className="flex-1 pl-2">Market Cap</span>
-          <span className="w-24 text-center">Price</span>
-          <span className="w-20 text-right">Change</span>
+        <div className="flex items-center px-2 py-1.5 text-[9px] uppercase tracking-wider text-slate-400 font-bold">
+          <span className="w-6 text-center">#</span>
+          <span className="flex-1 pl-1">Asset</span>
+          <span className="w-20 text-right pr-2">Price</span>
+          <span className="w-16 text-right">Change</span>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-100 divide-y divide-slate-50">
           {paginatedAssets.map((asset) => {
             const hasData = asset.price_usd > 0 && asset.market_cap > 0;
+            const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
 
             return (
               <div
                 key={`${asset.code}-${asset.issuer || 'native'}`}
-                className={`px-3 py-2.5 flex items-center active:bg-slate-50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
+                className={`px-2 py-1.5 flex items-center active:bg-slate-50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
                 onClick={() => handleRowClick(asset)}
               >
                 {/* Rank */}
-                <span className="text-slate-300 font-semibold w-8 text-center text-xs">
+                <span className="text-slate-300 font-semibold w-6 text-center text-[10px]">
                   {hasData ? asset.rank : '--'}
                 </span>
 
                 {/* Asset Name/MCap */}
-                <div className="flex-1 pl-2">
-                  <div className="font-bold text-slate-900 text-sm">{asset.code}</div>
-                  <div className="text-[10px] text-slate-400 font-medium">
+                <div className="flex-1 pl-1 min-w-0">
+                  <div className="font-bold text-slate-900 text-sm leading-tight">{asset.code}</div>
+                  <div className="text-[10px] text-slate-400 font-medium leading-tight">
                     {formatNumber(asset.market_cap || 0)}
                   </div>
                 </div>
 
-                {/* Price */}
-                <div className="w-24 text-center">
-                  <div className="font-bold text-slate-900 text-sm tracking-tight">
+                {/* Price USD + XLM */}
+                <div className="w-20 text-right pr-2">
+                  <div className="font-bold text-slate-900 text-sm tracking-tight leading-tight">
                     {formatPrice(asset.price_usd || 0)}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium leading-tight">
+                    {formatXLMPrice(priceInXlm)}
                   </div>
                 </div>
 
                 {/* Sparkline/Change */}
-                <div className="flex flex-col items-end w-20">
+                <div className="flex flex-col items-end w-16">
                   <Sparkline data={asset.sparkline || []} positive={(asset.change_24h || 0) >= 0} />
                   <ChangeIndicator value={asset.change_24h || 0} />
                 </div>
