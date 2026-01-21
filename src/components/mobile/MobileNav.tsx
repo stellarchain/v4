@@ -116,9 +116,9 @@ export default function MobileNav() {
           className="fixed inset-0 z-40 md:hidden"
           onClick={() => setShowMore(false)}
         >
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <div
-            className="absolute bottom-20 left-4 right-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200"
+            className="absolute bottom-20 left-3 right-3 bg-[#f0f4f3] border border-slate-200 rounded-xl overflow-hidden shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             {moreItems.map((item) => {
@@ -127,16 +127,15 @@ export default function MobileNav() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3.5 border-b border-[var(--border-subtle)] last:border-0 active:bg-[var(--bg-tertiary)] transition-colors ${active ? 'bg-[var(--bg-tertiary)]' : ''
-                    }`}
+                  className={`flex items-center gap-3 px-4 py-3 border-b border-slate-200 last:border-0 active:bg-slate-100 transition-colors ${active ? 'bg-slate-100' : ''}`}
                   onClick={() => setShowMore(false)}
                 >
-                  {getIcon(item.icon, active)}
-                  <span className={`text-[13px] font-medium ${active ? 'text-[var(--primary)]' : 'text-[var(--text-primary)]'}`}>
+                  <span className={active ? 'text-slate-900' : 'text-slate-500'}>{getIcon(item.icon, active)}</span>
+                  <span className={`text-sm font-medium ${active ? 'text-slate-900' : 'text-slate-700'}`}>
                     {item.name}
                   </span>
                   {active && (
-                    <span className="ml-auto live-indicator" />
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   )}
                 </Link>
               );
@@ -146,27 +145,23 @@ export default function MobileNav() {
       )}
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 w-full bg-white border-t border-slate-100 pb-safe pt-2 px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-30 md:hidden safe-area-bottom">
-        <div className="flex justify-between items-center h-14">
+      <nav className="fixed bottom-0 w-full bg-[#f0f4f3]/95 backdrop-blur-md border-t border-slate-200 pb-safe pt-1 px-4 z-30 md:hidden safe-area-bottom">
+        <div className="flex justify-around items-center h-14">
           {mainNavItems.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex flex-col items-center justify-center space-y-1 w-16 transition-colors ${active
+                className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl transition-all ${active
                   ? 'text-slate-900'
-                  : 'text-slate-400 hover:text-slate-900'
+                  : 'text-slate-400 active:text-slate-600'
                   }`}
               >
-                {active ? (
-                  <div className="bg-slate-100 rounded-full w-12 h-8 flex items-center justify-center mb-0.5">
-                    {getIcon(item.icon, true)}
-                  </div>
-                ) : (
-                  getIcon(item.icon, false)
-                )}
-                <span className={`text-[10px] ${active ? 'font-bold' : 'font-medium'}`}>
+                <div className={`w-10 h-7 flex items-center justify-center rounded-lg transition-colors ${active ? 'bg-slate-900 text-white' : ''}`}>
+                  {getIcon(item.icon, active)}
+                </div>
+                <span className={`text-[10px] ${active ? 'font-semibold text-slate-900' : 'font-medium'}`}>
                   {item.name}
                 </span>
               </Link>
@@ -181,19 +176,15 @@ export default function MobileNav() {
                 setShowMore(!showMore);
               }
             }}
-            className={`flex flex-col items-center justify-center space-y-1 w-16 transition-colors ${isMoreActive || showMore
+            className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl transition-all ${isMoreActive || showMore
               ? 'text-slate-900'
-              : 'text-slate-400 hover:text-slate-900'
+              : 'text-slate-400 active:text-slate-600'
               }`}
           >
-            {(isMoreActive || showMore) ? (
-              <div className="bg-slate-100 rounded-full w-12 h-8 flex items-center justify-center mb-0.5">
-                {getIcon('menu', true)}
-              </div>
-            ) : (
-              getIcon('menu', false)
-            )}
-            <span className={`text-[10px] ${isMoreActive || showMore ? 'font-bold' : 'font-medium'}`}>
+            <div className={`w-10 h-7 flex items-center justify-center rounded-lg transition-colors ${(isMoreActive || showMore) ? 'bg-slate-900 text-white' : ''}`}>
+              {getIcon('menu', isMoreActive || showMore)}
+            </div>
+            <span className={`text-[10px] ${isMoreActive || showMore ? 'font-semibold text-slate-900' : 'font-medium'}`}>
               More
             </span>
           </button>
