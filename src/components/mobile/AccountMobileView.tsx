@@ -630,8 +630,11 @@ export default function AccountMobileView({ account, transactions, operations: i
                         asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
                       } else if (isSwap) {
                         typeDisplay = 'Swap';
+                        // For path payments: show source amount with source asset (what was sent)
+                        const sourceAssetType = (op as any).source_asset_type;
+                        const sourceAssetCode = (op as any).source_asset_code;
                         amount = formatXLM(op.amount || '0');
-                        asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || '';
+                        asset = sourceAssetType === 'native' ? 'XLM' : sourceAssetCode || '';
                       } else if (isOffer) {
                         typeDisplay = op.type === 'manage_sell_offer' ? 'Sell Offer' : op.type === 'manage_buy_offer' ? 'Buy Offer' : 'Passive Offer';
                         amount = formatXLM(op.amount || '0');
