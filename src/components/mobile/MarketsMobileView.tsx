@@ -251,7 +251,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
           <span className="w-16 text-right">Change</span>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-100 divide-y divide-slate-50">
+        <div className="divide-y divide-slate-200">
           {paginatedAssets.map((asset) => {
             const hasData = asset.price_usd > 0 && asset.market_cap > 0;
             const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
@@ -297,7 +297,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
         {/* Empty State */}
         {filteredAndSortedAssets.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-xl border border-slate-100">
+          <div className="text-center py-12">
             <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
