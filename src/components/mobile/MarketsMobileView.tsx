@@ -29,7 +29,8 @@ function formatPrice(price: number): string {
   if (price >= 0.01) return '$' + price.toFixed(3);
   if (price >= 0.001) return '$' + price.toFixed(4);
   if (price >= 0.0001) return '$' + price.toFixed(5);
-  return '$' + price.toExponential(1);
+  if (price >= 0.00001) return '$' + price.toFixed(6);
+  return '<$0.00001';
 }
 
 function formatXLMPrice(priceInXlm: number): string {
