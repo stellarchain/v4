@@ -170,18 +170,16 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
   return (
     <div className="w-full bg-[#f0f4f3] min-h-screen pb-24 font-sans">
       {/* Header - Sticky */}
-      <header className="pt-6 pb-4 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md">
+      <header className="pt-3 pb-3 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md">
         {/* Title Section */}
-        <div className="flex items-center gap-3 mb-4 px-4">
-          <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center shrink-0 shadow-md shadow-slate-900/20">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex items-center gap-2 mb-3 px-3">
+          <div className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center shrink-0">
+            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Assets</h1>
-            <p className="text-xs text-slate-500">Stellar network assets by market cap</p>
-          </div>
+          <h1 className="text-base font-bold text-slate-900">Assets</h1>
+          <span className="text-[10px] text-slate-400">by market cap</span>
         </div>
 
         {/* Search & Filter - aligned with list */}
