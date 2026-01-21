@@ -1087,73 +1087,182 @@ export default function TransactionMobileView({ transaction, operations, effects
           {/* OPERATIONS TAB */}
           {activeTab === 'operations' && (
             <div className="space-y-3">
-              {operations.slice((opsPage - 1) * OPS_PER_PAGE, opsPage * OPS_PER_PAGE).map((op, idx) => (
-                <div key={op.id} className="bg-white border border-slate-100 rounded-xl p-0 overflow-hidden">
-                  <div className="flex items-center p-2.5 gap-2.5">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500">
-                      {(opsPage - 1) * OPS_PER_PAGE + idx + 1}
-                    </div>
-                    <div className="flex-1 min-w-0 grid grid-cols-[auto_1fr] gap-x-2 items-center">
-                      <span className="text-xs font-semibold text-slate-900 capitalize truncate">
-                        {op.type === 'invoke_host_function'
-                          ? decodeContractFunctionName(op)
-                          : op.type === 'payment' && isMultiSend
-                            ? 'Sent Payment'
-                            : getOperationTypeLabel(op.type).replace(/_/g, ' ')
-                        }
-                      </span>
-                      <div className="flex items-center text-[10px] text-slate-500 font-medium truncate">
-                        {['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type) ? (
-                          <span className="text-slate-500" title={`@ ${(op as any).price}`}>
-                            → {(op as any).buying_asset_type === 'native' ? 'XLM' : ((op as any).buying_asset_code || 'XLM')}
-                            <span className="text-slate-400 ml-1">@ {formatCompactNumber((op as any).price)}</span>
-                          </span>
-                        ) : (
-                          <>
-                            {op.source_account && op.source_account !== transaction.source_account && (
-                              <>
-                                <Link href={`/account/${op.source_account}`} className="truncate max-w-[80px] hover:text-slate-900 transition-colors">
-                                  {shortenAddress(op.source_account, 4)}
-                                </Link>
-                                <svg className="w-3 h-3 mx-1 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                </svg>
-                              </>
-                            )}
-                            {(op.to || (op as any).into) ? (
-                              <span className="flex items-center">
-                                {(op.source_account === transaction.source_account) && <span className="mr-1 text-slate-400">To</span>}
-                                <Link href={`/account/${op.to || (op as any).into}`} className="truncate max-w-[100px] hover:text-slate-900 transition-colors font-semibold">
-                                  {shortenAddress(op.to || (op as any).into, 4)}
-                                </Link>
-                              </span>
-                            ) : (
-                              <span className="text-slate-300">--</span>
-                            )}
-                          </>
-                        )}
+              {operations.slice((opsPage - 1) * OPS_PER_PAGE, opsPage * OPS_PER_PAGE).map((op, idx) => {
+                const opNum = (opsPage - 1) * OPS_PER_PAGE + idx + 1;
+                const isPathPayment = op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
+                const isPaymentOp = op.type === 'payment';
+                const isCreateAccount = op.type === 'create_account';
+                const isOffer = ['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type);
+                const isContract = op.type === 'invoke_host_function';
+
+                // Determine icon and colors
+                let iconBg = 'bg-slate-100';
+                let iconColor = 'text-slate-500';
+                let iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />;
+
+                if (isPathPayment) {
+                  iconBg = 'bg-blue-50';
+                  iconColor = 'text-blue-500';
+                  iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />;
+                } else if (isPaymentOp || isCreateAccount) {
+                  iconBg = 'bg-emerald-50';
+                  iconColor = 'text-emerald-500';
+                  iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
+                } else if (isOffer) {
+                  iconBg = 'bg-purple-50';
+                  iconColor = 'text-purple-500';
+                  iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />;
+                } else if (isContract) {
+                  iconBg = 'bg-orange-50';
+                  iconColor = 'text-orange-500';
+                  iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />;
+                }
+
+                // Get operation description
+                let opTitle = getOperationTypeLabel(op.type).replace(/_/g, ' ');
+                let opDescription = '';
+
+                if (isPathPayment) {
+                  opTitle = 'Swap';
+                  const sourceAsset = (op as any).source_asset_type === 'native' ? 'XLM' : (op as any).source_asset_code || '';
+                  const destAsset = op.asset_type === 'native' ? 'XLM' : op.asset_code || '';
+                  opDescription = `Swapped ${sourceAsset} for ${destAsset}`;
+                } else if (isPaymentOp) {
+                  opTitle = 'Payment';
+                  const asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || '';
+                  opDescription = `Sent ${asset} to recipient`;
+                } else if (isCreateAccount) {
+                  opTitle = 'Create Account';
+                  opDescription = 'Created new account with starting balance';
+                } else if (isOffer) {
+                  const sellAsset = (op as any).selling_asset_type === 'native' ? 'XLM' : (op as any).selling_asset_code || '';
+                  const buyAsset = (op as any).buying_asset_type === 'native' ? 'XLM' : (op as any).buying_asset_code || '';
+                  opTitle = op.type === 'manage_sell_offer' ? 'Sell Order' : op.type === 'manage_buy_offer' ? 'Buy Order' : 'Passive Order';
+                  opDescription = `Trading ${sellAsset} for ${buyAsset}`;
+                } else if (isContract) {
+                  opTitle = decodeContractFunctionName(op);
+                  opDescription = 'Smart contract invocation';
+                }
+
+                return (
+                  <div key={op.id} className="bg-white border border-slate-100 rounded-xl overflow-hidden">
+                    {/* Operation Header */}
+                    <div className="flex items-center gap-3 p-3 border-b border-slate-50">
+                      <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center ${iconColor}`}>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          {iconPath}
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-slate-400">OP {opNum}</span>
+                          <span className="text-sm font-bold text-slate-900 capitalize">{opTitle}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">{opDescription}</p>
                       </div>
                     </div>
-                    {op.amount && (
-                      <div className="text-right flex-shrink-0" title={op.amount}>
-                        {['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type) ? (
-                          <span className="block text-xs font-bold text-slate-900">
-                            {formatCompactNumber(op.amount)}
-                            <span className="text-[10px] font-normal text-slate-500 ml-1">
-                              {(op as any).selling_asset_type === 'native' ? 'XLM' : ((op as any).selling_asset_code || 'XLM')}
+
+                    {/* Operation Details */}
+                    <div className="p-3 space-y-2 bg-slate-50/50">
+                      {/* From/To for payments */}
+                      {(isPaymentOp || isCreateAccount) && (
+                        <>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400 font-medium">From</span>
+                            <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-slate-700 hover:text-slate-900">
+                              {shortenAddress(op.from || op.source_account, 6)}
+                            </Link>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400 font-medium">To</span>
+                            <Link href={`/account/${op.to || (op as any).account}`} className="font-mono text-slate-700 hover:text-slate-900">
+                              {shortenAddress(op.to || (op as any).account, 6)}
+                            </Link>
+                          </div>
+                          <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                            <span className="text-slate-400 font-medium">Amount</span>
+                            <span className="font-bold text-slate-900">
+                              {formatCompactNumber(op.amount || (op as any).starting_balance)} {op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM'}
                             </span>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Swap details */}
+                      {isPathPayment && (
+                        <>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400 font-medium">From</span>
+                            <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-slate-700 hover:text-slate-900">
+                              {shortenAddress(op.from || op.source_account, 6)}
+                            </Link>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400 font-medium">To</span>
+                            <Link href={`/account/${op.to}`} className="font-mono text-slate-700 hover:text-slate-900">
+                              {shortenAddress(op.to || '', 6)}
+                            </Link>
+                          </div>
+                          <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                            <span className="text-red-400 font-medium">Sent</span>
+                            <span className="font-bold text-red-600">
+                              -{formatCompactNumber(op.amount || (op as any).source_amount)} {(op as any).source_asset_type === 'native' ? 'XLM' : (op as any).source_asset_code || ''}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-emerald-400 font-medium">Received</span>
+                            <span className="font-bold text-emerald-600">
+                              +{formatCompactNumber((op as any).destination_amount || op.amount)} {op.asset_type === 'native' ? 'XLM' : op.asset_code || ''}
+                            </span>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Offer details */}
+                      {isOffer && (
+                        <>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400 font-medium">Selling</span>
+                            <span className="font-bold text-slate-900">
+                              {formatCompactNumber(op.amount || '0')} {(op as any).selling_asset_type === 'native' ? 'XLM' : (op as any).selling_asset_code || ''}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400 font-medium">Buying</span>
+                            <span className="font-bold text-slate-900">
+                              {(op as any).buying_asset_type === 'native' ? 'XLM' : (op as any).buying_asset_code || ''}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                            <span className="text-slate-400 font-medium">Price</span>
+                            <span className="font-bold text-slate-900">{(op as any).price}</span>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Contract details */}
+                      {isContract && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-400 font-medium">Contract</span>
+                          <span className="font-mono text-slate-700 text-[10px]">
+                            {extractContractAddress(op as any) ? shortenAddress(extractContractAddress(op as any) || '', 6) : 'Unknown'}
                           </span>
-                        ) : (
-                          <span className="block text-xs font-bold text-slate-900">
-                            {formatCompactNumber(op.amount)}
-                            <span className="text-[10px] font-normal text-slate-500 ml-1">{op.asset_type === 'native' ? 'XLM' : op.asset_code || ''}</span>
+                        </div>
+                      )}
+
+                      {/* Fallback for other operations */}
+                      {!isPaymentOp && !isCreateAccount && !isPathPayment && !isOffer && !isContract && op.amount && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-400 font-medium">Amount</span>
+                          <span className="font-bold text-slate-900">
+                            {formatCompactNumber(op.amount)} {op.asset_type === 'native' ? 'XLM' : op.asset_code || ''}
                           </span>
-                        )}
-                      </div>
-                    )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {/* Operations Pagination */}
               {operations.length > OPS_PER_PAGE && (
