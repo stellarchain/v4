@@ -35,12 +35,13 @@ function formatOrderPrice(price: number): string {
   return price.toFixed(2);
 }
 
+// Horizon supported resolutions: 60000, 300000, 900000, 3600000, 86400000, 604800000
 const timeframes = [
-  { label: '1H', value: 3600000, resolution: 60000, dateFormat: 'time', limit: 60 },
-  { label: '24H', value: 86400000, resolution: 900000, dateFormat: 'time', limit: 96 }, // 15min candles
-  { label: '7D', value: 604800000, resolution: 3600000, dateFormat: 'day', limit: 168 }, // 1hr candles
-  { label: '30D', value: 2592000000, resolution: 14400000, dateFormat: 'date', limit: 180 }, // 4hr candles
-  { label: '1Y', value: 31536000000, resolution: 86400000, dateFormat: 'month', limit: 365 }, // daily candles
+  { label: '1H', value: 3600000, resolution: 60000, dateFormat: 'time', limit: 60 },       // 1min candles
+  { label: '24H', value: 86400000, resolution: 900000, dateFormat: 'time', limit: 96 },    // 15min candles
+  { label: '7D', value: 604800000, resolution: 3600000, dateFormat: 'day', limit: 168 },   // 1hr candles
+  { label: '30D', value: 2592000000, resolution: 86400000, dateFormat: 'date', limit: 30 }, // daily candles
+  { label: '1Y', value: 31536000000, resolution: 604800000, dateFormat: 'month', limit: 52 }, // weekly candles
 ];
 
 interface ProcessedOrder {
