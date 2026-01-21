@@ -7,9 +7,9 @@ import { useState, useEffect } from 'react';
 const mainNavItems = [
   { name: 'Home', href: '/', icon: 'home' },
   { name: 'Txns', href: '/transactions', icon: 'arrows' },
+  { name: 'Assets', href: '/markets', icon: 'chart' },
   // Hidden for now
   // { name: 'Ledgers', href: '/ledgers', icon: 'cube' },
-  // { name: 'Markets', href: '/markets', icon: 'chart' },
 ];
 
 const moreItems: typeof mainNavItems = [

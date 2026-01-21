@@ -1114,7 +1114,7 @@ export async function getMarketAssets(): Promise<MarketAsset[]> {
     // Sort by rating to get legitimate assets (filters out spam)
     const [xlmPrice, assetsResponse, coinGeckoData] = await Promise.all([
       getXLMPrice(),
-      fetch('https://api.stellar.expert/explorer/public/asset?sort=rating&order=desc&limit=50', {
+      fetch('https://api.stellar.expert/explorer/public/asset?sort=rating&order=desc&limit=200', {
         headers: { 'Accept': 'application/json' },
         next: { revalidate: 60 },
       }),

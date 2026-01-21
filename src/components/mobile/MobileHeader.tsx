@@ -65,8 +65,9 @@ export default function MobileHeader() {
     setSearchQuery('');
   };
 
-  // Hide header on Account page as it has its own custom header
+  // Hide header on pages that have their own custom header
   if (pathname?.startsWith('/account/')) return null;
+  if (pathname?.startsWith('/markets')) return null;
 
   // Simplified Header for non-homepage
   if (!isHomePage) {
