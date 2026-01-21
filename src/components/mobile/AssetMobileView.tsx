@@ -376,7 +376,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
                            processedAsks.some(a => a.amount > 0 && a.price > 0);
 
   return (
-    <div className="w-full bg-[#F2F4F8] min-h-screen pb-24 font-sans relative">
+    <div className="w-full bg-[#f0f4f3] min-h-screen pb-24 font-sans relative">
       {/* Price Header Section */}
       <div className="bg-slate-900 px-5 py-4">
         <div className="flex items-center justify-between">
@@ -414,10 +414,10 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-2xl mx-auto px-5 py-4 space-y-4">
+      <div className="max-w-2xl mx-auto px-6 py-4 space-y-4">
 
         {/* Chart Section */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+        <div className="bg-white rounded-xl p-4 border border-slate-100">
           {/* Timeframe Selector */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex gap-1">
@@ -493,7 +493,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         </div>
 
         {/* Price Change Row - always show */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+        <div className="bg-white rounded-xl p-4 border border-slate-100">
           <div className="flex justify-around">
             <PriceChangeItem label="1 hour" value={asset.change_1h} />
             <PriceChangeItem label="24 hours" value={asset.change_24h} />
@@ -502,7 +502,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         </div>
 
         {/* Order Book Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">Order Book</h3>
             {!orderBookLoading && orderBook && spread > 0 && (
@@ -606,7 +606,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         </div>
 
         {/* Statistics Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100">
             <h3 className="text-sm font-bold text-slate-900">Statistics</h3>
           </div>
@@ -653,7 +653,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
 
         {/* Links Section */}
         {(asset.domain || asset.issuer) && (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-900">Links</h3>
             </div>
@@ -705,7 +705,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
 
         {/* About Section */}
         {asset.description && (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-900">About {asset.name}</h3>
             </div>
@@ -764,7 +764,7 @@ function AssetConverterMobile({ asset }: { asset: AssetDetails }) {
   }, [usdAmount, asset.price_usd, activeInput]);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-100">
         <h3 className="text-sm font-bold text-slate-900">{asset.code} to USD Converter</h3>
       </div>

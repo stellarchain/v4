@@ -135,8 +135,8 @@ export default function ContractMobileView({ contract, operations }: ContractMob
   };
 
   return (
-    <div className="bg-[#F8FAFC] text-slate-800 min-h-screen flex flex-col font-sans pb-24">
-      <main className="flex-1 px-4 pt-2 pb-8 max-w-lg mx-auto w-full">
+    <div className="bg-[#f0f4f3] text-slate-800 min-h-screen flex flex-col font-sans pb-24">
+      <main className="flex-1 px-6 pt-2 pb-8 max-w-lg mx-auto w-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 mt-1">
           <Link
@@ -170,10 +170,10 @@ export default function ContractMobileView({ contract, operations }: ContractMob
         </div>
 
         {/* Contract Info Card */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-5">
+        <div className="bg-white rounded-xl border border-slate-100 p-4 mb-5">
           <div className="flex items-start gap-4">
             {/* Icon */}
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+            <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${
               isNFT ? 'bg-gradient-to-br from-pink-500 to-rose-600' :
               isVault ? 'bg-gradient-to-br from-amber-500 to-orange-600' :
               isToken ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gradient-to-br from-slate-600 to-slate-800'
@@ -322,7 +322,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
         {/* Build Verification Section */}
         {contract.verification && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-5">
+          <div className="bg-white rounded-xl border border-slate-100 p-4 mb-5">
             <div className="flex items-center gap-2 mb-3">
               <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -390,7 +390,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
         {/* Access Control Section */}
         {contract.accessControl && (contract.accessControl.owner || contract.accessControl.admin || contract.accessControl.isPaused) && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-5">
+          <div className="bg-white rounded-xl border border-slate-100 p-4 mb-5">
             <div className="flex items-center gap-2 mb-3">
               <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -435,7 +435,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
         {/* Contract Metadata Section */}
         {contract.contractMetadata && (contract.contractMetadata.homeDomain || contract.contractMetadata.sourceRepo || (contract.contractMetadata.customMeta && Object.keys(contract.contractMetadata.customMeta).length > 0)) && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-5">
+          <div className="bg-white rounded-xl border border-slate-100 p-4 mb-5">
             <div className="flex items-center gap-2 mb-3">
               <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -496,34 +496,32 @@ export default function ContractMobileView({ contract, operations }: ContractMob
         )}
 
         {/* Tabs Navigation */}
-        <div className="border-b border-slate-200 mb-4">
-          <nav aria-label="Tabs" className="-mb-px flex space-x-6 overflow-x-auto no-scrollbar">
-            {[
-              { id: 'overview', label: 'Overview' },
-              { id: 'history', label: 'History', count: contract.invocations?.length || 0 },
-              { id: 'operations', label: 'Events', count: contract.events?.length || 0 },
-              { id: 'details', label: 'Details' },
-            ].filter(tab => tab.id !== 'history' || (contract.invocations && contract.invocations.length > 0)).map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`py-2 px-1 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-slate-900 text-slate-900 font-semibold'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                {tab.label}
-                {tab.count !== undefined && (
-                  <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[10px] ${
-                    activeTab === tab.id ? 'bg-slate-100 text-slate-600' : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
+        <div className="flex gap-6 border-b border-slate-100 pb-4 mb-4">
+          {[
+            { id: 'overview', label: 'Overview' },
+            { id: 'history', label: 'History', count: contract.invocations?.length || 0 },
+            { id: 'operations', label: 'Events', count: contract.events?.length || 0 },
+            { id: 'details', label: 'Details' },
+          ].filter(tab => tab.id !== 'history' || (contract.invocations && contract.invocations.length > 0)).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as typeof activeTab)}
+              className={`text-sm font-semibold relative ${
+                activeTab === tab.id
+                  ? 'text-slate-900 after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-slate-900'
+                  : 'text-slate-400 hover:text-slate-600'
+              } transition-colors`}
+            >
+              {tab.label}
+              {tab.count !== undefined && (
+                <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[10px] ${
+                  activeTab === tab.id ? 'bg-slate-100 text-slate-600' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Tab Content */}
@@ -533,14 +531,14 @@ export default function ContractMobileView({ contract, operations }: ContractMob
             <div className="space-y-4">
               {/* Description */}
               {contract.verifiedContract?.description && (
-                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                <div className="bg-white border border-slate-100 rounded-xl p-4">
                   <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest mb-2">Description</div>
                   <p className="text-sm text-slate-700 leading-relaxed">{contract.verifiedContract.description}</p>
                 </div>
               )}
 
               {/* Recent Activity - Shows Events for Contracts */}
-              <div className="bg-white border border-slate-200 rounded-xl p-4">
+              <div className="bg-white border border-slate-100 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Recent Activity</div>
                   <span className="text-[10px] font-semibold text-slate-500">{contract.events?.length || 0} events</span>
@@ -619,7 +617,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
               </div>
 
               {/* Storage Section */}
-              <div className="bg-white border border-slate-200 rounded-xl p-4">
+              <div className="bg-white border border-slate-100 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -730,7 +728,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     <Link
                       key={idx}
                       href={`/transaction/${invocation.txHash}`}
-                      className="block bg-white rounded-xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
+                      className="block bg-white rounded-xl p-4  border border-slate-100 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-sky-100 flex items-center justify-center">
@@ -838,14 +836,14 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     <Link
                       key={idx}
                       href={`/transaction/${event.txHash}`}
-                      className="block bg-white border border-slate-200 rounded-xl p-3 hover:border-indigo-200 hover:bg-indigo-50/30 transition-colors"
+                      className="block bg-white border border-slate-100 rounded-xl p-3 hover:border-indigo-200 hover:bg-indigo-50/30 transition-colors"
                     >
                       {eventContent}
                     </Link>
                   ) : (
                     <div
                       key={idx}
-                      className="block bg-white border border-slate-200 rounded-xl p-3"
+                      className="block bg-white border border-slate-100 rounded-xl p-3"
                     >
                       {eventContent}
                     </div>

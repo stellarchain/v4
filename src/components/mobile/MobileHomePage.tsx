@@ -87,15 +87,14 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
   }).format(marketCap);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] pb-20">
+    <div className="min-h-screen bg-[#f0f4f3] pb-24">
       {/* Network Stats Card */}
-      {/* Network Stats Card */}
-      <div>
-        <div className="bg-white p-4 border-b border-gray-100 relative z-20">
+      <div className="mx-6 mt-6">
+        <div className="bg-white rounded-xl border border-slate-100 p-4 relative z-20">
           <div className="grid grid-cols-2 gap-y-4">
 
             {/* Row 1: Market Cap & Volume */}
-            <div className="space-y-1 border-r border-gray-100 pr-4">
+            <div className="space-y-1 border-r border-slate-100 pr-4">
               <InfoTooltip
                 direction="bottom"
                 label={
@@ -108,7 +107,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
                 }
                 content="The total market value of all circulating XLM coins."
               />
-              <div className="text-lg font-bold text-gray-900 font-mono tracking-tight">{formattedMarketCap}</div>
+              <div className="text-lg font-bold text-slate-900 font-mono tracking-tight">{formattedMarketCap}</div>
             </div>
 
             <div className="space-y-1 pl-4">
@@ -124,14 +123,14 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
                 }
                 content="Total value of XLM traded across all exchanges in the last 24 hours."
               />
-              <div className="text-lg font-bold text-gray-900 font-mono tracking-tight">{formattedVolume}</div>
+              <div className="text-lg font-bold text-slate-900 font-mono tracking-tight">{formattedVolume}</div>
             </div>
 
             {/* Divider */}
-            <div className="col-span-2 h-px bg-gray-100"></div>
+            <div className="col-span-2 h-px bg-slate-100"></div>
 
             {/* Row 2: Transactions & Base Fee */}
-            <div className="space-y-1 border-r border-gray-100 pr-4">
+            <div className="space-y-1 border-r border-slate-100 pr-4">
               <InfoTooltip
                 label={
                   <>
@@ -144,7 +143,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
                 content="Number of successful transactions in the latest ledger."
               />
               <div>
-                <div ref={tpsRef} className="text-lg font-bold text-gray-900 font-mono tracking-tight">
+                <div ref={tpsRef} className="text-lg font-bold text-slate-900 font-mono tracking-tight">
                   {liveStats.latest_ledger.successful_transaction_count.toLocaleString()}
                 </div>
                 <div className="text-[10px] font-medium text-emerald-500 mt-0.5">{tps} TPS</div>
@@ -164,18 +163,18 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
                 content="The minimum fee required to submit a transaction to the network."
               />
               <div>
-                <div className="text-lg font-bold text-gray-900 font-mono tracking-tight">
+                <div className="text-lg font-bold text-slate-900 font-mono tracking-tight">
                   {(liveStats.base_fee / 10000000).toFixed(7)}
                 </div>
-                <div className="text-[10px] text-gray-400 mt-0.5 font-medium">XLM</div>
+                <div className="text-[10px] text-slate-400 mt-0.5 font-medium">XLM</div>
               </div>
             </div>
 
             {/* Divider */}
-            <div className="col-span-2 h-px bg-gray-100"></div>
+            <div className="col-span-2 h-px bg-slate-100"></div>
 
             {/* Row 3: Ledger & Price */}
-            <div className="space-y-1 border-r border-gray-100 pr-4">
+            <div className="space-y-1 border-r border-slate-100 pr-4">
               <InfoTooltip
                 label={
                   <>
@@ -187,7 +186,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
                 }
                 content="The sequence number of the most recently closed ledger."
               />
-              <div ref={ledgerCountRef} className="text-lg font-bold text-gray-900 font-mono tracking-tight">
+              <div ref={ledgerCountRef} className="text-lg font-bold text-slate-900 font-mono tracking-tight">
                 {liveStats.ledger_count.toLocaleString()}
               </div>
             </div>
@@ -205,10 +204,10 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
                 content="Current market price of 1 XLM in USD."
               />
               <div>
-                <div className="text-lg font-bold text-gray-900 font-mono tracking-tight">
+                <div className="text-lg font-bold text-slate-900 font-mono tracking-tight">
                   <span className="text-emerald-600">${xlmPrice.toFixed(4)}</span>
                 </div>
-                <div className="text-[10px] text-gray-400 mt-0.5 font-medium">USD</div>
+                <div className="text-[10px] text-slate-400 mt-0.5 font-medium">USD</div>
               </div>
             </div>
           </div>
@@ -216,13 +215,13 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
       </div>
 
       {/* Live Transactions Section */}
-      {/* Live Transactions Section */}
-      <div className="bg-white">
-        <div className="flex items-center justify-between mb-2 px-4 pt-4">
-          <h2 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">Live Transactions</h2>
+      <div className="mx-6 mt-4">
+        <div className="bg-white rounded-xl border border-slate-100">
+          <div className="flex items-center justify-between mb-2 px-6 pt-4">
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight">Live Transactions</h2>
           <Link
             href="/transactions"
-            className="text-gray-500 hover:text-black text-sm font-medium flex items-center gap-1 transition-colors"
+            className="text-slate-500 hover:text-black text-sm font-medium flex items-center gap-1 transition-colors"
           >
             View all
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -231,8 +230,9 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
           </Link>
         </div>
 
-        <div className="border-t border-slate-100">
-          <LiveTransactionFeed initialTransactions={initialTransactions} limit={30} filter="payments" />
+          <div className="border-t border-slate-100">
+            <LiveTransactionFeed initialTransactions={initialTransactions} limit={30} filter="payments" />
+          </div>
         </div>
       </div>
     </div>
