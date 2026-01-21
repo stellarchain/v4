@@ -563,7 +563,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                   onClick={() => setActivityType(type as any)}
                   className={`px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${activityType === type
                       ? 'bg-slate-900 text-white'
-                      : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
+                      : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'
                     }`}
                 >
                   {type === 'all' ? 'All' : type === 'payments' ? 'Payments' : 'Smart Contracts'}
@@ -616,7 +616,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     <Link
                       key={op.id}
                       href={`/transaction/${op.transaction_hash}`}
-                      className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 hover:shadow-sm transition-all"
+                      className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 active:bg-slate-50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isReceive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
@@ -650,7 +650,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     <button
                       onClick={() => goToPage(Math.max(1, currentPage - 1))}
                       disabled={currentPage === 1}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-600 disabled:opacity-40"
+                      className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-600 disabled:opacity-40"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -662,7 +662,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     <button
                       onClick={() => goToPage(Math.min(currentTotalPages, currentPage + 1))}
                       disabled={currentPage === currentTotalPages && !hasMoreToFetch}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-600 disabled:opacity-40"
+                      className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-600 disabled:opacity-40"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
