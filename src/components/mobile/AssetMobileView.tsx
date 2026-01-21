@@ -378,34 +378,24 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
   return (
     <div className="w-full bg-[#f0f4f3] min-h-screen pb-24 font-sans relative">
       {/* Header */}
-      <header className="px-2 py-3 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md flex items-center gap-2">
-        <button
-          onClick={() => router.back()}
-          className="w-8 h-8 flex items-center justify-center text-slate-400"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        {asset.image ? (
-          <img src={asset.image} alt={asset.code} className="w-7 h-7 rounded-full" />
-        ) : (
-          <div className="w-7 h-7 rounded-full bg-slate-900 flex items-center justify-center">
-            <span className="text-white font-bold text-[10px]">{asset.code[0]}</span>
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold text-slate-900">{asset.code}</span>
-            <span className={`text-[10px] font-semibold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
-              {isPositive ? '+' : ''}{change24h.toFixed(2)}%
-            </span>
-          </div>
-          <span className="text-[10px] text-slate-400">{asset.name}</span>
+      <header className="px-3 py-3 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.back()}
+            className="text-slate-400"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <span className="font-bold text-slate-900">{asset.code}</span>
+          <span className="text-slate-400 text-sm">/ USD</span>
+          <span className={`text-xs font-semibold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+            {isPositive ? '+' : ''}{change24h.toFixed(2)}%
+          </span>
         </div>
         <div className="text-right">
-          <div className="font-bold text-slate-900">{formatPrice(asset.price_usd)}</div>
-          <div className="text-[10px] text-slate-400">{asset.price_xlm.toFixed(4)} XLM</div>
+          <span className="font-bold text-slate-900">{formatPrice(asset.price_usd)}</span>
         </div>
       </header>
 
