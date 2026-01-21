@@ -55,6 +55,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [selectedTimeframe, setSelectedTimeframe] = useState('24H');
   const [loading, setLoading] = useState(true);
+  const [initialChartLoad, setInitialChartLoad] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
   const [tooltipData, setTooltipData] = useState<{
     open: number;
@@ -70,6 +71,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
   const [processedBids, setProcessedBids] = useState<ProcessedOrder[]>([]);
   const [processedAsks, setProcessedAsks] = useState<ProcessedOrder[]>([]);
   const [orderBookLoading, setOrderBookLoading] = useState(true);
+  const [initialOrderBookLoad, setInitialOrderBookLoad] = useState(true);
 
   // Fetch chart data
   useEffect(() => {
@@ -163,6 +165,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         console.error('Failed to fetch chart data', error);
       }
       setLoading(false);
+      setInitialChartLoad(false);
     };
 
     fetchChartData();
@@ -222,6 +225,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         console.error(e);
       }
       setOrderBookLoading(false);
+      setInitialOrderBookLoad(false);
     };
 
     fetchOrderBook();
@@ -374,39 +378,37 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
   return (
     <div className="w-full bg-[#F2F4F8] min-h-screen pb-24 font-sans relative">
       {/* Price Header Section */}
-      <div className="bg-white px-4 py-3 border-b border-slate-100">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          {/* Left: Back + Asset Name */}
-          <div className="flex items-center gap-2">
+      <div className="bg-slate-900 px-5 py-4">
+        <div className="flex items-center justify-between">
+          {/* Left: Back + Asset info */}
+          <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <div>
-              <h1 className="text-slate-900 font-bold text-sm">{asset.name}</h1>
-              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wide">{asset.code}</span>
+              <h1 className="text-white font-semibold text-base">{asset.name}</h1>
+              <span className="text-white/40 text-[11px] font-medium">{asset.code}</span>
             </div>
           </div>
 
           {/* Right: Price */}
           <div className="text-right">
             <div className="flex items-center gap-2 justify-end">
-              <span className="text-lg font-bold text-slate-900">
+              <span className="text-xl font-bold text-white">
                 {formatPrice(asset.price_usd)}
               </span>
-              <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                isPositive ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'
-              }`}>
-                {isPositive ? '▲' : '▼'} {Math.abs(change24h).toFixed(2)}%
-              </div>
+              <span className={`text-xs font-semibold ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                {isPositive ? '+' : ''}{change24h.toFixed(2)}%
+              </span>
             </div>
-            <p className="text-slate-400 text-[10px]">
+            <span className="text-white/40 text-[11px]">
               {asset.price_xlm.toFixed(4)} XLM
-            </p>
+            </span>
           </div>
         </div>
       </div>
@@ -437,7 +439,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
 
           {/* Chart or Skeleton */}
           <div className="relative">
-            {loading ? (
+            {loading && initialChartLoad ? (
               /* Chart Skeleton */
               <div className="w-full h-[240px] animate-pulse">
                 <div className="h-full flex flex-col justify-end gap-1 px-2">
@@ -510,7 +512,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
             )}
           </div>
 
-          {orderBookLoading ? (
+          {orderBookLoading && initialOrderBookLoad ? (
             /* Order Book Skeleton */
             <div className="text-[10px] font-mono animate-pulse">
               {/* Header */}
