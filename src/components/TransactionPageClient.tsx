@@ -400,17 +400,17 @@ export default function TransactionPageClient({
   };
 
   return (
-    <div className="min-h-screen bg-[#f3f4f6] pb-20 pt-4 md:pt-6">
+    <div className="min-h-screen bg-[#f0f4f3] pb-20 pt-4 md:pt-6">
       <div className="max-w-[1600px] mx-auto px-3 md:px-6">
-        <div className="flex flex-col bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+        <div className="flex flex-col bg-[#f0f4f3] md:bg-white md:rounded-xl md:border md:border-slate-100 overflow-hidden">
           {/* Header & Tabs */}
           <div className="flex flex-col flex-shrink-0">
-            <div className="p-3 md:p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <h3 className="text-[10px] md:text-xs font-bold text-gray-900 uppercase tracking-wider">
+            <div className="p-3 md:p-4 border-b border-slate-100 flex items-center justify-between bg-[#f0f4f3] md:bg-slate-50/50">
+              <h3 className="text-[10px] md:text-xs font-bold text-slate-900 uppercase tracking-wider">
                 Transactions
               </h3>
             </div>
-            <div className="px-3 md:px-4 py-2 bg-white border-b border-gray-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            <div className="px-3 md:px-4 py-2 bg-[#f0f4f3] md:bg-white border-b border-slate-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
               {['all', 'transfers', 'contracts'].map(tab => (
                 <button
                   key={tab}
@@ -524,7 +524,7 @@ export default function TransactionPageClient({
                     <a
                       key={tx.hash}
                       href={`/transaction/${tx.hash}`}
-                      className="block bg-white border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                      className="block bg-[#f0f4f3] border-b border-slate-200 hover:bg-slate-100 transition-colors"
                     >
                       <div className="flex items-center justify-between px-4 py-3">
                         {/* Left Side: Icon & Title/Meta */}
@@ -590,7 +590,7 @@ export default function TransactionPageClient({
 
           {/* Footer / Pagination */}
           {totalPages > 1 && (
-            <div className="p-3 bg-gray-50 border-t border-gray-100">
+            <div className="p-3 bg-[#f0f4f3] md:bg-slate-50 border-t border-slate-100">
               <div className="flex items-center justify-center gap-1">
                 <button
                   onClick={() => goToPage(currentPage - 1)}
