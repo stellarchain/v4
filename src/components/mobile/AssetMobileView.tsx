@@ -36,11 +36,11 @@ function formatOrderPrice(price: number): string {
 }
 
 const timeframes = [
-  { label: '1H', value: 3600000, resolution: 60000, dateFormat: 'time' },
-  { label: '24H', value: 86400000, resolution: 3600000, dateFormat: 'time' },
-  { label: '7D', value: 604800000, resolution: 14400000, dateFormat: 'day' },
-  { label: '30D', value: 2592000000, resolution: 86400000, dateFormat: 'date' },
-  { label: '1Y', value: 31536000000, resolution: 604800000, dateFormat: 'month' },
+  { label: '1H', value: 3600000, resolution: 60000, dateFormat: 'time', limit: 60 },
+  { label: '24H', value: 86400000, resolution: 900000, dateFormat: 'time', limit: 96 }, // 15min candles
+  { label: '7D', value: 604800000, resolution: 3600000, dateFormat: 'day', limit: 168 }, // 1hr candles
+  { label: '30D', value: 2592000000, resolution: 14400000, dateFormat: 'date', limit: 180 }, // 4hr candles
+  { label: '1Y', value: 31536000000, resolution: 86400000, dateFormat: 'month', limit: 365 }, // daily candles
 ];
 
 interface ProcessedOrder {
@@ -94,9 +94,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
           { code: asset.code, issuer: asset.issuer },
           counterAsset,
           timeframe.resolution,
-          200, // Fetch more data points for better chart
-          startTime,
-          endTime
+          timeframe.limit
         );
 
         // First pass: get all close prices to calculate median
