@@ -421,8 +421,10 @@ export default function AccountMobileView({ account, transactions, operations: i
     (op.type === 'invoke_host_function' && decodeContractFunctionName(op).toLowerCase() === 'swap')
   );
 
+  // Contracts: exclude swaps (they go in Swaps tab)
   const allContractOps = allOperations.filter(op =>
-    op.type === 'invoke_host_function' || op.type === 'extend_footprint_ttl' || op.type === 'restore_footprint'
+    (op.type === 'invoke_host_function' && decodeContractFunctionName(op).toLowerCase() !== 'swap') ||
+    op.type === 'extend_footprint_ttl' || op.type === 'restore_footprint'
   );
 
   const getCurrentDataSource = () => {
