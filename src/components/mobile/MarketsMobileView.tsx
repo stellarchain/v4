@@ -172,23 +172,23 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
       {/* Header - Sticky */}
       <header className="pt-6 px-6 pb-4 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md">
         {/* Title Section */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-slate-900/20">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center shrink-0 shadow-md shadow-slate-900/20">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Assets</h1>
-            <p className="text-sm text-slate-500">Stellar network assets by market cap</p>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">Assets</h1>
+            <p className="text-xs text-slate-500">Stellar network assets by market cap</p>
           </div>
         </div>
 
         {/* Search & Filter */}
-        <div className="flex gap-3">
+        <div className="flex gap-2 items-stretch">
           <div className="relative flex-1">
             <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </span>
@@ -197,13 +197,13 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search assets..."
-              className="w-full pl-10 pr-4 py-3 bg-white border-none rounded-xl text-sm font-medium placeholder-slate-400 text-slate-900 shadow-sm focus:ring-2 focus:ring-slate-900 focus:outline-none transition-all"
+              className="w-full h-10 pl-9 pr-3 bg-white border-none rounded-xl text-sm font-medium placeholder-slate-400 text-slate-900 shadow-sm focus:ring-2 focus:ring-slate-900 focus:outline-none transition-all"
             />
           </div>
           <div className="relative">
             <button
               onClick={() => setShowSortMenu(!showSortMenu)}
-              className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow-sm text-sm font-medium text-slate-700 whitespace-nowrap hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-1.5 h-10 px-3 bg-white rounded-xl shadow-sm text-sm font-medium text-slate-700 whitespace-nowrap hover:bg-slate-50 transition-colors"
             >
               {sortLabels[sortField]}
               <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
