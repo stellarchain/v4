@@ -247,15 +247,15 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
       {/* Asset List */}
       <main className="px-3">
         {/* Column Headers */}
-        <div className="flex items-center px-3 py-2 mb-2">
-          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold w-10">Rank</span>
-          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold flex-1">Market Cap</span>
-          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold w-24 text-center">Price</span>
-          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold w-20 text-right">Change</span>
+        <div className="flex items-center px-3 py-2">
+          <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-9">Rank</span>
+          <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold flex-1">Market Cap</span>
+          <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-20 text-center">Price</span>
+          <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-16 text-right">Change</span>
         </div>
 
         {/* Asset Cards */}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {paginatedAssets.map((asset) => {
             const hasData = asset.price_usd > 0 && asset.market_cap > 0;
             const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
@@ -266,45 +266,44 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
             return (
               <div
                 key={`${asset.code}-${asset.issuer || 'native'}`}
-                className={`bg-[#0f172a] rounded-xl px-3 py-2.5 flex items-center active:bg-[#1e293b] transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
+                className={`bg-white rounded-xl shadow-sm border border-slate-100 px-2.5 py-2 flex items-center active:bg-slate-50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
                 onClick={() => handleRowClick(asset)}
               >
                 {/* Rank Badge */}
-                <div className="w-10 flex-shrink-0">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: coreColors.primary }}>
+                <div className="w-9 flex-shrink-0">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[11px] font-bold" style={{ backgroundColor: coreColors.primary }}>
                     {hasData ? asset.rank : '--'}
                   </div>
                 </div>
 
                 {/* Asset Name/MCap */}
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-white text-sm leading-tight">{asset.code}</div>
-                  <div className="text-[11px] text-slate-400 font-medium leading-tight">
+                  <div className="font-bold text-sm leading-tight" style={{ color: coreColors.primary }}>{asset.code}</div>
+                  <div className="text-[10px] text-slate-400 font-medium leading-tight">
                     {formatNumber(asset.market_cap || 0)}
                   </div>
                 </div>
 
                 {/* Price USD + XLM */}
-                <div className="w-24 text-right">
-                  <div className="font-bold text-white text-sm leading-tight">
+                <div className="w-20 text-right">
+                  <div className="font-bold text-sm leading-tight" style={{ color: coreColors.primary }}>
                     {formatPrice(asset.price_usd || 0)}
                   </div>
-                  <div className="text-[11px] text-slate-400 font-medium leading-tight">
+                  <div className="text-[10px] text-slate-400 font-medium leading-tight">
                     {formatXLMPrice(priceInXlm)}
                   </div>
                 </div>
 
                 {/* Sparkline + Change */}
-                <div className="w-20 flex flex-col items-end pl-2">
+                <div className="w-16 flex flex-col items-end pl-1">
                   <Sparkline data={asset.sparkline || []} positive={isPositive} />
-                  <div className="flex items-center gap-0.5 mt-0.5">
+                  <div className="flex items-center gap-0.5">
                     {!isNeutral && (
-                      <span className={isPositive ? 'text-emerald-400' : 'text-red-400'}>
+                      <span className={`text-[9px] ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
                         {isPositive ? '▲' : '▼'}
                       </span>
                     )}
-                    {isNeutral && <span className="text-slate-500">▶</span>}
-                    <span className={`text-[11px] font-bold ${isPositive ? 'text-emerald-400' : isNeutral ? 'text-slate-500' : 'text-red-400'}`}>
+                    <span className={`text-[10px] font-bold ${isPositive ? 'text-emerald-500' : isNeutral ? 'text-slate-400' : 'text-red-500'}`}>
                       {Math.abs(change).toFixed(2)}%
                     </span>
                   </div>
@@ -316,14 +315,14 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
         {/* Empty State */}
         {filteredAndSortedAssets.length === 0 && (
-          <div className="text-center py-12 bg-[#0f172a] rounded-xl">
-            <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
-              <svg className="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-slate-100">
+            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-slate-100">
+              <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <h3 className="text-white font-semibold text-sm mb-1">No assets found</h3>
-            <p className="text-slate-400 text-xs">Try a different search term</p>
+            <h3 className="text-slate-900 font-semibold text-sm mb-1">No assets found</h3>
+            <p className="text-slate-500 text-xs">Try a different search term</p>
           </div>
         )}
 
