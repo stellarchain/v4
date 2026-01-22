@@ -82,7 +82,7 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
                 {formatCompact(info.amount || info.effectAmount)} {info.asset || info.effectAsset}
               </span>
             ) : (
-              <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: getPrimaryColor() }}>
+              <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: getPrimaryColor() }}>
                 {info?.type === 'contract' ? (info.functionName || 'Contract') : 'Details'}
               </span>
             )}

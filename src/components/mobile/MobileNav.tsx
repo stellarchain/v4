@@ -161,7 +161,7 @@ export default function MobileNav() {
                 <div className={`w-10 h-7 flex items-center justify-center rounded-lg transition-colors ${active ? 'bg-slate-900 text-white' : ''}`}>
                   {getIcon(item.icon, active)}
                 </div>
-                <span className={`text-[10px] ${active ? 'font-semibold text-slate-900' : 'font-medium'}`}>
+                <span className={`text-[11px] ${active ? 'font-semibold text-slate-900' : 'font-medium'}`}>
                   {item.name}
                 </span>
               </Link>
@@ -184,7 +184,7 @@ export default function MobileNav() {
             <div className={`w-10 h-7 flex items-center justify-center rounded-lg transition-colors ${(isMoreActive || showMore) ? 'bg-slate-900 text-white' : ''}`}>
               {getIcon('menu', isMoreActive || showMore)}
             </div>
-            <span className={`text-[10px] ${isMoreActive || showMore ? 'font-semibold text-slate-900' : 'font-medium'}`}>
+            <span className={`text-[11px] ${isMoreActive || showMore ? 'font-semibold text-slate-900' : 'font-medium'}`}>
               More
             </span>
           </button>

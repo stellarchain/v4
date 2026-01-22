@@ -202,7 +202,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                     <div className="relative z-10 flex flex-col gap-4">
                         <div className="flex items-start justify-between relative z-20">
                             <div>
-                                <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Ledger Sequence</div>
+                                <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Ledger Sequence</div>
                                 <div className="text-2xl font-bold mt-1" style={{ color: '#0F4C81' }}>#{ledger.sequence.toLocaleString()}</div>
                                 <div className="flex items-center gap-2 mt-2 text-xs text-slate-500 font-mono">
                                     <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -216,16 +216,16 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 <div className="flex items-center gap-1.5 bg-emerald-50/80 backdrop-blur-sm border border-emerald-100 px-2 py-1 rounded-lg">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                                     <div className="flex flex-col leading-none">
-                                        <span className="text-[10px] font-bold text-emerald-700">{ledger.successful_transaction_count}</span>
-                                        <span className="text-[7px] font-bold uppercase text-emerald-600/60">Success</span>
+                                        <span className="text-[11px] font-bold text-emerald-700">{ledger.successful_transaction_count}</span>
+                                        <span className="text-[8px] font-bold uppercase text-emerald-600/60">Success</span>
                                     </div>
                                 </div>
                                 {ledger.failed_transaction_count > 0 && (
                                     <div className="flex items-center gap-1.5 bg-red-50/80 backdrop-blur-sm border border-red-100 px-2 py-1 rounded-lg">
                                         <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
                                         <div className="flex flex-col leading-none">
-                                            <span className="text-[10px] font-bold text-red-700">{ledger.failed_transaction_count}</span>
-                                            <span className="text-[7px] font-bold uppercase text-red-600/60">Failed</span>
+                                            <span className="text-[11px] font-bold text-red-700">{ledger.failed_transaction_count}</span>
+                                            <span className="text-[8px] font-bold uppercase text-red-600/60">Failed</span>
                                         </div>
                                     </div>
                                 )}
@@ -234,16 +234,16 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
 
                         <div className="grid grid-cols-3 gap-2 mt-2">
                             <div className="bg-slate-50 border border-slate-100 rounded-xl p-2 text-center">
-                                <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Ops</div>
+                                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Ops</div>
                                 <div className="text-sm font-bold text-slate-900 mt-0.5">{ledger.operation_count}</div>
                             </div>
                             <div className="bg-slate-50 border border-slate-100 rounded-xl p-2 text-center">
-                                <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Base Fee</div>
-                                <div className="text-sm font-bold text-slate-900 mt-0.5">{ledger.base_fee_in_stroops / 10000000} <span className="text-[9px] font-normal text-slate-500">XLM</span></div>
+                                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Base Fee</div>
+                                <div className="text-sm font-bold text-slate-900 mt-0.5">{ledger.base_fee_in_stroops / 10000000} <span className="text-[10px] font-normal text-slate-500">XLM</span></div>
                             </div>
                             <div className="bg-slate-50 border border-slate-100 rounded-xl p-2 text-center">
-                                <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Reserve</div>
-                                <div className="text-sm font-bold text-slate-900 mt-0.5">{ledger.base_reserve_in_stroops / 10000000} <span className="text-[9px] font-normal text-slate-500">XLM</span></div>
+                                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Reserve</div>
+                                <div className="text-sm font-bold text-slate-900 mt-0.5">{ledger.base_reserve_in_stroops / 10000000} <span className="text-[10px] font-normal text-slate-500">XLM</span></div>
                             </div>
                         </div>
                     </div>
@@ -267,7 +267,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                         >
                             {tab.label}
                             {tab.count !== undefined && (
-                                <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[10px] ${activeTab === tab.id
+                                <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[11px] ${activeTab === tab.id
                                     ? 'bg-slate-100 text-slate-600'
                                     : 'bg-slate-100 text-slate-500'
                                     }`}>
@@ -287,19 +287,19 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Ledger Details</h2>
                                 <div className="space-y-3">
                                     <div className="flex flex-col gap-1 border-b border-slate-100 pb-2.5">
-                                        <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Hash</span>
+                                        <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Hash</span>
                                         <span className="text-xs font-mono text-slate-700 break-all bg-slate-50 p-2 rounded-lg border border-slate-100">{ledger.hash}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
-                                        <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Max Tx Set Size</span>
+                                        <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Max Tx Set Size</span>
                                         <span className="text-xs font-bold text-slate-900">{ledger.max_tx_set_size}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
-                                        <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Total Coins</span>
+                                        <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Total Coins</span>
                                         <span className="text-xs font-bold text-slate-900">{formatXLM(ledger.total_coins)} XLM</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4">
-                                        <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Fee Pool</span>
+                                        <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Fee Pool</span>
                                         <span className="text-xs font-bold text-slate-900">{formatXLM(ledger.fee_pool)} XLM</span>
                                     </div>
                                 </div>
@@ -316,7 +316,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                         </svg>
                                         Previous Ledger
                                     </span>
-                                    <span className="text-[10px] font-mono text-slate-400 group-hover:text-[#0F4C81]">#{(ledger.sequence - 1).toLocaleString()}</span>
+                                    <span className="text-[11px] font-mono text-slate-400 group-hover:text-[#0F4C81]">#{(ledger.sequence - 1).toLocaleString()}</span>
                                 </Link>
                                 <Link
                                     href={`/ledger/${ledger.sequence + 1}`}
@@ -328,7 +328,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                         </svg>
                                     </span>
-                                    <span className="text-[10px] font-mono text-slate-400 group-hover:text-[#0F4C81]">#{(ledger.sequence + 1).toLocaleString()}</span>
+                                    <span className="text-[11px] font-mono text-slate-400 group-hover:text-[#0F4C81]">#{(ledger.sequence + 1).toLocaleString()}</span>
                                 </Link>
                             </div>
                         </div>
@@ -359,7 +359,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                     if (info.amount) {
                                         valueDisplay = (
                                             <span className="font-bold text-slate-900 text-sm">
-                                                {info.amount} <span className="text-[10px] font-bold text-slate-400">{info.asset}</span>
+                                                {info.amount} <span className="text-[11px] font-bold text-slate-400">{info.asset}</span>
                                             </span>
                                         );
                                     }
@@ -388,11 +388,11 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                         className="block bg-white rounded-2xl shadow-sm border border-slate-200 p-3 mb-2.5 active:scale-[0.99] transition-transform hover:shadow-md"
                                     >
                                         <div className="flex justify-between items-center mb-1.5">
-                                            <span className={`text-[10px] font-bold uppercase tracking-widest pl-1 ${typeColorClass}`}>
+                                            <span className={`text-[11px] font-bold uppercase tracking-widest pl-1 ${typeColorClass}`}>
                                                 {typeDisplay}
                                                 {!tx.successful && <span className="ml-1 text-red-500 font-extrabold">(FAILED)</span>}
                                             </span>
-                                            <span className="text-[10px] font-medium text-slate-400">
+                                            <span className="text-[11px] font-medium text-slate-400">
                                                 {timeAgo(tx.created_at)}
                                             </span>
                                         </div>
@@ -416,11 +416,11 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                                         <div className="font-bold text-slate-900 text-sm leading-tight">{description}</div>
                                                         <div className="flex items-center gap-1.5 mt-1">
                                                             <div className="bg-slate-50 px-1.5 py-0.5 rounded-[0.4rem] border border-slate-100 flex items-center">
-                                                                <span className="text-[9px] font-mono font-bold text-slate-500">
+                                                                <span className="text-[10px] font-mono font-bold text-slate-500">
                                                                     #{shortenAddress(tx.hash, 4)}
                                                                 </span>
                                                             </div>
-                                                            <span className="text-[10px] font-medium text-slate-400 truncate max-w-[100px]">
+                                                            <span className="text-[11px] font-medium text-slate-400 truncate max-w-[100px]">
                                                                 From <span className="font-mono">{shortenAddress(tx.source_account, 4)}</span>
                                                             </span>
                                                         </div>
@@ -428,7 +428,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
 
                                                     <div className="text-right pl-2">
                                                         {valueDisplay}
-                                                        <div className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{tx.operation_count} Ops</div>
+                                                        <div className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{tx.operation_count} Ops</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -507,7 +507,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                                 <span className="text-xs font-bold text-slate-900 capitalize truncate">
                                                     {typeDisplay}
                                                 </span>
-                                                <div className="flex items-center text-[10px] text-slate-500 font-mono truncate">
+                                                <div className="flex items-center text-[11px] text-slate-500 font-mono truncate">
                                                     {op.source_account && (
                                                         <span className="truncate max-w-[80px] hover:text-slate-900 transition-colors">
                                                             {shortenAddress(op.source_account, 4)}
@@ -518,7 +518,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                             {(summary || summaryLabel) && (
                                                 <div className="text-right flex flex-col justify-center">
                                                     <span className="text-xs font-bold text-slate-900">{summary}</span>
-                                                    <span className="text-[9px] font-medium text-slate-400">{summaryLabel}</span>
+                                                    <span className="text-[10px] font-medium text-slate-400">{summaryLabel}</span>
                                                 </div>
                                             )}
                                         </div>

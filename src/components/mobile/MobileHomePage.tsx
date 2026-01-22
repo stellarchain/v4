@@ -95,8 +95,8 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
             {/* Market Cap */}
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
               <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Market Cap</span>
-                <span className="text-[10px] font-bold text-emerald-500">+2.4%</span>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">Market Cap</span>
+                <span className="text-[11px] font-bold text-emerald-500">+2.4%</span>
               </div>
               <div className="flex items-end justify-between">
                 <span className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{formattedMarketCap}</span>
@@ -114,8 +114,8 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
             {/* Volume 24h */}
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
               <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Vol (24h)</span>
-                <span className="text-[10px] font-bold text-red-400">-0.8%</span>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">Vol (24h)</span>
+                <span className="text-[11px] font-bold text-red-400">-0.8%</span>
               </div>
               <div className="flex items-end justify-between">
                 <span className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{formattedVolume}</span>
@@ -133,8 +133,8 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
             {/* TX Count */}
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
               <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">TX Count</span>
-                <span className="text-[10px] font-bold text-emerald-500">{tps} TPS</span>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">TX Count</span>
+                <span className="text-[11px] font-bold text-emerald-500">{tps} TPS</span>
               </div>
               <div className="flex items-end justify-between">
                 <span ref={tpsRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>
@@ -154,7 +154,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
             {/* Ledger */}
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-between">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Ledger</span>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">Ledger</span>
               </div>
               <div className="flex items-baseline space-x-1 mt-2">
                 <span ref={ledgerCountRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{liveStats.ledger_count.toLocaleString()}</span>
@@ -171,7 +171,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/80">
             <div className="flex items-center space-x-2">
               <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Live Analysis</h2>
-              <span className="bg-emerald-500/10 text-emerald-500 text-[9px] px-1.5 py-0.5 rounded font-bold">REALTIME</span>
+              <span className="bg-emerald-500/10 text-emerald-500 text-[10px] px-1.5 py-0.5 rounded font-bold">REALTIME</span>
             </div>
             <Link
               href="/transactions"
@@ -186,7 +186,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
           <div className="p-3 bg-slate-50/50 text-center border-t border-slate-100">
             <Link
               href="/transactions"
-              className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-emerald-500 transition-colors"
+              className="text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-emerald-500 transition-colors"
             >
               Load More Records
             </Link>
