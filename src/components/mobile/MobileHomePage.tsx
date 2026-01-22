@@ -3,10 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { gsap } from 'gsap';
-import { Ledger, formatXLM } from '@/lib/stellar';
+import { Ledger } from '@/lib/stellar';
 import LiveTransactionFeed from '../LiveTransactionFeed';
-import { containers, spacing, colors, coreColors, getPrimaryColor } from '@/lib/design-system';
-
 interface MobileHomePageProps {
   stats: {
     ledger_count: number;
@@ -21,8 +19,6 @@ interface MobileHomePageProps {
   xlmVolume: number;
   xlmPrice: number;
 }
-
-import InfoTooltip from '../InfoTooltip';
 
 export default function MobileHomePage({ stats, initialTransactions, xlmVolume, xlmPrice }: MobileHomePageProps) {
   const [liveStats, setLiveStats] = useState(stats);
@@ -87,152 +83,121 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
     maximumFractionDigits: 1
   }).format(marketCap);
 
-  const primaryColor = '#0F4C81';
+  // Format ledger number compactly
+  const formatLedgerCompact = (num: number) => {
+    if (num >= 1000000) return `#${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `#${(num / 1000).toFixed(1)}K`;
+    return `#${num}`;
+  };
 
   return (
-    <div className={containers.page}>
+    <div className="min-h-screen bg-slate-100 pb-20">
       {/* Network Stats Card */}
-      <div className="px-2 pt-4">
-        <div className={`${containers.card} p-4 relative z-20`}>
-          <div className="grid grid-cols-2 gap-y-4">
+      <div className="px-3 -mt-4 relative z-20">
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+          <div className="grid grid-cols-2 gap-3">
 
-            {/* Row 1: Market Cap & Volume */}
-            <div className="space-y-1 border-r border-slate-100 pr-4">
-              <InfoTooltip
-                direction="bottom"
-                label={
-                  <>
-                    <svg className="w-4 h-4" style={{ color: primaryColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                    </svg>
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Market Cap</span>
-                  </>
-                }
-                content="The total market value of all circulating XLM coins."
-              />
-              <div className="text-lg font-bold font-mono tracking-tight" style={{ color: primaryColor }}>{formattedMarketCap}</div>
+            {/* Market Cap */}
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Market Cap</span>
+                <span className="text-[10px] font-bold text-emerald-500">+2.4%</span>
+              </div>
+              <div className="flex items-end justify-between">
+                <span className="text-lg font-bold text-slate-900 leading-none">{formattedMarketCap}</span>
+                <svg className="w-16 h-8" viewBox="0 0 100 40">
+                  <path
+                    d="M0,35 L10,32 L20,38 L30,25 L40,30 L50,15 L60,20 L70,10 L80,18 L90,5 L100,12"
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </div>
             </div>
 
-            <div className="space-y-1 pl-4">
-              <InfoTooltip
-                direction="bottom"
-                label={
-                  <>
-                    <svg className="w-4 h-4" style={{ color: primaryColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Vol (24h)</span>
-                  </>
-                }
-                content="Total value of XLM traded across all exchanges in the last 24 hours."
-              />
-              <div className="text-lg font-bold font-mono tracking-tight" style={{ color: primaryColor }}>{formattedVolume}</div>
+            {/* Volume 24h */}
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Vol (24h)</span>
+                <span className="text-[10px] font-bold text-red-400">-0.8%</span>
+              </div>
+              <div className="flex items-end justify-between">
+                <span className="text-lg font-bold text-slate-900 leading-none">{formattedVolume}</span>
+                <svg className="w-16 h-8" viewBox="0 0 100 40">
+                  <path
+                    d="M0,10 L10,15 L20,12 L30,25 L40,20 L50,35 L60,30 L70,38 L80,32 L90,36 L100,34"
+                    fill="none"
+                    stroke="#f87171"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </div>
             </div>
 
-            {/* Divider */}
-            <div className="col-span-2 h-px bg-slate-100"></div>
-
-            {/* Row 2: Transactions & Base Fee */}
-            <div className="space-y-1 border-r border-slate-100 pr-4">
-              <InfoTooltip
-                label={
-                  <>
-                    <svg className="w-4 h-4" style={{ color: primaryColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                    </svg>
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Transactions</span>
-                  </>
-                }
-                content="Number of successful transactions in the latest ledger."
-              />
-              <div>
-                <div ref={tpsRef} className="text-lg font-bold font-mono tracking-tight" style={{ color: primaryColor }}>
+            {/* TX Count */}
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">TX Count</span>
+                <span className="text-[10px] font-bold text-emerald-500">{tps} TPS</span>
+              </div>
+              <div className="flex items-end justify-between">
+                <span ref={tpsRef} className="text-lg font-bold text-slate-900 leading-none">
                   {liveStats.latest_ledger.successful_transaction_count.toLocaleString()}
-                </div>
-                <div className="text-[10px] font-medium text-emerald-500 mt-0.5">{tps} TPS</div>
+                </span>
+                <svg className="w-16 h-8" viewBox="0 0 100 40">
+                  <path
+                    d="M0,30 L20,28 L40,32 L60,15 L80,12 L100,5"
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="2"
+                  />
+                </svg>
               </div>
             </div>
 
-            <div className="space-y-1 pl-4">
-              <InfoTooltip
-                label={
-                  <>
-                    <svg className="w-4 h-4" style={{ color: primaryColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Base Fee</span>
-                  </>
-                }
-                content="The minimum fee required to submit a transaction to the network."
-              />
-              <div>
-                <div className="text-lg font-bold font-mono tracking-tight" style={{ color: primaryColor }}>
-                  {(liveStats.base_fee / 10000000).toFixed(7)}
-                </div>
-                <div className="text-[10px] text-slate-400 mt-0.5 font-medium">XLM</div>
+            {/* Ledger */}
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-between">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Ledger</span>
+                <span ref={ledgerCountRef} className="text-[10px] font-mono text-slate-500">{formatLedgerCompact(liveStats.ledger_count)}</span>
+              </div>
+              <div className="flex items-baseline space-x-1 mt-2">
+                <span className="text-lg font-bold text-slate-900 leading-none">{(liveStats.base_fee / 10000000).toFixed(4)}</span>
+                <span className="text-[10px] font-bold text-slate-400">XLM</span>
               </div>
             </div>
 
-            {/* Divider */}
-            <div className="col-span-2 h-px bg-slate-100"></div>
-
-            {/* Row 3: Ledger & Price */}
-            <div className="space-y-1 border-r border-slate-100 pr-4">
-              <InfoTooltip
-                label={
-                  <>
-                    <svg className="w-4 h-4" style={{ color: primaryColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Latest Ledger</span>
-                  </>
-                }
-                content="The sequence number of the most recently closed ledger."
-              />
-              <div ref={ledgerCountRef} className="text-lg font-bold font-mono tracking-tight" style={{ color: primaryColor }}>
-                {liveStats.ledger_count.toLocaleString()}
-              </div>
-            </div>
-
-            <div className="space-y-1 pl-4">
-              <InfoTooltip
-                label={
-                  <>
-                    <svg className="w-4 h-4" style={{ color: primaryColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-[10px] font-bold uppercase tracking-wider">XLM Price</span>
-                  </>
-                }
-                content="Current market price of 1 XLM in USD."
-              />
-              <div>
-                <div className="text-lg font-bold font-mono tracking-tight text-emerald-600">
-                  ${xlmPrice.toFixed(4)}
-                </div>
-                <div className="text-[10px] text-slate-400 mt-0.5 font-medium">USD</div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
       {/* Live Transactions Section */}
-      <div className="px-2 mt-4">
-        <div className={containers.card}>
-          <div className="flex items-center justify-between px-4 py-3">
-            <h2 className="text-sm font-bold tracking-tight" style={{ color: primaryColor }}>Live Transactions</h2>
+      <div className="px-3 mt-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/80">
+            <div className="flex items-center space-x-2">
+              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Live Analysis</h2>
+              <span className="bg-emerald-500/10 text-emerald-500 text-[9px] px-1.5 py-0.5 rounded font-bold">REALTIME</span>
+            </div>
             <Link
               href="/transactions"
-              className="text-[#0F4C81] hover:opacity-80 text-xs font-semibold flex items-center gap-1 transition-opacity"
+              className="text-slate-400 hover:text-slate-900 transition-colors"
             >
-              View all
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
             </Link>
           </div>
           <LiveTransactionFeed initialTransactions={initialTransactions} limit={30} filter="payments" />
+          <div className="p-3 bg-slate-50/50 text-center border-t border-slate-100">
+            <Link
+              href="/transactions"
+              className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-emerald-500 transition-colors"
+            >
+              Load More Records
+            </Link>
+          </div>
         </div>
       </div>
     </div>
