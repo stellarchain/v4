@@ -282,7 +282,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
                   {/* Price USD + XLM */}
                   <div className="w-24 text-right pr-1">
-                    <div className="font-bold text-slate-900 text-xs tracking-tight leading-tight">
+                    <div className="font-bold text-xs tracking-tight leading-tight" style={{ color: coreColors.primary }}>
                       {formatPrice(asset.price_usd || 0)}
                     </div>
                     <div className="text-[10px] text-slate-400 font-medium leading-tight">
