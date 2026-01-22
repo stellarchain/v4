@@ -408,14 +408,14 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <span className="font-bold text-slate-900">{asset.code}</span>
+          <span className="font-bold" style={{ color: coreColors.primary }}>{asset.code}</span>
           <span className="text-slate-400 text-sm">/ USD</span>
           <span className={`text-xs font-semibold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
             {isPositive ? '+' : ''}{change24h.toFixed(2)}%
           </span>
         </div>
         <div className="text-right">
-          <span className="font-bold text-slate-900">{formatPrice(asset.price_usd)}</span>
+          <span className="font-bold" style={{ color: coreColors.primary }}>{formatPrice(asset.price_usd)}</span>
         </div>
       </header>
 
@@ -522,7 +522,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h3 className="text-sm font-bold text-slate-900">Order Book</h3>
+              <h3 className="text-sm font-bold" style={{ color: coreColors.primary }}>Order Book</h3>
               {/* View Toggles */}
               <div className="flex items-center gap-1">
                 <button
@@ -680,7 +680,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         {/* Statistics Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-200">
-            <h3 className="text-sm font-bold text-slate-900">Statistics</h3>
+            <h3 className="text-sm font-bold" style={{ color: coreColors.primary }}>Statistics</h3>
           </div>
 
           {/* 24h Range */}
@@ -737,7 +737,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
                   </div>
                 )}
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">{asset.code}</h3>
+                  <h3 className="text-base font-bold" style={{ color: coreColors.primary }}>{asset.code}</h3>
                   {asset.domain && (
                     <a
                       href={`https://${asset.domain}`}
@@ -823,7 +823,7 @@ function AssetConverterMobile({ asset }: { asset: AssetDetails }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-200">
-        <h3 className="text-sm font-bold text-slate-900">{asset.code} to USD Converter</h3>
+        <h3 className="text-sm font-bold" style={{ color: coreColors.primary }}>{asset.code} to USD Converter</h3>
       </div>
       <div className="p-4 space-y-3">
         {/* Asset Input */}
