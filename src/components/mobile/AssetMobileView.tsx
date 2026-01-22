@@ -431,7 +431,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
                 <button
                   key={tf.label}
                   onClick={() => setSelectedTimeframe(tf.label)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
                     selectedTimeframe === tf.label
                       ? 'bg-slate-900 text-white'
                       : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
@@ -471,7 +471,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
               <>
                 {/* Tooltip */}
                 {tooltipData && (
-                  <div className="absolute top-0 left-0 z-20 bg-slate-900 text-white text-[10px] rounded-lg px-2.5 py-1.5 shadow-lg pointer-events-none">
+                  <div className="absolute top-0 left-0 z-20 bg-slate-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 shadow-lg pointer-events-none">
                     <div className="text-slate-400 mb-1">{tooltipData.time}</div>
                     <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
                       <span className="text-slate-400">O:</span>
@@ -503,7 +503,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
               <>
                 {['1 hour', '24 hours', '7 days'].map((label) => (
                   <div key={label} className="text-center animate-pulse">
-                    <p className="text-[10px] text-slate-500 mb-0.5">{label}</p>
+                    <p className="text-[11px] text-slate-500 mb-0.5">{label}</p>
                     <div className="h-4 w-12 bg-slate-200 rounded mx-auto"></div>
                   </div>
                 ))}
@@ -567,7 +567,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
               </div>
             </div>
             {!orderBookLoading && orderBook && spread > 0 && (
-              <span className="text-[10px] font-medium text-slate-400">
+              <span className="text-[11px] font-medium text-slate-400">
                 {spreadPercent.toFixed(2)}%
               </span>
             )}
@@ -575,13 +575,13 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
 
           {orderBookLoading && initialOrderBookLoad ? (
             /* Order Book Skeleton */
-            <div className="text-[10px] font-mono animate-pulse">
+            <div className="text-[11px] font-mono animate-pulse">
               <div className="grid grid-cols-2 border-b border-slate-100">
-                <div className="grid grid-cols-2 px-3 py-2 text-slate-400 font-bold text-[9px] uppercase">
+                <div className="grid grid-cols-2 px-3 py-2 text-slate-400 font-bold text-[10px] uppercase">
                   <div>Amount</div>
                   <div className="text-right">Price</div>
                 </div>
-                <div className="grid grid-cols-2 px-3 py-2 text-slate-400 font-bold text-[9px] uppercase border-l border-slate-100">
+                <div className="grid grid-cols-2 px-3 py-2 text-slate-400 font-bold text-[10px] uppercase border-l border-slate-100">
                   <div>Price</div>
                   <div className="text-right">Amount</div>
                 </div>
@@ -608,17 +608,17 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
               </div>
             </div>
           ) : hasOrderBookData ? (
-            <div className="text-[10px] font-mono">
+            <div className="text-[11px] font-mono">
               {/* Side-by-side headers */}
               <div className={`grid ${orderBookView === 'both' ? 'grid-cols-2' : 'grid-cols-1'} border-b border-slate-100`}>
                 {(orderBookView === 'both' || orderBookView === 'bids') && (
-                  <div className="flex items-center justify-between px-3 py-2 text-slate-400 font-semibold text-[9px] uppercase tracking-wide">
+                  <div className="flex items-center justify-between px-3 py-2 text-slate-400 font-semibold text-[10px] uppercase tracking-wide">
                     {orderBookView === 'both' ? <span>Amount</span> : <span>Price</span>}
                     {orderBookView === 'both' ? <span>Price</span> : <span>Amount</span>}
                   </div>
                 )}
                 {(orderBookView === 'both' || orderBookView === 'asks') && (
-                  <div className={`flex items-center justify-between px-3 py-2 text-slate-400 font-semibold text-[9px] uppercase tracking-wide ${orderBookView === 'both' ? 'border-l border-slate-100' : ''}`}>
+                  <div className={`flex items-center justify-between px-3 py-2 text-slate-400 font-semibold text-[10px] uppercase tracking-wide ${orderBookView === 'both' ? 'border-l border-slate-100' : ''}`}>
                     <span>Price</span>
                     <span>Amount</span>
                   </div>
@@ -687,9 +687,9 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
           {asset.price_high_24h > 0 && asset.price_low_24h > 0 && (
             <div className="p-4 border-b border-slate-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">24h Range</span>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">24h Range</span>
               </div>
-              <div className="flex items-center justify-between text-[10px] mb-1.5">
+              <div className="flex items-center justify-between text-[11px] mb-1.5">
                 <span className="font-mono text-slate-700">{formatPrice(asset.price_low_24h)}</span>
                 <span className="font-mono text-slate-700">{formatPrice(asset.price_high_24h)}</span>
               </div>
@@ -759,7 +759,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
               {/* Issuer */}
               {asset.issuer && (
                 <div className="mb-3">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Issuer:</span>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Issuer:</span>
                   <Link
                     href={`/account/${asset.issuer}`}
                     className="block text-xs text-[#0F4C81] font-mono mt-1 break-all hover:underline"
@@ -791,7 +791,7 @@ function PriceChangeItem({ label, value }: { label: string; value?: number }) {
 
   return (
     <div className="text-center">
-      <p className="text-[10px] text-slate-500 mb-0.5">{label}</p>
+      <p className="text-[11px] text-slate-500 mb-0.5">{label}</p>
       <p className={`text-xs font-bold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
         {isPositive ? '▲' : '▼'} {Math.abs(val).toFixed(2)}%
       </p>
@@ -869,7 +869,7 @@ function AssetConverterMobile({ asset }: { asset: AssetDetails }) {
           </span>
         </div>
 
-        <p className="text-slate-400 text-[10px] text-center">
+        <p className="text-slate-400 text-[11px] text-center">
           1 {asset.code} = ${asset.price_usd >= 1 ? asset.price_usd.toFixed(2) : asset.price_usd.toFixed(6)} USD
         </p>
       </div>

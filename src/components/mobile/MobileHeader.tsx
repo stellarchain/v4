@@ -170,7 +170,7 @@ export default function MobileHeader() {
       </div>
 
       {/* Stats Row */}
-      <div className="flex items-center justify-between text-[10px] text-gray-400 px-1 uppercase tracking-widest font-bold">
+      <div className="flex items-center justify-between text-[11px] text-gray-400 px-1 uppercase tracking-widest font-bold">
         <div className="flex items-center space-x-2">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
           <span>XLM: <span className="text-white ml-0.5">${xlmPrice > 0 ? xlmPrice.toFixed(4) : '0.0000'}</span></span>

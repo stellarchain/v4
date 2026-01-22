@@ -654,7 +654,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden -mx-4">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+                    <tr className="text-[11px] uppercase tracking-widest text-slate-400 font-bold">
                       <th className="pb-3 pt-4 px-4 font-bold">Activity</th>
                       <th className="pb-3 pt-4 px-4 text-right font-bold">Amount</th>
                     </tr>
@@ -738,7 +738,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                               </div>
                               <div>
                                 <div className="text-sm font-bold capitalize" style={{ color: coreColors.primary }}>{typeDisplay}</div>
-                                <div className="text-[10px] text-slate-400 font-medium">{dateStr}</div>
+                                <div className="text-[11px] text-slate-400 font-medium">{dateStr}</div>
                               </div>
                             </div>
                           </td>
@@ -748,7 +748,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                                 <div className={`text-sm font-bold ${isReceive ? 'text-emerald-500' : 'text-slate-900'}`}>
                                   {isReceive ? '+' : '-'}{amount}
                                 </div>
-                                <div className="text-[10px] text-slate-400 font-medium">{asset}</div>
+                                <div className="text-[11px] text-slate-400 font-medium">{asset}</div>
                               </>
                             ) : (
                               <div className="text-sm font-bold text-slate-300">--</div>
@@ -795,7 +795,7 @@ export default function AccountMobileView({ account, transactions, operations: i
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden px-4 py-4 space-y-4 -mx-4">
             {/* Account Info Section */}
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+              <div className="text-[11px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
                 Account Info
               </div>
               <div className="space-y-3">
@@ -806,7 +806,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] text-slate-400 font-medium">Account ID</div>
+                    <div className="text-[11px] text-slate-400 font-medium">Account ID</div>
                     <div className="text-sm font-mono text-slate-900 truncate">{shortenAddress(account.id, 10)}</div>
                   </div>
                 </div>
@@ -817,7 +817,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-[10px] text-slate-400 font-medium">Sequence Number</div>
+                    <div className="text-[11px] text-slate-400 font-medium">Sequence Number</div>
                     <div className="text-sm font-mono text-slate-900">{account.sequence}</div>
                   </div>
                 </div>
@@ -828,7 +828,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-[10px] text-slate-400 font-medium">Subentries</div>
+                    <div className="text-[11px] text-slate-400 font-medium">Subentries</div>
                     <div className="text-sm font-bold text-slate-900">{account.subentry_count}</div>
                   </div>
                 </div>
@@ -840,7 +840,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <div className="text-[10px] text-slate-400 font-medium">Home Domain</div>
+                      <div className="text-[11px] text-slate-400 font-medium">Home Domain</div>
                       <a href={`https://${account.home_domain}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#0F4C81] hover:underline">
                         {account.home_domain}
                       </a>
@@ -852,20 +852,20 @@ export default function AccountMobileView({ account, transactions, operations: i
 
             {/* Thresholds Section */}
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+              <div className="text-[11px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
                 Thresholds
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                  <div className="text-[10px] text-slate-400 font-medium mb-1">Low</div>
+                  <div className="text-[11px] text-slate-400 font-medium mb-1">Low</div>
                   <div className="text-lg font-bold text-slate-900">{account.thresholds.low_threshold}</div>
                 </div>
                 <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                  <div className="text-[10px] text-slate-400 font-medium mb-1">Medium</div>
+                  <div className="text-[11px] text-slate-400 font-medium mb-1">Medium</div>
                   <div className="text-lg font-bold text-slate-900">{account.thresholds.med_threshold}</div>
                 </div>
                 <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                  <div className="text-[10px] text-slate-400 font-medium mb-1">High</div>
+                  <div className="text-[11px] text-slate-400 font-medium mb-1">High</div>
                   <div className="text-lg font-bold text-slate-900">{account.thresholds.high_threshold}</div>
                 </div>
               </div>
@@ -873,7 +873,7 @@ export default function AccountMobileView({ account, transactions, operations: i
 
             {/* Signers Section */}
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+              <div className="text-[11px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
                 Signers ({account.signers.length})
               </div>
               <div className="space-y-2">
@@ -888,11 +888,11 @@ export default function AccountMobileView({ account, transactions, operations: i
                       <Link href={`/account/${signer.key}`} className="text-sm font-mono text-slate-900 hover:text-[#0F4C81] truncate block">
                         {shortenAddress(signer.key, 8)}
                       </Link>
-                      <div className="text-[10px] text-slate-400 capitalize">{signer.type.replace(/_/g, ' ')}</div>
+                      <div className="text-[11px] text-slate-400 capitalize">{signer.type.replace(/_/g, ' ')}</div>
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-bold text-slate-900">{signer.weight}</div>
-                      <div className="text-[10px] text-slate-400">weight</div>
+                      <div className="text-[11px] text-slate-400">weight</div>
                     </div>
                   </div>
                 ))}
@@ -901,7 +901,7 @@ export default function AccountMobileView({ account, transactions, operations: i
 
             {/* Flags Section */}
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+              <div className="text-[11px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
                 Account Flags
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -910,28 +910,28 @@ export default function AccountMobileView({ account, transactions, operations: i
                     <div className={`w-2 h-2 rounded-full ${account.flags.auth_required ? 'bg-amber-500' : 'bg-slate-300'}`} />
                     <span className={`text-xs font-semibold ${account.flags.auth_required ? 'text-amber-700' : 'text-slate-400'}`}>Auth Required</span>
                   </div>
-                  <p className="text-[10px] text-slate-500">Requires authorization for trustlines</p>
+                  <p className="text-[11px] text-slate-500">Requires authorization for trustlines</p>
                 </div>
                 <div className={`rounded-xl p-3 border ${account.flags.auth_revocable ? 'bg-orange-50 border-orange-100' : 'bg-slate-50 border-slate-100'}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <div className={`w-2 h-2 rounded-full ${account.flags.auth_revocable ? 'bg-orange-500' : 'bg-slate-300'}`} />
                     <span className={`text-xs font-semibold ${account.flags.auth_revocable ? 'text-orange-700' : 'text-slate-400'}`}>Auth Revocable</span>
                   </div>
-                  <p className="text-[10px] text-slate-500">Can revoke trustlines</p>
+                  <p className="text-[11px] text-slate-500">Can revoke trustlines</p>
                 </div>
                 <div className={`rounded-xl p-3 border ${account.flags.auth_immutable ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <div className={`w-2 h-2 rounded-full ${account.flags.auth_immutable ? 'bg-red-500' : 'bg-slate-300'}`} />
                     <span className={`text-xs font-semibold ${account.flags.auth_immutable ? 'text-red-700' : 'text-slate-400'}`}>Auth Immutable</span>
                   </div>
-                  <p className="text-[10px] text-slate-500">Flags cannot be changed</p>
+                  <p className="text-[11px] text-slate-500">Flags cannot be changed</p>
                 </div>
                 <div className={`rounded-xl p-3 border ${account.flags.auth_clawback_enabled ? 'bg-purple-50 border-purple-100' : 'bg-slate-50 border-slate-100'}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <div className={`w-2 h-2 rounded-full ${account.flags.auth_clawback_enabled ? 'bg-purple-500' : 'bg-slate-300'}`} />
                     <span className={`text-xs font-semibold ${account.flags.auth_clawback_enabled ? 'text-purple-700' : 'text-slate-400'}`}>Clawback</span>
                   </div>
-                  <p className="text-[10px] text-slate-500">Can clawback assets</p>
+                  <p className="text-[11px] text-slate-500">Can clawback assets</p>
                 </div>
               </div>
             </div>

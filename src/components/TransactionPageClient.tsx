@@ -410,7 +410,7 @@ export default function TransactionPageClient({
           <div className="flex flex-col flex-shrink-0">
             {/* Header - Hidden on mobile */}
             <div className="hidden md:flex p-3 md:p-4 border-b border-slate-100 items-center justify-between bg-slate-100 md:bg-slate-50/50">
-              <h3 className="text-[10px] md:text-xs font-bold uppercase tracking-wider" style={{ color: primaryColor }}>
+              <h3 className="text-[11px] md:text-xs font-bold uppercase tracking-wider" style={{ color: primaryColor }}>
                 Transactions
               </h3>
             </div>
@@ -419,7 +419,7 @@ export default function TransactionPageClient({
                 <button
                   key={tab}
                   onClick={() => setFilter(tab as FilterType)}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-tighter whitespace-nowrap transition-colors ${filter === tab
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-tighter whitespace-nowrap transition-colors ${filter === tab
                     ? 'text-white'
                     : 'bg-white text-slate-500 hover:bg-slate-50 shadow-sm'
                     }`}
@@ -434,7 +434,7 @@ export default function TransactionPageClient({
           {/* Desktop Table - Hidden on mobile */}
           <div className="hidden md:block flex-1 overflow-auto" ref={containerRef}>
             <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 bg-white text-[10px] text-gray-400 uppercase font-bold tracking-wider z-20 shadow-sm">
+              <thead className="sticky top-0 bg-white text-[11px] text-gray-400 uppercase font-bold tracking-wider z-20 shadow-sm">
                 <tr>
                   <th className="px-4 py-3 border-b border-gray-100">Time</th>
                   <th className="px-4 py-3 border-b border-gray-100">Type</th>
@@ -475,7 +475,7 @@ export default function TransactionPageClient({
                               <div className="flex items-center gap-2">
                                 <span className="text-purple-500 font-bold">{functionName}</span>
                                 {info.effectAmount && (
-                                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${info.effectType === 'received' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                                  <span className={`text-[11px] px-1.5 py-0.5 rounded ${info.effectType === 'received' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
                                     }`}>
                                     {info.effectType === 'received' ? '+' : '-'}{formatCompact(info.effectAmount)} {info.effectAsset}
                                   </span>
@@ -576,7 +576,7 @@ export default function TransactionPageClient({
                               {formatCompact(info?.amount || info?.effectAmount)} {info?.asset || info?.effectAsset}
                             </span>
                           ) : (
-                            <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: primaryColor }}>
+                            <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: primaryColor }}>
                               {info?.type === 'contract' ? (functionName) : 'Details'}
                             </span>
                           )}

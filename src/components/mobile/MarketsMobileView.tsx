@@ -248,10 +248,10 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
       <main className="px-3">
         {/* Column Headers */}
         <div className="flex items-center px-3 py-2">
-          <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-9">Rank</span>
-          <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold flex-1">Market Cap</span>
-          <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-20 text-center">Price</span>
-          <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-16 text-right">Change</span>
+          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold w-9">Rank</span>
+          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold flex-1">Market Cap</span>
+          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold w-20 text-center">Price</span>
+          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold w-16 text-right">Change</span>
         </div>
 
         {/* Asset Cards */}
@@ -266,30 +266,30 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
             return (
               <div
                 key={`${asset.code}-${asset.issuer || 'native'}`}
-                className={`bg-white rounded-xl shadow-sm border border-slate-100 px-2.5 py-2 flex items-center active:bg-slate-50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
+                className={`bg-white rounded-xl shadow-sm border border-slate-100 px-2.5 py-2.5 flex items-center active:bg-slate-50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
                 onClick={() => handleRowClick(asset)}
               >
                 {/* Rank Badge */}
                 <div className="w-9 flex-shrink-0">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[11px] font-bold" style={{ backgroundColor: coreColors.primary }}>
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: coreColors.primary }}>
                     {hasData ? asset.rank : '--'}
                   </div>
                 </div>
 
                 {/* Asset Name/MCap */}
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm leading-tight" style={{ color: coreColors.primary }}>{asset.code}</div>
-                  <div className="text-[10px] text-slate-400 font-medium leading-tight">
+                  <div className="font-bold text-[15px] leading-tight" style={{ color: coreColors.primary }}>{asset.code}</div>
+                  <div className="text-xs text-slate-400 font-medium leading-tight">
                     {formatNumber(asset.market_cap || 0)}
                   </div>
                 </div>
 
                 {/* Price USD + XLM */}
                 <div className="w-20 text-right">
-                  <div className="font-bold text-sm leading-tight" style={{ color: coreColors.primary }}>
+                  <div className="font-bold text-[15px] leading-tight" style={{ color: coreColors.primary }}>
                     {formatPrice(asset.price_usd || 0)}
                   </div>
-                  <div className="text-[10px] text-slate-400 font-medium leading-tight">
+                  <div className="text-xs text-slate-400 font-medium leading-tight">
                     {formatXLMPrice(priceInXlm)}
                   </div>
                 </div>
@@ -299,11 +299,11 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
                   <Sparkline data={asset.sparkline || []} positive={isPositive} />
                   <div className="flex items-center gap-0.5">
                     {!isNeutral && (
-                      <span className={`text-[9px] ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+                      <span className={`text-[11px] ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
                         {isPositive ? '▲' : '▼'}
                       </span>
                     )}
-                    <span className={`text-[10px] font-bold ${isPositive ? 'text-emerald-500' : isNeutral ? 'text-slate-400' : 'text-red-500'}`}>
+                    <span className={`text-xs font-bold ${isPositive ? 'text-emerald-500' : isNeutral ? 'text-slate-400' : 'text-red-500'}`}>
                       {Math.abs(change).toFixed(2)}%
                     </span>
                   </div>
