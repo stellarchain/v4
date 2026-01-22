@@ -518,10 +518,10 @@ export default function AccountMobileView({ account, transactions, operations: i
       {/* Main Content */}
       <main className="px-6">
         {activeTab === 'assets' && (
-          <div className="divide-y divide-slate-100">
+          <div className="bg-[#e8edec] rounded-2xl overflow-hidden divide-y divide-slate-200/50 -mx-4">
             {/* XLM Row */}
             <div
-              className="py-4 active:bg-slate-50 transition-colors cursor-pointer"
+              className="px-4 py-4 active:bg-slate-200/50 transition-colors cursor-pointer"
               onClick={() => router.push('/asset/XLM')}
             >
               <div className="flex items-center justify-between mb-2">
@@ -576,7 +576,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               return (
                 <div
                   key={idx}
-                  className="py-4 active:bg-slate-50 transition-colors cursor-pointer"
+                  className="px-4 py-4 active:bg-slate-200/50 transition-colors cursor-pointer"
                   onClick={() => router.push(getAssetUrl(balance.asset_code, balance.asset_issuer))}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -630,7 +630,7 @@ export default function AccountMobileView({ account, transactions, operations: i
         {activeTab === 'activity' && (
           <div className="space-y-3">
             {/* Activity Filters */}
-            <div className="flex gap-5 border-b border-slate-100 pb-3 mb-2">
+            <div className="flex gap-5 border-b border-slate-200/50 pb-3 mb-2">
               {['all', 'payments', 'swaps', 'contracts'].map((type) => (
                 <button
                   key={type}
@@ -646,19 +646,19 @@ export default function AccountMobileView({ account, transactions, operations: i
             </div>
 
             {currentDataSource.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
+              <div className="bg-[#e8edec] rounded-2xl text-center py-8 text-slate-400 -mx-4">
                 <p className="text-xs font-medium">No activity found</p>
               </div>
             ) : (
-              <div className="w-full">
+              <div className="bg-[#e8edec] rounded-2xl overflow-hidden -mx-4">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
-                      <th className="pb-3 font-bold">Activity</th>
-                      <th className="pb-3 text-right font-bold">Amount</th>
+                      <th className="pb-3 pt-4 px-4 font-bold">Activity</th>
+                      <th className="pb-3 pt-4 px-4 text-right font-bold">Amount</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-slate-200/50">
                     {paginatedOps.map(op => {
                       const isSwap = op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
                       const isOffer = op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer' || op.type === 'create_passive_sell_offer';
@@ -717,10 +717,10 @@ export default function AccountMobileView({ account, transactions, operations: i
                       return (
                         <tr
                           key={op.id}
-                          className="group active:bg-slate-50 transition-colors cursor-pointer"
+                          className="group active:bg-slate-200/50 transition-colors cursor-pointer"
                           onClick={() => router.push(`/transaction/${op.transaction_hash}`)}
                         >
-                          <td className="py-3 pr-2">
+                          <td className="py-3 pl-4 pr-2">
                             <div className="flex items-center gap-3">
                               <div className={`w-8 h-8 rounded-full ${bgColors[colorIdx]} flex items-center justify-center ${textColors[colorIdx]}`}>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -741,7 +741,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                               </div>
                             </div>
                           </td>
-                          <td className="py-3 text-right">
+                          <td className="py-3 pr-4 text-right">
                             {amount ? (
                               <>
                                 <div className={`text-sm font-bold ${isReceive ? 'text-emerald-500' : 'text-slate-900'}`}>
@@ -761,7 +761,7 @@ export default function AccountMobileView({ account, transactions, operations: i
 
                 {/* Pagination */}
                 {currentTotalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 pt-4">
+                  <div className="flex items-center justify-center gap-2 py-5">
                     <button
                       onClick={() => goToPage(Math.max(1, currentPage - 1))}
                       disabled={currentPage === 1}
@@ -791,10 +791,10 @@ export default function AccountMobileView({ account, transactions, operations: i
         )}
 
         {activeTab === 'details' && (
-          <div className="space-y-4">
+          <div className="bg-[#e8edec] rounded-2xl overflow-hidden px-4 py-4 space-y-4 -mx-4">
             {/* Account Info Section */}
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-200/50 mb-3">
                 Account Info
               </div>
               <div className="space-y-3">
@@ -851,7 +851,7 @@ export default function AccountMobileView({ account, transactions, operations: i
 
             {/* Thresholds Section */}
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-200/50 mb-3">
                 Thresholds
               </div>
               <div className="grid grid-cols-3 gap-3">
@@ -872,12 +872,12 @@ export default function AccountMobileView({ account, transactions, operations: i
 
             {/* Signers Section */}
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-200/50 mb-3">
                 Signers ({account.signers.length})
               </div>
               <div className="space-y-2">
                 {account.signers.map((signer, idx) => (
-                  <div key={idx} className="flex items-center gap-3 py-2 border-b border-slate-50 last:border-0">
+                  <div key={idx} className="flex items-center gap-3 py-2 border-b border-slate-200/50 last:border-0">
                     <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -900,7 +900,7 @@ export default function AccountMobileView({ account, transactions, operations: i
 
             {/* Flags Section */}
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-200/50 mb-3">
                 Account Flags
               </div>
               <div className="grid grid-cols-2 gap-2">

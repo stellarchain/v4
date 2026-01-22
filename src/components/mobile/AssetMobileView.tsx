@@ -35,6 +35,18 @@ function formatOrderPrice(price: number): string {
   return price.toFixed(2);
 }
 
+function formatOrderAmount(amount: number): string {
+  // Format with commas and consistent 2 decimal places for readability
+  if (amount >= 1) {
+    return amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  // For small amounts, show more precision
+  if (amount >= 0.0001) {
+    return amount.toFixed(5);
+  }
+  return amount.toFixed(8);
+}
+
 // Horizon supported resolutions: 60000, 300000, 900000, 3600000, 86400000, 604800000
 const timeframes = [
   { label: '1H', value: 3600000, resolution: 60000, dateFormat: 'time', limit: 60 },       // 1min candles
@@ -73,6 +85,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
   const [processedAsks, setProcessedAsks] = useState<ProcessedOrder[]>([]);
   const [orderBookLoading, setOrderBookLoading] = useState(true);
   const [initialOrderBookLoad, setInitialOrderBookLoad] = useState(true);
+  const [orderBookView, setOrderBookView] = useState<'both' | 'bids' | 'asks'>('both');
 
   // Fetch chart data
   useEffect(() => {
@@ -507,10 +520,54 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         {/* Order Book Section */}
         <div className="rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900">Order Book</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="text-sm font-bold text-slate-900">Order Book</h3>
+              {/* View Toggles */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setOrderBookView('both')}
+                  className={`p-1.5 rounded transition-colors ${orderBookView === 'both' ? 'bg-slate-200' : 'hover:bg-slate-100'}`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <rect x="1" y="2" width="6" height="3" fill="#22C55E" />
+                    <rect x="1" y="6.5" width="6" height="3" fill="#22C55E" />
+                    <rect x="1" y="11" width="6" height="3" fill="#22C55E" />
+                    <rect x="9" y="2" width="6" height="3" fill="#EF4444" />
+                    <rect x="9" y="6.5" width="6" height="3" fill="#EF4444" />
+                    <rect x="9" y="11" width="6" height="3" fill="#EF4444" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setOrderBookView('bids')}
+                  className={`p-1.5 rounded transition-colors ${orderBookView === 'bids' ? 'bg-slate-200' : 'hover:bg-slate-100'}`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <rect x="1" y="2" width="6" height="3" fill="#22C55E" />
+                    <rect x="1" y="6.5" width="6" height="3" fill="#22C55E" />
+                    <rect x="1" y="11" width="6" height="3" fill="#22C55E" />
+                    <rect x="9" y="2" width="6" height="3" fill="#CBD5E1" opacity="0.5" />
+                    <rect x="9" y="6.5" width="6" height="3" fill="#CBD5E1" opacity="0.5" />
+                    <rect x="9" y="11" width="6" height="3" fill="#CBD5E1" opacity="0.5" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setOrderBookView('asks')}
+                  className={`p-1.5 rounded transition-colors ${orderBookView === 'asks' ? 'bg-slate-200' : 'hover:bg-slate-100'}`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <rect x="1" y="2" width="6" height="3" fill="#CBD5E1" opacity="0.5" />
+                    <rect x="1" y="6.5" width="6" height="3" fill="#CBD5E1" opacity="0.5" />
+                    <rect x="1" y="11" width="6" height="3" fill="#CBD5E1" opacity="0.5" />
+                    <rect x="9" y="2" width="6" height="3" fill="#EF4444" />
+                    <rect x="9" y="6.5" width="6" height="3" fill="#EF4444" />
+                    <rect x="9" y="11" width="6" height="3" fill="#EF4444" />
+                  </svg>
+                </button>
+              </div>
+            </div>
             {!orderBookLoading && orderBook && spread > 0 && (
               <span className="text-[10px] font-medium text-slate-400">
-                Spread: ${formatOrderPrice(spread)} ({spreadPercent.toFixed(2)}%)
+                {spreadPercent.toFixed(2)}%
               </span>
             )}
           </div>
@@ -518,86 +575,97 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
           {orderBookLoading && initialOrderBookLoad ? (
             /* Order Book Skeleton */
             <div className="text-[10px] font-mono animate-pulse">
-              {/* Header */}
-              <div className="grid grid-cols-3 px-4 py-2 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-50">
-                <div>Price (USD)</div>
-                <div className="text-right">Amount</div>
-                <div className="text-right">Total</div>
+              <div className="grid grid-cols-2 border-b border-slate-100">
+                <div className="grid grid-cols-2 px-3 py-2 text-slate-400 font-bold text-[9px] uppercase">
+                  <div>Amount</div>
+                  <div className="text-right">Price</div>
+                </div>
+                <div className="grid grid-cols-2 px-3 py-2 text-slate-400 font-bold text-[9px] uppercase border-l border-slate-100">
+                  <div>Price</div>
+                  <div className="text-right">Amount</div>
+                </div>
               </div>
-
-              {/* Skeleton Asks */}
-              <div className="flex flex-col-reverse">
-                {[70, 55, 80, 45, 65, 50].map((w, i) => (
-                  <div key={`ask-skel-${i}`} className="relative grid grid-cols-3 px-4 py-1.5">
-                    <div className="absolute top-0 bottom-0 right-0 bg-red-100" style={{ width: `${w}%` }} />
-                    <div className="relative h-3 w-16 bg-slate-200 rounded" />
-                    <div className="relative h-3 w-12 bg-slate-200 rounded ml-auto" />
-                    <div className="relative h-3 w-14 bg-slate-200 rounded ml-auto" />
-                  </div>
-                ))}
-              </div>
-
-              {/* Spread indicator skeleton */}
-              <div className="py-2 border-y border-slate-200 flex items-center justify-center">
-                <div className="h-4 w-16 bg-slate-200 rounded" />
-              </div>
-
-              {/* Skeleton Bids */}
-              <div>
-                {[60, 75, 45, 80, 55, 70].map((w, i) => (
-                  <div key={`bid-skel-${i}`} className="relative grid grid-cols-3 px-4 py-1.5">
-                    <div className="absolute top-0 bottom-0 right-0 bg-emerald-100" style={{ width: `${w}%` }} />
-                    <div className="relative h-3 w-16 bg-slate-200 rounded" />
-                    <div className="relative h-3 w-12 bg-slate-200 rounded ml-auto" />
-                    <div className="relative h-3 w-14 bg-slate-200 rounded ml-auto" />
-                  </div>
-                ))}
+              <div className="grid grid-cols-2">
+                <div>
+                  {[60, 75, 45, 80, 55, 70, 65, 50].map((w, i) => (
+                    <div key={`bid-skel-${i}`} className="relative grid grid-cols-2 px-3 py-1.5">
+                      <div className="absolute top-0 bottom-0 left-0 bg-emerald-100" style={{ width: `${w}%` }} />
+                      <div className="relative h-3 w-10 bg-slate-200 rounded" />
+                      <div className="relative h-3 w-12 bg-slate-200 rounded ml-auto" />
+                    </div>
+                  ))}
+                </div>
+                <div className="border-l border-slate-100">
+                  {[70, 55, 80, 45, 65, 50, 75, 60].map((w, i) => (
+                    <div key={`ask-skel-${i}`} className="relative grid grid-cols-2 px-3 py-1.5">
+                      <div className="absolute top-0 bottom-0 right-0 bg-red-100" style={{ width: `${w}%` }} />
+                      <div className="relative h-3 w-12 bg-slate-200 rounded" />
+                      <div className="relative h-3 w-10 bg-slate-200 rounded ml-auto" />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           ) : hasOrderBookData ? (
             <div className="text-[10px] font-mono">
-              {/* Header */}
-              <div className="grid grid-cols-3 px-4 py-2 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-50">
-                <div>Price (USD)</div>
-                <div className="text-right">Amount</div>
-                <div className="text-right">Total</div>
+              {/* Side-by-side headers */}
+              <div className={`grid ${orderBookView === 'both' ? 'grid-cols-2' : 'grid-cols-1'} border-b border-slate-100`}>
+                {(orderBookView === 'both' || orderBookView === 'bids') && (
+                  <div className="flex items-center justify-between px-3 py-2 text-slate-400 font-semibold text-[9px] uppercase tracking-wide">
+                    {orderBookView === 'both' ? <span>Amount</span> : <span>Price</span>}
+                    {orderBookView === 'both' ? <span>Price</span> : <span>Amount</span>}
+                  </div>
+                )}
+                {(orderBookView === 'both' || orderBookView === 'asks') && (
+                  <div className={`flex items-center justify-between px-3 py-2 text-slate-400 font-semibold text-[9px] uppercase tracking-wide ${orderBookView === 'both' ? 'border-l border-slate-100' : ''}`}>
+                    <span>Price</span>
+                    <span>Amount</span>
+                  </div>
+                )}
               </div>
 
-              {/* Asks (Sell) - reversed so lowest is at bottom */}
-              <div className="flex flex-col-reverse">
-                {processedAsks.slice(0, 6).map((ask, i) => {
-                  const percent = (ask.total / maxTotal) * 100;
-                  return (
-                    <div key={`ask-${i}`} className="relative grid grid-cols-3 px-4 py-1.5">
-                      <div className="absolute top-0 bottom-0 right-0 bg-red-500/10" style={{ width: `${percent}%` }} />
-                      <div className="relative text-red-500">${formatOrderPrice(ask.price)}</div>
-                      <div className="relative text-right text-slate-700">{ask.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                      <div className="relative text-right text-slate-400">${ask.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                    </div>
-                  );
-                })}
-              </div>
+              {/* Side-by-side order rows */}
+              <div className={`grid ${orderBookView === 'both' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                {/* Bids Column (Buy Orders) - Green */}
+                {(orderBookView === 'both' || orderBookView === 'bids') && (
+                  <div className="font-mono">
+                    {processedBids.slice(0, 10).map((bid, i) => {
+                      const percent = (bid.total / maxTotal) * 100;
+                      return (
+                        <div key={`bid-${i}`} className="relative flex items-center justify-between px-3 py-[7px]">
+                          <div className="absolute top-0 bottom-0 left-0 bg-emerald-500/12" style={{ width: `${percent}%` }} />
+                          {orderBookView === 'both' ? (
+                            <>
+                              <span className="relative text-slate-700 tabular-nums">{formatOrderAmount(bid.amount)}</span>
+                              <span className="relative text-emerald-500 tabular-nums">{formatOrderPrice(bid.price)}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="relative text-emerald-500 tabular-nums">{formatOrderPrice(bid.price)}</span>
+                              <span className="relative text-slate-700 tabular-nums">{formatOrderAmount(bid.amount)}</span>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
-              {/* Spread indicator */}
-              <div className="py-2 border-y border-slate-200 flex items-center justify-center">
-                <span className="text-xs font-bold text-slate-900">
-                  ${bestBid > 0 ? formatOrderPrice((bestAsk + bestBid) / 2) : '---'}
-                </span>
-              </div>
-
-              {/* Bids (Buy) */}
-              <div>
-                {processedBids.slice(0, 6).map((bid, i) => {
-                  const percent = (bid.total / maxTotal) * 100;
-                  return (
-                    <div key={`bid-${i}`} className="relative grid grid-cols-3 px-4 py-1.5">
-                      <div className="absolute top-0 bottom-0 right-0 bg-emerald-500/10" style={{ width: `${percent}%` }} />
-                      <div className="relative text-emerald-500">${formatOrderPrice(bid.price)}</div>
-                      <div className="relative text-right text-slate-700">{bid.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                      <div className="relative text-right text-slate-400">${bid.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                    </div>
-                  );
-                })}
+                {/* Asks Column (Sell Orders) - Red */}
+                {(orderBookView === 'both' || orderBookView === 'asks') && (
+                  <div className={`font-mono ${orderBookView === 'both' ? 'border-l border-slate-100' : ''}`}>
+                    {processedAsks.slice(0, 10).map((ask, i) => {
+                      const percent = (ask.total / maxTotal) * 100;
+                      return (
+                        <div key={`ask-${i}`} className="relative flex items-center justify-between px-3 py-[7px]">
+                          <div className="absolute top-0 bottom-0 right-0 bg-red-500/12" style={{ width: `${percent}%` }} />
+                          <span className="relative text-red-500 tabular-nums">{formatOrderPrice(ask.price)}</span>
+                          <span className="relative text-slate-700 tabular-nums">{formatOrderAmount(ask.amount)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           ) : (

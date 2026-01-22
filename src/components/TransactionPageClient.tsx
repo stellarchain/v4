@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { gsap } from 'gsap';
 import CompactTransactionRow from './CompactTransactionRow';
 import { Transaction, getTransactionDisplayInfo, Operation, getTransactionOperations } from '@/lib/stellar';
+import { containers, interactive, spacing } from '@/lib/design-system';
 
 type FilterType = 'all' | 'transfers' | 'contracts';
 
@@ -400,17 +401,18 @@ export default function TransactionPageClient({
   };
 
   return (
-    <div className="min-h-screen bg-[#f0f4f3] pb-20 pt-4 md:pt-6">
+    <div className="min-h-screen bg-[#f0f4f3] pb-20 pt-1 md:pt-6">
       <div className="max-w-[1600px] mx-auto px-3 md:px-6">
         <div className="flex flex-col bg-[#f0f4f3] md:bg-white md:rounded-xl md:border md:border-slate-100 overflow-hidden">
           {/* Header & Tabs */}
           <div className="flex flex-col flex-shrink-0">
-            <div className="p-3 md:p-4 border-b border-slate-100 flex items-center justify-between bg-[#f0f4f3] md:bg-slate-50/50">
+            {/* Header - Hidden on mobile */}
+            <div className="hidden md:flex p-3 md:p-4 border-b border-slate-100 items-center justify-between bg-[#f0f4f3] md:bg-slate-50/50">
               <h3 className="text-[10px] md:text-xs font-bold text-slate-900 uppercase tracking-wider">
                 Transactions
               </h3>
             </div>
-            <div className="px-3 md:px-4 py-2 bg-[#f0f4f3] md:bg-white border-b border-slate-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            <div className="px-3 md:px-4 py-2 bg-[#f0f4f3] md:bg-white md:border-b md:border-slate-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
               {['all', 'transfers', 'contracts'].map(tab => (
                 <button
                   key={tab}
@@ -501,9 +503,9 @@ export default function TransactionPageClient({
           </div>
 
           {/* Mobile Card List - Visible only on mobile (matches CompactTransactionRow style) */}
-          <div className="md:hidden flex-1 overflow-auto" ref={containerRef}>
+          <div className="md:hidden flex-1 overflow-auto px-4" ref={containerRef}>
             {visibleTransactions.length > 0 ? (
-              <div>
+              <div className={containers.cardList}>
                 {visibleTransactions.map((tx) => {
                   const info = tx.displayInfo;
                   const functionName = info?.functionName || 'Contract Call';
@@ -524,9 +526,9 @@ export default function TransactionPageClient({
                     <a
                       key={tx.hash}
                       href={`/transaction/${tx.hash}`}
-                      className="block bg-[#f0f4f3] border-b border-slate-200 hover:bg-slate-100 transition-colors"
+                      className={`block ${interactive.row}`}
                     >
-                      <div className="flex items-center justify-between px-4 py-3">
+                      <div className={spacing.rowPaddingCompact + " flex items-center justify-between"}>
                         {/* Left Side: Icon & Title/Meta */}
                         <div className="flex items-start space-x-3">
                           <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${tx.successful
@@ -582,7 +584,7 @@ export default function TransactionPageClient({
                 })}
               </div>
             ) : (
-              <div className="px-4 py-12 text-center text-gray-400 italic text-sm">
+              <div className={`${containers.card} px-4 py-12 text-center text-slate-400 italic text-sm`}>
                 No transactions found
               </div>
             )}
@@ -590,7 +592,7 @@ export default function TransactionPageClient({
 
           {/* Footer / Pagination */}
           {totalPages > 1 && (
-            <div className="p-3 bg-[#f0f4f3] md:bg-slate-50 border-t border-slate-100">
+            <div className="py-5 px-4 bg-[#f0f4f3] md:bg-slate-50 md:p-3 md:border-t md:border-slate-100">
               <div className="flex items-center justify-center gap-1">
                 <button
                   onClick={() => goToPage(currentPage - 1)}

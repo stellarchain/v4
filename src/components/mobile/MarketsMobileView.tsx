@@ -244,72 +244,84 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
       {/* Asset List */}
       <main className="px-2">
-        {/* Column Headers */}
-        <div className="flex items-center px-2 py-1.5 text-[9px] uppercase tracking-wider text-slate-400 font-bold">
-          <span className="w-6 text-center">#</span>
-          <span className="flex-1 pl-1">Asset</span>
-          <span className="w-20 text-right pr-2">Price</span>
-          <span className="w-16 text-right">Change</span>
-        </div>
-
-        <div className="divide-y divide-slate-200">
-          {paginatedAssets.map((asset) => {
-            const hasData = asset.price_usd > 0 && asset.market_cap > 0;
-            const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
-
-            return (
-              <div
-                key={`${asset.code}-${asset.issuer || 'native'}`}
-                className={`px-2 py-1.5 flex items-center active:bg-slate-50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
-                onClick={() => handleRowClick(asset)}
-              >
-                {/* Rank */}
-                <span className="text-slate-300 font-semibold w-6 text-center text-[10px]">
-                  {hasData ? asset.rank : '--'}
-                </span>
-
-                {/* Asset Name/MCap */}
-                <div className="flex-1 pl-1 min-w-0">
-                  <div className="font-bold text-slate-900 text-sm leading-tight">{asset.code}</div>
-                  <div className="text-[10px] text-slate-400 font-medium leading-tight">
-                    {formatNumber(asset.market_cap || 0)}
-                  </div>
-                </div>
-
-                {/* Price USD + XLM */}
-                <div className="w-24 text-right pr-1">
-                  <div className="font-bold text-slate-900 text-xs tracking-tight leading-tight">
-                    {formatPrice(asset.price_usd || 0)}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-medium leading-tight">
-                    {formatXLMPrice(priceInXlm)}
-                  </div>
-                </div>
-
-                {/* Sparkline/Change */}
-                <div className="flex flex-col items-end w-16">
-                  <Sparkline data={asset.sparkline || []} positive={(asset.change_24h || 0) >= 0} />
-                  <ChangeIndicator value={asset.change_24h || 0} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Empty State */}
-        {filteredAndSortedAssets.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <h3 className="text-slate-900 font-semibold text-sm mb-1">No assets found</h3>
-            <p className="text-slate-500 text-xs">Try a different search term</p>
+        {/* Card Container */}
+        <div className="bg-[#e8edec] rounded-2xl overflow-hidden">
+          {/* Column Headers */}
+          <div className="flex items-center px-2 py-1.5 border-b border-slate-200/50">
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-6 text-center">#</span>
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold flex-1 pl-1">Asset</span>
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-20 text-right pr-2">Price</span>
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-16 text-right">Change</span>
           </div>
-        )}
 
-        {/* Pagination */}
+          <div className="divide-y divide-slate-200/50">
+            {paginatedAssets.map((asset) => {
+              const hasData = asset.price_usd > 0 && asset.market_cap > 0;
+              const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
+
+              return (
+                <div
+                  key={`${asset.code}-${asset.issuer || 'native'}`}
+                  className={`px-2 py-1.5 flex items-center active:bg-slate-100/50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
+                  onClick={() => handleRowClick(asset)}
+                >
+                  {/* Rank */}
+                  <span className="text-slate-300 font-semibold w-6 text-center text-[10px]">
+                    {hasData ? asset.rank : '--'}
+                  </span>
+
+                  {/* Asset Name/MCap */}
+                  <div className="flex-1 pl-1 min-w-0">
+                    <div className="font-bold text-slate-900 text-sm leading-tight">{asset.code}</div>
+                    <div className="text-[10px] text-slate-400 font-medium leading-tight">
+                      {formatNumber(asset.market_cap || 0)}
+                    </div>
+                  </div>
+
+                  {/* Price USD + XLM */}
+                  <div className="w-24 text-right pr-1">
+                    <div className="font-bold text-slate-900 text-xs tracking-tight leading-tight">
+                      {formatPrice(asset.price_usd || 0)}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-medium leading-tight">
+                      {formatXLMPrice(priceInXlm)}
+                    </div>
+                  </div>
+
+                  {/* Sparkline/Change */}
+                  <div className="flex flex-col items-end w-16">
+                    <Sparkline data={asset.sparkline || []} positive={(asset.change_24h || 0) >= 0} />
+                    <ChangeIndicator value={asset.change_24h || 0} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Empty State */}
+          {filteredAndSortedAssets.length === 0 && (
+            <div className="text-center py-12">
+              <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3 className="text-slate-900 font-semibold text-sm mb-1">No assets found</h3>
+              <p className="text-slate-500 text-xs">Try a different search term</p>
+            </div>
+          )}
+
+          {/* View All Link */}
+          {filteredAndSortedAssets.length > 0 && totalPages > 1 && (
+            <div className="border-t border-slate-100 py-4 text-center">
+              <span className="text-sm font-semibold text-slate-500 tracking-wide uppercase">
+                View all {filteredAndSortedAssets.length} assets
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination - Outside Card */}
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-4 pb-4">
             <button

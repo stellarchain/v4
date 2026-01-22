@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Transaction, shortenAddress, timeAgo } from '@/lib/stellar';
 import { forwardRef } from 'react';
+import { interactive, spacing } from '@/lib/design-system';
 
 interface CompactTransactionRowProps {
   transaction: Transaction;
@@ -34,9 +35,9 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
       <Link
         ref={ref}
         href={`/transaction/${transaction.hash}`}
-        className="block bg-white border-b border-slate-100 hover:bg-slate-50 transition-colors group"
+        className={`block border-b border-slate-200/50 ${interactive.row}`}
       >
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className={`flex items-center justify-between ${spacing.rowPaddingCompact}`}>
           {/* Left Side: Icon & Title/Meta */}
           <div className="flex items-start space-x-3">
             <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${transaction.successful
