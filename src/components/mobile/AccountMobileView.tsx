@@ -445,7 +445,7 @@ export default function AccountMobileView({ account, transactions, operations: i
   return (
     <div className={containers.page}>
       {/* Header */}
-      <header className="pt-8 px-6 pb-2 sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md border-b border-slate-200">
+      <header className="pt-8 px-3 pb-2 sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md border-b border-slate-200">
         {/* Title Row */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: coreColors.primary }}>Account</h1>
@@ -517,12 +517,12 @@ export default function AccountMobileView({ account, transactions, operations: i
       </header>
 
       {/* Main Content */}
-      <main className="px-6">
+      <main className="px-3">
         {activeTab === 'assets' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100 -mx-4">
-            {/* XLM Row */}
+          <div className="space-y-2 pt-2">
+            {/* XLM Card */}
             <div
-              className="px-4 py-4 active:bg-slate-50 transition-colors cursor-pointer"
+              className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-4 active:bg-slate-50 transition-colors cursor-pointer"
               onClick={() => router.push('/asset/XLM')}
             >
               <div className="flex items-center justify-between mb-2">
@@ -534,14 +534,14 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                   <div>
                     <div className="text-sm font-bold text-slate-900">XLM</div>
-                    <div className="text-xs text-slate-500">Stellar Lumens</div>
+                    <div className="text-xs text-slate-400">Stellar Lumens</div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-base font-bold text-slate-900" title={formatExactNumber(xlmAmount)}>
                     {formatCompactNumber(xlmAmount)}
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-slate-400">
                     ${(xlmAmount * xlmPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -549,14 +549,14 @@ export default function AccountMobileView({ account, transactions, operations: i
               <div className="flex items-center justify-between pl-[52px]">
                 <div className="text-xs">
                   <span className="text-slate-400">PNL </span>
-                  <span className={`font-semibold ${xlmChange24h >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                  <span className={`font-medium ${xlmChange24h >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                     {xlmChange24h >= 0 ? '+' : ''}${((xlmAmount * xlmPrice) * (xlmChange24h / 100)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     {' '}({xlmChange24h >= 0 ? '+' : ''}{xlmChange24h.toFixed(2)}%)
                   </span>
                 </div>
                 <div className="text-xs">
                   <span className="text-slate-400">Price </span>
-                  <span className="font-semibold text-slate-700">${xlmPrice.toFixed(4)}</span>
+                  <span className="font-medium text-slate-600">${xlmPrice.toFixed(4)}</span>
                 </div>
               </div>
             </div>
@@ -577,7 +577,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               return (
                 <div
                   key={idx}
-                  className="px-4 py-4 active:bg-slate-50 transition-colors cursor-pointer"
+                  className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-4 active:bg-slate-50 transition-colors cursor-pointer"
                   onClick={() => router.push(getAssetUrl(balance.asset_code, balance.asset_issuer))}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -587,7 +587,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                       </div>
                       <div>
                         <div className="text-sm font-bold text-slate-900">{balance.asset_code || 'LP'}</div>
-                        <div className="text-xs text-slate-500 truncate max-w-[120px]">
+                        <div className="text-xs text-slate-400 truncate max-w-[120px]">
                           {balance.asset_issuer ? shortenAddress(balance.asset_issuer, 6) : 'Liquidity Pool'}
                         </div>
                       </div>
@@ -596,7 +596,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                       <div className="text-base font-bold text-slate-900" title={formatExactNumber(amount)}>
                         {formatCompactNumber(amount)}
                       </div>
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-slate-400">
                         {valueUSD > 0 ? `$${valueUSD.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '--'}
                       </div>
                     </div>
@@ -605,7 +605,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     <div className="text-xs">
                       <span className="text-slate-400">PNL </span>
                       {priceData ? (
-                        <span className={`font-semibold ${pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                        <span className={`font-medium ${pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                           {pnl >= 0 ? '+' : ''}${Math.abs(pnl).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                           {' '}({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
                         </span>
@@ -616,7 +616,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     <div className="text-xs">
                       <span className="text-slate-400">Price </span>
                       {priceData ? (
-                        <span className="font-semibold text-slate-700">${priceData.price.toFixed(priceData.price >= 1 ? 2 : 6)}</span>
+                        <span className="font-medium text-slate-600">${priceData.price.toFixed(priceData.price >= 1 ? 2 : 6)}</span>
                       ) : (
                         <span className="text-slate-300">--</span>
                       )}
@@ -647,83 +647,108 @@ export default function AccountMobileView({ account, transactions, operations: i
             </div>
 
             {currentDataSource.length === 0 ? (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 text-center py-8 text-slate-400 -mx-4">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-100 text-center py-8 text-slate-400">
                 <p className="text-xs font-medium">No activity found</p>
               </div>
             ) : (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden -mx-4">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="text-[11px] uppercase tracking-widest text-slate-400 font-bold">
-                      <th className="pb-3 pt-4 px-4 font-bold">Activity</th>
-                      <th className="pb-3 pt-4 px-4 text-right font-bold">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {paginatedOps.map(op => {
-                      const isSwap = op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
-                      const isOffer = op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer' || op.type === 'create_passive_sell_offer';
-                      const isPayment = op.type === 'payment' || op.type === 'create_account';
-                      const isContract = op.type === 'invoke_host_function' || op.type === 'extend_footprint_ttl' || op.type === 'restore_footprint';
+              <div className="space-y-2">
+                {(() => {
+                  // Group operations by date
+                  const getDateKey = (dateStr: string) => {
+                    const date = new Date(dateStr);
+                    return date.toDateString();
+                  };
 
-                      const effects = opEffects[op.id];
-                      const effectInfo = getAmountFromEffects(effects);
+                  const formatDateHeader = (dateStr: string) => {
+                    const date = new Date(dateStr);
+                    const today = new Date();
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
 
-                      let typeDisplay = op.type.replace(/_/g, ' ');
-                      let amount = '';
-                      let asset = '';
+                    if (date.toDateString() === today.toDateString()) {
+                      return 'Today';
+                    } else if (date.toDateString() === yesterday.toDateString()) {
+                      return 'Yesterday';
+                    } else {
+                      return date.toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      });
+                    }
+                  };
 
-                      if (isContract) {
-                        typeDisplay = decodeContractFunctionName(op);
-                        // For contracts, get amounts from effects
-                        if (effectInfo) {
-                          amount = formatXLM(effectInfo.amount || '0');
-                          asset = effectInfo.asset;
-                        }
-                      } else if (isPayment) {
-                        // For payments, always use op.amount directly - it's the accurate value
-                        const isReceive = op.to === account.id;
-                        typeDisplay = isReceive ? 'Received' : 'Sent';
-                        amount = formatXLM(op.amount || (op as any).starting_balance || '0');
-                        asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
-                      } else if (isSwap) {
-                        typeDisplay = 'Swap';
-                        // For path payments: show source amount with source asset (what was sent)
-                        const sourceAssetType = (op as any).source_asset_type;
-                        const sourceAssetCode = (op as any).source_asset_code;
-                        amount = formatXLM(op.amount || '0');
-                        asset = sourceAssetType === 'native' ? 'XLM' : sourceAssetCode || '';
-                      } else if (isOffer) {
-                        typeDisplay = op.type === 'manage_sell_offer' ? 'Sell Offer' : op.type === 'manage_buy_offer' ? 'Buy Offer' : 'Passive Offer';
-                        amount = formatXLM(op.amount || '0');
-                        asset = (op as any).selling_asset_type === 'native' ? 'XLM' : (op as any).selling_asset_code || '';
-                      } else if (effectInfo) {
-                        // For other operations, use effects data
+                  let lastDateKey = '';
+
+                  return paginatedOps.map((op, index) => {
+                    const currentDateKey = getDateKey(op.created_at);
+                    const showDateHeader = currentDateKey !== lastDateKey;
+                    lastDateKey = currentDateKey;
+
+                    const isSwap = op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
+                    const isOffer = op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer' || op.type === 'create_passive_sell_offer';
+                    const isPayment = op.type === 'payment' || op.type === 'create_account';
+                    const isContract = op.type === 'invoke_host_function' || op.type === 'extend_footprint_ttl' || op.type === 'restore_footprint';
+
+                    const effects = opEffects[op.id];
+                    const effectInfo = getAmountFromEffects(effects);
+
+                    let typeDisplay = op.type.replace(/_/g, ' ');
+                    let amount = '';
+                    let asset = '';
+
+                    if (isContract) {
+                      typeDisplay = decodeContractFunctionName(op);
+                      if (effectInfo) {
                         amount = formatXLM(effectInfo.amount || '0');
                         asset = effectInfo.asset;
-                        typeDisplay = effectInfo.type === 'received' ? 'Received' : 'Sent';
                       }
+                    } else if (isPayment) {
+                      const isReceive = op.to === account.id;
+                      typeDisplay = isReceive ? 'Received' : 'Sent';
+                      amount = formatXLM(op.amount || (op as any).starting_balance || '0');
+                      asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
+                    } else if (isSwap) {
+                      typeDisplay = 'Swap';
+                      const sourceAssetType = (op as any).source_asset_type;
+                      const sourceAssetCode = (op as any).source_asset_code;
+                      amount = formatXLM(op.amount || '0');
+                      asset = sourceAssetType === 'native' ? 'XLM' : sourceAssetCode || '';
+                    } else if (isOffer) {
+                      typeDisplay = op.type === 'manage_sell_offer' ? 'Sell Offer' : op.type === 'manage_buy_offer' ? 'Buy Offer' : 'Passive Offer';
+                      amount = formatXLM(op.amount || '0');
+                      asset = (op as any).selling_asset_type === 'native' ? 'XLM' : (op as any).selling_asset_code || '';
+                    } else if (effectInfo) {
+                      amount = formatXLM(effectInfo.amount || '0');
+                      asset = effectInfo.asset;
+                      typeDisplay = effectInfo.type === 'received' ? 'Received' : 'Sent';
+                    }
 
-                      const isReceive = effectInfo?.type === 'received' || op.to === account.id;
-                      const isSwapOrOffer = isSwap || isOffer;
-                      const isSwapDisplay = typeDisplay.toLowerCase() === 'swap'; // Contract swaps also get swap styling
+                    const isReceive = effectInfo?.type === 'received' || op.to === account.id;
+                    const isSwapOrOffer = isSwap || isOffer;
+                    const isSwapDisplay = typeDisplay.toLowerCase() === 'swap';
 
-                      // Color coding: blue=swap, green=receive, red=sent, purple=contract
-                      const colorIdx = (isSwapOrOffer || isSwapDisplay) ? 2 : (isContract ? 3 : (isReceive ? 0 : 1));
-                      const bgColors = ['bg-emerald-50', 'bg-red-50', 'bg-blue-50', 'bg-purple-50', 'bg-orange-50'];
-                      const textColors = ['text-emerald-600', 'text-red-600', 'text-blue-600', 'text-purple-600', 'text-orange-600'];
+                    const colorIdx = (isSwapOrOffer || isSwapDisplay) ? 2 : (isContract ? 3 : (isReceive ? 0 : 1));
+                    const bgColors = ['bg-emerald-50', 'bg-red-50', 'bg-blue-50', 'bg-purple-50', 'bg-orange-50'];
+                    const textColors = ['text-emerald-600', 'text-red-600', 'text-blue-600', 'text-purple-600', 'text-orange-600'];
 
-                      const dateStr = new Date(op.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const timeStr = new Date(op.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-                      return (
-                        <tr
-                          key={op.id}
-                          className="group active:bg-slate-50 transition-colors cursor-pointer"
+                    return (
+                      <div key={op.id}>
+                        {showDateHeader && (
+                          <div className={`text-sm font-semibold text-slate-900 ${index > 0 ? 'mt-4' : ''} mb-2 px-1`}>
+                            {formatDateHeader(op.created_at)}
+                          </div>
+                        )}
+                        <div
+                          className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-3 active:bg-slate-50 transition-colors cursor-pointer"
                           onClick={() => router.push(`/transaction/${op.transaction_hash}`)}
                         >
-                          <td className="py-3 pl-4 pr-2">
+                          <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-full ${bgColors[colorIdx]} flex items-center justify-center ${textColors[colorIdx]}`}>
+                              <div className={`w-9 h-9 rounded-full ${bgColors[colorIdx]} flex items-center justify-center ${textColors[colorIdx]}`}>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   {(isSwapOrOffer || isSwapDisplay) ? (
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -737,32 +762,32 @@ export default function AccountMobileView({ account, transactions, operations: i
                                 </svg>
                               </div>
                               <div>
-                                <div className="text-sm font-bold capitalize" style={{ color: coreColors.primary }}>{typeDisplay}</div>
-                                <div className="text-[11px] text-slate-400 font-medium">{dateStr}</div>
+                                <div className="text-sm font-semibold capitalize text-slate-900">{typeDisplay}</div>
+                                <div className="text-xs text-slate-400 font-medium">{timeStr}</div>
                               </div>
                             </div>
-                          </td>
-                          <td className="py-3 pr-4 text-right">
-                            {amount ? (
-                              <>
-                                <div className={`text-sm font-bold ${isReceive ? 'text-emerald-500' : 'text-slate-900'}`}>
-                                  {isReceive ? '+' : '-'}{amount}
-                                </div>
-                                <div className="text-[11px] text-slate-400 font-medium">{asset}</div>
-                              </>
-                            ) : (
-                              <div className="text-sm font-bold text-slate-300">--</div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            <div className="text-right">
+                              {amount ? (
+                                <>
+                                  <div className={`text-sm font-bold ${isReceive ? 'text-emerald-500' : 'text-slate-900'}`}>
+                                    {isReceive ? '+' : '-'}{amount}
+                                  </div>
+                                  <div className="text-xs text-slate-400 font-medium">{asset}</div>
+                                </>
+                              ) : (
+                                <div className="text-sm font-medium text-slate-300">--</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
 
                 {/* Pagination */}
                 {currentTotalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 py-5 bg-sky-50/50 border-t border-slate-100">
+                  <div className="flex items-center justify-center gap-2 py-4">
                     <button
                       onClick={() => goToPage(Math.max(1, currentPage - 1))}
                       disabled={currentPage === 1}
@@ -792,9 +817,9 @@ export default function AccountMobileView({ account, transactions, operations: i
         )}
 
         {activeTab === 'details' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden px-4 py-4 space-y-4 -mx-4">
+          <div className="space-y-3 pt-2">
             {/* Account Info Section */}
-            <div>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-4">
               <div className="text-[11px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
                 Account Info
               </div>
@@ -851,7 +876,7 @@ export default function AccountMobileView({ account, transactions, operations: i
             </div>
 
             {/* Thresholds Section */}
-            <div>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-4">
               <div className="text-[11px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
                 Thresholds
               </div>
@@ -872,7 +897,7 @@ export default function AccountMobileView({ account, transactions, operations: i
             </div>
 
             {/* Signers Section */}
-            <div>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-4">
               <div className="text-[11px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
                 Signers ({account.signers.length})
               </div>
@@ -900,7 +925,7 @@ export default function AccountMobileView({ account, transactions, operations: i
             </div>
 
             {/* Flags Section */}
-            <div>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-4">
               <div className="text-[11px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
                 Account Flags
               </div>

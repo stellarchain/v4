@@ -35,9 +35,9 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
       <Link
         ref={ref}
         href={`/transaction/${transaction.hash}`}
-        className={`block border-b border-slate-200/50 ${interactive.row}`}
+        className="block bg-white rounded-xl shadow-sm border border-slate-100 active:bg-slate-50 transition-colors"
       >
-        <div className={`flex items-center justify-between ${spacing.rowPaddingCompact}`}>
+        <div className="flex items-center justify-between px-3 py-3">
           {/* Left Side: Icon & Title/Meta */}
           <div className="flex items-start space-x-3">
             <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${transaction.successful

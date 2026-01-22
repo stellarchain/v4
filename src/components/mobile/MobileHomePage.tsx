@@ -167,30 +167,33 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
 
       {/* Live Transactions Section */}
       <div className="px-3 mt-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/80">
-            <div className="flex items-center space-x-2">
-              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Live Analysis</h2>
-              <span className="bg-emerald-500/10 text-emerald-500 text-[10px] px-1.5 py-0.5 rounded font-bold">REALTIME</span>
-            </div>
-            <Link
-              href="/transactions"
-              className="text-slate-400 hover:text-slate-900 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
-            </Link>
+        {/* Section Header */}
+        <div className="flex items-center justify-between px-1 mb-3">
+          <div className="flex items-center space-x-2">
+            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Live Transactions</h2>
+            <span className="bg-emerald-500/10 text-emerald-500 text-[10px] px-1.5 py-0.5 rounded font-bold">REALTIME</span>
           </div>
-          <LiveTransactionFeed initialTransactions={initialTransactions} limit={30} filter="payments" />
-          <div className="p-3 bg-slate-50/50 text-center border-t border-slate-100">
-            <Link
-              href="/transactions"
-              className="text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-emerald-500 transition-colors"
-            >
-              Load More Records
-            </Link>
-          </div>
+          <Link
+            href="/transactions"
+            className="text-slate-400 hover:text-slate-900 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          </Link>
+        </div>
+
+        {/* Transaction Cards */}
+        <LiveTransactionFeed initialTransactions={initialTransactions} limit={30} filter="payments" />
+
+        {/* Load More */}
+        <div className="mt-3 text-center">
+          <Link
+            href="/transactions"
+            className="inline-block bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-2.5 text-[11px] font-bold text-slate-500 uppercase tracking-widest hover:text-emerald-500 transition-colors"
+          >
+            Load More Records
+          </Link>
         </div>
       </div>
     </div>

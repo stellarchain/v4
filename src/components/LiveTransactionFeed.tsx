@@ -209,7 +209,7 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
     : transactions;
 
   return (
-    <div ref={containerRef} className="w-full">
+    <div ref={containerRef} className="w-full space-y-2">
       {filteredTransactions.length > 0 ? (
         filteredTransactions.map((tx) => (
           <CompactTransactionRow

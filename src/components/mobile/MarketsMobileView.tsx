@@ -266,19 +266,19 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
             return (
               <div
                 key={`${asset.code}-${asset.issuer || 'native'}`}
-                className={`bg-white rounded-xl shadow-sm border border-slate-100 px-2.5 py-2.5 flex items-center active:bg-slate-50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
+                className={`bg-white rounded-xl shadow-sm border border-slate-100 px-3 py-3 flex items-center active:bg-slate-50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
                 onClick={() => handleRowClick(asset)}
               >
-                {/* Rank Badge */}
-                <div className="w-9 flex-shrink-0">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: coreColors.primary }}>
+                {/* Rank */}
+                <div className="w-8 flex-shrink-0">
+                  <span className="text-sm font-medium text-slate-400">
                     {hasData ? asset.rank : '--'}
-                  </div>
+                  </span>
                 </div>
 
                 {/* Asset Name/MCap */}
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-[15px] leading-tight" style={{ color: coreColors.primary }}>{asset.code}</div>
+                  <div className="font-bold text-[15px] leading-tight text-slate-900">{asset.code}</div>
                   <div className="text-xs text-slate-400 font-medium leading-tight">
                     {formatNumber(asset.market_cap || 0)}
                   </div>
@@ -286,7 +286,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
                 {/* Price USD + XLM */}
                 <div className="w-20 text-right">
-                  <div className="font-bold text-[15px] leading-tight" style={{ color: coreColors.primary }}>
+                  <div className="font-bold text-[15px] leading-tight text-slate-900">
                     {formatPrice(asset.price_usd || 0)}
                   </div>
                   <div className="text-xs text-slate-400 font-medium leading-tight">
@@ -295,18 +295,11 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
                 </div>
 
                 {/* Sparkline + Change */}
-                <div className="w-16 flex flex-col items-end pl-1">
+                <div className="w-16 flex flex-col items-end pl-2">
                   <Sparkline data={asset.sparkline || []} positive={isPositive} />
-                  <div className="flex items-center gap-0.5">
-                    {!isNeutral && (
-                      <span className={`text-[11px] ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {isPositive ? '▲' : '▼'}
-                      </span>
-                    )}
-                    <span className={`text-xs font-bold ${isPositive ? 'text-emerald-500' : isNeutral ? 'text-slate-400' : 'text-red-500'}`}>
-                      {Math.abs(change).toFixed(2)}%
-                    </span>
-                  </div>
+                  <span className={`text-xs font-medium ${isPositive ? 'text-emerald-500' : isNeutral ? 'text-slate-400' : 'text-red-500'}`}>
+                    {isPositive ? '+' : ''}{change.toFixed(2)}%
+                  </span>
                 </div>
               </div>
             );
