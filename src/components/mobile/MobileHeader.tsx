@@ -123,7 +123,7 @@ export default function MobileHeader() {
 
   // Full Header for Homepage
   return (
-    <header className="bg-[#050b20] text-white pt-12 pb-6 px-4 rounded-b-3xl shadow-lg relative z-10 md:hidden">
+    <header className="bg-[#050b20] text-white pt-6 pb-6 px-4 rounded-b-3xl shadow-lg relative z-10 md:hidden">
       {/* Top Bar: Logo & Icons */}
       <div className="flex items-center justify-between mb-6">
         <Link href="/" className="flex items-center space-x-2">

@@ -83,13 +83,6 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
     maximumFractionDigits: 1
   }).format(marketCap);
 
-  // Format ledger number compactly
-  const formatLedgerCompact = (num: number) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toLocaleString();
-  };
-
   const primaryColor = '#0F4C81';
 
   return (
@@ -162,10 +155,9 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-between">
               <div className="flex justify-between items-center">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Ledger</span>
-                <span className="text-[10px] font-mono text-slate-500">{(liveStats.base_fee / 10000000).toFixed(5)} XLM</span>
               </div>
               <div className="flex items-baseline space-x-1 mt-2">
-                <span ref={ledgerCountRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{formatLedgerCompact(liveStats.ledger_count)}</span>
+                <span ref={ledgerCountRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{liveStats.ledger_count.toLocaleString()}</span>
               </div>
             </div>
 
