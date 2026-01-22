@@ -74,7 +74,7 @@ export default function MobileHeader() {
   // Simplified Header for non-homepage
   if (!isHomePage) {
     return (
-      <header className="bg-[#050b20] text-white pt-8 pb-5 px-4 rounded-b-3xl shadow-lg relative z-10 md:hidden">
+      <header className="bg-[#050b20] text-white pt-6 pb-6 px-4 rounded-b-3xl shadow-lg relative z-10 md:hidden">
         {/* Top: Logo & Icons */}
         <div className="flex items-center justify-between mb-4">
           <Link href="/" className="flex items-center space-x-2">

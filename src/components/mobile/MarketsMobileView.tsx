@@ -187,7 +187,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
         </div>
 
         {/* Search & Filter - aligned with list */}
-        <div className="flex gap-2 items-stretch px-2">
+        <div className="flex gap-2 items-stretch px-3">
           <div className="relative flex-1">
             <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,7 +245,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
       </header>
 
       {/* Asset List */}
-      <main className="px-2">
+      <main className="px-3">
         {/* Card Container */}
         <div className={containers.card}>
           {/* Column Headers */}
