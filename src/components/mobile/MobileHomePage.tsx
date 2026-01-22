@@ -85,10 +85,12 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
 
   // Format ledger number compactly
   const formatLedgerCompact = (num: number) => {
-    if (num >= 1000000) return `#${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `#${(num / 1000).toFixed(1)}K`;
-    return `#${num}`;
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toLocaleString();
   };
+
+  const primaryColor = '#0F4C81';
 
   return (
     <div className="min-h-screen bg-slate-100 pb-20">
@@ -104,7 +106,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
                 <span className="text-[10px] font-bold text-emerald-500">+2.4%</span>
               </div>
               <div className="flex items-end justify-between">
-                <span className="text-lg font-bold text-slate-900 leading-none">{formattedMarketCap}</span>
+                <span className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{formattedMarketCap}</span>
                 <svg className="w-16 h-8" viewBox="0 0 100 40">
                   <path
                     d="M0,35 L10,32 L20,38 L30,25 L40,30 L50,15 L60,20 L70,10 L80,18 L90,5 L100,12"
@@ -123,7 +125,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
                 <span className="text-[10px] font-bold text-red-400">-0.8%</span>
               </div>
               <div className="flex items-end justify-between">
-                <span className="text-lg font-bold text-slate-900 leading-none">{formattedVolume}</span>
+                <span className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{formattedVolume}</span>
                 <svg className="w-16 h-8" viewBox="0 0 100 40">
                   <path
                     d="M0,10 L10,15 L20,12 L30,25 L40,20 L50,35 L60,30 L70,38 L80,32 L90,36 L100,34"
@@ -142,7 +144,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
                 <span className="text-[10px] font-bold text-emerald-500">{tps} TPS</span>
               </div>
               <div className="flex items-end justify-between">
-                <span ref={tpsRef} className="text-lg font-bold text-slate-900 leading-none">
+                <span ref={tpsRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>
                   {liveStats.latest_ledger.successful_transaction_count.toLocaleString()}
                 </span>
                 <svg className="w-16 h-8" viewBox="0 0 100 40">
@@ -160,11 +162,10 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-between">
               <div className="flex justify-between items-center">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Ledger</span>
-                <span ref={ledgerCountRef} className="text-[10px] font-mono text-slate-500">{formatLedgerCompact(liveStats.ledger_count)}</span>
+                <span className="text-[10px] font-mono text-slate-500">{(liveStats.base_fee / 10000000).toFixed(5)} XLM</span>
               </div>
               <div className="flex items-baseline space-x-1 mt-2">
-                <span className="text-lg font-bold text-slate-900 leading-none">{(liveStats.base_fee / 10000000).toFixed(4)}</span>
-                <span className="text-[10px] font-bold text-slate-400">XLM</span>
+                <span ref={ledgerCountRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{formatLedgerCompact(liveStats.ledger_count)}</span>
               </div>
             </div>
 

@@ -404,7 +404,7 @@ export default function TransactionPageClient({
 
   return (
     <div className="min-h-screen bg-slate-100 pb-20 pt-1 md:pt-6">
-      <div className="max-w-[1600px] mx-auto px-2 md:px-6">
+      <div className="max-w-[1600px] mx-auto px-3 md:px-6">
         <div className="flex flex-col bg-slate-100 md:bg-white md:rounded-xl md:shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
           {/* Header & Tabs */}
           <div className="flex flex-col flex-shrink-0">
@@ -414,7 +414,7 @@ export default function TransactionPageClient({
                 Transactions
               </h3>
             </div>
-            <div className="px-2 md:px-4 py-2 bg-slate-100 md:bg-white md:border-b md:border-slate-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            <div className="px-3 md:px-4 py-2 bg-slate-100 md:bg-white md:border-b md:border-slate-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
               {['all', 'transfers', 'contracts'].map(tab => (
                 <button
                   key={tab}
@@ -506,7 +506,7 @@ export default function TransactionPageClient({
           </div>
 
           {/* Mobile Card List - Visible only on mobile (matches CompactTransactionRow style) */}
-          <div className="md:hidden flex-1 overflow-auto px-2" ref={containerRef}>
+          <div className="md:hidden flex-1 overflow-auto" ref={containerRef}>
             {visibleTransactions.length > 0 ? (
               <div className={containers.cardList}>
                 {visibleTransactions.map((tx) => {
@@ -595,7 +595,7 @@ export default function TransactionPageClient({
 
           {/* Footer / Pagination */}
           {totalPages > 1 && (
-            <div className="py-4 px-2 bg-slate-100 md:bg-slate-50 md:p-3 md:border-t md:border-slate-100">
+            <div className="py-4 px-3 bg-slate-100 md:bg-slate-50 md:p-3 md:border-t md:border-slate-100">
               <div className="flex items-center justify-center gap-1">
                 <button
                   onClick={() => goToPage(currentPage - 1)}
