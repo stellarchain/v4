@@ -74,33 +74,37 @@ export default function MobileHeader() {
   // Simplified Header for non-homepage
   if (!isHomePage) {
     return (
-      <header className="relative bg-[#020617] pt-6 pb-6 overflow-hidden md:hidden border-b border-white/5">
-        {/* Dot Pattern Background */}
-        <div
-          className="absolute inset-0 z-0 opacity-20 pointer-events-none"
-          style={{
-            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px)',
-            backgroundSize: '20px 20px'
-          }}
-        />
-
-        {/* Top: Logo */}
-        <div className="relative z-10 px-6 mb-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+      <header className="relative bg-[#0a1628] pt-5 pb-5 overflow-hidden md:hidden">
+        {/* Top: Logo & Icons */}
+        <div className="relative z-10 px-5 mb-4 flex justify-between items-center">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-slate-700/80 rounded-full flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
             <span className="font-bold text-white tracking-tight text-lg">StellarChain</span>
           </Link>
+          <div className="flex items-center gap-3">
+            <button className="text-slate-400 hover:text-white transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+              </svg>
+            </button>
+            <button className="relative text-slate-400 hover:text-white transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0a1628]"></span>
+            </button>
+          </div>
         </div>
 
-        {/* Bottom: Search Bar */}
-        <div className="relative z-10 px-6">
+        {/* Search Bar */}
+        <div className="relative z-10 px-5">
           <form onSubmit={handleSearch}>
-            <div className="bg-white/10 backdrop-blur-xl border border-white/30 rounded-2xl p-2 flex items-center">
-              <span className="pl-3 pr-2 text-white/50">
+            <div className="bg-slate-800/90 rounded-xl px-4 py-3 flex items-center">
+              <span className="text-slate-500 mr-3">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -109,7 +113,7 @@ export default function MobileHeader() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent border-none text-white placeholder-white/40 focus:ring-0 focus:outline-none flex-1 text-sm py-1 w-full"
+                className="bg-transparent border-none text-white placeholder-slate-500 focus:ring-0 focus:outline-none flex-1 text-sm w-full"
                 placeholder="Search hash, ledger, account..."
               />
             </div>
@@ -121,40 +125,39 @@ export default function MobileHeader() {
 
   // Full Header for Homepage
   return (
-    <header className="relative bg-[#020617] pt-safe pt-6 pb-12 overflow-hidden md:hidden">
-      {/* Dot Pattern Background */}
-      <div
-        className="absolute inset-0 z-0 opacity-20 pointer-events-none"
-        style={{
-          backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px)',
-          backgroundSize: '20px 20px'
-        }}
-      />
-
-      {/* Top Bar: Logo & Notification */}
-      <div className="relative z-10 px-6 flex justify-between items-center mb-4">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+    <header className="relative bg-[#0a1628] pt-safe pt-5 pb-5 overflow-hidden md:hidden">
+      {/* Top Bar: Logo & Icons */}
+      <div className="relative z-10 px-5 flex justify-between items-center mb-4">
+        <Link href="/" className="flex items-center gap-2.5">
+          <div className="w-9 h-9 bg-slate-700/80 rounded-full flex items-center justify-center">
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
           <span className="font-bold text-white tracking-tight text-lg">StellarChain</span>
         </Link>
-        <div className="flex items-center gap-4">
-          <button className="text-white/70 hover:text-white transition-colors">
+        <div className="flex items-center gap-3">
+          {/* Chart/Analytics Icon */}
+          <button className="text-slate-400 hover:text-white transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
             </svg>
+          </button>
+          {/* Notification Bell with Red Dot */}
+          <button className="relative text-slate-400 hover:text-white transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0a1628]"></span>
           </button>
         </div>
       </div>
 
-      {/* Glass Search Bar */}
-      <div className="relative z-10 px-6">
+      {/* Search Bar - Darker solid style */}
+      <div className="relative z-10 px-5">
         <form onSubmit={handleSearch}>
-          <div className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl p-2 flex items-center shadow-2xl">
-            <span className="pl-3 pr-2 text-white/50">
+          <div className="bg-slate-800/90 rounded-xl px-4 py-3 flex items-center">
+            <span className="text-slate-500 mr-3">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -163,23 +166,23 @@ export default function MobileHeader() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent border-none text-white placeholder-white/40 focus:ring-0 focus:outline-none flex-1 text-sm py-2 w-full"
+              className="bg-transparent border-none text-white placeholder-slate-500 focus:ring-0 focus:outline-none flex-1 text-sm w-full"
               placeholder="Search hash, ledger, account..."
             />
           </div>
         </form>
       </div>
 
-      {/* Inline Stats */}
-      <div className="relative z-10 px-8 mt-4 flex gap-6 text-[11px] font-medium tracking-wide uppercase">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className="text-white/50">XLM Price:</span>
-          <span className="text-white font-mono">${xlmPrice > 0 ? xlmPrice.toFixed(4) : '...'}</span>
+      {/* Stats Row */}
+      <div className="relative z-10 px-5 mt-4 flex justify-between items-center text-xs font-medium tracking-wide uppercase">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span className="text-slate-400">XLM:</span>
+          <span className="text-white font-mono">${xlmPrice > 0 ? xlmPrice.toFixed(4) : '0.0000'}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-white/50">Fee:</span>
-          <span className="text-white font-mono">{(baseFee / 10000000).toFixed(7)} XLM</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-slate-400">Network Fee:</span>
+          <span className="text-white font-mono">{(baseFee / 10000000).toFixed(5)} XLM</span>
         </div>
       </div>
     </header>
