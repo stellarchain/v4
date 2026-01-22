@@ -74,90 +74,36 @@ export default function MobileHeader() {
   // Simplified Header for non-homepage
   if (!isHomePage) {
     return (
-      <header className="relative bg-[#0a1628] pt-5 pb-5 overflow-hidden md:hidden">
+      <header className="bg-[#050b20] text-white pt-8 pb-5 px-4 rounded-b-3xl shadow-lg relative z-10 md:hidden">
         {/* Top: Logo & Icons */}
-        <div className="relative z-10 px-5 mb-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-slate-700/80 rounded-full flex items-center justify-center">
+        <div className="flex items-center justify-between mb-4">
+          <Link href="/" className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="font-bold text-white tracking-tight text-lg">StellarChain</span>
+            <span className="text-xl font-bold tracking-tight">StellarChain</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <button className="text-slate-400 hover:text-white transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center space-x-3">
+            <button className="p-2 rounded-full hover:bg-white/10 transition-colors">
+              <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
               </svg>
             </button>
-            <button className="relative text-slate-400 hover:text-white transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button className="p-2 rounded-full hover:bg-white/10 transition-colors relative">
+              <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0a1628]"></span>
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#050b20]"></span>
             </button>
           </div>
         </div>
 
         {/* Search Bar */}
-        <div className="relative z-10 px-5">
+        <div className="relative">
           <form onSubmit={handleSearch}>
-            <div className="bg-slate-800/90 rounded-xl px-4 py-3 flex items-center">
-              <span className="text-slate-500 mr-3">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent border-none text-white placeholder-slate-500 focus:ring-0 focus:outline-none flex-1 text-sm w-full"
-                placeholder="Search hash, ledger, account..."
-              />
-            </div>
-          </form>
-        </div>
-      </header>
-    );
-  }
-
-  // Full Header for Homepage
-  return (
-    <header className="relative bg-[#0a1628] pt-safe pt-5 pb-5 overflow-hidden md:hidden">
-      {/* Top Bar: Logo & Icons */}
-      <div className="relative z-10 px-5 flex justify-between items-center mb-4">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-slate-700/80 rounded-full flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <span className="font-bold text-white tracking-tight text-lg">StellarChain</span>
-        </Link>
-        <div className="flex items-center gap-3">
-          {/* Chart/Analytics Icon */}
-          <button className="text-slate-400 hover:text-white transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-            </svg>
-          </button>
-          {/* Notification Bell with Red Dot */}
-          <button className="relative text-slate-400 hover:text-white transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0a1628]"></span>
-          </button>
-        </div>
-      </div>
-
-      {/* Search Bar - Darker solid style */}
-      <div className="relative z-10 px-5">
-        <form onSubmit={handleSearch}>
-          <div className="bg-slate-800/90 rounded-xl px-4 py-3 flex items-center">
-            <span className="text-slate-500 mr-3">
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -166,23 +112,71 @@ export default function MobileHeader() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent border-none text-white placeholder-slate-500 focus:ring-0 focus:outline-none flex-1 text-sm w-full"
+              className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-400 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
               placeholder="Search hash, ledger, account..."
             />
+          </form>
+        </div>
+      </header>
+    );
+  }
+
+  // Full Header for Homepage
+  return (
+    <header className="bg-[#050b20] text-white pt-12 pb-6 px-4 rounded-b-3xl shadow-lg relative z-10 md:hidden">
+      {/* Top Bar: Logo & Icons */}
+      <div className="flex items-center justify-between mb-6">
+        <Link href="/" className="flex items-center space-x-2">
+          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
           </div>
+          <span className="text-xl font-bold tracking-tight">StellarChain</span>
+        </Link>
+        <div className="flex items-center space-x-3">
+          {/* Chart/Analytics Icon */}
+          <button className="p-2 rounded-full hover:bg-white/10 transition-colors">
+            <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+            </svg>
+          </button>
+          {/* Notification Bell with Red Dot */}
+          <button className="p-2 rounded-full hover:bg-white/10 transition-colors relative">
+            <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#050b20]"></span>
+          </button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative mb-4">
+        <form onSubmit={handleSearch}>
+          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-400 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+            placeholder="Search hash, ledger, account..."
+          />
         </form>
       </div>
 
       {/* Stats Row */}
-      <div className="relative z-10 px-5 mt-4 flex justify-between items-center text-xs font-medium tracking-wide uppercase">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span className="text-slate-400">XLM:</span>
-          <span className="text-white font-mono">${xlmPrice > 0 ? xlmPrice.toFixed(4) : '0.0000'}</span>
+      <div className="flex items-center justify-between text-[10px] text-gray-400 px-1 uppercase tracking-widest font-bold">
+        <div className="flex items-center space-x-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+          <span>XLM: <span className="text-white ml-0.5">${xlmPrice > 0 ? xlmPrice.toFixed(4) : '0.0000'}</span></span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-slate-400">Network Fee:</span>
-          <span className="text-white font-mono">{(baseFee / 10000000).toFixed(5)} XLM</span>
+        <div>
+          <span>Network Fee: <span className="text-white ml-0.5">{(baseFee / 10000000).toFixed(5)} XLM</span></span>
         </div>
       </div>
     </header>
