@@ -737,7 +737,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                                 </svg>
                               </div>
                               <div>
-                                <div className="text-sm font-bold text-slate-900 capitalize">{typeDisplay}</div>
+                                <div className="text-sm font-bold capitalize" style={{ color: coreColors.primary }}>{typeDisplay}</div>
                                 <div className="text-[10px] text-slate-400 font-medium">{dateStr}</div>
                               </div>
                             </div>
