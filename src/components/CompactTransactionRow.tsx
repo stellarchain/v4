@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Transaction, shortenAddress, timeAgo } from '@/lib/stellar';
 import { forwardRef } from 'react';
-import { interactive, spacing } from '@/lib/design-system';
+import { interactive, spacing, getPrimaryColor } from '@/lib/design-system';
 
 interface CompactTransactionRowProps {
   transaction: Transaction;
@@ -56,7 +56,7 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
             </div>
 
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-slate-900 leading-tight capitalize">
+              <span className="text-sm font-bold leading-tight capitalize" style={{ color: getPrimaryColor() }}>
                 {info?.type === 'contract'
                   ? (info.functionName || 'Smart Contract')
                   : info?.type === 'payment'
@@ -82,7 +82,7 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
                 {formatCompact(info.amount || info.effectAmount)} {info.asset || info.effectAsset}
               </span>
             ) : (
-              <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+              <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: getPrimaryColor() }}>
                 {info?.type === 'contract' ? (info.functionName || 'Contract') : 'Details'}
               </span>
             )}
