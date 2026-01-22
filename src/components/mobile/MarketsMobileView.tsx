@@ -274,7 +274,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
                   {/* Asset Name/MCap */}
                   <div className="flex-1 pl-1 min-w-0">
-                    <div className="font-bold text-slate-900 text-sm leading-tight">{asset.code}</div>
+                    <div className="font-bold text-sm leading-tight" style={{ color: coreColors.primary }}>{asset.code}</div>
                     <div className="text-[10px] text-slate-400 font-medium leading-tight">
                       {formatNumber(asset.market_cap || 0)}
                     </div>
