@@ -505,10 +505,10 @@ export default function TransactionPageClient({
             </table>
           </div>
 
-          {/* Mobile Card List - Visible only on mobile (matches CompactTransactionRow style) */}
+          {/* Mobile Card List - Visible only on mobile (individual cards like Markets page) */}
           <div className="md:hidden flex-1 overflow-auto" ref={containerRef}>
             {visibleTransactions.length > 0 ? (
-              <div className={containers.cardList}>
+              <div className="space-y-2">
                 {visibleTransactions.map((tx) => {
                   const info = tx.displayInfo;
                   const functionName = info?.functionName || 'Contract Call';
@@ -529,9 +529,9 @@ export default function TransactionPageClient({
                     <a
                       key={tx.hash}
                       href={`/transaction/${tx.hash}`}
-                      className={`block ${interactive.row}`}
+                      className="block bg-white rounded-xl shadow-sm border border-slate-100 active:bg-slate-50 transition-colors"
                     >
-                      <div className={spacing.rowPaddingCompact + " flex items-center justify-between"}>
+                      <div className="px-3 py-3 flex items-center justify-between">
                         {/* Left Side: Icon & Title/Meta */}
                         <div className="flex items-start space-x-3">
                           <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${tx.successful
@@ -587,7 +587,7 @@ export default function TransactionPageClient({
                 })}
               </div>
             ) : (
-              <div className={`${containers.card} px-4 py-12 text-center text-slate-400 italic text-sm`}>
+              <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-12 text-center text-slate-400 italic text-sm">
                 No transactions found
               </div>
             )}
