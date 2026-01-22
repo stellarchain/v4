@@ -246,82 +246,86 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
       {/* Asset List */}
       <main className="px-3">
-        {/* Card Container */}
-        <div className={containers.card}>
-          {/* Column Headers */}
-          <div className="flex items-center px-2 py-2 border-b border-slate-100/80 bg-slate-50/30">
-            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-6 text-center">#</span>
-            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold flex-1 pl-1">Asset</span>
-            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-20 text-right pr-2">Price</span>
-            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-16 text-right">Change</span>
-          </div>
+        {/* Column Headers */}
+        <div className="flex items-center px-3 py-2 mb-2">
+          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold w-10">Rank</span>
+          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold flex-1">Market Cap</span>
+          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold w-24 text-center">Price</span>
+          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold w-20 text-right">Change</span>
+        </div>
 
-          <div className="divide-y divide-slate-100/60">
-            {paginatedAssets.map((asset) => {
-              const hasData = asset.price_usd > 0 && asset.market_cap > 0;
-              const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
+        {/* Asset Cards */}
+        <div className="space-y-2">
+          {paginatedAssets.map((asset) => {
+            const hasData = asset.price_usd > 0 && asset.market_cap > 0;
+            const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
+            const change = asset.change_24h || 0;
+            const isPositive = change > 0;
+            const isNeutral = change === 0;
 
-              return (
-                <div
-                  key={`${asset.code}-${asset.issuer || 'native'}`}
-                  className={`px-2 py-1.5 flex items-center active:bg-slate-50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
-                  onClick={() => handleRowClick(asset)}
-                >
-                  {/* Rank */}
-                  <span className="text-slate-300 font-semibold w-6 text-center text-[10px]">
+            return (
+              <div
+                key={`${asset.code}-${asset.issuer || 'native'}`}
+                className={`bg-[#0f172a] rounded-xl px-3 py-2.5 flex items-center active:bg-[#1e293b] transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
+                onClick={() => handleRowClick(asset)}
+              >
+                {/* Rank Badge */}
+                <div className="w-10 flex-shrink-0">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: coreColors.primary }}>
                     {hasData ? asset.rank : '--'}
-                  </span>
-
-                  {/* Asset Name/MCap */}
-                  <div className="flex-1 pl-1 min-w-0">
-                    <div className="font-bold text-sm leading-tight" style={{ color: coreColors.primary }}>{asset.code}</div>
-                    <div className="text-[10px] text-slate-400 font-medium leading-tight">
-                      {formatNumber(asset.market_cap || 0)}
-                    </div>
-                  </div>
-
-                  {/* Price USD + XLM */}
-                  <div className="w-24 text-right pr-1">
-                    <div className="font-bold text-xs tracking-tight leading-tight" style={{ color: coreColors.primary }}>
-                      {formatPrice(asset.price_usd || 0)}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-medium leading-tight">
-                      {formatXLMPrice(priceInXlm)}
-                    </div>
-                  </div>
-
-                  {/* Sparkline/Change */}
-                  <div className="flex flex-col items-end w-16">
-                    <Sparkline data={asset.sparkline || []} positive={(asset.change_24h || 0) >= 0} />
-                    <ChangeIndicator value={asset.change_24h || 0} />
                   </div>
                 </div>
-              );
-            })}
-          </div>
 
-          {/* Empty State */}
-          {filteredAndSortedAssets.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-slate-100">
-                <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                {/* Asset Name/MCap */}
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-white text-sm leading-tight">{asset.code}</div>
+                  <div className="text-[11px] text-slate-400 font-medium leading-tight">
+                    {formatNumber(asset.market_cap || 0)}
+                  </div>
+                </div>
+
+                {/* Price USD + XLM */}
+                <div className="w-24 text-right">
+                  <div className="font-bold text-white text-sm leading-tight">
+                    {formatPrice(asset.price_usd || 0)}
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-medium leading-tight">
+                    {formatXLMPrice(priceInXlm)}
+                  </div>
+                </div>
+
+                {/* Sparkline + Change */}
+                <div className="w-20 flex flex-col items-end pl-2">
+                  <Sparkline data={asset.sparkline || []} positive={isPositive} />
+                  <div className="flex items-center gap-0.5 mt-0.5">
+                    {!isNeutral && (
+                      <span className={isPositive ? 'text-emerald-400' : 'text-red-400'}>
+                        {isPositive ? '▲' : '▼'}
+                      </span>
+                    )}
+                    {isNeutral && <span className="text-slate-500">▶</span>}
+                    <span className={`text-[11px] font-bold ${isPositive ? 'text-emerald-400' : isNeutral ? 'text-slate-500' : 'text-red-400'}`}>
+                      {Math.abs(change).toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-slate-900 font-semibold text-sm mb-1">No assets found</h3>
-              <p className="text-slate-500 text-xs">Try a different search term</p>
-            </div>
-          )}
-
-          {/* View All Link */}
-          {filteredAndSortedAssets.length > 0 && totalPages > 1 && (
-            <div className="py-4 text-center bg-gradient-to-t from-slate-50/80 to-transparent">
-              <span className="text-sm font-semibold tracking-wide uppercase" style={{ color: coreColors.primary }}>
-                View all {filteredAndSortedAssets.length} assets
-              </span>
-            </div>
-          )}
+            );
+          })}
         </div>
+
+        {/* Empty State */}
+        {filteredAndSortedAssets.length === 0 && (
+          <div className="text-center py-12 bg-[#0f172a] rounded-xl">
+            <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <h3 className="text-white font-semibold text-sm mb-1">No assets found</h3>
+            <p className="text-slate-400 text-xs">Try a different search term</p>
+          </div>
+        )}
 
         {/* Pagination - Outside Card */}
         {totalPages > 1 && (
