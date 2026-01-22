@@ -400,27 +400,30 @@ export default function TransactionPageClient({
     return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
   };
 
+  const primaryColor = '#0F4C81';
+
   return (
-    <div className="min-h-screen bg-[#f0f4f3] pb-20 pt-1 md:pt-6">
-      <div className="max-w-[1600px] mx-auto px-3 md:px-6">
-        <div className="flex flex-col bg-[#f0f4f3] md:bg-white md:rounded-xl md:border md:border-slate-100 overflow-hidden">
+    <div className="min-h-screen bg-slate-100 pb-20 pt-1 md:pt-6">
+      <div className="max-w-[1600px] mx-auto px-2 md:px-6">
+        <div className="flex flex-col bg-slate-100 md:bg-white md:rounded-xl md:shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
           {/* Header & Tabs */}
           <div className="flex flex-col flex-shrink-0">
             {/* Header - Hidden on mobile */}
-            <div className="hidden md:flex p-3 md:p-4 border-b border-slate-100 items-center justify-between bg-[#f0f4f3] md:bg-slate-50/50">
-              <h3 className="text-[10px] md:text-xs font-bold text-slate-900 uppercase tracking-wider">
+            <div className="hidden md:flex p-3 md:p-4 border-b border-slate-100 items-center justify-between bg-slate-100 md:bg-slate-50/50">
+              <h3 className="text-[10px] md:text-xs font-bold uppercase tracking-wider" style={{ color: primaryColor }}>
                 Transactions
               </h3>
             </div>
-            <div className="px-3 md:px-4 py-2 bg-[#f0f4f3] md:bg-white md:border-b md:border-slate-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            <div className="px-2 md:px-4 py-2 bg-slate-100 md:bg-white md:border-b md:border-slate-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
               {['all', 'transfers', 'contracts'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setFilter(tab as FilterType)}
-                  className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter whitespace-nowrap transition-colors ${filter === tab
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-tighter whitespace-nowrap transition-colors ${filter === tab
+                    ? 'text-white'
+                    : 'bg-white text-slate-500 hover:bg-slate-50 shadow-sm'
                     }`}
+                  style={filter === tab ? { backgroundColor: primaryColor } : {}}
                 >
                   {tab === 'all' ? 'All Activity' : tab === 'transfers' ? 'Payments' : 'Smart Contracts'}
                 </button>
@@ -503,7 +506,7 @@ export default function TransactionPageClient({
           </div>
 
           {/* Mobile Card List - Visible only on mobile (matches CompactTransactionRow style) */}
-          <div className="md:hidden flex-1 overflow-auto px-4" ref={containerRef}>
+          <div className="md:hidden flex-1 overflow-auto px-2" ref={containerRef}>
             {visibleTransactions.length > 0 ? (
               <div className={containers.cardList}>
                 {visibleTransactions.map((tx) => {
@@ -592,12 +595,12 @@ export default function TransactionPageClient({
 
           {/* Footer / Pagination */}
           {totalPages > 1 && (
-            <div className="py-5 px-4 bg-[#f0f4f3] md:bg-slate-50 md:p-3 md:border-t md:border-slate-100">
+            <div className="py-4 px-2 bg-slate-100 md:bg-slate-50 md:p-3 md:border-t md:border-slate-100">
               <div className="flex items-center justify-center gap-1">
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1 || isLoadingMore}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -622,9 +625,10 @@ export default function TransactionPageClient({
                       disabled={isLoadingMore}
                       className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
                         currentPage === pageNum
-                          ? 'bg-slate-900 text-white'
+                          ? 'text-white shadow-sm'
                           : 'text-slate-500 hover:bg-slate-100'
                       }`}
+                      style={currentPage === pageNum ? { backgroundColor: primaryColor } : {}}
                     >
                       {pageNum}
                     </button>
@@ -638,7 +642,7 @@ export default function TransactionPageClient({
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={(currentPage >= totalPages && !hasMore) || isLoadingMore}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -646,7 +650,7 @@ export default function TransactionPageClient({
                 </button>
 
                 {isLoadingMore && (
-                  <svg className="w-4 h-4 animate-spin ml-2 text-slate-400" fill="none" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 animate-spin ml-2" style={{ color: primaryColor }} fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Transaction, Operation, Effect, shortenAddress, formatXLM } from '@/lib/stellar';
+import { containers, colors, coreColors, tabs, badges } from '@/lib/design-system';
 
 function formatCompactNumber(value: number): string {
   if (value === 0) return '0';
@@ -442,19 +443,19 @@ export default function AccountMobileView({ account, transactions, operations: i
   const isPositivePnl = pnlData.amount >= 0;
 
   return (
-    <div className="w-full bg-[#f0f4f3] min-h-screen pb-24 font-sans">
+    <div className={containers.page}>
       {/* Header */}
-      <header className="pt-8 px-6 pb-2 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md">
+      <header className="pt-8 px-6 pb-2 sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md border-b border-slate-200">
         {/* Title Row */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Account</h1>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: coreColors.primary }}>Account</h1>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-slate-500 font-mono">
               {shortenAddress(account.id, 4)}
             </span>
             <button
               onClick={handleCopy}
-              className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/80 text-slate-500 hover:bg-white transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-white text-slate-500 hover:bg-slate-50 transition-colors shadow-sm border border-slate-200"
             >
               {copied ? (
                 <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -491,23 +492,23 @@ export default function AccountMobileView({ account, transactions, operations: i
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center justify-between px-2 mb-4 border-b border-slate-100 pb-4">
+        <div className="flex items-center justify-between px-2 pb-3">
           <div className="flex gap-6">
             <button
               onClick={() => handleTabChange('assets')}
-              className={`text-sm font-semibold relative ${activeTab === 'assets' ? 'text-slate-900 after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-slate-900' : 'text-slate-400 hover:text-slate-600'} transition-colors`}
+              className={`text-sm font-semibold relative ${activeTab === 'assets' ? 'text-[#0F4C81] after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]' : 'text-slate-500 hover:text-[#0F4C81]'} transition-colors`}
             >
               Assets
             </button>
             <button
               onClick={() => handleTabChange('activity')}
-              className={`text-sm font-semibold relative ${activeTab === 'activity' ? 'text-slate-900 after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-slate-900' : 'text-slate-400 hover:text-slate-600'} transition-colors`}
+              className={`text-sm font-semibold relative ${activeTab === 'activity' ? 'text-[#0F4C81] after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]' : 'text-slate-500 hover:text-[#0F4C81]'} transition-colors`}
             >
               Activity
             </button>
             <button
               onClick={() => handleTabChange('details')}
-              className={`text-sm font-semibold relative ${activeTab === 'details' ? 'text-slate-900 after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-slate-900' : 'text-slate-400 hover:text-slate-600'} transition-colors`}
+              className={`text-sm font-semibold relative ${activeTab === 'details' ? 'text-[#0F4C81] after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]' : 'text-slate-500 hover:text-[#0F4C81]'} transition-colors`}
             >
               Details
             </button>
@@ -518,10 +519,10 @@ export default function AccountMobileView({ account, transactions, operations: i
       {/* Main Content */}
       <main className="px-6">
         {activeTab === 'assets' && (
-          <div className="bg-[#e8edec] rounded-2xl overflow-hidden divide-y divide-slate-200/50 -mx-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100 -mx-4">
             {/* XLM Row */}
             <div
-              className="px-4 py-4 active:bg-slate-200/50 transition-colors cursor-pointer"
+              className="px-4 py-4 active:bg-slate-50 transition-colors cursor-pointer"
               onClick={() => router.push('/asset/XLM')}
             >
               <div className="flex items-center justify-between mb-2">
@@ -576,7 +577,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               return (
                 <div
                   key={idx}
-                  className="px-4 py-4 active:bg-slate-200/50 transition-colors cursor-pointer"
+                  className="px-4 py-4 active:bg-slate-50 transition-colors cursor-pointer"
                   onClick={() => router.push(getAssetUrl(balance.asset_code, balance.asset_issuer))}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -628,16 +629,16 @@ export default function AccountMobileView({ account, transactions, operations: i
         )}
 
         {activeTab === 'activity' && (
-          <div className="space-y-3">
+          <div>
             {/* Activity Filters */}
-            <div className="flex gap-5 border-b border-slate-200/50 pb-3 mb-2">
+            <div className="flex gap-5 border-b border-slate-200 pb-2 mb-3 mt-3">
               {['all', 'payments', 'swaps', 'contracts'].map((type) => (
                 <button
                   key={type}
                   onClick={() => setActivityType(type as any)}
                   className={`text-xs font-semibold relative ${activityType === type
-                      ? 'text-slate-900 after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-slate-900'
-                      : 'text-slate-400 hover:text-slate-600'
+                      ? 'text-[#0F4C81] after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]'
+                      : 'text-slate-500 hover:text-[#0F4C81]'
                     } transition-colors`}
                 >
                   {type === 'all' ? 'All' : type === 'payments' ? 'Payments' : type === 'swaps' ? 'Swaps' : 'Contracts'}
@@ -646,11 +647,11 @@ export default function AccountMobileView({ account, transactions, operations: i
             </div>
 
             {currentDataSource.length === 0 ? (
-              <div className="bg-[#e8edec] rounded-2xl text-center py-8 text-slate-400 -mx-4">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 text-center py-8 text-slate-400 -mx-4">
                 <p className="text-xs font-medium">No activity found</p>
               </div>
             ) : (
-              <div className="bg-[#e8edec] rounded-2xl overflow-hidden -mx-4">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden -mx-4">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
@@ -658,7 +659,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                       <th className="pb-3 pt-4 px-4 text-right font-bold">Amount</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200/50">
+                  <tbody className="divide-y divide-slate-100">
                     {paginatedOps.map(op => {
                       const isSwap = op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
                       const isOffer = op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer' || op.type === 'create_passive_sell_offer';
@@ -717,7 +718,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                       return (
                         <tr
                           key={op.id}
-                          className="group active:bg-slate-200/50 transition-colors cursor-pointer"
+                          className="group active:bg-slate-50 transition-colors cursor-pointer"
                           onClick={() => router.push(`/transaction/${op.transaction_hash}`)}
                         >
                           <td className="py-3 pl-4 pr-2">
@@ -761,11 +762,11 @@ export default function AccountMobileView({ account, transactions, operations: i
 
                 {/* Pagination */}
                 {currentTotalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 py-5">
+                  <div className="flex items-center justify-center gap-2 py-5 bg-sky-50/50 border-t border-slate-100">
                     <button
                       onClick={() => goToPage(Math.max(1, currentPage - 1))}
                       disabled={currentPage === 1}
-                      className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-600 disabled:opacity-40"
+                      className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 shadow-sm"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -777,7 +778,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     <button
                       onClick={() => goToPage(Math.min(currentTotalPages, currentPage + 1))}
                       disabled={currentPage === currentTotalPages && !hasMoreToFetch}
-                      className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-600 disabled:opacity-40"
+                      className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 shadow-sm"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -791,15 +792,15 @@ export default function AccountMobileView({ account, transactions, operations: i
         )}
 
         {activeTab === 'details' && (
-          <div className="bg-[#e8edec] rounded-2xl overflow-hidden px-4 py-4 space-y-4 -mx-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden px-4 py-4 space-y-4 -mx-4">
             {/* Account Info Section */}
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-200/50 mb-3">
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
                 Account Info
               </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                  <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
                     </svg>
@@ -840,7 +841,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     </div>
                     <div className="flex-1">
                       <div className="text-[10px] text-slate-400 font-medium">Home Domain</div>
-                      <a href={`https://${account.home_domain}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline">
+                      <a href={`https://${account.home_domain}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#0F4C81] hover:underline">
                         {account.home_domain}
                       </a>
                     </div>
@@ -851,19 +852,19 @@ export default function AccountMobileView({ account, transactions, operations: i
 
             {/* Thresholds Section */}
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-200/50 mb-3">
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
                 Thresholds
               </div>
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-slate-50 rounded-xl p-3 text-center">
+                <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
                   <div className="text-[10px] text-slate-400 font-medium mb-1">Low</div>
                   <div className="text-lg font-bold text-slate-900">{account.thresholds.low_threshold}</div>
                 </div>
-                <div className="bg-slate-50 rounded-xl p-3 text-center">
+                <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
                   <div className="text-[10px] text-slate-400 font-medium mb-1">Medium</div>
                   <div className="text-lg font-bold text-slate-900">{account.thresholds.med_threshold}</div>
                 </div>
-                <div className="bg-slate-50 rounded-xl p-3 text-center">
+                <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
                   <div className="text-[10px] text-slate-400 font-medium mb-1">High</div>
                   <div className="text-lg font-bold text-slate-900">{account.thresholds.high_threshold}</div>
                 </div>
@@ -872,19 +873,19 @@ export default function AccountMobileView({ account, transactions, operations: i
 
             {/* Signers Section */}
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-200/50 mb-3">
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
                 Signers ({account.signers.length})
               </div>
               <div className="space-y-2">
                 {account.signers.map((signer, idx) => (
-                  <div key={idx} className="flex items-center gap-3 py-2 border-b border-slate-200/50 last:border-0">
+                  <div key={idx} className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
                     <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <Link href={`/account/${signer.key}`} className="text-sm font-mono text-slate-900 hover:text-blue-600 truncate block">
+                      <Link href={`/account/${signer.key}`} className="text-sm font-mono text-slate-900 hover:text-[#0F4C81] truncate block">
                         {shortenAddress(signer.key, 8)}
                       </Link>
                       <div className="text-[10px] text-slate-400 capitalize">{signer.type.replace(/_/g, ' ')}</div>
@@ -900,32 +901,32 @@ export default function AccountMobileView({ account, transactions, operations: i
 
             {/* Flags Section */}
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-200/50 mb-3">
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
                 Account Flags
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div className={`rounded-xl p-3 ${account.flags.auth_required ? 'bg-amber-50' : 'bg-slate-50'}`}>
+                <div className={`rounded-xl p-3 border ${account.flags.auth_required ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <div className={`w-2 h-2 rounded-full ${account.flags.auth_required ? 'bg-amber-500' : 'bg-slate-300'}`} />
                     <span className={`text-xs font-semibold ${account.flags.auth_required ? 'text-amber-700' : 'text-slate-400'}`}>Auth Required</span>
                   </div>
                   <p className="text-[10px] text-slate-500">Requires authorization for trustlines</p>
                 </div>
-                <div className={`rounded-xl p-3 ${account.flags.auth_revocable ? 'bg-orange-50' : 'bg-slate-50'}`}>
+                <div className={`rounded-xl p-3 border ${account.flags.auth_revocable ? 'bg-orange-50 border-orange-100' : 'bg-slate-50 border-slate-100'}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <div className={`w-2 h-2 rounded-full ${account.flags.auth_revocable ? 'bg-orange-500' : 'bg-slate-300'}`} />
                     <span className={`text-xs font-semibold ${account.flags.auth_revocable ? 'text-orange-700' : 'text-slate-400'}`}>Auth Revocable</span>
                   </div>
                   <p className="text-[10px] text-slate-500">Can revoke trustlines</p>
                 </div>
-                <div className={`rounded-xl p-3 ${account.flags.auth_immutable ? 'bg-red-50' : 'bg-slate-50'}`}>
+                <div className={`rounded-xl p-3 border ${account.flags.auth_immutable ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <div className={`w-2 h-2 rounded-full ${account.flags.auth_immutable ? 'bg-red-500' : 'bg-slate-300'}`} />
                     <span className={`text-xs font-semibold ${account.flags.auth_immutable ? 'text-red-700' : 'text-slate-400'}`}>Auth Immutable</span>
                   </div>
                   <p className="text-[10px] text-slate-500">Flags cannot be changed</p>
                 </div>
-                <div className={`rounded-xl p-3 ${account.flags.auth_clawback_enabled ? 'bg-purple-50' : 'bg-slate-50'}`}>
+                <div className={`rounded-xl p-3 border ${account.flags.auth_clawback_enabled ? 'bg-purple-50 border-purple-100' : 'bg-slate-50 border-slate-100'}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <div className={`w-2 h-2 rounded-full ${account.flags.auth_clawback_enabled ? 'bg-purple-500' : 'bg-slate-300'}`} />
                     <span className={`text-xs font-semibold ${account.flags.auth_clawback_enabled ? 'text-purple-700' : 'text-slate-400'}`}>Clawback</span>

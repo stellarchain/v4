@@ -69,6 +69,7 @@ export default function MobileHeader() {
   if (pathname?.startsWith('/account/')) return null;
   if (pathname?.startsWith('/markets')) return null;
   if (pathname?.startsWith('/asset/')) return null;
+  if (pathname?.startsWith('/transaction/')) return null;
 
   // Simplified Header for non-homepage
   if (!isHomePage) {
@@ -98,7 +99,7 @@ export default function MobileHeader() {
         {/* Bottom: Search Bar */}
         <div className="relative z-10 px-6">
           <form onSubmit={handleSearch}>
-            <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex items-center">
+            <div className="bg-white/10 backdrop-blur-xl border border-white/30 rounded-2xl p-2 flex items-center">
               <span className="pl-3 pr-2 text-white/50">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -152,7 +153,7 @@ export default function MobileHeader() {
       {/* Glass Search Bar */}
       <div className="relative z-10 px-6">
         <form onSubmit={handleSearch}>
-          <div className="bg-white/15 backdrop-blur-xl border border-white/20 rounded-2xl p-2 flex items-center shadow-2xl">
+          <div className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-2xl p-2 flex items-center shadow-2xl">
             <span className="pl-3 pr-2 text-white/50">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

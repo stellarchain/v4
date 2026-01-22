@@ -8,6 +8,7 @@ import type { ContractMetadataResult, ContractAccessControlResult } from '@/lib/
 import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
 import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isCustomEventData, CustomEventData } from '@/lib/eventParser';
 import type { ContractStorageResult } from '@/lib/contractStorage';
+import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/design-system';
 
 interface Operation {
   id: string;
@@ -135,7 +136,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
   };
 
   return (
-    <div className="bg-[#f0f4f3] text-slate-800 min-h-screen flex flex-col font-sans pb-24">
+    <div className="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans pb-24">
       <main className="flex-1 px-6 pt-2 pb-8 max-w-lg mx-auto w-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 mt-1">
@@ -170,7 +171,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
         </div>
 
         {/* Contract Info Card */}
-        <div className="bg-white rounded-xl border border-slate-100 p-4 mb-5">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-5">
           <div className="flex items-start gap-4">
             {/* Icon */}
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${
@@ -216,7 +217,8 @@ export default function ContractMobileView({ contract, operations }: ContractMob
               <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Contract ID</span>
               <button
                 onClick={handleCopy}
-                className="text-[9px] font-bold text-indigo-600 hover:text-indigo-700 uppercase tracking-wide flex items-center gap-1"
+                className="text-[9px] font-bold uppercase tracking-wide flex items-center gap-1"
+                style={{ color: getPrimaryColor() }}
               >
                 {copied ? 'Copied!' : 'Copy'}
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -229,7 +231,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
           {/* Token Info (if applicable) */}
           {isToken && (
-            <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
+            <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-2 gap-4">
               <div>
                 <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Decimals</div>
                 <div className="text-sm font-bold text-slate-900 mt-1">
@@ -240,7 +242,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                 <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Type</div>
                 <div className="text-sm font-bold text-slate-900 mt-1 flex items-center gap-1.5">
                   {contract.tokenMetadata?.isSAC ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold bg-blue-50 text-blue-600 border border-blue-100">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold bg-[#0F4C81] text-white">
                       SAC
                     </span>
                   ) : (
@@ -255,7 +257,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
           {/* NFT Info */}
           {isNFT && contract.nftInfo && (
-            <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
+            <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-2 gap-4">
               <div>
                 <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Collection</div>
                 <div className="text-sm font-bold text-slate-900 mt-1">{contract.nftInfo.name}</div>
@@ -275,12 +277,13 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
           {/* Vault Info */}
           {isVault && contract.vaultInfo && (
-            <div className="mt-4 pt-4 border-t border-slate-100 space-y-4">
+            <div className="mt-4 pt-4 border-t border-slate-200 space-y-4">
               <div>
                 <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Underlying Asset</div>
                 <Link
                   href={`/contract/${contract.vaultInfo.underlyingAsset}`}
-                  className="text-sm font-mono font-semibold text-indigo-600 hover:text-indigo-700 mt-1 block truncate"
+                  className="text-sm font-mono font-semibold mt-1 block truncate"
+                  style={{ color: getPrimaryColor() }}
                 >
                   {shortenAddress(contract.vaultInfo.underlyingAsset, 8)}
                 </Link>
@@ -304,12 +307,12 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
           {/* Website link if verified */}
           {contract.verifiedContract?.website && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
+            <div className="mt-4 pt-4 border-t border-slate-200">
               <a
                 href={contract.verifiedContract.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -322,7 +325,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
         {/* Build Verification Section */}
         {contract.verification && (
-          <div className="bg-white rounded-xl border border-slate-100 p-4 mb-5">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-5">
             <div className="flex items-center gap-2 mb-3">
               <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -330,7 +333,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
               <span className="text-sm font-bold text-slate-900">Build Verification</span>
               <span className={`ml-auto px-2 py-0.5 rounded-full text-[9px] font-semibold ${
                 contract.verification.isVerified
-                  ? 'bg-blue-100 text-blue-700'
+                  ? 'bg-[#0F4C81] text-white'
                   : 'bg-slate-100 text-slate-500'
               }`}>
                 {contract.verification.isVerified ? 'Verified' : 'Unverified'}
@@ -345,7 +348,8 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     href={contract.verification.sourceRepo}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                    className="text-xs font-semibold flex items-center gap-1"
+                    style={{ color: getPrimaryColor() }}
                   >
                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                       <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
@@ -362,7 +366,8 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     <span className="font-mono text-xs text-slate-700">{contract.verification.commitHash.slice(0, 12)}...</span>
                     <button
                       onClick={() => handleCopyHash(contract.verification!.commitHash!, 'commit')}
-                      className="text-[9px] font-bold text-indigo-600 hover:text-indigo-700 uppercase"
+                      className="text-[9px] font-bold uppercase"
+                      style={{ color: getPrimaryColor() }}
                     >
                       {copiedHash === 'commit' ? 'Copied!' : 'Copy'}
                     </button>
@@ -377,7 +382,8 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     <span className="font-mono text-xs text-slate-700">{contract.verification.wasmHash.slice(0, 16)}...</span>
                     <button
                       onClick={() => handleCopyHash(contract.verification!.wasmHash!, 'wasm')}
-                      className="text-[9px] font-bold text-indigo-600 hover:text-indigo-700 uppercase"
+                      className="text-[9px] font-bold uppercase"
+                      style={{ color: getPrimaryColor() }}
                     >
                       {copiedHash === 'wasm' ? 'Copied!' : 'Copy'}
                     </button>
@@ -390,7 +396,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
         {/* Access Control Section */}
         {contract.accessControl && (contract.accessControl.owner || contract.accessControl.admin || contract.accessControl.isPaused) && (
-          <div className="bg-white rounded-xl border border-slate-100 p-4 mb-5">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-5">
             <div className="flex items-center gap-2 mb-3">
               <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -411,7 +417,8 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                   </div>
                   <Link
                     href={`/account/${contract.accessControl.admin || contract.accessControl.owner}`}
-                    className="font-mono text-xs text-indigo-600 hover:text-indigo-700 break-all"
+                    className="font-mono text-xs break-all"
+                    style={{ color: getPrimaryColor() }}
                   >
                     {shortenAddress(contract.accessControl.admin || contract.accessControl.owner!, 8)}
                   </Link>
@@ -435,7 +442,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
         {/* Contract Metadata Section */}
         {contract.contractMetadata && (contract.contractMetadata.homeDomain || contract.contractMetadata.sourceRepo || (contract.contractMetadata.customMeta && Object.keys(contract.contractMetadata.customMeta).length > 0)) && (
-          <div className="bg-white rounded-xl border border-slate-100 p-4 mb-5">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-5">
             <div className="flex items-center gap-2 mb-3">
               <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -451,7 +458,8 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     href={`https://${contract.contractMetadata.homeDomain}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                    className="text-xs font-semibold flex items-center gap-1"
+                    style={{ color: getPrimaryColor() }}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
@@ -468,7 +476,8 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     href={contract.contractMetadata.sourceRepo}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                    className="text-xs font-semibold flex items-center gap-1"
+                    style={{ color: getPrimaryColor() }}
                   >
                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                       <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
@@ -496,7 +505,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
         )}
 
         {/* Tabs Navigation */}
-        <div className="flex gap-6 border-b border-slate-100 pb-4 mb-4">
+        <div className="flex gap-6 border-b border-slate-200 pb-4 mb-4">
           {[
             { id: 'overview', label: 'Overview' },
             { id: 'history', label: 'History', count: contract.invocations?.length || 0 },
@@ -508,8 +517,8 @@ export default function ContractMobileView({ contract, operations }: ContractMob
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
               className={`text-sm font-semibold relative ${
                 activeTab === tab.id
-                  ? 'text-slate-900 after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-slate-900'
-                  : 'text-slate-400 hover:text-slate-600'
+                  ? 'text-[#0F4C81] after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]'
+                  : 'text-slate-500 hover:text-[#0F4C81]'
               } transition-colors`}
             >
               {tab.label}
@@ -531,14 +540,14 @@ export default function ContractMobileView({ contract, operations }: ContractMob
             <div className="space-y-4">
               {/* Description */}
               {contract.verifiedContract?.description && (
-                <div className="bg-white border border-slate-100 rounded-xl p-4">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
                   <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest mb-2">Description</div>
                   <p className="text-sm text-slate-700 leading-relaxed">{contract.verifiedContract.description}</p>
                 </div>
               )}
 
               {/* Recent Activity - Shows Events for Contracts */}
-              <div className="bg-white border border-slate-100 rounded-xl p-4">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Recent Activity</div>
                   <span className="text-[10px] font-semibold text-slate-500">{contract.events?.length || 0} events</span>
@@ -609,7 +618,8 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                 {contract.events && contract.events.length > 5 && (
                   <button
                     onClick={() => setActiveTab('operations')}
-                    className="w-full mt-3 py-2 text-center text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+                    className="w-full mt-3 py-2 text-center text-xs font-semibold"
+                    style={{ color: getPrimaryColor() }}
                   >
                     View all {contract.events.length} events
                   </button>
@@ -617,7 +627,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
               </div>
 
               {/* Storage Section */}
-              <div className="bg-white border border-slate-100 rounded-xl p-4">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -637,7 +647,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                       <div key={idx} className="flex items-center justify-between py-2">
                         <div className="flex items-center gap-2">
                           <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                            entry.durability === 'instance' ? 'bg-indigo-100 text-indigo-700' :
+                            entry.durability === 'instance' ? 'bg-[#0F4C81] text-white' :
                             entry.durability === 'persistent' ? 'bg-emerald-100 text-emerald-700' :
                             'bg-amber-100 text-amber-700'
                           }`}>
@@ -728,7 +738,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     <Link
                       key={idx}
                       href={`/transaction/${invocation.txHash}`}
-                      className="block bg-white rounded-xl p-4  border border-slate-100 hover:shadow-md transition-shadow"
+                      className="block bg-white rounded-2xl shadow-sm p-4 border border-slate-200 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-sky-100 flex items-center justify-center">
@@ -738,11 +748,11 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="font-mono text-xs text-sky-600">
+                            <span className="font-mono text-xs" style={{ color: getPrimaryColor() }}>
                               {shortenAddress(invocation.sourceAccount, 4)}
                             </span>
                             <span className="text-slate-400 text-xs">invoked</span>
-                            <span className="font-mono text-sm font-bold text-indigo-600">
+                            <span className="font-mono text-sm font-bold" style={{ color: getPrimaryColor() }}>
                               {invocation.functionName}
                             </span>
                           </div>
@@ -836,14 +846,14 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     <Link
                       key={idx}
                       href={`/transaction/${event.txHash}`}
-                      className="block bg-white border border-slate-100 rounded-xl p-3 hover:border-indigo-200 hover:bg-indigo-50/30 transition-colors"
+                      className="block bg-white rounded-2xl shadow-sm border border-slate-200 p-3 hover:border-[#0F4C81]/30 hover:bg-sky-50/50 transition-colors"
                     >
                       {eventContent}
                     </Link>
                   ) : (
                     <div
                       key={idx}
-                      className="block bg-white border border-slate-100 rounded-xl p-3"
+                      className="block bg-white rounded-2xl shadow-sm border border-slate-200 p-3"
                     >
                       {eventContent}
                     </div>
@@ -889,18 +899,18 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                 ...(contract.contractMetadata?.homeDomain ? [{ label: 'Home Domain', value: contract.contractMetadata.homeDomain, isLink: true, linkPrefix: 'https://' }] : []),
                 ...(contract.verifiedContract?.website ? [{ label: 'Website', value: contract.verifiedContract.website, isLink: true }] : []),
               ].map((item, i) => (
-                <div key={i} className="flex justify-between items-start py-2.5 border-b border-slate-100 last:border-0">
+                <div key={i} className="flex justify-between items-start py-2.5 border-b border-slate-200 last:border-0">
                   <span className="text-xs text-slate-500 font-medium">{item.label}</span>
                   {item.isLink ? (
-                    <a href={item.linkPrefix ? item.linkPrefix + item.value : item.value} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-indigo-600 hover:underline truncate max-w-[180px]">
+                    <a href={item.linkPrefix ? item.linkPrefix + item.value : item.value} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold hover:underline truncate max-w-[180px]" style={{ color: getPrimaryColor() }}>
                       {item.value}
                     </a>
                   ) : item.isAccountLink ? (
-                    <Link href={`/account/${item.value}`} className="text-xs font-semibold text-indigo-600 hover:underline font-mono truncate max-w-[180px]">
+                    <Link href={`/account/${item.value}`} className="text-xs font-semibold hover:underline font-mono truncate max-w-[180px]" style={{ color: getPrimaryColor() }}>
                       {shortenAddress(item.value, 6)}
                     </Link>
                   ) : item.isContractLink ? (
-                    <Link href={`/contract/${item.value}`} className="text-xs font-semibold text-indigo-600 hover:underline font-mono truncate max-w-[180px]">
+                    <Link href={`/contract/${item.value}`} className="text-xs font-semibold hover:underline font-mono truncate max-w-[180px]" style={{ color: getPrimaryColor() }}>
                       {shortenAddress(item.value, 6)}
                     </Link>
                   ) : (
