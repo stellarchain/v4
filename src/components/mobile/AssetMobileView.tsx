@@ -577,11 +577,11 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
             /* Order Book Skeleton */
             <div className="text-[11px] font-mono animate-pulse">
               <div className="grid grid-cols-2 border-b border-slate-100">
-                <div className="grid grid-cols-2 px-3 py-2 text-slate-400 font-bold text-[10px] uppercase">
+                <div className="grid grid-cols-2 px-3 py-2 text-slate-400 font-bold text-[11px] uppercase">
                   <div>Amount</div>
                   <div className="text-right">Price</div>
                 </div>
-                <div className="grid grid-cols-2 px-3 py-2 text-slate-400 font-bold text-[10px] uppercase border-l border-slate-100">
+                <div className="grid grid-cols-2 px-3 py-2 text-slate-400 font-bold text-[11px] uppercase border-l border-slate-100">
                   <div>Price</div>
                   <div className="text-right">Amount</div>
                 </div>
@@ -612,13 +612,13 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
               {/* Side-by-side headers */}
               <div className={`grid ${orderBookView === 'both' ? 'grid-cols-2' : 'grid-cols-1'} border-b border-slate-100`}>
                 {(orderBookView === 'both' || orderBookView === 'bids') && (
-                  <div className="flex items-center justify-between px-3 py-2 text-slate-400 font-semibold text-[10px] uppercase tracking-wide">
+                  <div className="flex items-center justify-between px-3 py-2 text-slate-400 font-semibold text-[11px] uppercase tracking-wide">
                     {orderBookView === 'both' ? <span>Amount</span> : <span>Price</span>}
                     {orderBookView === 'both' ? <span>Price</span> : <span>Amount</span>}
                   </div>
                 )}
                 {(orderBookView === 'both' || orderBookView === 'asks') && (
-                  <div className={`flex items-center justify-between px-3 py-2 text-slate-400 font-semibold text-[10px] uppercase tracking-wide ${orderBookView === 'both' ? 'border-l border-slate-100' : ''}`}>
+                  <div className={`flex items-center justify-between px-3 py-2 text-slate-400 font-semibold text-[11px] uppercase tracking-wide ${orderBookView === 'both' ? 'border-l border-slate-100' : ''}`}>
                     <span>Price</span>
                     <span>Amount</span>
                   </div>
