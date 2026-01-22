@@ -278,7 +278,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
                 {/* Asset Name/MCap */}
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-[15px] leading-tight text-slate-900">{asset.code}</div>
+                  <div className="font-bold text-[15px] leading-tight" style={{ color: coreColors.primary }}>{asset.code}</div>
                   <div className="text-xs text-slate-400 font-medium leading-tight">
                     {formatNumber(asset.market_cap || 0)}
                   </div>
@@ -286,7 +286,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
                 {/* Price USD + XLM */}
                 <div className="w-20 text-right">
-                  <div className="font-bold text-[15px] leading-tight text-slate-900">
+                  <div className="font-bold text-[15px] leading-tight" style={{ color: coreColors.primary }}>
                     {formatPrice(asset.price_usd || 0)}
                   </div>
                   <div className="text-xs text-slate-400 font-medium leading-tight">
