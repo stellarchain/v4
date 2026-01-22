@@ -183,7 +183,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
             </svg>
           </div>
           <h1 className="text-base font-bold text-slate-900">Assets</h1>
-          <span className="text-[10px] text-slate-400">by market cap</span>
+          <span className="text-[11px] text-slate-400">by market cap</span>
         </div>
 
         {/* Search & Filter - aligned with list */}

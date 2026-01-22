@@ -171,7 +171,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
         <div className="flex items-center justify-between px-1 mb-3">
           <div className="flex items-center space-x-2">
             <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Live Transactions</h2>
-            <span className="bg-emerald-500/10 text-emerald-500 text-[10px] px-1.5 py-0.5 rounded font-bold">REALTIME</span>
+            <span className="bg-emerald-500/10 text-emerald-500 text-[11px] px-1.5 py-0.5 rounded font-bold">REALTIME</span>
           </div>
           <Link
             href="/transactions"
