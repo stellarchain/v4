@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/design-system';
 import {
     Ledger,
     Transaction,
@@ -107,11 +108,11 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
     }) => {
         if (totalPages <= 1) return null;
         return (
-            <div className="flex items-center justify-center gap-1 mt-4 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-center gap-1 mt-4 pt-3 border-t border-slate-200">
                 <button
                     onClick={() => onPageChange(currentPage - 1)}
                     disabled={currentPage === 1 || loading}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-100 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -136,7 +137,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                             disabled={loading}
                             className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
                                 currentPage === pageNum
-                                    ? 'bg-slate-900 text-white'
+                                    ? 'bg-[#0F4C81] text-white shadow-sm'
                                     : 'text-slate-500 hover:bg-slate-100'
                             }`}
                         >
@@ -152,7 +153,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                 <button
                     onClick={() => onPageChange(currentPage + 1)}
                     disabled={(currentPage >= totalPages && !hasMore) || loading}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-100 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -160,7 +161,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                 </button>
 
                 {loading && (
-                    <svg className="w-4 h-4 animate-spin ml-2 text-slate-400" fill="none" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 animate-spin ml-2 text-[#0F4C81]" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
@@ -170,7 +171,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
     };
 
     return (
-        <div className="bg-[#f0f4f3] text-slate-800 min-h-screen flex flex-col font-sans pb-24">
+        <div className="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans pb-24">
             {/* Main Content Area */}
             <main className="flex-1 px-6 pt-2 pb-8 max-w-lg mx-auto w-full">
 
@@ -187,7 +188,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                     </Link>
 
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        <div className="flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#0F4C81] text-white">
                             Protocol v{ledger.protocol_version}
                         </div>
                         <div className="flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -197,12 +198,12 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                 </div>
 
                 {/* Ledger Main Card */}
-                <div className="bg-white rounded-xl border border-slate-100  p-4 mb-5 relative overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-5 relative overflow-hidden">
                     <div className="relative z-10 flex flex-col gap-4">
                         <div className="flex items-start justify-between relative z-20">
                             <div>
                                 <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-widest">Ledger Sequence</div>
-                                <div className="text-2xl font-bold text-slate-900 mt-1">#{ledger.sequence.toLocaleString()}</div>
+                                <div className="text-2xl font-bold mt-1" style={{ color: '#0F4C81' }}>#{ledger.sequence.toLocaleString()}</div>
                                 <div className="flex items-center gap-2 mt-2 text-xs text-slate-500 font-mono">
                                     <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -249,7 +250,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                 </div>
 
                 {/* Tabs Navigation */}
-                <div className="flex gap-6 border-b border-slate-100 pb-4 mb-4">
+                <div className="flex gap-6 border-b border-slate-200 pb-4 mb-4">
                     {[
                         { id: 'overview', label: 'Overview' },
                         { id: 'transactions', label: 'Transactions', count: ledger.successful_transaction_count + ledger.failed_transaction_count },
@@ -260,8 +261,8 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                             onClick={() => setActiveTab(tab.id as any)}
                             className={`text-sm font-semibold relative ${
                                 activeTab === tab.id
-                                    ? 'text-slate-900 after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-slate-900'
-                                    : 'text-slate-400 hover:text-slate-600'
+                                    ? 'text-[#0F4C81] after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]'
+                                    : 'text-slate-500 hover:text-[#0F4C81]'
                             } transition-colors`}
                         >
                             {tab.label}
@@ -282,7 +283,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                     {/* OVERVIEW TAB */}
                     {activeTab === 'overview' && (
                         <div className="space-y-4">
-                            <div className="bg-white border border-slate-100 rounded-xl p-4 ">
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
                                 <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Ledger Details</h2>
                                 <div className="space-y-3">
                                     <div className="flex flex-col gap-1 border-b border-slate-100 pb-2.5">
@@ -304,10 +305,10 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 </div>
                             </div>
 
-                            <div className="bg-white border border-slate-100 rounded-xl p-3  flex flex-col gap-2.5">
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 flex flex-col gap-2.5">
                                 <Link
                                     href={`/ledger/${ledger.sequence - 1}`}
-                                    className="flex items-center justify-between px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-lg text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all group"
+                                    className="flex items-center justify-between px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100 text-slate-600 hover:text-[#0F4C81] hover:border-[#0F4C81]/30 hover:bg-sky-50/50 transition-all group"
                                 >
                                     <span className="flex items-center gap-2 text-xs font-medium">
                                         <svg className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -315,11 +316,11 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                         </svg>
                                         Previous Ledger
                                     </span>
-                                    <span className="text-[10px] font-mono text-slate-400 group-hover:text-indigo-500">#{(ledger.sequence - 1).toLocaleString()}</span>
+                                    <span className="text-[10px] font-mono text-slate-400 group-hover:text-[#0F4C81]">#{(ledger.sequence - 1).toLocaleString()}</span>
                                 </Link>
                                 <Link
                                     href={`/ledger/${ledger.sequence + 1}`}
-                                    className="flex items-center justify-between px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-lg text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all group"
+                                    className="flex items-center justify-between px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100 text-slate-600 hover:text-[#0F4C81] hover:border-[#0F4C81]/30 hover:bg-sky-50/50 transition-all group"
                                 >
                                     <span className="flex items-center gap-2 text-xs font-medium">
                                         Next Ledger
@@ -327,7 +328,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                         </svg>
                                     </span>
-                                    <span className="text-[10px] font-mono text-slate-400 group-hover:text-indigo-500">#{(ledger.sequence + 1).toLocaleString()}</span>
+                                    <span className="text-[10px] font-mono text-slate-400 group-hover:text-[#0F4C81]">#{(ledger.sequence + 1).toLocaleString()}</span>
                                 </Link>
                             </div>
                         </div>
@@ -384,7 +385,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                     <Link
                                         href={`/transaction/${tx.hash}`}
                                         key={tx.id}
-                                        className="block bg-white rounded-xl p-3  border border-slate-100 mb-2.5 active:scale-[0.99] transition-transform hover:shadow-md"
+                                        className="block bg-white rounded-2xl shadow-sm border border-slate-200 p-3 mb-2.5 active:scale-[0.99] transition-transform hover:shadow-md"
                                     >
                                         <div className="flex justify-between items-center mb-1.5">
                                             <span className={`text-[10px] font-bold uppercase tracking-widest pl-1 ${typeColorClass}`}>
@@ -496,10 +497,10 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                     <Link
                                         href={`/transaction/${op.transaction_hash}?tab=operations&op=${op.id}`}
                                         key={op.id}
-                                        className="block bg-white rounded-xl p-0 overflow-hidden  hover:shadow-md transition-shadow border border-slate-100 mb-2"
+                                        className="block bg-white rounded-2xl shadow-sm border border-slate-200 p-0 overflow-hidden hover:shadow-md transition-shadow mb-2"
                                     >
                                         <div className="flex items-center p-3 gap-3">
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 border border-slate-100">
+                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-500 border border-slate-100">
                                                 {(opsPage - 1) * ITEMS_PER_PAGE + idx + 1}
                                             </div>
                                             <div className="flex-1 min-w-0 grid grid-cols-[auto_1fr] gap-x-2 items-center">

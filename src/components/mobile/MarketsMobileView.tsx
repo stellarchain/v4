@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { MarketAsset } from '@/lib/stellar';
+import { containers, coreColors } from '@/lib/design-system';
 
 interface MarketsMobileViewProps {
   initialAssets: MarketAsset[];
@@ -92,7 +93,7 @@ function ChangeIndicator({ value }: { value: number }) {
   const isPositive = value >= 0;
 
   return (
-    <span className={`text-xs font-bold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+    <span className={`text-xs font-bold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
       {isPositive ? '+' : ''}{value.toFixed(2)}%
     </span>
   );
@@ -171,12 +172,12 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
   };
 
   return (
-    <div className="w-full bg-[#f0f4f3] min-h-screen pb-24 font-sans">
+    <div className={`${containers.page}`}>
       {/* Header - Sticky */}
-      <header className="pt-3 pb-3 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md">
+      <header className="pt-3 pb-3 sticky top-0 z-20 bg-slate-100/90 backdrop-blur-md">
         {/* Title Section */}
         <div className="flex items-center gap-2 mb-3 px-3">
-          <div className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center shrink-0">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: coreColors.primary }}>
             <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
@@ -198,13 +199,13 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search assets..."
-              className="w-full h-10 pl-9 pr-3 bg-slate-100 rounded-xl text-sm font-medium placeholder-slate-400 text-slate-900 outline-none"
+              className="w-full h-10 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-sm font-medium placeholder-slate-400 text-slate-900 outline-none"
             />
           </div>
           <div className="relative">
             <button
               onClick={() => setShowSortMenu(!showSortMenu)}
-              className="flex items-center gap-1.5 h-10 px-3 bg-slate-100 rounded-xl text-sm font-medium text-slate-700 whitespace-nowrap hover:bg-slate-200 transition-colors"
+              className="flex items-center gap-1.5 h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 whitespace-nowrap hover:bg-slate-50 transition-colors"
             >
               {sortLabels[sortField]}
               <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,12 +215,13 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
             {showSortMenu && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowSortMenu(false)} />
-                <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-20">
+                <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-20">
                   {(Object.keys(sortLabels) as SortField[]).map((field) => (
                     <button
                       key={field}
                       onClick={() => handleSortChange(field)}
-                      className={`w-full text-left px-4 py-2 text-sm ${sortField === field ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}
+                      className={`w-full text-left px-4 py-2 text-sm ${sortField === field ? 'bg-slate-50 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}
+                      style={sortField === field ? { color: coreColors.primary } : undefined}
                     >
                       {sortLabels[field]}
                     </button>
@@ -236,7 +238,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
             {filteredAndSortedAssets.length} assets {totalPages > 1 && `• Page ${currentPage} of ${totalPages}`}
           </span>
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-xs font-medium text-slate-500">Live prices</span>
           </div>
         </div>
@@ -245,16 +247,16 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
       {/* Asset List */}
       <main className="px-2">
         {/* Card Container */}
-        <div className="bg-[#e8edec] rounded-2xl overflow-hidden">
+        <div className={containers.card}>
           {/* Column Headers */}
-          <div className="flex items-center px-2 py-1.5 border-b border-slate-200/50">
+          <div className="flex items-center px-2 py-2 border-b border-slate-100/80 bg-slate-50/30">
             <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-6 text-center">#</span>
             <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold flex-1 pl-1">Asset</span>
             <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-20 text-right pr-2">Price</span>
             <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold w-16 text-right">Change</span>
           </div>
 
-          <div className="divide-y divide-slate-200/50">
+          <div className="divide-y divide-slate-100/60">
             {paginatedAssets.map((asset) => {
               const hasData = asset.price_usd > 0 && asset.market_cap > 0;
               const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
@@ -262,7 +264,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
               return (
                 <div
                   key={`${asset.code}-${asset.issuer || 'native'}`}
-                  className={`px-2 py-1.5 flex items-center active:bg-slate-100/50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
+                  className={`px-2 py-1.5 flex items-center active:bg-slate-50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
                   onClick={() => handleRowClick(asset)}
                 >
                   {/* Rank */}
@@ -301,7 +303,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
           {/* Empty State */}
           {filteredAndSortedAssets.length === 0 && (
             <div className="text-center py-12">
-              <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-slate-100">
                 <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -313,8 +315,8 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
           {/* View All Link */}
           {filteredAndSortedAssets.length > 0 && totalPages > 1 && (
-            <div className="border-t border-slate-100 py-4 text-center">
-              <span className="text-sm font-semibold text-slate-500 tracking-wide uppercase">
+            <div className="py-4 text-center bg-gradient-to-t from-slate-50/80 to-transparent">
+              <span className="text-sm font-semibold tracking-wide uppercase" style={{ color: coreColors.primary }}>
                 View all {filteredAndSortedAssets.length} assets
               </span>
             </div>
@@ -327,7 +329,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-600 disabled:opacity-40"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -341,7 +343,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-600 disabled:opacity-40"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

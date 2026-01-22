@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
 import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, USDC_ISSUER, shortenAddress, OrderBook as OrderBookType } from '@/lib/stellar';
+import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/design-system';
 
 interface AssetMobileViewProps {
   asset: AssetDetails;
@@ -395,9 +396,9 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
                            processedAsks.some(a => a.amount > 0 && a.price > 0);
 
   return (
-    <div className="w-full bg-[#f0f4f3] min-h-screen pb-24 font-sans relative">
+    <div className="w-full bg-slate-100 min-h-screen pb-24 font-sans relative">
       {/* Header */}
-      <header className="px-3 py-3 sticky top-0 z-20 bg-[#f0f4f3]/90 backdrop-blur-md flex items-center justify-between">
+      <header className="px-3 py-3 sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md border-b border-slate-200 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
             onClick={() => router.back()}
@@ -422,7 +423,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
       <div className="max-w-2xl mx-auto px-2 py-2 space-y-2">
 
         {/* Chart Section */}
-        <div className="rounded-xl p-2">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-2">
           {/* Timeframe Selector */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex gap-1">
@@ -518,7 +519,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         </div>
 
         {/* Order Book Section */}
-        <div className="rounded-xl overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h3 className="text-sm font-bold text-slate-900">Order Book</h3>
@@ -677,7 +678,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
         </div>
 
         {/* Statistics Section */}
-        <div className="rounded-xl overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-200">
             <h3 className="text-sm font-bold text-slate-900">Statistics</h3>
           </div>
@@ -708,7 +709,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
           )}
 
           {/* Market Stats */}
-          <div className="divide-y divide-slate-200">
+          <div className="divide-y divide-slate-100">
             <StatRow label="Market Cap" value={`$${formatNumber(asset.market_cap)}`} />
             <StatRow label="24h Volume" value={`$${formatNumber(asset.volume_24h)}`} />
             <StatRow label="Circulating Supply" value={`${formatNumber(asset.circulating_supply)} ${asset.code}`} />
@@ -724,7 +725,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
 
         {/* About Section */}
         {(asset.description || asset.domain || asset.issuer) && (
-          <div className="rounded-xl overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-4">
               {/* Header with icon */}
               <div className="flex items-center gap-3 mb-4">
@@ -742,7 +743,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
                       href={`https://${asset.domain}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-blue-500 hover:underline"
+                      className="text-xs text-[#0F4C81] hover:underline"
                     >
                       https://{asset.domain}
                     </a>
@@ -761,7 +762,7 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Issuer:</span>
                   <Link
                     href={`/account/${asset.issuer}`}
-                    className="block text-xs text-blue-500 font-mono mt-1 break-all hover:underline"
+                    className="block text-xs text-[#0F4C81] font-mono mt-1 break-all hover:underline"
                   >
                     {asset.issuer}
                   </Link>
@@ -820,7 +821,7 @@ function AssetConverterMobile({ asset }: { asset: AssetDetails }) {
   }, [usdAmount, asset.price_usd, activeInput]);
 
   return (
-    <div className="rounded-xl overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-200">
         <h3 className="text-sm font-bold text-slate-900">{asset.code} to USD Converter</h3>
       </div>
@@ -834,7 +835,7 @@ function AssetConverterMobile({ asset }: { asset: AssetDetails }) {
               setActiveInput('asset');
               setAssetAmount(e.target.value);
             }}
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 px-3 pr-16 text-slate-900 font-mono text-sm focus:outline-none focus:border-slate-400 transition-colors"
+            className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-3 pr-16 text-slate-900 font-mono text-sm focus:outline-none focus:border-[#0F4C81] transition-colors"
             placeholder="0"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">
@@ -844,7 +845,7 @@ function AssetConverterMobile({ asset }: { asset: AssetDetails }) {
 
         {/* Swap Icon */}
         <div className="flex justify-center">
-          <div className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center">
+          <div className="w-7 h-7 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center">
             <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
             </svg>
@@ -860,7 +861,7 @@ function AssetConverterMobile({ asset }: { asset: AssetDetails }) {
               setActiveInput('usd');
               setUsdAmount(e.target.value);
             }}
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 px-3 pr-16 text-slate-900 font-mono text-sm focus:outline-none focus:border-slate-400 transition-colors"
+            className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-3 pr-16 text-slate-900 font-mono text-sm focus:outline-none focus:border-[#0F4C81] transition-colors"
             placeholder="0"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">
