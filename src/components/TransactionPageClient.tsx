@@ -550,7 +550,7 @@ export default function TransactionPageClient({
                           </div>
 
                           <div className="flex flex-col">
-                            <span className="text-sm font-bold text-slate-900 leading-tight capitalize">
+                            <span className="text-sm font-bold leading-tight capitalize" style={{ color: primaryColor }}>
                               {info?.type === 'contract'
                                 ? (functionName)
                                 : info?.type === 'payment'
@@ -576,7 +576,7 @@ export default function TransactionPageClient({
                               {formatCompact(info?.amount || info?.effectAmount)} {info?.asset || info?.effectAsset}
                             </span>
                           ) : (
-                            <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                            <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: primaryColor }}>
                               {info?.type === 'contract' ? (functionName) : 'Details'}
                             </span>
                           )}
