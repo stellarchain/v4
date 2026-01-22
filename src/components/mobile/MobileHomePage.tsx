@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { gsap } from 'gsap';
 import { Ledger, formatXLM } from '@/lib/stellar';
 import LiveTransactionFeed from '../LiveTransactionFeed';
+import { containers, spacing } from '@/lib/design-system';
 
 interface MobileHomePageProps {
   stats: {
@@ -87,14 +88,14 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
   }).format(marketCap);
 
   return (
-    <div className="min-h-screen bg-[#f0f4f3] pb-24">
+    <div className={containers.page}>
       {/* Network Stats Card */}
-      <div className="mx-6 mt-6">
-        <div className="bg-white rounded-xl border border-slate-100 p-4 relative z-20">
+      <div className={`${spacing.pagePadding} pt-4`}>
+        <div className={`${containers.card} p-4 relative z-20`}>
           <div className="grid grid-cols-2 gap-y-4">
 
             {/* Row 1: Market Cap & Volume */}
-            <div className="space-y-1 border-r border-slate-100 pr-4">
+            <div className="space-y-1 border-r border-slate-200/50 pr-4">
               <InfoTooltip
                 direction="bottom"
                 label={
@@ -127,10 +128,10 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
             </div>
 
             {/* Divider */}
-            <div className="col-span-2 h-px bg-slate-100"></div>
+            <div className="col-span-2 h-px bg-slate-200/50"></div>
 
             {/* Row 2: Transactions & Base Fee */}
-            <div className="space-y-1 border-r border-slate-100 pr-4">
+            <div className="space-y-1 border-r border-slate-200/50 pr-4">
               <InfoTooltip
                 label={
                   <>
@@ -171,10 +172,10 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
             </div>
 
             {/* Divider */}
-            <div className="col-span-2 h-px bg-slate-100"></div>
+            <div className="col-span-2 h-px bg-slate-200/50"></div>
 
             {/* Row 3: Ledger & Price */}
-            <div className="space-y-1 border-r border-slate-100 pr-4">
+            <div className="space-y-1 border-r border-slate-200/50 pr-4">
               <InfoTooltip
                 label={
                   <>
@@ -215,24 +216,21 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
       </div>
 
       {/* Live Transactions Section */}
-      <div className="mx-6 mt-4">
-        <div className="bg-white rounded-xl border border-slate-100">
-          <div className="flex items-center justify-between mb-2 px-6 pt-4">
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">Live Transactions</h2>
-          <Link
-            href="/transactions"
-            className="text-slate-500 hover:text-black text-sm font-medium flex items-center gap-1 transition-colors"
-          >
-            View all
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        </div>
-
-          <div className="border-t border-slate-100">
-            <LiveTransactionFeed initialTransactions={initialTransactions} limit={30} filter="payments" />
+      <div className={`${spacing.pagePadding} mt-4`}>
+        <div className={containers.card}>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200/50">
+            <h2 className="text-sm font-bold text-slate-900 tracking-tight">Live Transactions</h2>
+            <Link
+              href="/transactions"
+              className="text-slate-400 hover:text-slate-700 text-xs font-semibold flex items-center gap-1 transition-colors"
+            >
+              View all
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
           </div>
+          <LiveTransactionFeed initialTransactions={initialTransactions} limit={30} filter="payments" />
         </div>
       </div>
     </div>

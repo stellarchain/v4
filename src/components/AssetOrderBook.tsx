@@ -13,12 +13,15 @@ interface ProcessedOrder {
     total: number;
 }
 
+type ViewMode = 'both' | 'bids' | 'asks';
+
 export default function AssetOrderBook({ asset }: OrderBookProps) {
     const [orderBook, setOrderBook] = useState<OrderBookType | null>(null);
     const [processedBids, setProcessedBids] = useState<ProcessedOrder[]>([]);
     const [processedAsks, setProcessedAsks] = useState<ProcessedOrder[]>([]);
     const [xlmUsdPrice, setXlmUsdPrice] = useState<number>(0);
     const [loading, setLoading] = useState(true);
+    const [viewMode, setViewMode] = useState<ViewMode>('both');
 
     useEffect(() => {
         const fetchOrderBook = async () => {
@@ -128,63 +131,133 @@ export default function AssetOrderBook({ asset }: OrderBookProps) {
         return price.toFixed(2);
     };
 
+    // Toggle button component
+    const ViewToggle = ({ mode, icon }: { mode: ViewMode; icon: React.ReactNode }) => (
+        <button
+            onClick={() => setViewMode(mode)}
+            className={`p-1.5 rounded transition-colors ${
+                viewMode === mode
+                    ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
+        >
+            {icon}
+        </button>
+    );
+
+    // Icons for the toggles
+    const BothIcon = () => (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="2" width="6" height="3" fill="var(--success)" />
+            <rect x="1" y="6.5" width="6" height="3" fill="var(--success)" />
+            <rect x="1" y="11" width="6" height="3" fill="var(--success)" />
+            <rect x="9" y="2" width="6" height="3" fill="var(--error)" />
+            <rect x="9" y="6.5" width="6" height="3" fill="var(--error)" />
+            <rect x="9" y="11" width="6" height="3" fill="var(--error)" />
+        </svg>
+    );
+
+    const BidsIcon = () => (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="2" width="6" height="3" fill="var(--success)" />
+            <rect x="1" y="6.5" width="6" height="3" fill="var(--success)" />
+            <rect x="1" y="11" width="6" height="3" fill="var(--success)" />
+            <rect x="9" y="2" width="6" height="3" fill="var(--text-muted)" opacity="0.3" />
+            <rect x="9" y="6.5" width="6" height="3" fill="var(--text-muted)" opacity="0.3" />
+            <rect x="9" y="11" width="6" height="3" fill="var(--text-muted)" opacity="0.3" />
+        </svg>
+    );
+
+    const AsksIcon = () => (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="2" width="6" height="3" fill="var(--text-muted)" opacity="0.3" />
+            <rect x="1" y="6.5" width="6" height="3" fill="var(--text-muted)" opacity="0.3" />
+            <rect x="1" y="11" width="6" height="3" fill="var(--text-muted)" opacity="0.3" />
+            <rect x="9" y="2" width="6" height="3" fill="var(--error)" />
+            <rect x="9" y="6.5" width="6" height="3" fill="var(--error)" />
+            <rect x="9" y="11" width="6" height="3" fill="var(--error)" />
+        </svg>
+    );
+
+    const showBids = viewMode === 'both' || viewMode === 'bids';
+    const showAsks = viewMode === 'both' || viewMode === 'asks';
+
     return (
         <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-color)] overflow-hidden h-full flex flex-col">
+            {/* Header with toggles */}
             <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center">
-                <h3 className="text-[var(--text-primary)] font-semibold">Order Book</h3>
-                <div className="text-xs text-[var(--text-muted)] flex gap-2">
-                    <span>Spread: <span className="text-[var(--text-primary)]">${formatPrice(spread)}</span> ({spreadPercent.toFixed(2)}%)</span>
+                <div className="flex items-center gap-3">
+                    <h3 className="text-[var(--text-primary)] font-semibold">Order Book</h3>
+                    <div className="flex items-center gap-1 ml-2">
+                        <ViewToggle mode="both" icon={<BothIcon />} />
+                        <ViewToggle mode="bids" icon={<BidsIcon />} />
+                        <ViewToggle mode="asks" icon={<AsksIcon />} />
+                    </div>
+                </div>
+                <div className="text-xs text-[var(--text-muted)]">
+                    Spread: <span className="text-[var(--text-primary)]">${formatPrice(spread)}</span> ({spreadPercent.toFixed(2)}%)
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto min-h-[400px] flex flex-col text-xs font-mono">
-                {/* Header */}
-                <div className="grid grid-cols-3 p-2 text-[var(--text-muted)] border-b border-[var(--border-color)]">
-                    <div className="pl-2">Price (USD)</div>
-                    <div className="text-right">Amount ({asset.code})</div>
-                    <div className="text-right pr-2">Total (USD)</div>
+            {/* Side-by-side orderbook */}
+            <div className="flex-1 overflow-hidden min-h-[400px] flex flex-col text-xs font-mono">
+                {/* Column Headers */}
+                <div className={`grid ${viewMode === 'both' ? 'grid-cols-2' : 'grid-cols-1'} border-b border-[var(--border-color)]`}>
+                    {showBids && (
+                        <div className="grid grid-cols-2 p-2 text-[var(--text-muted)]">
+                            <div>Amount</div>
+                            <div className="text-right">Price</div>
+                        </div>
+                    )}
+                    {showAsks && (
+                        <div className={`grid grid-cols-2 p-2 text-[var(--text-muted)] ${viewMode === 'both' ? 'border-l border-[var(--border-color)]' : ''}`}>
+                            <div>Price</div>
+                            <div className="text-right">Amount</div>
+                        </div>
+                    )}
                 </div>
 
-                {/* Asks (Sell Orders) - Red - Reversed so lowest Ask is at bottom (closest to spread) */}
-                <div className="flex flex-col-reverse justify-end pb-1">
-                    {processedAsks.slice(0, 15).map((ask, i) => {
-                        const percent = (ask.total / maxTotal) * 100;
-
-                        return (
-                            <div key={`ask-${i}`} className="relative grid grid-cols-3 py-1 hover:bg-[var(--bg-tertiary)] cursor-pointer group">
-                                <div className="absolute top-0 bottom-0 right-0 bg-[var(--error)] opacity-[0.08]" style={{ width: `${percent}%` }}></div>
-                                <div className="relative pl-4 text-[var(--error)]">${formatPrice(ask.price)}</div>
-                                <div className="relative text-right text-[var(--text-primary)]">{ask.amount.toLocaleString()}</div>
-                                <div className="relative text-right pr-4 text-[var(--text-muted)]">${ask.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                {/* Order rows */}
+                <div className="flex-1 overflow-y-auto">
+                    <div className={`grid ${viewMode === 'both' ? 'grid-cols-2' : 'grid-cols-1'} h-full`}>
+                        {/* Bids Column (Buy Orders) - Green */}
+                        {showBids && (
+                            <div className="flex flex-col">
+                                {processedBids.slice(0, 15).map((bid, i) => {
+                                    const percent = (bid.total / maxTotal) * 100;
+                                    return (
+                                        <div key={`bid-${i}`} className="relative grid grid-cols-2 py-1.5 px-2 hover:bg-[var(--bg-tertiary)] cursor-pointer">
+                                            <div
+                                                className="absolute top-0 bottom-0 left-0 bg-[var(--success)] opacity-[0.12]"
+                                                style={{ width: `${percent}%` }}
+                                            />
+                                            <div className="relative text-[var(--text-primary)]">{bid.amount.toLocaleString(undefined, { maximumFractionDigits: 5 })}</div>
+                                            <div className="relative text-right text-[var(--success)]">{formatPrice(bid.price)}</div>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        );
-                    })}
-                </div>
+                        )}
 
-                {/* Spread / Last Price Indicator */}
-                <div className="py-3 border-y border-[var(--border-color)] bg-[var(--bg-tertiary)] flex items-center justify-center gap-2">
-                    <div className={`text-lg font-bold ${bestAsk > bestBid ? 'text-[var(--error)]' : 'text-[var(--success)]'}`}>
-                        ${midPrice > 0 ? formatPrice(midPrice) : '---'}
-                    </div>
-                    <div className="text-[var(--text-muted)]">
-                        {spread > 0 ? `↓` : `↑`} USD
-                    </div>
-                </div>
-
-                {/* Bids (Buy Orders) - Green - Highest Bid at top */}
-                <div className="pt-1">
-                    {processedBids.slice(0, 15).map((bid, i) => {
-                        const percent = (bid.total / maxTotal) * 100;
-
-                        return (
-                            <div key={`bid-${i}`} className="relative grid grid-cols-3 py-1 hover:bg-[var(--bg-tertiary)] cursor-pointer group">
-                                <div className="absolute top-0 bottom-0 right-0 bg-[var(--success)] opacity-[0.08]" style={{ width: `${percent}%` }}></div>
-                                <div className="relative pl-4 text-[var(--success)]">${formatPrice(bid.price)}</div>
-                                <div className="relative text-right text-[var(--text-primary)]">{bid.amount.toLocaleString()}</div>
-                                <div className="relative text-right pr-4 text-[var(--text-muted)]">${bid.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                        {/* Asks Column (Sell Orders) - Red */}
+                        {showAsks && (
+                            <div className={`flex flex-col ${viewMode === 'both' ? 'border-l border-[var(--border-color)]' : ''}`}>
+                                {processedAsks.slice(0, 15).map((ask, i) => {
+                                    const percent = (ask.total / maxTotal) * 100;
+                                    return (
+                                        <div key={`ask-${i}`} className="relative grid grid-cols-2 py-1.5 px-2 hover:bg-[var(--bg-tertiary)] cursor-pointer">
+                                            <div
+                                                className="absolute top-0 bottom-0 right-0 bg-[var(--error)] opacity-[0.12]"
+                                                style={{ width: `${percent}%` }}
+                                            />
+                                            <div className="relative text-[var(--error)]">{formatPrice(ask.price)}</div>
+                                            <div className="relative text-right text-[var(--text-primary)]">{ask.amount.toLocaleString(undefined, { maximumFractionDigits: 5 })}</div>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        );
-                    })}
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
