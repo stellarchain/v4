@@ -236,6 +236,9 @@ export interface MarketAsset {
   change_1h: number;
   change_24h: number;
   change_7d: number;
+  change_30d?: number;
+  change_90d?: number;
+  change_1y?: number;
   volume_24h: number;
   market_cap: number;
   circulating_supply: number;
@@ -1272,6 +1275,9 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
         change_1h: 0,
         change_24h: stellarChainData?.price_usd_change || statsResponse.priceChange24h,
         change_7d: priceHistory.length > 0 ? calculatePriceChange(priceHistory[0][1], currentPrice) : 0,
+        change_30d: statsResponse.priceChange30d,
+        change_90d: undefined,
+        change_1y: statsResponse.priceChange1y,
         volume_24h: stellarChainData?.volume_usd || statsResponse.volume,
         market_cap: statsResponse.marketCap,
         circulating_supply: statsResponse.circulatingSupply,
@@ -2108,6 +2114,8 @@ async function fetchCoinGeckoData(): Promise<{
   volume: number;
   circulatingSupply: number;
   priceChange24h: number;
+  priceChange30d?: number;
+  priceChange1y?: number;
   sparkline: number[];
 }> {
   try {
@@ -2130,6 +2138,8 @@ async function fetchCoinGeckoData(): Promise<{
       volume: data.market_data?.total_volume?.usd || 0,
       circulatingSupply: data.market_data?.circulating_supply || 0,
       priceChange24h: data.market_data?.price_change_percentage_24h || 0,
+      priceChange30d: data.market_data?.price_change_percentage_30d,
+      priceChange1y: data.market_data?.price_change_percentage_1y,
       sparkline: data.market_data?.sparkline_7d?.price?.slice(-24) || [],
     };
   } catch (error) {
