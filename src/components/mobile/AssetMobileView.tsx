@@ -439,14 +439,14 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
             <div className="text-sm text-slate-400">
               ≈ {asset.price_xlm.toFixed(4)} XLM
             </div>
-            {asset.code !== 'XLM' && (
+            {asset.code !== 'XLM' && asset.issuer && (
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-slate-400">Contract:</span>
                 <Link
-                  href={`/contract/${asset.contract || 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC'}`}
+                  href={`/account/${asset.issuer}`}
                   className="flex items-center gap-1 text-xs text-slate-500 font-mono hover:text-slate-700 transition-colors"
                 >
-                  {shortenAddress(asset.contract || 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC', 4)}
+                  {shortenAddress(asset.issuer, 4)}
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>

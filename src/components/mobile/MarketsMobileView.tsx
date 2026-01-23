@@ -205,19 +205,46 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
         </div>
 
         {/* Market Stats Summary */}
-        <div className="mx-3 mb-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div className="mx-3 mb-3 bg-white rounded-xl border border-slate-200 shadow-sm overflow-visible">
           <div className="flex divide-x divide-slate-100">
-            <div className="flex-1 py-2.5 px-3 text-center">
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium mb-0.5">Market Cap</p>
+            <div className="flex-1 py-2.5 px-3 text-center group relative">
+              <div className="flex items-center justify-center gap-1 mb-0.5">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Market Cap</p>
+                <svg className="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
+                </svg>
+              </div>
               <p className="text-sm font-bold" style={{ color: coreColors.primary }}>{formatLargeNumber(marketTotals.totalMarketCap)}</p>
+              <div className="absolute top-full left-0 mt-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30">
+                Total market cap of all Stellar assets
+              </div>
             </div>
-            <div className="flex-1 py-2.5 px-3 text-center">
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium mb-0.5">Volume 24h</p>
+            <div className="flex-1 py-2.5 px-3 text-center group relative">
+              <div className="flex items-center justify-center gap-1 mb-0.5">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Volume 24h</p>
+                <svg className="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
+                </svg>
+              </div>
               <p className="text-sm font-bold" style={{ color: coreColors.primary }}>{formatLargeNumber(marketTotals.totalVolume)}</p>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30">
+                Combined 24h trading volume
+              </div>
             </div>
-            <div className="flex-1 py-2.5 px-3 text-center">
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium mb-0.5">Assets</p>
+            <div className="flex-1 py-2.5 px-3 text-center group relative">
+              <div className="flex items-center justify-center gap-1 mb-0.5">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Assets</p>
+                <svg className="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
+                </svg>
+              </div>
               <p className="text-sm font-bold" style={{ color: coreColors.primary }}>{marketTotals.totalAssets}</p>
+              <div className="absolute top-full right-0 mt-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30">
+                Total tracked Stellar assets
+              </div>
             </div>
           </div>
         </div>
