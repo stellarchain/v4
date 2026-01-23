@@ -9,6 +9,7 @@ import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@
 
 interface AssetMobileViewProps {
   asset: AssetDetails;
+  rank: number;
 }
 
 function formatNumber(num: number): string {
@@ -63,7 +64,7 @@ interface ProcessedOrder {
   total: number;
 }
 
-export default function AssetMobileView({ asset }: AssetMobileViewProps) {
+export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   const router = useRouter();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -398,24 +399,61 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
   return (
     <div className="w-full bg-slate-100 min-h-screen pb-24 font-sans relative">
       {/* Header */}
-      <header className="px-3 py-3 sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md border-b border-slate-200 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <header className="sticky top-0 z-20 bg-white border-b border-slate-200">
+        {/* Top Bar */}
+        <div className="px-3 py-3 flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="text-slate-400"
+            className="text-slate-400 p-1"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <span className="font-bold" style={{ color: coreColors.primary }}>{asset.code}</span>
-          <span className="text-slate-400 text-sm">/ USD</span>
-          <span className={`text-xs font-semibold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
-            {isPositive ? '+' : ''}{change24h.toFixed(2)}%
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-lg" style={{ color: coreColors.primary }}>{asset.code}</span>
+            <span className="text-slate-400 text-sm font-medium">/ USD</span>
+          </div>
+          <div className="w-6" /> {/* Spacer for centering */}
         </div>
-        <div className="text-right">
-          <span className="font-bold" style={{ color: coreColors.primary }}>{formatPrice(asset.price_usd)}</span>
+
+        {/* Price Section */}
+        <div className="px-4 pb-4">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="text-slate-600 text-sm font-medium">{asset.name || asset.code}</span>
+            {rank > 0 && (
+              <span className="text-slate-400 text-sm font-medium">#{rank}</span>
+            )}
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="text-3xl font-bold tracking-tight" style={{ color: coreColors.primary }}>
+              {formatPrice(asset.price_usd)}
+            </div>
+            <div className={`px-3 py-1.5 rounded-lg ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`}>
+              <span className="text-white text-sm font-bold">
+                {isPositive ? '▲' : '▼'} {Math.abs(change24h).toFixed(2)}%
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between mt-1">
+            <div className="text-sm text-slate-400">
+              ≈ {asset.price_xlm.toFixed(4)} XLM
+            </div>
+            {asset.code !== 'XLM' && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-400">Contract:</span>
+                <Link
+                  href={`/contract/${asset.contract || 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC'}`}
+                  className="flex items-center gap-1 text-xs text-slate-500 font-mono hover:text-slate-700 transition-colors"
+                >
+                  {shortenAddress(asset.contract || 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC', 4)}
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -498,23 +536,68 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
           </div>
 
           {/* Price Change Row */}
-          <div className="flex justify-around pt-3 mt-2 border-t border-slate-100">
+          <div className="flex justify-between pt-3 mt-2 border-t border-slate-100">
             {loading && initialChartLoad ? (
               <>
-                {['1 hour', '24 hours', '7 days'].map((label) => (
-                  <div key={label} className="text-center animate-pulse">
-                    <p className="text-[11px] text-slate-500 mb-0.5">{label}</p>
-                    <div className="h-4 w-12 bg-slate-200 rounded mx-auto"></div>
+                {['24 hours', '7 days', '30 days', '90 days', 'YTD'].map((label) => (
+                  <div key={label} className="text-center animate-pulse flex-1">
+                    <p className="text-[10px] text-slate-500 mb-0.5">{label}</p>
+                    <div className="h-4 w-10 bg-slate-200 rounded mx-auto"></div>
                   </div>
                 ))}
               </>
             ) : (
               <>
-                <PriceChangeItem label="1 hour" value={asset.change_1h} />
                 <PriceChangeItem label="24 hours" value={asset.change_24h} />
                 <PriceChangeItem label="7 days" value={asset.change_7d} />
+                <PriceChangeItem label="30 days" value={asset.change_30d} />
+                <PriceChangeItem label="90 days" value={asset.change_90d} />
+                <PriceChangeItem label="YTD" value={asset.change_1y} />
               </>
             )}
+          </div>
+        </div>
+
+        {/* Statistics Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-200">
+            <h3 className="text-sm font-bold" style={{ color: coreColors.primary }}>Statistics</h3>
+          </div>
+
+          {/* 24h Range */}
+          {asset.price_high_24h > 0 && asset.price_low_24h > 0 && (
+            <div className="p-4 border-b border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">24h Range</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] mb-1.5">
+                <span className="font-mono text-slate-700">{formatPrice(asset.price_low_24h)}</span>
+                <span className="font-mono text-slate-700">{formatPrice(asset.price_high_24h)}</span>
+              </div>
+              <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-red-400 via-slate-300 to-emerald-400 rounded-full" />
+                {asset.price_high_24h > asset.price_low_24h && (
+                  <div
+                    className="absolute w-2.5 h-2.5 bg-white rounded-full top-1/2 -translate-y-1/2 shadow-md border border-slate-200"
+                    style={{
+                      left: `${Math.min(100, Math.max(0, ((asset.price_usd - asset.price_low_24h) / (asset.price_high_24h - asset.price_low_24h)) * 100))}%`,
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Market Stats */}
+          <div className="divide-y divide-slate-100">
+            <StatRow label="Market Cap" value={`$${formatNumber(asset.market_cap)}`} />
+            <StatRow label="24h Volume" value={`$${formatNumber(asset.volume_24h)}`} />
+            <StatRow label="Circulating Supply" value={`${formatNumber(asset.circulating_supply)} ${asset.code}`} />
+            <StatRow label="Total Supply" value={`${formatNumber(asset.total_supply)} ${asset.code}`} />
+            {asset.holders > 0 && <StatRow label="Holders" value={formatNumber(asset.holders)} />}
+            {asset.trades_24h > 0 && <StatRow label="24h Trades" value={formatNumber(asset.trades_24h)} />}
+            {asset.payments_24h > 0 && <StatRow label="24h Payments" value={formatNumber(asset.payments_24h)} />}
           </div>
         </div>
 
@@ -677,49 +760,6 @@ export default function AssetMobileView({ asset }: AssetMobileViewProps) {
           )}
         </div>
 
-        {/* Statistics Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200">
-            <h3 className="text-sm font-bold" style={{ color: coreColors.primary }}>Statistics</h3>
-          </div>
-
-          {/* 24h Range */}
-          {asset.price_high_24h > 0 && asset.price_low_24h > 0 && (
-            <div className="p-4 border-b border-slate-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">24h Range</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px] mb-1.5">
-                <span className="font-mono text-slate-700">{formatPrice(asset.price_low_24h)}</span>
-                <span className="font-mono text-slate-700">{formatPrice(asset.price_high_24h)}</span>
-              </div>
-              <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-red-400 via-slate-300 to-emerald-400 rounded-full" />
-                {asset.price_high_24h > asset.price_low_24h && (
-                  <div
-                    className="absolute w-2.5 h-2.5 bg-white rounded-full top-1/2 -translate-y-1/2 shadow-md border border-slate-200"
-                    style={{
-                      left: `${Math.min(100, Math.max(0, ((asset.price_usd - asset.price_low_24h) / (asset.price_high_24h - asset.price_low_24h)) * 100))}%`,
-                      transform: 'translate(-50%, -50%)'
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Market Stats */}
-          <div className="divide-y divide-slate-100">
-            <StatRow label="Market Cap" value={`$${formatNumber(asset.market_cap)}`} />
-            <StatRow label="24h Volume" value={`$${formatNumber(asset.volume_24h)}`} />
-            <StatRow label="Circulating Supply" value={`${formatNumber(asset.circulating_supply)} ${asset.code}`} />
-            <StatRow label="Total Supply" value={`${formatNumber(asset.total_supply)} ${asset.code}`} />
-            {asset.holders > 0 && <StatRow label="Holders" value={formatNumber(asset.holders)} />}
-            {asset.trades_24h > 0 && <StatRow label="24h Trades" value={formatNumber(asset.trades_24h)} />}
-            {asset.payments_24h > 0 && <StatRow label="24h Payments" value={formatNumber(asset.payments_24h)} />}
-          </div>
-        </div>
-
         {/* Converter Section */}
         <AssetConverterMobile asset={asset} />
 
@@ -785,16 +825,21 @@ function StatRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function PriceChangeItem({ label, value }: { label: string; value?: number }) {
+function PriceChangeItem({ label, value }: { label: string; value?: number | null }) {
+  const hasValue = value !== undefined && value !== null;
   const val = value ?? 0;
   const isPositive = val >= 0;
 
   return (
-    <div className="text-center">
-      <p className="text-[11px] text-slate-500 mb-0.5">{label}</p>
-      <p className={`text-xs font-bold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
-        {isPositive ? '▲' : '▼'} {Math.abs(val).toFixed(2)}%
-      </p>
+    <div className="text-center flex-1">
+      <p className="text-[10px] text-slate-500 mb-0.5">{label}</p>
+      {hasValue ? (
+        <p className={`text-[11px] font-bold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+          {isPositive ? '▲' : '▼'} {Math.abs(val).toFixed(2)}%
+        </p>
+      ) : (
+        <p className="text-[11px] font-bold text-slate-400">N/A</p>
+      )}
     </div>
   );
 }

@@ -28,7 +28,7 @@ export default async function AssetPage({ params, searchParams }: PageProps) {
     <>
       {/* Mobile View */}
       <div className="block md:hidden">
-        <AssetMobileView asset={asset} />
+        <AssetMobileView asset={asset} rank={rank} />
       </div>
 
       {/* Desktop View */}

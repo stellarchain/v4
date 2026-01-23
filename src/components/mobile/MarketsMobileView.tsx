@@ -22,6 +22,16 @@ function formatNumber(num: number): string {
   return '$' + num.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
+function formatLargeNumber(num: number): string {
+  if (num === 0 || isNaN(num)) return '--';
+  const absNum = Math.abs(num);
+  if (absNum >= 1e12) return '$' + (num / 1e12).toFixed(2) + 'T';
+  if (absNum >= 1e9) return '$' + (num / 1e9).toFixed(2) + 'B';
+  if (absNum >= 1e6) return '$' + (num / 1e6).toFixed(2) + 'M';
+  if (absNum >= 1e3) return '$' + (num / 1e3).toFixed(1) + 'K';
+  return '$' + num.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
 function formatPrice(price: number): string {
   if (price === 0 || isNaN(price)) return '$--';
   if (price >= 10000) return '$' + (price / 1000).toFixed(1) + 'K';
@@ -115,6 +125,14 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Calculate market totals
+  const marketTotals = useMemo(() => {
+    const totalMarketCap = initialAssets.reduce((sum, asset) => sum + (asset.market_cap || 0), 0);
+    const totalVolume = initialAssets.reduce((sum, asset) => sum + (asset.volume_24h || 0), 0);
+    const totalAssets = initialAssets.length;
+    return { totalMarketCap, totalVolume, totalAssets };
+  }, [initialAssets]);
+
   const filteredAndSortedAssets = useMemo(() => {
     let assets = [...initialAssets];
 
@@ -184,6 +202,24 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
           </div>
           <h1 className="text-base font-bold text-slate-900">Assets</h1>
           <span className="text-[11px] text-slate-400">by market cap</span>
+        </div>
+
+        {/* Market Stats Summary */}
+        <div className="mx-3 mb-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex divide-x divide-slate-100">
+            <div className="flex-1 py-2.5 px-3 text-center">
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium mb-0.5">Market Cap</p>
+              <p className="text-sm font-bold" style={{ color: coreColors.primary }}>{formatLargeNumber(marketTotals.totalMarketCap)}</p>
+            </div>
+            <div className="flex-1 py-2.5 px-3 text-center">
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium mb-0.5">Volume 24h</p>
+              <p className="text-sm font-bold" style={{ color: coreColors.primary }}>{formatLargeNumber(marketTotals.totalVolume)}</p>
+            </div>
+            <div className="flex-1 py-2.5 px-3 text-center">
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium mb-0.5">Assets</p>
+              <p className="text-sm font-bold" style={{ color: coreColors.primary }}>{marketTotals.totalAssets}</p>
+            </div>
+          </div>
         </div>
 
         {/* Search & Filter - aligned with list */}
