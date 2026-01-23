@@ -152,14 +152,14 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
             </div>
 
             {/* Ledger */}
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-between">
+            <Link href={`/ledger/${liveStats.ledger_count}`} className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col justify-between hover:bg-slate-100 transition-colors">
               <div className="flex justify-between items-center">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">Ledger</span>
               </div>
               <div className="flex items-baseline space-x-1 mt-2">
                 <span ref={ledgerCountRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{liveStats.ledger_count.toLocaleString()}</span>
               </div>
-            </div>
+            </Link>
 
           </div>
         </div>

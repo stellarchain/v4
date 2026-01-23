@@ -268,10 +268,10 @@ export default function DesktopHomePage({
                         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Current TPS</span>
                         <span ref={tpsRef} className="text-sm font-bold text-green-500 font-mono">{tps} / s</span>
                     </div>
-                    <div className="flex-1 min-w-[150px] p-4 flex flex-col">
+                    <Link href={`/ledger/${liveStats.ledger_count}`} className="flex-1 min-w-[150px] p-4 flex flex-col hover:bg-gray-50 transition-colors">
                         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Latest Ledger</span>
                         <span ref={ledgerCountRef} className="text-sm font-bold text-[#06b6d4] font-mono">#{liveStats.ledger_count.toLocaleString()}</span>
-                    </div>
+                    </Link>
                     <div className="flex-1 min-w-[150px] p-4 flex flex-col bg-gray-50">
                         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Smart Ops / H</span>
                         <span className="text-sm font-bold text-gray-900 font-mono">8,412 CALLS</span>
