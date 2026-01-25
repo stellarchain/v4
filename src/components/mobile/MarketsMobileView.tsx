@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MarketAsset } from '@/lib/stellar';
 import { containers, coreColors } from '@/lib/design-system';
@@ -123,7 +123,9 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('market_cap');
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(ASSETS_PER_PAGE);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Calculate market totals
   const marketTotals = useMemo(() => {
@@ -158,22 +160,63 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
     return assets;
   }, [initialAssets, searchQuery, sortField]);
 
-  // Reset to page 1 when search or sort changes
-  const totalPages = Math.ceil(filteredAndSortedAssets.length / ASSETS_PER_PAGE);
-  const paginatedAssets = filteredAndSortedAssets.slice(
-    (currentPage - 1) * ASSETS_PER_PAGE,
-    currentPage * ASSETS_PER_PAGE
-  );
+  // Get visible assets based on visibleCount
+  const visibleAssets = useMemo(() => {
+    return filteredAndSortedAssets.slice(0, visibleCount);
+  }, [filteredAndSortedAssets, visibleCount]);
 
-  // Reset page when filters change
+  const hasMoreItems = visibleCount < filteredAndSortedAssets.length;
+  const totalItems = filteredAndSortedAssets.length;
+
+  // Load more items function
+  const loadMore = useCallback(() => {
+    if (!hasMoreItems || isLoadingMore) return;
+
+    setIsLoadingMore(true);
+    // Simulate a brief loading state for better UX
+    setTimeout(() => {
+      setVisibleCount(prev => Math.min(prev + ASSETS_PER_PAGE, filteredAndSortedAssets.length));
+      setIsLoadingMore(false);
+    }, 200);
+  }, [hasMoreItems, isLoadingMore, filteredAndSortedAssets.length]);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreItems && !isLoadingMore) {
+          loadMore();
+        }
+      },
+      {
+        root: null,
+        rootMargin: '100px',
+        threshold: 0,
+      }
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMoreItems, isLoadingMore, loadMore]);
+
+  // Reset visible count when search or sort changes
+  useEffect(() => {
+    setVisibleCount(ASSETS_PER_PAGE);
+  }, [searchQuery, sortField]);
+
+  // Reset visible count when filters change
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    setCurrentPage(1);
   };
 
   const handleSortChange = (field: SortField) => {
     setSortField(field);
-    setCurrentPage(1);
     setShowSortMenu(false);
   };
 
@@ -298,7 +341,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
         {/* Stats Row */}
         <div className="flex justify-between items-center mt-3 px-4">
           <span className="text-xs font-medium text-slate-500">
-            {filteredAndSortedAssets.length} assets {totalPages > 1 && `• Page ${currentPage} of ${totalPages}`}
+            {totalItems} assets {totalItems > ASSETS_PER_PAGE && `• Showing ${Math.min(visibleCount, totalItems)}`}
           </span>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -319,7 +362,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
         {/* Asset Cards */}
         <div className="space-y-1.5">
-          {paginatedAssets.map((asset) => {
+          {visibleAssets.map((asset) => {
             const hasData = asset.price_usd > 0 && asset.market_cap > 0;
             const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
             const change = asset.change_24h || 0;
@@ -369,6 +412,43 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
           })}
         </div>
 
+        {/* Sentinel element for Intersection Observer */}
+        <div ref={sentinelRef} className="h-4" />
+
+        {/* Loading Spinner */}
+        {isLoadingMore && (
+          <div className="flex items-center justify-center py-4">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
+              <span className="text-xs font-medium text-slate-500">Loading more...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Load More Fallback Button */}
+        {hasMoreItems && !isLoadingMore && (
+          <div className="flex justify-center py-4">
+            <button
+              onClick={loadMore}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 shadow-sm hover:bg-slate-50 active:bg-slate-100 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              Load more ({totalItems - visibleCount} remaining)
+            </button>
+          </div>
+        )}
+
+        {/* No More Items Message */}
+        {!hasMoreItems && totalItems > ASSETS_PER_PAGE && (
+          <div className="flex items-center justify-center py-4 pb-6">
+            <span className="text-xs font-medium text-slate-400">
+              All {totalItems} assets displayed
+            </span>
+          </div>
+        )}
+
         {/* Empty State */}
         {filteredAndSortedAssets.length === 0 && (
           <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-slate-100">
@@ -379,35 +459,6 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
             </div>
             <h3 className="text-slate-900 font-semibold text-sm mb-1">No assets found</h3>
             <p className="text-slate-500 text-xs">Try a different search term</p>
-          </div>
-        )}
-
-        {/* Pagination - Outside Card */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-4 pb-4">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 shadow-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-
-            <span className="text-xs font-medium text-slate-500">
-              Page {currentPage} of {totalPages}
-            </span>
-
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 shadow-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
           </div>
         )}
       </main>

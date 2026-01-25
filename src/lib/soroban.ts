@@ -294,5 +294,28 @@ export async function getContractData(
   }
 }
 
+// Fetch transaction result meta XDR from Soroban RPC
+// This is needed for decoding contract invocation traces
+export async function getTransactionResultMetaXdr(
+  txHash: string,
+  network?: NetworkType
+): Promise<{ resultMetaXdr: string | null; diagnosticEventsXdr?: string[] } | null> {
+  try {
+    const server = getSorobanServer(network);
+    const response = await server.getTransaction(txHash);
+
+    if ((response.status === 'SUCCESS' || response.status === 'FAILED') && response.resultMetaXdr) {
+      const resultMetaXdr = response.resultMetaXdr.toXDR('base64');
+      const diagnosticEventsXdr = response.diagnosticEventsXdr?.map(evt => evt.toXDR('base64'));
+      return { resultMetaXdr, diagnosticEventsXdr };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching transaction result meta XDR:', error);
+    return null;
+  }
+}
+
 // Export types for use elsewhere
 export type { NetworkType };

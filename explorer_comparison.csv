@@ -1,0 +1,20 @@
+Feature,Stellar.expert,Stellarchain,Status,Notes
+Network Statistics,Yes,No,Missing,Stellar.expert has deep economic data (fee pool, reserved assets).
+Transaction Size (Bytes),Yes,No,Missing,Available in Horizon JSON but not mapped in `Transaction` interface in `stellar.ts`.
+Fee Breakdown,Yes,No,Missing,Refundable/Surplus fees for Soroban not parsed from `fee_meta_xdr`.
+Preconditions,Yes,No,Missing,Ledger bounds & min seq age available in Horizon JSON but missing in `Transaction` interface.
+Smart Contract Data,Full Structure,Partial,Partial,"Stellarchain decodes function name/sym, but lacks full argument structure/return value display."
+Ledger Closing Time,Absolute+Relative,Relative only,Partial,Stellarchain shows '15s ago' vs '2024-01-23 15:00:00'.
+Wallet Tracker,No,Yes,Advantage,Stellarchain has a unique visual graph feature (Beta).
+Smart Contract Directory,Basic List,Categorized,Advantage,Stellarchain organizes contracts by type (DEX, NFT, etc).
+Protocol History,Yes,No,Missing,Historical protocol version tracking.
+UI Modernity,Standard,High,Advantage,Stellarchain uses a cleaner, modern design.
+Live Dashboard,Basic,Advanced,Advantage,Stellarchain has real-time TPS and Global Volume metrics.
+Transaction Status,Detailed,Basic,Partial,Stellar.expert distinguishes more failure types (e.g. tx_bad_seq).
+Memo Field,Yes,Yes,Match,Both support text/hash/return memos.
+Signatures,Yes,Yes,Match,Both list all signers.
+Search,Robust,Robust,Match,Both support Account/Tx/Ledger/Asset/Contract lookups.
+Transaction JSON,No,No,N/A,Stellarchain has a 'Raw Data' tab showing XDR which is technically superior for devs.
+Asset Metrics,Detailed,Basic,Missing,Stellar.expert shows holders, supply distribution charts.
+Operations List,Detailed,Detailed,Match,Both show operations, but Stellarchain groups multi-send nicely.
+Effects List,Detailed,Detailed,Match,Both show effects (credits/debits).

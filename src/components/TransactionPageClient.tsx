@@ -8,6 +8,23 @@ import { containers, interactive, spacing } from '@/lib/design-system';
 
 type FilterType = 'all' | 'transfers' | 'contracts';
 
+// Custom hook to detect mobile viewport
+function useIsMobile(breakpoint: number = 768) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Check initial value
+    const checkMobile = () => setIsMobile(window.innerWidth < breakpoint);
+    checkMobile();
+
+    // Listen for resize events
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
 interface TransactionPageClientProps {
   initialTransactions: Transaction[];
   initialPaymentTransactions?: Transaction[];
@@ -51,10 +68,16 @@ export default function TransactionPageClient({
   const [oldestCursor, setOldestCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  const mobileContainerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
   const seenIdsRef = useRef<Set<string>>(new Set(mergedInitial.map(t => t.hash)));
   const animatedIdsRef = useRef<Set<string>>(new Set(mergedInitial.map(t => t.hash)));
   const processedIdsRef = useRef<Set<string>>(new Set());
+
+  // Mobile infinite scroll state
+  const [mobileLoadedCount, setMobileLoadedCount] = useState(PAGE_SIZE);
+  const isMobile = useIsMobile();
 
   // Note: We no longer fetch operations for each transaction to prevent API rate limiting
   // The transaction list view uses minimal data from the transaction itself
@@ -260,10 +283,123 @@ export default function TransactionPageClient({
     fetchMoreIfNeeded(page);
   }, [fetchMoreIfNeeded]);
 
-  // Reset page when filter changes
+  // Mobile infinite scroll: load more transactions
+  const loadMoreForMobile = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+
+    // Compute filtered count inline to avoid dependency on filteredTransactions
+    const currentFilteredCount = transactions.filter(tx => {
+      const type = tx.displayInfo?.type;
+      if (filter === 'all') return true;
+      if (filter === 'transfers') return type === 'payment';
+      if (filter === 'contracts') return type === 'contract';
+      return true;
+    }).length;
+
+    // Check if we need to fetch more from server
+    const nextCount = mobileLoadedCount + PAGE_SIZE;
+
+    // First, try to show more from already fetched transactions
+    if (nextCount <= currentFilteredCount) {
+      setMobileLoadedCount(nextCount);
+      return;
+    }
+
+    // Need to fetch more from server
+    setIsLoadingMore(true);
+
+    try {
+      const sortedTxs = [...transactions].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      const cursor = oldestCursor || sortedTxs[0]?.paging_token;
+
+      if (!cursor) {
+        setIsLoadingMore(false);
+        setHasMore(false);
+        return;
+      }
+
+      const res = await fetch(
+        `https://horizon.stellar.org/transactions?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
+      );
+      const data = await res.json();
+      const olderTransactions: Transaction[] = data._embedded.records;
+
+      if (olderTransactions.length === 0) {
+        setIsLoadingMore(false);
+        setHasMore(false);
+        return;
+      }
+
+      const oldestTx = olderTransactions[olderTransactions.length - 1];
+      setOldestCursor(oldestTx.paging_token);
+      setHasMore(olderTransactions.length >= PAGE_SIZE);
+
+      const txsWithOps = olderTransactions.map((tx) => {
+        if (seenIdsRef.current.has(tx.hash)) {
+          return null;
+        }
+        return {
+          ...tx,
+          displayInfo: getTransactionDisplayInfo([]),
+        };
+      });
+
+      const validTxs = txsWithOps.filter(tx => tx !== null) as Transaction[];
+
+      setTransactions(prev => {
+        const existingMap = new Map(prev.map(t => [t.hash, t]));
+        validTxs.forEach(tx => {
+          if (!existingMap.has(tx.hash)) {
+            existingMap.set(tx.hash, tx);
+          }
+        });
+
+        const merged = Array.from(existingMap.values())
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        seenIdsRef.current = new Set(merged.map(t => t.hash));
+        return merged;
+      });
+
+      // Increase the loaded count after fetching
+      setMobileLoadedCount(prev => prev + PAGE_SIZE);
+    } catch (error) {
+      console.error('Failed to load more transactions:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMore, mobileLoadedCount, transactions, oldestCursor, filter]);
+
+  // Reset page and mobile loaded count when filter changes
   useEffect(() => {
     setCurrentPage(1);
+    setMobileLoadedCount(PAGE_SIZE);
   }, [filter]);
+
+  // Mobile infinite scroll: IntersectionObserver
+  useEffect(() => {
+    if (!isMobile || !sentinelRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && !isLoadingMore && hasMore) {
+          loadMoreForMobile();
+        }
+      },
+      {
+        root: null, // viewport
+        rootMargin: '100px', // trigger 100px before reaching the bottom
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(sentinelRef.current);
+
+    return () => observer.disconnect();
+  }, [isMobile, isLoadingMore, hasMore, loadMoreForMobile]);
 
   useEffect(() => {
     // Use the merged initial (includes both regular and payment transactions)
@@ -304,10 +440,14 @@ export default function TransactionPageClient({
     return true;
   });
 
-  // Calculate pagination
+  // Calculate pagination for desktop
   const totalPages = Math.ceil(filteredTransactions.length / PAGE_SIZE) + (hasMore ? 1 : 0);
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const visibleTransactions = filteredTransactions.slice(startIndex, startIndex + PAGE_SIZE);
+
+  // Calculate visible transactions for mobile (infinite scroll)
+  const mobileVisibleTransactions = filteredTransactions.slice(0, mobileLoadedCount);
+  const mobileHasMore = hasMore || mobileLoadedCount < filteredTransactions.length;
 
   // Effect to progressively fetch details for visible transactions labeled as 'other' / 'unknown'
   // This ensures we can properly identify Smart Contracts functions
@@ -505,11 +645,11 @@ export default function TransactionPageClient({
             </table>
           </div>
 
-          {/* Mobile Card List - Visible only on mobile (individual cards like Markets page) */}
-          <div className="md:hidden flex-1 overflow-auto" ref={containerRef}>
-            {visibleTransactions.length > 0 ? (
+          {/* Mobile Card List - Visible only on mobile with infinite scroll */}
+          <div className="md:hidden flex-1 overflow-auto" ref={mobileContainerRef}>
+            {mobileVisibleTransactions.length > 0 ? (
               <div className="space-y-2">
-                {visibleTransactions.map((tx) => {
+                {mobileVisibleTransactions.map((tx) => {
                   const info = tx.displayInfo;
                   const functionName = info?.functionName || 'Contract Call';
 
@@ -585,6 +725,39 @@ export default function TransactionPageClient({
                     </a>
                   );
                 })}
+
+                {/* Mobile Infinite Scroll: Sentinel element for IntersectionObserver */}
+                <div ref={sentinelRef} className="h-1" />
+
+                {/* Mobile Loading Spinner */}
+                {isLoadingMore && (
+                  <div className="flex justify-center py-4">
+                    <svg className="w-6 h-6 animate-spin" style={{ color: primaryColor }} fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  </div>
+                )}
+
+                {/* Mobile Load More Button (fallback) */}
+                {!isLoadingMore && mobileHasMore && (
+                  <div className="py-4">
+                    <button
+                      onClick={loadMoreForMobile}
+                      className="w-full py-3 rounded-xl bg-white shadow-sm border border-slate-200 text-sm font-semibold transition-colors hover:bg-slate-50 active:bg-slate-100"
+                      style={{ color: primaryColor }}
+                    >
+                      Load More
+                    </button>
+                  </div>
+                )}
+
+                {/* Mobile No More Items Message */}
+                {!isLoadingMore && !mobileHasMore && mobileVisibleTransactions.length > 0 && (
+                  <div className="py-4 text-center text-slate-400 text-sm">
+                    No more transactions
+                  </div>
+                )}
               </div>
             ) : (
               <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-12 text-center text-slate-400 italic text-sm">
@@ -593,9 +766,9 @@ export default function TransactionPageClient({
             )}
           </div>
 
-          {/* Footer / Pagination */}
+          {/* Footer / Pagination - Desktop only */}
           {totalPages > 1 && (
-            <div className="py-4 px-3 bg-slate-100 md:bg-slate-50 md:p-3 md:border-t md:border-slate-100">
+            <div className="hidden md:block py-4 px-3 bg-slate-100 md:bg-slate-50 md:p-3 md:border-t md:border-slate-100">
               <div className="flex items-center justify-center gap-1">
                 <button
                   onClick={() => goToPage(currentPage - 1)}
