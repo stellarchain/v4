@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/design-system';
 import {
@@ -25,23 +25,66 @@ interface LedgerMobileViewProps {
 
 const ITEMS_PER_PAGE = 10;
 
+// Loading spinner component
+const LoadingSpinner = () => (
+    <div className="flex items-center justify-center py-4">
+        <svg className="w-6 h-6 animate-spin text-[#0F4C81]" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+        <span className="ml-2 text-sm text-slate-500">Loading more...</span>
+    </div>
+);
+
+// End of list message component
+const EndOfList = ({ message }: { message: string }) => (
+    <div className="flex items-center justify-center py-4 text-slate-400 text-sm">
+        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+        {message}
+    </div>
+);
+
+// Load more button fallback
+const LoadMoreButton = ({ onClick, loading }: { onClick: () => void; loading: boolean }) => (
+    <button
+        onClick={onClick}
+        disabled={loading}
+        className="w-full py-3 mt-2 bg-white rounded-xl border border-slate-200 text-sm font-semibold text-[#0F4C81] hover:bg-slate-50 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+        {loading ? (
+            <span className="flex items-center justify-center">
+                <svg className="w-4 h-4 animate-spin mr-2" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Loading...
+            </span>
+        ) : (
+            'Load more'
+        )}
+    </button>
+);
+
 export default function LedgerMobileView({ ledger, transactions: initialTransactions, operations: initialOperations }: LedgerMobileViewProps) {
     const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'operations'>('overview');
     const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
     const [operations, setOperations] = useState<Operation[]>(initialOperations);
 
-    // Pagination state
-    const [txPage, setTxPage] = useState(1);
-    const [opsPage, setOpsPage] = useState(1);
+    // Infinite scroll state
     const [loadingTx, setLoadingTx] = useState(false);
     const [loadingOps, setLoadingOps] = useState(false);
     const [hasMoreTx, setHasMoreTx] = useState(initialTransactions.length >= ITEMS_PER_PAGE);
     const [hasMoreOps, setHasMoreOps] = useState(initialOperations.length >= ITEMS_PER_PAGE);
 
-    // Fetch more data when navigating to pages that need it
-    const fetchMoreTransactions = async (targetPage: number) => {
-        const neededItems = targetPage * ITEMS_PER_PAGE;
-        if (neededItems <= transactions.length || !hasMoreTx || loadingTx) return;
+    // Refs for intersection observer sentinel elements
+    const txSentinelRef = useRef<HTMLDivElement>(null);
+    const opsSentinelRef = useRef<HTMLDivElement>(null);
+
+    // Fetch more transactions
+    const fetchMoreTransactions = useCallback(async () => {
+        if (!hasMoreTx || loadingTx || transactions.length === 0) return;
 
         setLoadingTx(true);
         const lastCursor = transactions[transactions.length - 1].paging_token;
@@ -58,11 +101,11 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
         } finally {
             setLoadingTx(false);
         }
-    };
+    }, [hasMoreTx, loadingTx, transactions, ledger.sequence]);
 
-    const fetchMoreOperations = async (targetPage: number) => {
-        const neededItems = targetPage * ITEMS_PER_PAGE;
-        if (neededItems <= operations.length || !hasMoreOps || loadingOps) return;
+    // Fetch more operations
+    const fetchMoreOperations = useCallback(async () => {
+        if (!hasMoreOps || loadingOps || operations.length === 0) return;
 
         setLoadingOps(true);
         const lastCursor = operations[operations.length - 1].paging_token;
@@ -80,95 +123,63 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
         } finally {
             setLoadingOps(false);
         }
-    };
+    }, [hasMoreOps, loadingOps, operations, ledger.sequence]);
 
-    const goToTxPage = (page: number) => {
-        setTxPage(page);
-        fetchMoreTransactions(page);
-    };
+    // Intersection Observer for transactions
+    useEffect(() => {
+        if (activeTab !== 'transactions') return;
 
-    const goToOpsPage = (page: number) => {
-        setOpsPage(page);
-        fetchMoreOperations(page);
-    };
+        const sentinel = txSentinelRef.current;
+        if (!sentinel) return;
 
-    // Calculate pagination
-    const txTotalPages = Math.ceil(transactions.length / ITEMS_PER_PAGE) + (hasMoreTx ? 1 : 0);
-    const opsTotalPages = Math.ceil(operations.length / ITEMS_PER_PAGE) + (hasMoreOps ? 1 : 0);
-    const paginatedTx = transactions.slice((txPage - 1) * ITEMS_PER_PAGE, txPage * ITEMS_PER_PAGE);
-    const paginatedOps = operations.slice((opsPage - 1) * ITEMS_PER_PAGE, opsPage * ITEMS_PER_PAGE);
-
-    // Pagination component
-    const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, hasMore }: {
-        currentPage: number;
-        totalPages: number;
-        onPageChange: (page: number) => void;
-        loading: boolean;
-        hasMore: boolean;
-    }) => {
-        if (totalPages <= 1) return null;
-        return (
-            <div className="flex items-center justify-center gap-1 mt-4 pt-3 border-t border-slate-200">
-                <button
-                    onClick={() => onPageChange(currentPage - 1)}
-                    disabled={currentPage === 1 || loading}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-
-                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                    let pageNum: number;
-                    if (totalPages <= 5) {
-                        pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                    } else {
-                        pageNum = currentPage - 2 + i;
-                    }
-                    return (
-                        <button
-                            key={pageNum}
-                            onClick={() => onPageChange(pageNum)}
-                            disabled={loading}
-                            className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
-                                currentPage === pageNum
-                                    ? 'bg-[#0F4C81] text-white shadow-sm'
-                                    : 'text-slate-500 hover:bg-slate-100'
-                            }`}
-                        >
-                            {pageNum}
-                        </button>
-                    );
-                })}
-
-                {hasMore && totalPages > 5 && (
-                    <span className="text-slate-400 text-xs px-1">...</span>
-                )}
-
-                <button
-                    onClick={() => onPageChange(currentPage + 1)}
-                    disabled={(currentPage >= totalPages && !hasMore) || loading}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                </button>
-
-                {loading && (
-                    <svg className="w-4 h-4 animate-spin ml-2 text-[#0F4C81]" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                )}
-            </div>
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const [entry] = entries;
+                if (entry.isIntersecting && hasMoreTx && !loadingTx) {
+                    fetchMoreTransactions();
+                }
+            },
+            {
+                root: null,
+                rootMargin: '100px', // Trigger 100px before reaching the sentinel
+                threshold: 0.1,
+            }
         );
-    };
+
+        observer.observe(sentinel);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [activeTab, hasMoreTx, loadingTx, fetchMoreTransactions]);
+
+    // Intersection Observer for operations
+    useEffect(() => {
+        if (activeTab !== 'operations') return;
+
+        const sentinel = opsSentinelRef.current;
+        if (!sentinel) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const [entry] = entries;
+                if (entry.isIntersecting && hasMoreOps && !loadingOps) {
+                    fetchMoreOperations();
+                }
+            },
+            {
+                root: null,
+                rootMargin: '100px',
+                threshold: 0.1,
+            }
+        );
+
+        observer.observe(sentinel);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [activeTab, hasMoreOps, loadingOps, fetchMoreOperations]);
 
     return (
         <div className="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans pb-24">
@@ -337,7 +348,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                     {/* TRANSACTIONS TAB */}
                     {activeTab === 'transactions' && (
                         <div className="space-y-3">
-                            {paginatedTx.map((tx) => {
+                            {transactions.map((tx) => {
                                 const info = tx.displayInfo || { type: 'other' };
                                 let description = 'Transaction';
                                 let typeDisplay = 'TRANSACTION';
@@ -436,26 +447,34 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                     </Link>
                                 );
                             })}
-                            {paginatedTx.length === 0 && (
+                            {transactions.length === 0 && (
                                 <div className="text-center py-8 text-slate-400 text-sm">
                                     No transactions found in this ledger.
                                 </div>
                             )}
 
-                            <PaginationControls
-                                currentPage={txPage}
-                                totalPages={txTotalPages}
-                                onPageChange={goToTxPage}
-                                loading={loadingTx}
-                                hasMore={hasMoreTx}
-                            />
+                            {/* Sentinel element for infinite scroll */}
+                            <div ref={txSentinelRef} className="h-1" />
+
+                            {/* Loading spinner */}
+                            {loadingTx && <LoadingSpinner />}
+
+                            {/* Load more button fallback */}
+                            {hasMoreTx && !loadingTx && transactions.length > 0 && (
+                                <LoadMoreButton onClick={fetchMoreTransactions} loading={loadingTx} />
+                            )}
+
+                            {/* End of list message */}
+                            {!hasMoreTx && transactions.length > 0 && (
+                                <EndOfList message="No more transactions" />
+                            )}
                         </div>
                     )}
 
                     {/* OPERATIONS TAB */}
                     {activeTab === 'operations' && (
                         <div className="space-y-3">
-                            {paginatedOps.map((op, idx) => {
+                            {operations.map((op, idx) => {
                                 let typeDisplay = getOperationTypeLabel(op.type).replace(/_/g, ' ');
                                 let summary = '';
                                 let summaryLabel = '';
@@ -501,7 +520,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                     >
                                         <div className="flex items-center p-3 gap-3">
                                             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-500 border border-slate-100">
-                                                {(opsPage - 1) * ITEMS_PER_PAGE + idx + 1}
+                                                {idx + 1}
                                             </div>
                                             <div className="flex-1 min-w-0 grid grid-cols-[auto_1fr] gap-x-2 items-center">
                                                 <span className="text-xs font-bold text-slate-900 capitalize truncate">
@@ -525,19 +544,27 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                     </Link>
                                 );
                             })}
-                            {paginatedOps.length === 0 && (
+                            {operations.length === 0 && (
                                 <div className="text-center py-8 text-slate-400 text-sm">
                                     No operations found in this ledger.
                                 </div>
                             )}
 
-                            <PaginationControls
-                                currentPage={opsPage}
-                                totalPages={opsTotalPages}
-                                onPageChange={goToOpsPage}
-                                loading={loadingOps}
-                                hasMore={hasMoreOps}
-                            />
+                            {/* Sentinel element for infinite scroll */}
+                            <div ref={opsSentinelRef} className="h-1" />
+
+                            {/* Loading spinner */}
+                            {loadingOps && <LoadingSpinner />}
+
+                            {/* Load more button fallback */}
+                            {hasMoreOps && !loadingOps && operations.length > 0 && (
+                                <LoadMoreButton onClick={fetchMoreOperations} loading={loadingOps} />
+                            )}
+
+                            {/* End of list message */}
+                            {!hasMoreOps && operations.length > 0 && (
+                                <EndOfList message="No more operations" />
+                            )}
                         </div>
                     )}
                 </div>

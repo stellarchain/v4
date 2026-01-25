@@ -1,4 +1,4 @@
-import { getAccount, getAccountTransactions, getAccountOperations, getXLMUSDPriceFromHorizon } from '@/lib/stellar';
+import { getAccount, getAccountTransactions, getAccountOperations, getTransactionOperations, getXLMUSDPriceFromHorizon } from '@/lib/stellar';
 import Link from 'next/link';
 import AccountMobileView from '@/components/mobile/AccountMobileView';
 import AccountDesktopView from '@/components/desktop/AccountDesktopView';
@@ -21,10 +21,40 @@ export default async function AccountPage({ params }: AccountPageProps) {
   try {
     [account, { _embedded: { records: transactions } }, { _embedded: { records: operations } }, xlmPrice] = await Promise.all([
       getAccount(id),
-      getAccountTransactions(id, 25),
+      getAccountTransactions(id, 50), // Fetch more transactions to find contract calls
       getAccountOperations(id, 100),
       getXLMUSDPriceFromHorizon(),
     ]);
+
+    // For Soroban contract calls, the operation's source can be different from the transaction's source
+    // This means contract calls made by this account might not appear in /accounts/{id}/operations
+    // We need to fetch operations from transactions where this account is the source
+    const existingOpTxHashes = new Set(operations.map(op => op.transaction_hash));
+
+    // Find transactions that don't have operations in our list (likely contract calls with different op source)
+    const missingTxs = transactions.filter(tx => !existingOpTxHashes.has(tx.hash));
+
+    if (missingTxs.length > 0) {
+      // Fetch operations for missing transactions (limit to first 20 to avoid too many requests)
+      const additionalOpsPromises = missingTxs.slice(0, 20).map(async tx => {
+        try {
+          const txOps = await getTransactionOperations(tx.hash, 5);
+          return txOps._embedded.records;
+        } catch {
+          return [];
+        }
+      });
+
+      const additionalOpsArrays = await Promise.all(additionalOpsPromises);
+      const additionalOps = additionalOpsArrays.flat();
+
+      // Merge additional operations into the main list
+      if (additionalOps.length > 0) {
+        operations = [...operations, ...additionalOps];
+        // Sort by created_at descending to ensure proper order
+        operations.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      }
+    }
   } catch (e) {
     error = 'Account not found or invalid account ID';
     console.error(e);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Transaction, Operation, Effect, shortenAddress, formatXLM } from '@/lib/stellar';
@@ -97,17 +97,30 @@ export default function AccountMobileView({ account, transactions, operations: i
   const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
   const [xlmChange24h, setXlmChange24h] = useState(0);
 
-  // Operations pagination
+  // Operations state for infinite scroll
   const [allOperations, setAllOperations] = useState<Operation[]>(initialOperations);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [loadingPage, setLoadingPage] = useState(false);
-  const [totalLoaded, setTotalLoaded] = useState(initialOperations.length);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreToFetch, setHasMoreToFetch] = useState(initialOperations.length >= 100);
   const [lastCursor, setLastCursor] = useState<string | null>(
     initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
   );
 
-  const ITEMS_PER_PAGE = 20;
+  // Sync operations state when initialOperations prop changes (e.g., page revalidation, navigation)
+  useEffect(() => {
+    // Sort operations by date descending to ensure newest are first
+    const sortedOps = [...initialOperations].sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    setAllOperations(sortedOps);
+    setHasMoreToFetch(initialOperations.length >= 100);
+    setLastCursor(
+      initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
+    );
+  }, [initialOperations]);
+
+  // Refs for infinite scroll
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const activityContainerRef = useRef<HTMLDivElement>(null);
 
   // Balances
   const xlmBalance = account.balances.find(b => b.asset_type === 'native');
@@ -246,12 +259,11 @@ export default function AccountMobileView({ account, transactions, operations: i
     fetchPrices();
   }, [account.balances, xlmPrice, xlmChange24h]);
 
-  // Fetch more operations
-  const fetchMoreIfNeeded = async (targetPage: number) => {
-    const neededItems = targetPage * ITEMS_PER_PAGE;
-    if (neededItems <= allOperations.length || !hasMoreToFetch || loadingPage) return;
+  // Fetch more operations for infinite scroll
+  const fetchMoreOperations = useCallback(async () => {
+    if (!hasMoreToFetch || loadingMore || !lastCursor) return;
 
-    setLoadingPage(true);
+    setLoadingMore(true);
     try {
       const res = await fetch(
         `https://horizon.stellar.org/accounts/${account.id}/operations?limit=100&order=desc&cursor=${lastCursor}`
@@ -262,7 +274,6 @@ export default function AccountMobileView({ account, transactions, operations: i
       if (newOps.length > 0) {
         setAllOperations(prev => [...prev, ...newOps]);
         setLastCursor(newOps[newOps.length - 1].paging_token);
-        setTotalLoaded(prev => prev + newOps.length);
         setHasMoreToFetch(newOps.length >= 100);
       } else {
         setHasMoreToFetch(false);
@@ -270,45 +281,57 @@ export default function AccountMobileView({ account, transactions, operations: i
     } catch (error) {
       console.error('Failed to load more operations:', error);
     } finally {
-      setLoadingPage(false);
+      setLoadingMore(false);
     }
-  };
+  }, [account.id, hasMoreToFetch, lastCursor, loadingMore]);
 
-  const goToPage = (page: number) => {
-    setCurrentPage(page);
-    fetchMoreIfNeeded(page);
-  };
-
-  // Reset page when switching activity type
+  // Intersection Observer for infinite scroll
   useEffect(() => {
-    setCurrentPage(1);
+    const sentinel = sentinelRef.current;
+    if (!sentinel || activeTab !== 'activity') return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && hasMoreToFetch && !loadingMore) {
+          fetchMoreOperations();
+        }
+      },
+      {
+        root: null,
+        rootMargin: '100px',
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [activeTab, hasMoreToFetch, loadingMore, fetchMoreOperations]);
+
+  // Reset scroll position when filter changes
+  useEffect(() => {
+    if (activityContainerRef.current) {
+      activityContainerRef.current.scrollTop = 0;
+    }
+    // Also scroll the window to the top of the activity section
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activityType]);
 
-  // Fetch effects for visible operations
+  // Fetch effects for operations that don't have them yet
   useEffect(() => {
     const fetchEffects = async () => {
-      const start = (currentPage - 1) * ITEMS_PER_PAGE;
-      let visibleOps: Operation[] = [];
+      // Get operations that need effects fetched (limit batch size for performance)
+      const opsNeedingEffects = allOperations
+        .filter(op => !opEffects[op.id])
+        .slice(0, 20); // Fetch effects in batches of 20
 
-      if (activityType === 'all') {
-        visibleOps = allOperations.slice(start, start + ITEMS_PER_PAGE);
-      } else if (activityType === 'payments') {
-        const filtered = allOperations.filter(op =>
-          op.type === 'payment' || op.type === 'create_account' ||
-          op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive' ||
-          op.type === 'invoke_host_function'
-        );
-        visibleOps = filtered.slice(start, start + ITEMS_PER_PAGE);
-      } else if (activityType === 'contracts') {
-        const filtered = allOperations.filter(op =>
-          op.type === 'invoke_host_function' || op.type === 'extend_footprint_ttl' || op.type === 'restore_footprint'
-        );
-        visibleOps = filtered.slice(start, start + ITEMS_PER_PAGE);
-      }
+      if (opsNeedingEffects.length === 0) return;
 
       const newEffects: Record<string, Effect[]> = {};
-      await Promise.all(visibleOps.map(async (op) => {
-        if (opEffects[op.id]) return;
+      await Promise.all(opsNeedingEffects.map(async (op) => {
         try {
           const res = await fetch(`https://horizon.stellar.org/operations/${op.id}/effects`);
           const data = await res.json();
@@ -324,7 +347,7 @@ export default function AccountMobileView({ account, transactions, operations: i
     };
 
     fetchEffects();
-  }, [allOperations, activityType, currentPage, account.id, opEffects]);
+  }, [allOperations, opEffects]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(account.id);
@@ -436,9 +459,6 @@ export default function AccountMobileView({ account, transactions, operations: i
   };
 
   const currentDataSource = getCurrentDataSource();
-  const currentTotalPages = Math.ceil(currentDataSource.length / ITEMS_PER_PAGE) + (activityType === 'all' && hasMoreToFetch ? 1 : 0);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedOps = currentDataSource.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const isPositivePnl = pnlData.amount >= 0;
 
@@ -475,24 +495,23 @@ export default function AccountMobileView({ account, transactions, operations: i
           <div className="text-sm text-slate-500 mb-2">
             Est. Total Value
           </div>
-          <div className="flex items-baseline gap-2">
+          <div className="flex items-baseline gap-1">
             <span className="text-4xl font-bold tracking-tight text-slate-900">
-              {formatBalanceDisplay(totalBalanceXLM)}
+              ${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className="text-lg font-semibold text-slate-400">XLM</span>
           </div>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="text-base text-slate-500">
-              ≈ ${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-            <span className={`text-xs font-semibold ${isPositivePnl ? 'text-emerald-600' : 'text-red-600'}`}>
+          <div className="mt-1">
+            <span className={`text-sm font-semibold ${isPositivePnl ? 'text-emerald-600' : 'text-red-600'}`}>
               {isPositivePnl ? '+' : ''}${Math.abs(pnlData.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isPositivePnl ? '+' : ''}{pnlData.percent.toFixed(2)}%) 24h Change
             </span>
           </div>
         </div>
 
+        {/* Divider line before tabs */}
+        <div className="border-t border-slate-200 mb-3"></div>
+
         {/* Tabs */}
-        <div className="flex items-center justify-between px-2 pb-3">
+        <div className="flex items-center justify-between pb-3">
           <div className="flex gap-6">
             <button
               onClick={() => handleTabChange('assets')}
@@ -629,7 +648,7 @@ export default function AccountMobileView({ account, transactions, operations: i
         )}
 
         {activeTab === 'activity' && (
-          <div>
+          <div ref={activityContainerRef}>
             {/* Activity Filters */}
             <div className="flex gap-5 border-b border-slate-200 pb-2 mb-3 mt-3">
               {['all', 'payments', 'swaps', 'contracts'].map((type) => (
@@ -681,7 +700,7 @@ export default function AccountMobileView({ account, transactions, operations: i
 
                   let lastDateKey = '';
 
-                  return paginatedOps.map((op, index) => {
+                  return currentDataSource.map((op, index) => {
                     const currentDateKey = getDateKey(op.created_at);
                     const showDateHeader = currentDateKey !== lastDateKey;
                     lastDateKey = currentDateKey;
@@ -785,32 +804,30 @@ export default function AccountMobileView({ account, transactions, operations: i
                   });
                 })()}
 
-                {/* Pagination */}
-                {currentTotalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 py-4">
+                {/* Infinite scroll sentinel and loading/status indicators */}
+                <div ref={sentinelRef} className="py-4">
+                  {loadingMore && (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-[#0F4C81] border-t-transparent rounded-full animate-spin" />
+                      <span className="text-xs font-medium text-slate-500">Loading more...</span>
+                    </div>
+                  )}
+
+                  {!loadingMore && hasMoreToFetch && (
                     <button
-                      onClick={() => goToPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 shadow-sm"
+                      onClick={fetchMoreOperations}
+                      className="w-full py-3 text-xs font-semibold text-[#0F4C81] bg-white rounded-xl border border-slate-200 shadow-sm active:bg-slate-50 transition-colors"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
+                      Load more activity
                     </button>
-                    <span className="text-xs font-medium text-slate-500">
-                      Page {currentPage} of {currentTotalPages}
-                    </span>
-                    <button
-                      onClick={() => goToPage(Math.min(currentTotalPages, currentPage + 1))}
-                      disabled={currentPage === currentTotalPages && !hasMoreToFetch}
-                      className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 disabled:opacity-40 shadow-sm"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
+                  )}
+
+                  {!hasMoreToFetch && currentDataSource.length > 0 && (
+                    <div className="text-center py-2">
+                      <span className="text-xs font-medium text-slate-400">No more activity to load</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
