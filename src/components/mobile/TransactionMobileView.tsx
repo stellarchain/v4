@@ -92,8 +92,7 @@ export default function TransactionMobileView({ transaction, operations, effects
 
     setIsDecodingXdr(true);
     setTimeout(() => {
-      const diagnosticEventsToUse = xdrToUse === fetchedXdr ? fetchedDiagnosticEventsXdr || undefined : undefined;
-      const decoded = decodeTransactionMeta(xdrToUse, diagnosticEventsToUse);
+      const decoded = decodeTransactionMeta(xdrToUse);
       setDecodedMeta(decoded);
       setDecodedXdr(xdrToUse);
       setIsDecodingXdr(false);
@@ -659,11 +658,10 @@ export default function TransactionMobileView({ transaction, operations, effects
             </svg>
             <span>{formatDate(transaction.created_at)}</span>
           </div>
-          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-            transaction.successful
-              ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-              : 'bg-red-50 text-red-600 border-red-100'
-          }`}>
+          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${transaction.successful
+            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+            : 'bg-red-50 text-red-600 border-red-100'
+            }`}>
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               {transaction.successful
                 ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1084,39 +1082,39 @@ export default function TransactionMobileView({ transaction, operations, effects
                       <div className="w-12 h-12 rounded-xl bg-sky-50 flex items-center justify-center shadow-sm" style={{ color: primaryColor }}>
                         <svg className="w-6 h-6 rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                      </svg>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-0.5">{toLabel}</p>
+                        {isSwap ? (
+                          <p className="text-lg font-bold font-mono tracking-tight" style={{ color: primaryColor }}>
+                            {formatTokenAmount(swapBought?.amount)} <span className="text-sm font-medium text-slate-400">{swapBought?.code}</span>
+                          </p>
+                        ) : isMultiSend ? (
+                          <button
+                            onClick={() => setShowRecipients(!showRecipients)}
+                            className="text-lg font-bold font-mono tracking-tight flex items-center gap-1" style={{ color: primaryColor }}
+                          >
+                            {uniqueRecipientCount} Recipients
+                            <svg className={`w-4 h-4 text-slate-400 transition-transform ${showRecipients ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        ) : (
+                          <Link href={`/account/${destination}`} className="text-lg font-bold font-mono tracking-tight hover:opacity-80 transition-opacity" style={{ color: primaryColor }}>
+                            {shortenAddress(destination, 4)}
+                          </Link>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-0.5">{toLabel}</p>
-                      {isSwap ? (
-                        <p className="text-lg font-bold font-mono tracking-tight" style={{ color: primaryColor }}>
-                          {formatTokenAmount(swapBought?.amount)} <span className="text-sm font-medium text-slate-400">{swapBought?.code}</span>
-                        </p>
-                      ) : isMultiSend ? (
-                        <button
-                          onClick={() => setShowRecipients(!showRecipients)}
-                          className="text-lg font-bold font-mono tracking-tight flex items-center gap-1" style={{ color: primaryColor }}
-                        >
-                          {uniqueRecipientCount} Recipients
-                          <svg className={`w-4 h-4 text-slate-400 transition-transform ${showRecipients ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                      ) : (
-                        <Link href={`/account/${destination}`} className="text-lg font-bold font-mono tracking-tight hover:opacity-80 transition-opacity" style={{ color: primaryColor }}>
-                          {shortenAddress(destination, 4)}
-                        </Link>
-                      )}
-                    </div>
+                    {!isSwap && (
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-emerald-500">+{(isMultiSend ? displayAmount : toCardAmount).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                        <p className="text-[11px] font-bold text-slate-400">{isMultiSend ? displayAsset : toCardAsset}</p>
+                      </div>
+                    )}
                   </div>
-                  {!isSwap && (
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-emerald-500">+{(isMultiSend ? displayAmount : toCardAmount).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-                      <p className="text-[11px] font-bold text-slate-400">{isMultiSend ? displayAsset : toCardAsset}</p>
-                    </div>
-                  )}
                 </div>
-              </div>
 
                 {/* Recipients List (expandable) */}
                 {isMultiSend && showRecipients && (
@@ -1176,23 +1174,22 @@ export default function TransactionMobileView({ transaction, operations, effects
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(activeTab === tab.id ? null : tab.id as any)}
-                className={`whitespace-nowrap pb-3 border-b-2 font-semibold text-sm flex items-center gap-2 transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-[#0F4C81] text-[#0F4C81]'
-                    : 'border-transparent text-slate-500 hover:text-[#0F4C81]'
-                }`}
+                className={`whitespace-nowrap pb-3 border-b-2 font-semibold text-sm flex items-center gap-2 transition-colors ${activeTab === tab.id
+                  ? 'border-[#0F4C81] text-[#0F4C81]'
+                  : 'border-transparent text-slate-500 hover:text-[#0F4C81]'
+                  }`}
               >
                 {tab.label}
                 {tab.count !== undefined && (
                   <span className={`py-0.5 px-2 rounded-full text-xs ${activeTab === tab.id
-                  ? 'bg-slate-100 text-slate-600'
-                  : 'bg-slate-100 text-slate-500'
-                  }`}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
+                    ? 'bg-slate-100 text-slate-600'
+                    : 'bg-slate-100 text-slate-500'
+                    }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
           </nav>
         </div>
 
@@ -1671,55 +1668,6 @@ export default function TransactionMobileView({ transaction, operations, effects
                 </div>
               </div>
 
-              {/* Resource Metrics (from decoded XDR) */}
-              {!isDecodingXdr && decodedMeta && decodedMeta.success && decodedMeta.metrics && (
-                Object.values(decodedMeta.metrics).some(v => v !== undefined) && (
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
-                      <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600">Resource Usage</h3>
-                    </div>
-                    <div className="divide-y divide-slate-100">
-                      {decodedMeta.metrics.txByteRead !== undefined && (
-                        <div className="flex justify-between items-center px-4 py-3">
-                          <span className="text-xs text-slate-500 font-medium">Bytes Read</span>
-                          <span className="text-xs font-mono font-bold text-slate-700">{decodedMeta.metrics.txByteRead.toLocaleString()}</span>
-                        </div>
-                      )}
-                      {decodedMeta.metrics.txByteWrite !== undefined && (
-                        <div className="flex justify-between items-center px-4 py-3">
-                          <span className="text-xs text-slate-500 font-medium">Bytes Written</span>
-                          <span className="text-xs font-mono font-bold text-slate-700">{decodedMeta.metrics.txByteWrite.toLocaleString()}</span>
-                        </div>
-                      )}
-                      {decodedMeta.metrics.totalNonRefundableResourceFeeCharged && (
-                        <div className="flex justify-between items-center px-4 py-3">
-                          <span className="text-xs text-slate-500 font-medium">Non-refundable Fee</span>
-                          <span className="text-xs font-mono font-bold text-slate-700">
-                            {(parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM
-                          </span>
-                        </div>
-                      )}
-                      {decodedMeta.metrics.totalRefundableResourceFeeCharged && (
-                        <div className="flex justify-between items-center px-4 py-3">
-                          <span className="text-xs text-slate-500 font-medium">Refundable Fee</span>
-                          <span className="text-xs font-mono font-bold text-slate-700">
-                            {(parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM
-                          </span>
-                        </div>
-                      )}
-                      {decodedMeta.metrics.rentFeeCharged && (
-                        <div className="flex justify-between items-center px-4 py-3">
-                          <span className="text-xs text-slate-500 font-medium">Rent Fee</span>
-                          <span className="text-xs font-mono font-bold text-slate-700">
-                            {(parseInt(decodedMeta.metrics.rentFeeCharged) / 10000000).toFixed(7)} XLM
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              )}
-
               {/* Invocation Trace */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
@@ -1782,10 +1730,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                               className="flex items-start gap-3 border-l-2 border-slate-200 pl-4"
                               style={{ marginLeft: `${Math.min(call.depth, 4) * 16}px` }}
                             >
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                                call.type === 'fn_call' ? 'bg-blue-100' :
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${call.type === 'fn_call' ? 'bg-blue-100' :
                                 call.type === 'fn_return' ? 'bg-emerald-100' : 'bg-amber-100'
-                              }`}>
+                                }`}>
                                 {call.type === 'fn_call' ? (
                                   <svg className="w-2.5 h-2.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -2046,14 +1993,12 @@ export default function TransactionMobileView({ transaction, operations, effects
                       {/* Effects as trace items */}
                       {effects.slice(0, 6).map((effect, idx) => (
                         <div key={idx} className="flex items-start gap-3 mb-2 ml-4 border-l-2 border-slate-200 pl-4">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                            effect.type.includes('credited') ? 'bg-emerald-100' :
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${effect.type.includes('credited') ? 'bg-emerald-100' :
                             effect.type.includes('debited') ? 'bg-red-100' : 'bg-slate-100'
-                          }`}>
-                            <svg className={`w-2.5 h-2.5 ${
-                              effect.type.includes('credited') ? 'text-emerald-600' :
+                            }`}>
+                            <svg className={`w-2.5 h-2.5 ${effect.type.includes('credited') ? 'text-emerald-600' :
                               effect.type.includes('debited') ? 'text-red-600' : 'text-slate-500'
-                            }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               {effect.type.includes('credited') ? (
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                               ) : effect.type.includes('debited') ? (
@@ -2155,25 +2100,120 @@ export default function TransactionMobileView({ transaction, operations, effects
                 </div>
               </div>
 
-              {/* XDR Data Sizes */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600">XDR Data</h3>
-                </div>
-                <div className="divide-y divide-slate-100">
-                  {[
-                    { label: 'Envelope XDR', value: `${Math.ceil(transaction.envelope_xdr.length * 3 / 4).toLocaleString()} bytes` },
-                    { label: 'Result XDR', value: `${Math.ceil(transaction.result_xdr.length * 3 / 4).toLocaleString()} bytes` },
-                    ...(transaction.result_meta_xdr ? [{ label: 'Result Meta XDR', value: `${Math.ceil(transaction.result_meta_xdr.length * 3 / 4).toLocaleString()} bytes` }] : []),
-                    ...(transaction.fee_meta_xdr ? [{ label: 'Fee Meta XDR', value: `${Math.ceil(transaction.fee_meta_xdr.length * 3 / 4).toLocaleString()} bytes` }] : []),
-                  ].map((item, i) => (
-                    <div key={i} className="flex justify-between items-center px-4 py-3">
-                      <span className="text-xs text-slate-500 font-medium">{item.label}</span>
-                      <span className="text-xs font-mono font-bold text-slate-700">{item.value}</span>
+
+              {/* Combined Contract Resources & XDR Data */}
+              {!isDecodingXdr && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-5">
+                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
+                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600">Contract Resources</h3>
+                  </div>
+
+                  {/* Metrics Section */}
+                  {decodedMeta && decodedMeta.success && (
+                    <div className="p-4">
+                      <div className="grid grid-cols-2 gap-y-4 gap-x-4">
+                        {/* Ledger I/O - Only show if available */}
+                        <div>
+                          <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">Entries Read</div>
+                          <div className="font-mono text-sm text-slate-700 font-semibold">
+                            {decodedMeta.stateChanges?.filter(c => c.type === 'updated' || c.type === 'removed').length || 0} <span className="text-xs text-slate-400 font-normal">(est)</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">Entries Write</div>
+                          <div className="font-mono text-sm text-slate-700 font-semibold">
+                            {decodedMeta.stateChanges?.length || 0}
+                          </div>
+                        </div>
+
+                        {decodedMeta.metrics?.txByteRead && (
+                          <div>
+                            <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">Ledger Read</div>
+                            <div className="font-mono text-sm text-slate-700 font-semibold">
+                              {decodedMeta.metrics.txByteRead.toLocaleString()} B
+                            </div>
+                          </div>
+                        )}
+                        {decodedMeta.metrics?.txByteWrite && (
+                          <div>
+                            <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">Ledger Write</div>
+                            <div className="font-mono text-sm text-slate-700 font-semibold">
+                              {decodedMeta.metrics.txByteWrite.toLocaleString()} B
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Execution */}
+                        <div>
+                          <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">Events Emitted</div>
+                          <div className="font-mono text-sm text-slate-700 font-semibold">
+                            {decodedMeta.events?.length || 0}
+                          </div>
+                        </div>
+
+                        {decodedMeta.metrics?.cpuInsns && (
+                          <div>
+                            <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">Instructions</div>
+                            <div className="font-mono text-sm text-slate-700 font-semibold">
+                              {parseInt(decodedMeta.metrics.cpuInsns).toLocaleString()}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="col-span-2 border-t border-slate-100 my-1"></div>
+
+                        {/* Fees Breakdown */}
+                        <div className="col-span-2">
+                          <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Fee Breakdown</div>
+                          <div className="space-y-2">
+                            {decodedMeta.metrics?.totalRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) > 0 && (
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-slate-500">Refundable (Temporary)</span>
+                                <span className="font-mono font-medium text-emerald-600">
+                                  {(parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM
+                                </span>
+                              </div>
+                            )}
+                            {decodedMeta.metrics?.totalNonRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) > 0 && (
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-slate-500">Execution (Non-Ref)</span>
+                                <span className="font-mono font-medium text-orange-600">
+                                  {(parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM
+                                </span>
+                              </div>
+                            )}
+                            {decodedMeta.metrics?.rentFeeCharged && parseInt(decodedMeta.metrics.rentFeeCharged) > 0 && (
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-slate-500">Rent (Archival)</span>
+                                <span className="font-mono font-medium text-blue-600">
+                                  {(parseInt(decodedMeta.metrics.rentFeeCharged) / 10000000).toFixed(7)} XLM
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="col-span-2 border-t border-slate-100 my-1"></div>
+                      </div>
                     </div>
-                  ))}
+                  )}
+
+                  {/* XDR Data Section (Merged) */}
+                  <div className={`divide-y divide-slate-100 ${decodedMeta ? 'border-t border-slate-100' : ''}`}>
+                    {[
+                      { label: 'Envelope XDR', value: `${Math.ceil(transaction.envelope_xdr.length * 3 / 4).toLocaleString()} bytes` },
+                      { label: 'Result XDR', value: `${Math.ceil(transaction.result_xdr.length * 3 / 4).toLocaleString()} bytes` },
+                      ...(transaction.result_meta_xdr ? [{ label: 'Result Meta', value: `${Math.ceil(transaction.result_meta_xdr.length * 3 / 4).toLocaleString()} bytes` }] : []),
+                      ...(transaction.fee_meta_xdr ? [{ label: 'Fee Meta', value: `${Math.ceil(transaction.fee_meta_xdr.length * 3 / 4).toLocaleString()} bytes` }] : []),
+                    ].map((item, i) => (
+                      <div key={i} className="flex justify-between items-center px-4 py-3">
+                        <span className="text-xs text-slate-500 font-medium">{item.label}</span>
+                        <span className="text-xs font-mono font-bold text-slate-700">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 

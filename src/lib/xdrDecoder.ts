@@ -239,8 +239,14 @@ function shortenAddress(address: string): string {
 // Event Decoding
 // ============================================================================
 
-function decodeContractEvent(event: xdr.ContractEvent): ContractEvent | null {
+function decodeContractEvent(eventOrWrapper: xdr.ContractEvent | any): ContractEvent | null {
   try {
+    let event = eventOrWrapper;
+    // Handle StoredTransactionEvent wrapper (TransactionMetaV4)
+    if (typeof eventOrWrapper.event === 'function') {
+      event = eventOrWrapper.event();
+    }
+
     const type = event.type().name;
     let contractId: string | undefined;
 
