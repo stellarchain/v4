@@ -525,10 +525,10 @@ export default function TransactionPageClient({
   // Helper for type styling
   const getTypeStyle = (info: any) => {
     const type = info?.type || 'other';
-    if (type === 'payment') return { color: 'text-orange-500', bg: 'bg-orange-500', label: 'PAYMENT' };
-    if (type === 'contract') return { color: 'text-purple-500', bg: 'bg-purple-500', label: 'CONTRACT CALL' };
-    if (type === 'swap') return { color: 'text-blue-500', bg: 'bg-blue-500', label: 'SWAP' };
-    return { color: 'text-gray-900', bg: 'bg-gray-400', label: 'TRANSACTION' };
+    if (type === 'payment') return { color: 'text-[var(--accent-orange)]', bg: 'bg-[var(--accent-orange)]', label: 'PAYMENT' };
+    if (type === 'contract') return { color: 'text-[var(--accent-purple)]', bg: 'bg-[var(--accent-purple)]', label: 'CONTRACT CALL' };
+    if (type === 'swap') return { color: 'text-[var(--accent-blue)]', bg: 'bg-[var(--accent-blue)]', label: 'SWAP' };
+    return { color: 'text-[var(--text-primary)]', bg: 'bg-[var(--text-muted)]', label: 'TRANSACTION' };
   };
 
   const formatCompact = (numStr: string | undefined): string => {
@@ -540,30 +540,29 @@ export default function TransactionPageClient({
     return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
   };
 
-  const primaryColor = '#0F4C81';
+  const primaryColor = 'var(--text-primary)';
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-20 pt-1 md:pt-6">
+    <div className="min-h-screen bg-[var(--bg-primary)] pb-20 pt-1 md:pt-6">
       <div className="max-w-[1600px] mx-auto px-3 md:px-6">
-        <div className="flex flex-col bg-slate-100 md:bg-white md:rounded-xl md:shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
+        <div className="flex flex-col bg-[var(--bg-primary)] md:bg-[var(--bg-secondary)] md:rounded-xl md:shadow-[var(--shadow-md)] overflow-hidden">
           {/* Header & Tabs */}
           <div className="flex flex-col flex-shrink-0">
             {/* Header - Hidden on mobile */}
-            <div className="hidden md:flex p-3 md:p-4 border-b border-slate-100 items-center justify-between bg-slate-100 md:bg-slate-50/50">
-              <h3 className="text-[11px] md:text-xs font-bold uppercase tracking-wider" style={{ color: primaryColor }}>
+            <div className="hidden md:flex p-3 md:p-4 border-b border-[var(--border-subtle)] items-center justify-between bg-[var(--bg-primary)] md:bg-[var(--bg-tertiary)]">
+              <h3 className="text-[11px] md:text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
                 Transactions
               </h3>
             </div>
-            <div className="px-3 md:px-4 py-2 bg-slate-100 md:bg-white md:border-b md:border-slate-100 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            <div className="px-3 md:px-4 py-2 bg-[var(--bg-primary)] md:bg-[var(--bg-secondary)] md:border-b md:border-[var(--border-subtle)] flex items-center gap-2 overflow-x-auto scrollbar-hide">
               {['all', 'transfers', 'contracts'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setFilter(tab as FilterType)}
                   className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-tighter whitespace-nowrap transition-colors ${filter === tab
-                    ? 'text-white'
-                    : 'bg-white text-slate-500 hover:bg-slate-50 shadow-sm'
+                    ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
+                    : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] shadow-sm border border-[var(--border-subtle)]'
                     }`}
-                  style={filter === tab ? { backgroundColor: primaryColor } : {}}
                 >
                   {tab === 'all' ? 'All Activity' : tab === 'transfers' ? 'Payments' : 'Smart Contracts'}
                 </button>
@@ -574,15 +573,15 @@ export default function TransactionPageClient({
           {/* Desktop Table - Hidden on mobile */}
           <div className="hidden md:block flex-1 overflow-auto" ref={containerRef}>
             <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 bg-white text-[11px] text-gray-400 uppercase font-bold tracking-wider z-20 shadow-sm">
+              <thead className="sticky top-0 bg-[var(--bg-secondary)] text-[11px] text-[var(--text-muted)] uppercase font-bold tracking-wider z-20 shadow-sm">
                 <tr>
-                  <th className="px-4 py-3 border-b border-gray-100">Time</th>
-                  <th className="px-4 py-3 border-b border-gray-100">Type</th>
-                  <th className="px-4 py-3 border-b border-gray-100">Detail / Amount</th>
-                  <th className="px-4 py-3 border-b border-gray-100">Hash</th>
+                  <th className="px-4 py-3 border-b border-[var(--border-subtle)]">Time</th>
+                  <th className="px-4 py-3 border-b border-[var(--border-subtle)]">Type</th>
+                  <th className="px-4 py-3 border-b border-[var(--border-subtle)]">Detail / Amount</th>
+                  <th className="px-4 py-3 border-b border-[var(--border-subtle)]">Hash</th>
                 </tr>
               </thead>
-              <tbody className="text-[12px] font-mono divide-y divide-gray-50">
+              <tbody className="text-[12px] font-mono divide-y divide-[var(--border-subtle)]">
                 {visibleTransactions.length > 0 ? (
                   visibleTransactions.map((tx) => {
                     const info = tx.displayInfo;
@@ -590,14 +589,14 @@ export default function TransactionPageClient({
                     const functionName = info?.functionName || 'Contract Call';
 
                     return (
-                      <tr key={tx.hash} className="hover:bg-gray-50 transition-colors group h-[52px]">
-                        <td className="px-4 py-3 text-gray-400 whitespace-nowrap align-middle">
+                      <tr key={tx.hash} className="hover:bg-[var(--bg-hover)] transition-colors group h-[52px]">
+                        <td className="px-4 py-3 text-[var(--text-muted)] whitespace-nowrap align-middle">
                           {new Date(tx.created_at).toLocaleTimeString([], { hour12: false })}
                         </td>
                         <td className="px-4 py-3 align-middle">
                           <div className="flex items-center gap-2">
                             <span className={`w-2 h-2 rounded-full ${style.bg}`}></span>
-                            <span className="font-bold text-gray-900">
+                            <span className="font-bold text-[var(--text-primary)]">
                               {style.label}
                             </span>
                           </div>
@@ -606,28 +605,28 @@ export default function TransactionPageClient({
                           <div className="h-6 flex items-center">
                             {info?.type === 'payment' ? (
                               <div className="flex items-center gap-1">
-                                <span className="text-orange-500 font-bold">
+                                <span className="text-[var(--accent-orange)] font-bold">
                                   {formatCompact(info.amount)}
                                 </span>
-                                <span className="text-gray-500">{info.asset || 'XLM'}</span>
+                                <span className="text-[var(--text-tertiary)]">{info.asset || 'XLM'}</span>
                               </div>
                             ) : info?.type === 'contract' ? (
                               <div className="flex items-center gap-2">
-                                <span className="text-purple-500 font-bold">{functionName}</span>
+                                <span className="text-[var(--accent-purple)] font-bold">{functionName}</span>
                                 {info.effectAmount && (
-                                  <span className={`text-[11px] px-1.5 py-0.5 rounded ${info.effectType === 'received' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                                  <span className={`text-[11px] px-1.5 py-0.5 rounded ${info.effectType === 'received' ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
                                     }`}>
                                     {info.effectType === 'received' ? '+' : '-'}{formatCompact(info.effectAmount)} {info.effectAsset}
                                   </span>
                                 )}
                               </div>
                             ) : (
-                              <span className="text-gray-500 italic">View details</span>
+                              <span className="text-[var(--text-muted)] italic">View details</span>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-gray-500 align-middle">
-                          <a href={`/transaction/${tx.hash}`} className="text-slate-600 hover:text-slate-900 hover:underline truncate block w-32">
+                        <td className="px-4 py-3 text-[var(--text-tertiary)] align-middle">
+                          <a href={`/transaction/${tx.hash}`} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline truncate block w-32">
                             {tx.hash.substring(0, 8)}...{tx.hash.substring(tx.hash.length - 8)}
                           </a>
                         </td>
@@ -636,7 +635,7 @@ export default function TransactionPageClient({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-4 py-12 text-center text-gray-400 italic">
+                    <td colSpan={4} className="px-4 py-12 text-center text-[var(--text-muted)] italic">
                       No transactions found
                     </td>
                   </tr>
@@ -669,14 +668,14 @@ export default function TransactionPageClient({
                     <a
                       key={tx.hash}
                       href={`/transaction/${tx.hash}`}
-                      className="block bg-white rounded-xl shadow-sm border border-slate-100 active:bg-slate-50 transition-colors"
+                      className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
                     >
                       <div className="px-3 py-3 flex items-center justify-between">
                         {/* Left Side: Icon & Title/Meta */}
                         <div className="flex items-start space-x-3">
                           <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${tx.successful
-                            ? 'bg-emerald-50 text-emerald-500'
-                            : 'bg-red-50 text-red-500'
+                            ? 'bg-[var(--success)]/10 text-[var(--success)]'
+                            : 'bg-[var(--error)]/10 text-[var(--error)]'
                             }`}>
                             {tx.successful ? (
                               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -690,16 +689,16 @@ export default function TransactionPageClient({
                           </div>
 
                           <div className="flex flex-col">
-                            <span className="text-sm font-bold leading-tight capitalize" style={{ color: primaryColor }}>
+                            <span className="text-sm font-bold leading-tight capitalize text-[var(--text-primary)]">
                               {info?.type === 'contract'
                                 ? (functionName)
                                 : info?.type === 'payment'
                                   ? 'Payment'
                                   : 'Transaction'}
                             </span>
-                            <span className="text-xs text-slate-400 font-medium font-mono mt-0.5 flex items-center">
+                            <span className="text-xs text-[var(--text-muted)] font-medium font-mono mt-0.5 flex items-center">
                               {tx.hash.substring(0, 4)}...{tx.hash.substring(tx.hash.length - 4)}
-                              <span className="mx-1 text-slate-300">•</span>
+                              <span className="mx-1 text-[var(--text-muted)]">•</span>
                               {getTimeAgo(tx.created_at)}
                             </span>
                           </div>
@@ -709,14 +708,14 @@ export default function TransactionPageClient({
                         <div className="text-right">
                           {(info?.type === 'payment' && info.amount) || (info?.type === 'contract' && info.effectAmount) ? (
                             <span className={`text-xs font-bold ${info?.effectType === 'received' || info?.type === 'payment'
-                              ? 'text-emerald-600'
-                              : 'text-slate-900'
+                              ? 'text-[var(--success)]'
+                              : 'text-[var(--text-primary)]'
                               }`}>
                               {info?.effectType === 'received' || info?.type === 'payment' ? '+' : ''}
                               {formatCompact(info?.amount || info?.effectAmount)} {info?.asset || info?.effectAsset}
                             </span>
                           ) : (
-                            <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: primaryColor }}>
+                            <span className="text-[11px] font-bold tracking-wider uppercase text-[var(--text-primary)]">
                               {info?.type === 'contract' ? (functionName) : 'Details'}
                             </span>
                           )}
@@ -732,7 +731,7 @@ export default function TransactionPageClient({
                 {/* Mobile Loading Spinner */}
                 {isLoadingMore && (
                   <div className="flex justify-center py-4">
-                    <svg className="w-6 h-6 animate-spin" style={{ color: primaryColor }} fill="none" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 animate-spin text-[var(--text-primary)]" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
@@ -744,8 +743,7 @@ export default function TransactionPageClient({
                   <div className="py-4">
                     <button
                       onClick={loadMoreForMobile}
-                      className="w-full py-3 rounded-xl bg-white shadow-sm border border-slate-200 text-sm font-semibold transition-colors hover:bg-slate-50 active:bg-slate-100"
-                      style={{ color: primaryColor }}
+                      className="w-full py-3 rounded-xl bg-[var(--bg-secondary)] shadow-sm border border-[var(--border-subtle)] text-sm font-semibold transition-colors hover:bg-[var(--bg-tertiary)] active:bg-[var(--bg-hover)] text-[var(--text-primary)]"
                     >
                       Load More
                     </button>
@@ -754,13 +752,13 @@ export default function TransactionPageClient({
 
                 {/* Mobile No More Items Message */}
                 {!isLoadingMore && !mobileHasMore && mobileVisibleTransactions.length > 0 && (
-                  <div className="py-4 text-center text-slate-400 text-sm">
+                  <div className="py-4 text-center text-[var(--text-muted)] text-sm">
                     No more transactions
                   </div>
                 )}
               </div>
             ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-12 text-center text-slate-400 italic text-sm">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
                 No transactions found
               </div>
             )}
@@ -768,12 +766,12 @@ export default function TransactionPageClient({
 
           {/* Footer / Pagination - Desktop only */}
           {totalPages > 1 && (
-            <div className="hidden md:block py-4 px-3 bg-slate-100 md:bg-slate-50 md:p-3 md:border-t md:border-slate-100">
+            <div className="hidden md:block py-4 px-3 bg-[var(--bg-primary)] md:bg-[var(--bg-tertiary)] md:p-3 md:border-t md:border-[var(--border-subtle)]">
               <div className="flex items-center justify-center gap-1">
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1 || isLoadingMore}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] shadow-sm text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -798,10 +796,9 @@ export default function TransactionPageClient({
                       disabled={isLoadingMore}
                       className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
                         currentPage === pageNum
-                          ? 'text-white shadow-sm'
-                          : 'text-slate-500 hover:bg-slate-100'
+                          ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-sm'
+                          : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]'
                       }`}
-                      style={currentPage === pageNum ? { backgroundColor: primaryColor } : {}}
                     >
                       {pageNum}
                     </button>
@@ -809,13 +806,13 @@ export default function TransactionPageClient({
                 })}
 
                 {hasMore && totalPages > 5 && (
-                  <span className="text-slate-400 text-xs px-1">...</span>
+                  <span className="text-[var(--text-muted)] text-xs px-1">...</span>
                 )}
 
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={(currentPage >= totalPages && !hasMore) || isLoadingMore}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] shadow-sm text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -823,7 +820,7 @@ export default function TransactionPageClient({
                 </button>
 
                 {isLoadingMore && (
-                  <svg className="w-4 h-4 animate-spin ml-2" style={{ color: primaryColor }} fill="none" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 animate-spin ml-2 text-[var(--text-primary)]" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>

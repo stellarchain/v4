@@ -219,7 +219,7 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
           />
         ))
       ) : (
-        <div className="py-8 text-center text-slate-400 text-sm">
+        <div className="py-8 text-center text-[var(--text-muted)] text-sm">
           Loading transactions...
         </div>
       )}

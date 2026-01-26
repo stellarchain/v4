@@ -397,22 +397,22 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                            processedAsks.some(a => a.amount > 0 && a.price > 0);
 
   return (
-    <div className="w-full bg-slate-100 min-h-screen pb-24 font-sans relative">
+    <div className="w-full bg-[var(--bg-primary)] min-h-screen pb-24 font-sans relative">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-white border-b border-slate-200">
+      <header className="sticky top-0 z-20 bg-[var(--bg-secondary)] border-b border-[var(--border-default)]">
         {/* Top Bar */}
         <div className="px-3 py-3 flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="text-slate-400 p-1"
+            className="text-[var(--text-muted)] p-1"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-lg" style={{ color: coreColors.primary }}>{asset.code}</span>
-            <span className="text-slate-400 text-sm font-medium">/ USD</span>
+            <span className="font-bold text-lg" style={{ color: 'var(--primary-blue)' }}>{asset.code}</span>
+            <span className="text-[var(--text-muted)] text-sm font-medium">/ USD</span>
           </div>
           <div className="w-6" /> {/* Spacer for centering */}
         </div>
@@ -420,31 +420,31 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
         {/* Price Section */}
         <div className="px-4 pb-4">
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-slate-600 text-sm font-medium">{asset.name || asset.code}</span>
+            <span className="text-[var(--text-secondary)] text-sm font-medium">{asset.name || asset.code}</span>
             {rank > 0 && (
-              <span className="text-slate-400 text-sm font-medium">#{rank}</span>
+              <span className="text-[var(--text-muted)] text-sm font-medium">#{rank}</span>
             )}
           </div>
           <div className="flex items-center justify-between">
-            <div className="text-3xl font-bold tracking-tight" style={{ color: coreColors.primary }}>
+            <div className="text-3xl font-bold tracking-tight" style={{ color: 'var(--primary-blue)' }}>
               {formatPrice(asset.price_usd)}
             </div>
-            <div className={`px-3 py-1.5 rounded-lg ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`}>
+            <div className={`px-3 py-1.5 rounded-lg ${isPositive ? 'bg-[var(--success)]' : 'bg-[var(--error)]'}`}>
               <span className="text-white text-sm font-bold">
                 {isPositive ? '▲' : '▼'} {Math.abs(change24h).toFixed(2)}%
               </span>
             </div>
           </div>
           <div className="flex items-center justify-between mt-1">
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-[var(--text-muted)]">
               ≈ {asset.price_xlm.toFixed(4)} XLM
             </div>
             {asset.code !== 'XLM' && asset.issuer && (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400">Contract:</span>
+                <span className="text-xs text-[var(--text-muted)]">Contract:</span>
                 <Link
                   href={`/account/${asset.issuer}`}
-                  className="flex items-center gap-1 text-xs text-slate-500 font-mono hover:text-slate-700 transition-colors"
+                  className="flex items-center gap-1 text-xs text-[var(--text-tertiary)] font-mono hover:text-[var(--text-secondary)] transition-colors"
                 >
                   {shortenAddress(asset.issuer, 4)}
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -461,7 +461,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
       <div className="max-w-2xl mx-auto px-3 py-3 space-y-3">
 
         {/* Chart Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-2">
+        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-2">
           {/* Timeframe Selector */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex gap-1">
@@ -471,8 +471,8 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                   onClick={() => setSelectedTimeframe(tf.label)}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
                     selectedTimeframe === tf.label
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
+                      : 'bg-[var(--bg-primary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'
                   }`}
                 >
                   {tf.label}
@@ -491,16 +491,16 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                   <div className="flex items-end justify-around h-[180px] gap-1">
                     {[65, 45, 70, 55, 80, 60, 75, 50, 85, 65, 70, 55, 60, 75, 68, 72, 58, 82, 63, 77].map((h, i) => (
                       <div key={i} className="flex flex-col items-center gap-0.5">
-                        <div className="w-0.5 bg-slate-200 rounded" style={{ height: `${h * 0.15}px` }} />
-                        <div className={`w-2 rounded-sm ${i % 3 === 0 ? 'bg-red-200' : 'bg-emerald-200'}`} style={{ height: `${h}px` }} />
-                        <div className="w-0.5 bg-slate-200 rounded" style={{ height: `${h * 0.1}px` }} />
+                        <div className="w-0.5 bg-[var(--border-default)] rounded" style={{ height: `${h * 0.15}px` }} />
+                        <div className={`w-2 rounded-sm ${i % 3 === 0 ? 'bg-[var(--error)]/20' : 'bg-[var(--success)]/20'}`} style={{ height: `${h}px` }} />
+                        <div className="w-0.5 bg-[var(--border-default)] rounded" style={{ height: `${h * 0.1}px` }} />
                       </div>
                     ))}
                   </div>
                   {/* Volume bars */}
                   <div className="flex items-end justify-around h-[40px] gap-1">
                     {[20, 35, 25, 40, 30, 45, 28, 38, 32, 42, 26, 36, 30, 44, 34, 40, 28, 46, 32, 38].map((h, i) => (
-                      <div key={i} className={`w-2 rounded-sm ${i % 3 === 0 ? 'bg-red-100' : 'bg-emerald-100'}`} style={{ height: `${h}%` }} />
+                      <div key={i} className={`w-2 rounded-sm ${i % 3 === 0 ? 'bg-[var(--error)]/10' : 'bg-[var(--success)]/10'}`} style={{ height: `${h}%` }} />
                     ))}
                   </div>
                 </div>
@@ -509,17 +509,17 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
               <>
                 {/* Tooltip */}
                 {tooltipData && (
-                  <div className="absolute top-0 left-0 z-20 bg-slate-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 shadow-lg pointer-events-none">
-                    <div className="text-slate-400 mb-1">{tooltipData.time}</div>
+                  <div className="absolute top-0 left-0 z-20 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[11px] rounded-lg px-2.5 py-1.5 shadow-lg pointer-events-none">
+                    <div className="text-[var(--text-muted)] mb-1">{tooltipData.time}</div>
                     <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
-                      <span className="text-slate-400">O:</span>
+                      <span className="text-[var(--text-muted)]">O:</span>
                       <span className="font-mono">{formatPrice(tooltipData.open)}</span>
-                      <span className="text-slate-400">H:</span>
-                      <span className="font-mono text-emerald-400">{formatPrice(tooltipData.high)}</span>
-                      <span className="text-slate-400">L:</span>
-                      <span className="font-mono text-red-400">{formatPrice(tooltipData.low)}</span>
-                      <span className="text-slate-400">C:</span>
-                      <span className={`font-mono ${tooltipData.close >= tooltipData.open ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <span className="text-[var(--text-muted)]">H:</span>
+                      <span className="font-mono text-[var(--success)]">{formatPrice(tooltipData.high)}</span>
+                      <span className="text-[var(--text-muted)]">L:</span>
+                      <span className="font-mono text-[var(--error)]">{formatPrice(tooltipData.low)}</span>
+                      <span className="text-[var(--text-muted)]">C:</span>
+                      <span className={`font-mono ${tooltipData.close >= tooltipData.open ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
                         {formatPrice(tooltipData.close)}
                       </span>
                     </div>
@@ -529,20 +529,20 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
               </>
             ) : (
               /* No data state */
-              <div className="w-full h-[240px] flex items-center justify-center text-slate-400 text-xs">
+              <div className="w-full h-[240px] flex items-center justify-center text-[var(--text-muted)] text-xs">
                 No chart data available
               </div>
             )}
           </div>
 
           {/* Price Change Row */}
-          <div className="flex justify-between pt-3 mt-2 border-t border-slate-100">
+          <div className="flex justify-between pt-3 mt-2 border-t border-[var(--border-subtle)]">
             {loading && initialChartLoad ? (
               <>
                 {['24 hours', '7 days', '30 days', '90 days', 'YTD'].map((label) => (
                   <div key={label} className="text-center animate-pulse flex-1">
-                    <p className="text-[10px] text-slate-500 mb-0.5">{label}</p>
-                    <div className="h-4 w-10 bg-slate-200 rounded mx-auto"></div>
+                    <p className="text-[10px] text-[var(--text-tertiary)] mb-0.5">{label}</p>
+                    <div className="h-4 w-10 bg-[var(--border-default)] rounded mx-auto"></div>
                   </div>
                 ))}
               </>
@@ -559,26 +559,26 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
         </div>
 
         {/* Statistics Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200">
-            <h3 className="text-sm font-bold" style={{ color: coreColors.primary }}>Statistics</h3>
+        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+          <div className="px-4 py-3 border-b border-[var(--border-default)]">
+            <h3 className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>Statistics</h3>
           </div>
 
           {/* 24h Range */}
           {asset.price_high_24h > 0 && asset.price_low_24h > 0 && (
-            <div className="p-4 border-b border-slate-200">
+            <div className="p-4 border-b border-[var(--border-default)]">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">24h Range</span>
+                <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider">24h Range</span>
               </div>
               <div className="flex items-center justify-between text-[11px] mb-1.5">
-                <span className="font-mono text-slate-700">{formatPrice(asset.price_low_24h)}</span>
-                <span className="font-mono text-slate-700">{formatPrice(asset.price_high_24h)}</span>
+                <span className="font-mono text-[var(--text-secondary)]">{formatPrice(asset.price_low_24h)}</span>
+                <span className="font-mono text-[var(--text-secondary)]">{formatPrice(asset.price_high_24h)}</span>
               </div>
-              <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-red-400 via-slate-300 to-emerald-400 rounded-full" />
+              <div className="relative h-2 bg-[var(--bg-primary)] rounded-full overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-[var(--error)] via-[var(--text-muted)] to-[var(--success)] rounded-full" />
                 {asset.price_high_24h > asset.price_low_24h && (
                   <div
-                    className="absolute w-2.5 h-2.5 bg-white rounded-full top-1/2 -translate-y-1/2 shadow-md border border-slate-200"
+                    className="absolute w-2.5 h-2.5 bg-[var(--bg-secondary)] rounded-full top-1/2 -translate-y-1/2 shadow-md border border-[var(--border-default)]"
                     style={{
                       left: `${Math.min(100, Math.max(0, ((asset.price_usd - asset.price_low_24h) / (asset.price_high_24h - asset.price_low_24h)) * 100))}%`,
                       transform: 'translate(-50%, -50%)'
@@ -590,7 +590,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
           )}
 
           {/* Market Stats */}
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-[var(--border-subtle)]">
             <StatRow label="Market Cap" value={`$${formatNumber(asset.market_cap)}`} />
             <StatRow label="24h Volume" value={`$${formatNumber(asset.volume_24h)}`} />
             <StatRow label="Circulating Supply" value={`${formatNumber(asset.circulating_supply)} ${asset.code}`} />
@@ -602,15 +602,15 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
         </div>
 
         {/* Order Book Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+          <div className="px-4 py-3 border-b border-[var(--border-default)] flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h3 className="text-sm font-bold" style={{ color: coreColors.primary }}>Order Book</h3>
+              <h3 className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>Order Book</h3>
               {/* View Toggles */}
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setOrderBookView('both')}
-                  className={`p-1.5 rounded transition-colors ${orderBookView === 'both' ? 'bg-slate-200' : 'hover:bg-slate-100'}`}
+                  className={`p-1.5 rounded transition-colors ${orderBookView === 'both' ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-primary)]'}`}
                 >
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                     <rect x="1" y="2" width="6" height="3" fill="#22C55E" />
@@ -623,7 +623,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 </button>
                 <button
                   onClick={() => setOrderBookView('bids')}
-                  className={`p-1.5 rounded transition-colors ${orderBookView === 'bids' ? 'bg-slate-200' : 'hover:bg-slate-100'}`}
+                  className={`p-1.5 rounded transition-colors ${orderBookView === 'bids' ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-primary)]'}`}
                 >
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                     <rect x="1" y="2" width="6" height="3" fill="#22C55E" />
@@ -636,7 +636,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 </button>
                 <button
                   onClick={() => setOrderBookView('asks')}
-                  className={`p-1.5 rounded transition-colors ${orderBookView === 'asks' ? 'bg-slate-200' : 'hover:bg-slate-100'}`}
+                  className={`p-1.5 rounded transition-colors ${orderBookView === 'asks' ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-primary)]'}`}
                 >
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                     <rect x="1" y="2" width="6" height="3" fill="#CBD5E1" opacity="0.5" />
@@ -650,7 +650,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
               </div>
             </div>
             {!orderBookLoading && orderBook && spread > 0 && (
-              <span className="text-[11px] font-medium text-slate-400">
+              <span className="text-[11px] font-medium text-[var(--text-muted)]">
                 {spreadPercent.toFixed(2)}%
               </span>
             )}
@@ -659,12 +659,12 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
           {orderBookLoading && initialOrderBookLoad ? (
             /* Order Book Skeleton */
             <div className="text-[11px] font-mono animate-pulse">
-              <div className="grid grid-cols-2 border-b border-slate-100">
-                <div className="grid grid-cols-2 px-3 py-2 text-slate-400 font-bold text-[11px] uppercase">
+              <div className="grid grid-cols-2 border-b border-[var(--border-subtle)]">
+                <div className="grid grid-cols-2 px-3 py-2 text-[var(--text-muted)] font-bold text-[11px] uppercase">
                   <div>Amount</div>
                   <div className="text-right">Price</div>
                 </div>
-                <div className="grid grid-cols-2 px-3 py-2 text-slate-400 font-bold text-[11px] uppercase border-l border-slate-100">
+                <div className="grid grid-cols-2 px-3 py-2 text-[var(--text-muted)] font-bold text-[11px] uppercase border-l border-[var(--border-subtle)]">
                   <div>Price</div>
                   <div className="text-right">Amount</div>
                 </div>
@@ -673,18 +673,18 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 <div>
                   {[60, 75, 45, 80, 55, 70, 65, 50].map((w, i) => (
                     <div key={`bid-skel-${i}`} className="relative grid grid-cols-2 px-3 py-1.5">
-                      <div className="absolute top-0 bottom-0 left-0 bg-emerald-100" style={{ width: `${w}%` }} />
-                      <div className="relative h-3 w-10 bg-slate-200 rounded" />
-                      <div className="relative h-3 w-12 bg-slate-200 rounded ml-auto" />
+                      <div className="absolute top-0 bottom-0 left-0 bg-[var(--success)]/10" style={{ width: `${w}%` }} />
+                      <div className="relative h-3 w-10 bg-[var(--border-default)] rounded" />
+                      <div className="relative h-3 w-12 bg-[var(--border-default)] rounded ml-auto" />
                     </div>
                   ))}
                 </div>
-                <div className="border-l border-slate-100">
+                <div className="border-l border-[var(--border-subtle)]">
                   {[70, 55, 80, 45, 65, 50, 75, 60].map((w, i) => (
                     <div key={`ask-skel-${i}`} className="relative grid grid-cols-2 px-3 py-1.5">
-                      <div className="absolute top-0 bottom-0 right-0 bg-red-100" style={{ width: `${w}%` }} />
-                      <div className="relative h-3 w-12 bg-slate-200 rounded" />
-                      <div className="relative h-3 w-10 bg-slate-200 rounded ml-auto" />
+                      <div className="absolute top-0 bottom-0 right-0 bg-[var(--error)]/10" style={{ width: `${w}%` }} />
+                      <div className="relative h-3 w-12 bg-[var(--border-default)] rounded" />
+                      <div className="relative h-3 w-10 bg-[var(--border-default)] rounded ml-auto" />
                     </div>
                   ))}
                 </div>
@@ -693,15 +693,15 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
           ) : hasOrderBookData ? (
             <div className="text-[11px] font-mono">
               {/* Side-by-side headers */}
-              <div className={`grid ${orderBookView === 'both' ? 'grid-cols-2' : 'grid-cols-1'} border-b border-slate-100`}>
+              <div className={`grid ${orderBookView === 'both' ? 'grid-cols-2' : 'grid-cols-1'} border-b border-[var(--border-subtle)]`}>
                 {(orderBookView === 'both' || orderBookView === 'bids') && (
-                  <div className="flex items-center justify-between px-3 py-2 text-slate-400 font-semibold text-[11px] uppercase tracking-wide">
+                  <div className="flex items-center justify-between px-3 py-2 text-[var(--text-muted)] font-semibold text-[11px] uppercase tracking-wide">
                     {orderBookView === 'both' ? <span>Amount</span> : <span>Price</span>}
                     {orderBookView === 'both' ? <span>Price</span> : <span>Amount</span>}
                   </div>
                 )}
                 {(orderBookView === 'both' || orderBookView === 'asks') && (
-                  <div className={`flex items-center justify-between px-3 py-2 text-slate-400 font-semibold text-[11px] uppercase tracking-wide ${orderBookView === 'both' ? 'border-l border-slate-100' : ''}`}>
+                  <div className={`flex items-center justify-between px-3 py-2 text-[var(--text-muted)] font-semibold text-[11px] uppercase tracking-wide ${orderBookView === 'both' ? 'border-l border-[var(--border-subtle)]' : ''}`}>
                     <span>Price</span>
                     <span>Amount</span>
                   </div>
@@ -717,16 +717,16 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                       const percent = (bid.total / maxTotal) * 100;
                       return (
                         <div key={`bid-${i}`} className="relative flex items-center justify-between px-3 py-[7px]">
-                          <div className="absolute top-0 bottom-0 left-0 bg-emerald-500/12" style={{ width: `${percent}%` }} />
+                          <div className="absolute top-0 bottom-0 left-0 bg-[var(--success)]/12" style={{ width: `${percent}%` }} />
                           {orderBookView === 'both' ? (
                             <>
-                              <span className="relative text-slate-700 tabular-nums">{formatOrderAmount(bid.amount)}</span>
-                              <span className="relative text-emerald-500 tabular-nums">{formatOrderPrice(bid.price)}</span>
+                              <span className="relative text-[var(--text-secondary)] tabular-nums">{formatOrderAmount(bid.amount)}</span>
+                              <span className="relative text-[var(--success)] tabular-nums">{formatOrderPrice(bid.price)}</span>
                             </>
                           ) : (
                             <>
-                              <span className="relative text-emerald-500 tabular-nums">{formatOrderPrice(bid.price)}</span>
-                              <span className="relative text-slate-700 tabular-nums">{formatOrderAmount(bid.amount)}</span>
+                              <span className="relative text-[var(--success)] tabular-nums">{formatOrderPrice(bid.price)}</span>
+                              <span className="relative text-[var(--text-secondary)] tabular-nums">{formatOrderAmount(bid.amount)}</span>
                             </>
                           )}
                         </div>
@@ -737,14 +737,14 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
                 {/* Asks Column (Sell Orders) - Red */}
                 {(orderBookView === 'both' || orderBookView === 'asks') && (
-                  <div className={`font-mono ${orderBookView === 'both' ? 'border-l border-slate-100' : ''}`}>
+                  <div className={`font-mono ${orderBookView === 'both' ? 'border-l border-[var(--border-subtle)]' : ''}`}>
                     {processedAsks.slice(0, 10).map((ask, i) => {
                       const percent = (ask.total / maxTotal) * 100;
                       return (
                         <div key={`ask-${i}`} className="relative flex items-center justify-between px-3 py-[7px]">
-                          <div className="absolute top-0 bottom-0 right-0 bg-red-500/12" style={{ width: `${percent}%` }} />
-                          <span className="relative text-red-500 tabular-nums">{formatOrderPrice(ask.price)}</span>
-                          <span className="relative text-slate-700 tabular-nums">{formatOrderAmount(ask.amount)}</span>
+                          <div className="absolute top-0 bottom-0 right-0 bg-[var(--error)]/12" style={{ width: `${percent}%` }} />
+                          <span className="relative text-[var(--error)] tabular-nums">{formatOrderPrice(ask.price)}</span>
+                          <span className="relative text-[var(--text-secondary)] tabular-nums">{formatOrderAmount(ask.amount)}</span>
                         </div>
                       );
                     })}
@@ -754,7 +754,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
             </div>
           ) : (
             /* No data state */
-            <div className="py-8 text-center text-slate-400 text-xs">
+            <div className="py-8 text-center text-[var(--text-muted)] text-xs">
               No order book data available
             </div>
           )}
@@ -765,25 +765,25 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
         {/* About Section */}
         {(asset.description || asset.domain || asset.issuer) && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
             <div className="p-4">
               {/* Header with icon */}
               <div className="flex items-center gap-3 mb-4">
                 {asset.image ? (
                   <img src={asset.image} alt={asset.code} className="w-12 h-12 rounded-full" />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
-                    <span className="text-lg font-bold text-slate-500">{asset.code[0]}</span>
+                  <div className="w-12 h-12 rounded-full bg-[var(--bg-primary)] flex items-center justify-center">
+                    <span className="text-lg font-bold text-[var(--text-tertiary)]">{asset.code[0]}</span>
                   </div>
                 )}
                 <div>
-                  <h3 className="text-base font-bold" style={{ color: coreColors.primary }}>{asset.code}</h3>
+                  <h3 className="text-base font-bold" style={{ color: 'var(--primary-blue)' }}>{asset.code}</h3>
                   {asset.domain && (
                     <a
                       href={`https://${asset.domain}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-[#0F4C81] hover:underline"
+                      className="text-xs hover:underline" style={{ color: 'var(--primary-blue)' }}
                     >
                       https://{asset.domain}
                     </a>
@@ -793,16 +793,16 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
               {/* Description */}
               {asset.description && (
-                <p className="text-xs text-slate-600 leading-relaxed mb-4">{asset.description}</p>
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed mb-4">{asset.description}</p>
               )}
 
               {/* Issuer */}
               {asset.issuer && (
                 <div className="mb-3">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Issuer:</span>
+                  <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Issuer:</span>
                   <Link
                     href={`/account/${asset.issuer}`}
-                    className="block text-xs text-[#0F4C81] font-mono mt-1 break-all hover:underline"
+                    className="block text-xs font-mono mt-1 break-all hover:underline" style={{ color: 'var(--primary-blue)' }}
                   >
                     {asset.issuer}
                   </Link>
@@ -819,8 +819,8 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 function StatRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between px-4 py-3">
-      <span className="text-xs text-slate-500">{label}</span>
-      <span className="text-xs font-bold text-slate-900">{value}</span>
+      <span className="text-xs text-[var(--text-tertiary)]">{label}</span>
+      <span className="text-xs font-bold text-[var(--text-primary)]">{value}</span>
     </div>
   );
 }
@@ -832,13 +832,13 @@ function PriceChangeItem({ label, value }: { label: string; value?: number | nul
 
   return (
     <div className="text-center flex-1">
-      <p className="text-[10px] text-slate-500 mb-0.5">{label}</p>
+      <p className="text-[10px] text-[var(--text-tertiary)] mb-0.5">{label}</p>
       {hasValue ? (
-        <p className={`text-[11px] font-bold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+        <p className={`text-[11px] font-bold ${isPositive ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
           {isPositive ? '▲' : '▼'} {Math.abs(val).toFixed(2)}%
         </p>
       ) : (
-        <p className="text-[11px] font-bold text-slate-400">N/A</p>
+        <p className="text-[11px] font-bold text-[var(--text-muted)]">N/A</p>
       )}
     </div>
   );
@@ -866,9 +866,9 @@ function AssetConverterMobile({ asset }: { asset: AssetDetails }) {
   }, [usdAmount, asset.price_usd, activeInput]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-200">
-        <h3 className="text-sm font-bold" style={{ color: coreColors.primary }}>{asset.code} to USD Converter</h3>
+    <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[var(--border-default)]">
+        <h3 className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{asset.code} to USD Converter</h3>
       </div>
       <div className="p-4 space-y-3">
         {/* Asset Input */}
@@ -880,18 +880,18 @@ function AssetConverterMobile({ asset }: { asset: AssetDetails }) {
               setActiveInput('asset');
               setAssetAmount(e.target.value);
             }}
-            className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-3 pr-16 text-slate-900 font-mono text-sm focus:outline-none focus:border-[#0F4C81] transition-colors"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl py-2.5 px-3 pr-16 text-[var(--text-primary)] font-mono text-sm focus:outline-none focus:border-[var(--primary-blue)] transition-colors"
             placeholder="0"
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] font-bold text-xs">
             {asset.code}
           </span>
         </div>
 
         {/* Swap Icon */}
         <div className="flex justify-center">
-          <div className="w-7 h-7 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center">
-            <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-7 h-7 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl flex items-center justify-center">
+            <svg className="w-3.5 h-3.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
             </svg>
           </div>
@@ -906,15 +906,15 @@ function AssetConverterMobile({ asset }: { asset: AssetDetails }) {
               setActiveInput('usd');
               setUsdAmount(e.target.value);
             }}
-            className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-3 pr-16 text-slate-900 font-mono text-sm focus:outline-none focus:border-[#0F4C81] transition-colors"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl py-2.5 px-3 pr-16 text-[var(--text-primary)] font-mono text-sm focus:outline-none focus:border-[var(--primary-blue)] transition-colors"
             placeholder="0"
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] font-bold text-xs">
             USD
           </span>
         </div>
 
-        <p className="text-slate-400 text-[11px] text-center">
+        <p className="text-[var(--text-muted)] text-[11px] text-center">
           1 {asset.code} = ${asset.price_usd >= 1 ? asset.price_usd.toFixed(2) : asset.price_usd.toFixed(6)} USD
         </p>
       </div>

@@ -150,13 +150,13 @@ export default function ContractMobileView({ contract, operations }: ContractMob
   };
 
   return (
-    <div className="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans pb-24">
+    <div className="bg-[var(--bg-primary)] text-[var(--text-secondary)] min-h-screen flex flex-col font-sans pb-24">
       <main className="flex-1 px-6 pt-2 pb-8 max-w-lg mx-auto w-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 mt-1">
           <Link
             href="/"
-            className="flex items-center text-slate-400 hover:text-slate-700 transition-colors text-xs font-semibold uppercase tracking-wide"
+            className="flex items-center text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors text-xs font-semibold uppercase tracking-wide"
           >
             <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -166,7 +166,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
           <div className="flex items-center gap-2">
             {contract.verification?.isVerified && (
-              <div className="flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-blue-100 text-blue-700 border-blue-200">
+              <div className="flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-blue-500/10 text-blue-400 border-blue-400/30">
                 <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
@@ -174,7 +174,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
               </div>
             )}
             {contract.isVerified && (
-              <div className="flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-emerald-100 text-emerald-700 border-emerald-200">
+              <div className="flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/30">
                 <svg className="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -185,12 +185,12 @@ export default function ContractMobileView({ contract, operations }: ContractMob
         </div>
 
         {/* Contract Info Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-5">
+        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-5">
           <div className="flex items-start gap-4">
             {/* Icon */}
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${isNFT ? 'bg-gradient-to-br from-pink-500 to-rose-600' :
               isVault ? 'bg-gradient-to-br from-amber-500 to-orange-600' :
-                isToken ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gradient-to-br from-slate-600 to-slate-800'
+                isToken ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gradient-to-br from-slate-500 to-slate-700'
               } text-white text-xl font-bold shadow-lg`}>
               {isNFT ? (
                 <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -206,18 +206,18 @@ export default function ContractMobileView({ contract, operations }: ContractMob
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">
+              <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">
                 {isNFT ? 'NFT Collection' :
                   isVault ? 'Vault Contract' :
                     contract.type === 'dex' ? 'DEX Contract' :
                       contract.type === 'lending' ? 'Lending Protocol' :
                         isToken ? 'Token Contract' : 'Smart Contract'}
               </div>
-              <div className="text-xl font-bold text-slate-900 mt-0.5 truncate">
+              <div className="text-xl font-bold text-[var(--text-primary)] mt-0.5 truncate">
                 {contractDisplayName}
               </div>
               {(isToken || isNFT || isVault) && (tokenInfo?.symbol || contract.nftInfo?.symbol || contract.vaultInfo?.symbol) && (
-                <div className="text-sm font-semibold text-slate-500">
+                <div className="text-sm font-semibold text-[var(--text-tertiary)]">
                   {contract.nftInfo?.symbol || contract.vaultInfo?.symbol || tokenInfo?.symbol}
                 </div>
               )}
@@ -225,13 +225,13 @@ export default function ContractMobileView({ contract, operations }: ContractMob
           </div>
 
           {/* Contract ID */}
-          <div className="mt-4 pt-4 border-t border-slate-100">
+          <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Contract ID</span>
+              <span className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Contract ID</span>
               <button
                 onClick={handleCopy}
                 className="text-[10px] font-bold uppercase tracking-wide flex items-center gap-1"
-                style={{ color: getPrimaryColor() }}
+                style={{ color: 'var(--primary-blue)' }}
               >
                 {copied ? 'Copied!' : 'Copy'}
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -239,27 +239,27 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                 </svg>
               </button>
             </div>
-            <div className="font-mono text-xs text-slate-700 break-all mt-1">{contract.id}</div>
+            <div className="font-mono text-xs text-[var(--text-secondary)] break-all mt-1">{contract.id}</div>
           </div>
 
           {/* Token Info (if applicable) */}
           {isToken && (
-            <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-2 gap-4">
+            <div className="mt-4 pt-4 border-t border-[var(--border-default)] grid grid-cols-2 gap-4">
               <div>
-                <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Decimals</div>
-                <div className="text-sm font-bold text-slate-900 mt-1">
+                <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Decimals</div>
+                <div className="text-sm font-bold text-[var(--text-primary)] mt-1">
                   {contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Type</div>
-                <div className="text-sm font-bold text-slate-900 mt-1 flex items-center gap-1.5">
+                <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Type</div>
+                <div className="text-sm font-bold text-[var(--text-primary)] mt-1 flex items-center gap-1.5">
                   {contract.tokenMetadata?.isSAC ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#0F4C81] text-white">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--primary-blue)] text-white">
                       SAC
                     </span>
                   ) : (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-600 border border-purple-100">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-400/30">
                       SEP-41
                     </span>
                   )}
@@ -270,19 +270,19 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
           {/* NFT Info */}
           {isNFT && contract.nftInfo && (
-            <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-2 gap-4">
+            <div className="mt-4 pt-4 border-t border-[var(--border-default)] grid grid-cols-2 gap-4">
               <div>
-                <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Collection</div>
-                <div className="text-sm font-bold text-slate-900 mt-1">{contract.nftInfo.name}</div>
+                <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Collection</div>
+                <div className="text-sm font-bold text-[var(--text-primary)] mt-1">{contract.nftInfo.name}</div>
               </div>
               <div>
-                <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Symbol</div>
-                <div className="text-sm font-bold text-slate-900 mt-1">{contract.nftInfo.symbol}</div>
+                <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Symbol</div>
+                <div className="text-sm font-bold text-[var(--text-primary)] mt-1">{contract.nftInfo.symbol}</div>
               </div>
               {contract.nftInfo.totalSupply !== undefined && (
                 <div className="col-span-2">
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Total Supply</div>
-                  <div className="text-sm font-bold text-slate-900 mt-1">{formatTokenAmount(contract.nftInfo.totalSupply.toString())}</div>
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Total Supply</div>
+                  <div className="text-sm font-bold text-[var(--text-primary)] mt-1">{formatTokenAmount(contract.nftInfo.totalSupply.toString())}</div>
                 </div>
               )}
             </div>
@@ -290,42 +290,42 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
           {/* Vault Info */}
           {isVault && contract.vaultInfo && (
-            <div className="mt-4 pt-4 border-t border-slate-200 space-y-4">
+            <div className="mt-4 pt-4 border-t border-[var(--border-default)] space-y-4">
               <div>
-                <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Underlying Asset</div>
+                <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Underlying Asset</div>
                 <Link
                   href={`/contract/${contract.vaultInfo.underlyingAsset}`}
                   className="text-sm font-mono font-semibold mt-1 block truncate"
-                  style={{ color: getPrimaryColor() }}
+                  style={{ color: 'var(--primary-blue)' }}
                 >
                   {shortenAddress(contract.vaultInfo.underlyingAsset, 8)}
                 </Link>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Total Assets</div>
-                  <div className="text-sm font-bold text-slate-900 mt-1">{formatTokenAmount(contract.vaultInfo.totalAssets)}</div>
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Total Assets</div>
+                  <div className="text-sm font-bold text-[var(--text-primary)] mt-1">{formatTokenAmount(contract.vaultInfo.totalAssets)}</div>
                 </div>
                 <div>
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Total Shares</div>
-                  <div className="text-sm font-bold text-slate-900 mt-1">{formatTokenAmount(contract.vaultInfo.totalShares)}</div>
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Total Shares</div>
+                  <div className="text-sm font-bold text-[var(--text-primary)] mt-1">{formatTokenAmount(contract.vaultInfo.totalShares)}</div>
                 </div>
               </div>
               <div>
-                <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Conversion Rate</div>
-                <div className="text-sm font-bold text-slate-900 mt-1">{getConversionRate()} assets/share</div>
+                <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Conversion Rate</div>
+                <div className="text-sm font-bold text-[var(--text-primary)] mt-1">{getConversionRate()} assets/share</div>
               </div>
             </div>
           )}
 
           {/* Website link if verified */}
           {contract.verifiedContract?.website && (
-            <div className="mt-4 pt-4 border-t border-slate-200">
+            <div className="mt-4 pt-4 border-t border-[var(--border-default)]">
               <a
                 href={contract.verifiedContract.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                className="flex items-center justify-center gap-2 w-full py-2.5 bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -338,15 +338,15 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
         {/* Build Verification Section */}
         {contract.verification && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-5">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-5">
             <div className="flex items-center gap-2 mb-3">
-              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
-              <span className="text-sm font-bold text-slate-900">Build Verification</span>
+              <span className="text-sm font-bold text-[var(--text-primary)]">Build Verification</span>
               <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold ${contract.verification.isVerified
-                ? 'bg-[#0F4C81] text-white'
-                : 'bg-slate-100 text-slate-500'
+                ? 'bg-[var(--primary-blue)] text-white'
+                : 'bg-[var(--bg-primary)] text-[var(--text-tertiary)]'
                 }`}>
                 {contract.verification.isVerified ? 'Verified' : 'Unverified'}
               </span>
@@ -355,13 +355,13 @@ export default function ContractMobileView({ contract, operations }: ContractMob
             <div className="space-y-3">
               {contract.verification.sourceRepo && (
                 <div>
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest mb-1">Source Repository</div>
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest mb-1">Source Repository</div>
                   <a
                     href={contract.verification.sourceRepo}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-semibold flex items-center gap-1"
-                    style={{ color: getPrimaryColor() }}
+                    style={{ color: 'var(--primary-blue)' }}
                   >
                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                       <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
@@ -373,13 +373,13 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
               {contract.verification.commitHash && (
                 <div>
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest mb-1">Commit Hash</div>
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest mb-1">Commit Hash</div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-slate-700">{contract.verification.commitHash.slice(0, 12)}...</span>
+                    <span className="font-mono text-xs text-[var(--text-secondary)]">{contract.verification.commitHash.slice(0, 12)}...</span>
                     <button
                       onClick={() => handleCopyHash(contract.verification!.commitHash!, 'commit')}
                       className="text-[10px] font-bold uppercase"
-                      style={{ color: getPrimaryColor() }}
+                      style={{ color: 'var(--primary-blue)' }}
                     >
                       {copiedHash === 'commit' ? 'Copied!' : 'Copy'}
                     </button>
@@ -389,13 +389,13 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
               {contract.verification.wasmHash && (
                 <div>
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest mb-1">WASM Hash</div>
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest mb-1">WASM Hash</div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-slate-700">{contract.verification.wasmHash.slice(0, 16)}...</span>
+                    <span className="font-mono text-xs text-[var(--text-secondary)]">{contract.verification.wasmHash.slice(0, 16)}...</span>
                     <button
                       onClick={() => handleCopyHash(contract.verification!.wasmHash!, 'wasm')}
                       className="text-[10px] font-bold uppercase"
-                      style={{ color: getPrimaryColor() }}
+                      style={{ color: 'var(--primary-blue)' }}
                     >
                       {copiedHash === 'wasm' ? 'Copied!' : 'Copy'}
                     </button>
@@ -408,14 +408,14 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
         {/* Access Control Section */}
         {contract.accessControl && (contract.accessControl.owner || contract.accessControl.admin || contract.accessControl.isPaused) && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-5">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-5">
             <div className="flex items-center gap-2 mb-3">
-              <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
-              <span className="text-sm font-bold text-slate-900">Access Control</span>
+              <span className="text-sm font-bold text-[var(--text-primary)]">Access Control</span>
               {contract.accessControl.isPaused && (
-                <span className="ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700">
+                <span className="ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--error)]/10 text-[var(--error)]">
                   Paused
                 </span>
               )}
@@ -424,13 +424,13 @@ export default function ContractMobileView({ contract, operations }: ContractMob
             <div className="space-y-3">
               {(contract.accessControl.admin || contract.accessControl.owner) && (
                 <div>
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest mb-1">
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest mb-1">
                     {contract.accessControl.admin ? 'Admin' : 'Owner'}
                   </div>
                   <Link
                     href={`/account/${contract.accessControl.admin || contract.accessControl.owner}`}
                     className="font-mono text-xs break-all"
-                    style={{ color: getPrimaryColor() }}
+                    style={{ color: 'var(--primary-blue)' }}
                   >
                     {shortenAddress(contract.accessControl.admin || contract.accessControl.owner!, 8)}
                   </Link>
@@ -439,10 +439,10 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
               {contract.accessControl.pendingOwner && (
                 <div>
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest mb-1">Pending Owner</div>
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest mb-1">Pending Owner</div>
                   <Link
                     href={`/account/${contract.accessControl.pendingOwner}`}
-                    className="font-mono text-xs text-amber-600 hover:text-amber-700 break-all"
+                    className="font-mono text-xs text-amber-400 hover:text-amber-300 break-all"
                   >
                     {shortenAddress(contract.accessControl.pendingOwner, 8)}
                   </Link>
@@ -454,24 +454,24 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
         {/* Contract Metadata Section */}
         {contract.contractMetadata && (contract.contractMetadata.homeDomain || contract.contractMetadata.sourceRepo || (contract.contractMetadata.customMeta && Object.keys(contract.contractMetadata.customMeta).length > 0)) && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-5">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-5">
             <div className="flex items-center gap-2 mb-3">
-              <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <span className="text-sm font-bold text-slate-900">Contract Metadata</span>
+              <span className="text-sm font-bold text-[var(--text-primary)]">Contract Metadata</span>
             </div>
 
             <div className="space-y-3">
               {contract.contractMetadata.homeDomain && (
                 <div>
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest mb-1">Home Domain</div>
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest mb-1">Home Domain</div>
                   <a
                     href={`https://${contract.contractMetadata.homeDomain}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-semibold flex items-center gap-1"
-                    style={{ color: getPrimaryColor() }}
+                    style={{ color: 'var(--primary-blue)' }}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
@@ -483,13 +483,13 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
               {contract.contractMetadata.sourceRepo && (
                 <div>
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest mb-1">Source Repository</div>
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest mb-1">Source Repository</div>
                   <a
                     href={contract.contractMetadata.sourceRepo}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-semibold flex items-center gap-1"
-                    style={{ color: getPrimaryColor() }}
+                    style={{ color: 'var(--primary-blue)' }}
                   >
                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                       <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
@@ -501,12 +501,12 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
               {contract.contractMetadata.customMeta && Object.keys(contract.contractMetadata.customMeta).length > 0 && (
                 <div>
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest mb-2">Custom Metadata</div>
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest mb-2">Custom Metadata</div>
                   <div className="space-y-2">
                     {Object.entries(contract.contractMetadata.customMeta).map(([key, value]) => (
                       <div key={key} className="flex justify-between items-start">
-                        <span className="text-[11px] text-slate-500 font-medium">{key}</span>
-                        <span className="text-xs font-semibold text-slate-700 text-right max-w-[180px] truncate">{value}</span>
+                        <span className="text-[11px] text-[var(--text-tertiary)] font-medium">{key}</span>
+                        <span className="text-xs font-semibold text-[var(--text-secondary)] text-right max-w-[180px] truncate">{value}</span>
                       </div>
                     ))}
                   </div>
@@ -517,7 +517,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
         )}
 
         {/* Tabs Navigation */}
-        <div className="flex gap-6 border-b border-slate-200 pb-4 mb-4">
+        <div className="flex gap-6 border-b border-[var(--border-default)] pb-4 mb-4">
           {[
             { id: 'overview', label: 'Overview' },
             { id: 'history', label: 'History', count: contract.invocations?.length || 0 },
@@ -528,14 +528,17 @@ export default function ContractMobileView({ contract, operations }: ContractMob
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`text-sm font-semibold relative ${activeTab === tab.id
-                ? 'text-[#0F4C81] after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]'
-                : 'text-slate-500 hover:text-[#0F4C81]'
-                } transition-colors`}
+              className={`text-sm font-semibold relative transition-colors`}
+              style={{
+                color: activeTab === tab.id ? 'var(--primary-blue)' : 'var(--text-tertiary)',
+              }}
             >
               {tab.label}
+              {activeTab === tab.id && (
+                <span className="absolute -bottom-4 left-0 right-0 h-0.5" style={{ backgroundColor: 'var(--primary-blue)' }} />
+              )}
               {tab.count !== undefined && (
-                <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[11px] ${activeTab === tab.id ? 'bg-slate-100 text-slate-600' : 'bg-slate-100 text-slate-500'
+                <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[11px] bg-[var(--bg-primary)] ${activeTab === tab.id ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)]'
                   }`}>
                   {tab.count}
                 </span>
@@ -551,20 +554,20 @@ export default function ContractMobileView({ contract, operations }: ContractMob
             <div className="space-y-4">
               {/* Description */}
               {contract.verifiedContract?.description && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest mb-2">Description</div>
-                  <p className="text-sm text-slate-700 leading-relaxed">{contract.verifiedContract.description}</p>
+                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest mb-2">Description</div>
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{contract.verifiedContract.description}</p>
                 </div>
               )}
 
               {/* Recent Activity - Shows Events for Contracts */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Recent Activity</div>
-                  <span className="text-[11px] font-semibold text-slate-500">{contract.events?.length || 0} events</span>
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Recent Activity</div>
+                  <span className="text-[11px] font-semibold text-[var(--text-tertiary)]">{contract.events?.length || 0} events</span>
                 </div>
                 {!contract.events || contract.events.length === 0 ? (
-                  <div className="text-center py-6 text-slate-400 text-sm">No recent activity found</div>
+                  <div className="text-center py-6 text-[var(--text-muted)] text-sm">No recent activity found</div>
                 ) : (
                   <div className="space-y-2">
                     {contract.events.slice(0, 5).map((event, idx) => {
@@ -576,38 +579,38 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                       const subType = customData?.subType;
 
                       const eventContent = (
-                        <div className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors">
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${event.type === 'transfer' ? 'bg-blue-50 text-blue-600' :
-                              event.type === 'mint' ? 'bg-green-50 text-green-600' :
-                                event.type === 'burn' ? 'bg-orange-50 text-orange-600' :
-                                  event.type === 'approve' ? 'bg-purple-50 text-purple-600' :
-                                    'bg-slate-100 text-slate-600'
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${event.type === 'transfer' ? 'bg-blue-500/10 text-blue-400' :
+                              event.type === 'mint' ? 'bg-green-500/10 text-green-400' :
+                                event.type === 'burn' ? 'bg-orange-500/10 text-orange-400' :
+                                  event.type === 'approve' ? 'bg-purple-500/10 text-purple-400' :
+                                    'bg-[var(--bg-primary)] text-[var(--text-secondary)]'
                               }`}>
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                               </svg>
                             </div>
                             <div>
-                              <div className="text-xs font-semibold text-slate-900">
-                                {displayName}{subType && <span className="text-slate-500 font-normal"> · {subType}</span>}
+                              <div className="text-xs font-semibold text-[var(--text-primary)]">
+                                {displayName}{subType && <span className="text-[var(--text-tertiary)] font-normal"> · {subType}</span>}
                               </div>
                               {event.timestamp && (
-                                <div className="text-[11px] text-slate-500">{timeAgo(event.timestamp)}</div>
+                                <div className="text-[11px] text-[var(--text-tertiary)]">{timeAgo(event.timestamp)}</div>
                               )}
                             </div>
                           </div>
                           {isTransferEventData(event.data) && (
                             <div className="text-right">
-                              <div className="text-xs font-bold text-slate-900">
+                              <div className="text-xs font-bold text-[var(--text-primary)]">
                                 {formatEventAmount(event.data.amount || '0', contract.tokenMetadata?.decimals || 7)}
                               </div>
-                              <div className="text-[10px] text-slate-500">{tokenInfo?.symbol || ''}</div>
+                              <div className="text-[10px] text-[var(--text-tertiary)]">{tokenInfo?.symbol || ''}</div>
                             </div>
                           )}
                           {customData?.account && (
                             <div className="text-right">
-                              <div className="text-[11px] font-mono text-slate-500">
+                              <div className="text-[11px] font-mono text-[var(--text-tertiary)]">
                                 {shortenAddress(customData.account, 4)}
                               </div>
                             </div>
@@ -629,7 +632,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                   <button
                     onClick={() => setActiveTab('operations')}
                     className="w-full mt-3 py-2 text-center text-xs font-semibold"
-                    style={{ color: getPrimaryColor() }}
+                    style={{ color: 'var(--primary-blue)' }}
                   >
                     View all {contract.events.length} events
                   </button>
@@ -637,39 +640,39 @@ export default function ContractMobileView({ contract, operations }: ContractMob
               </div>
 
               {/* Storage Section */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
                     </svg>
-                    <span className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Storage</span>
+                    <span className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Storage</span>
                   </div>
                   {contract.storage && (
-                    <span className="text-[11px] font-semibold text-slate-500">{contract.storage.totalEntries} entries</span>
+                    <span className="text-[11px] font-semibold text-[var(--text-tertiary)]">{contract.storage.totalEntries} entries</span>
                   )}
                 </div>
                 {!contract.storage || contract.storage.entries.length === 0 ? (
-                  <div className="text-center py-6 text-slate-400 text-sm">No storage data found</div>
+                  <div className="text-center py-6 text-[var(--text-muted)] text-sm">No storage data found</div>
                 ) : (
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-[var(--border-subtle)]">
                     {contract.storage.entries.map((entry, idx) => (
                       <div key={idx} className="flex items-center justify-between py-2">
                         <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${entry.durability === 'instance' ? 'bg-[#0F4C81] text-white' :
-                            entry.durability === 'persistent' ? 'bg-emerald-100 text-emerald-700' :
-                              'bg-amber-100 text-amber-700'
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${entry.durability === 'instance' ? 'bg-[var(--primary-blue)] text-white' :
+                            entry.durability === 'persistent' ? 'bg-[var(--success)]/10 text-[var(--success)]' :
+                              'bg-amber-500/10 text-amber-400'
                             }`}>
                             {entry.durability}
                           </span>
-                          <span className="text-xs font-medium text-slate-700">{entry.keyDisplay}</span>
+                          <span className="text-xs font-medium text-[var(--text-secondary)]">{entry.keyDisplay}</span>
                         </div>
                         <div className="text-right">
-                          <span className="text-xs font-mono text-slate-500 truncate max-w-[150px] block">
+                          <span className="text-xs font-mono text-[var(--text-tertiary)] truncate max-w-[150px] block">
                             {entry.valueDisplay}
                           </span>
                           {entry.expirationLedger && (
-                            <div className="text-[10px] text-slate-400">Exp: {entry.expirationLedger}</div>
+                            <div className="text-[10px] text-[var(--text-muted)]">Exp: {entry.expirationLedger}</div>
                           )}
                         </div>
                       </div>
@@ -684,7 +687,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
           {activeTab === 'history' && (
             <div className="space-y-3">
               {!contract.invocations || contract.invocations.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-sm">No transaction history found</div>
+                <div className="text-center py-8 text-[var(--text-muted)] text-sm">No transaction history found</div>
               ) : (
                 contract.invocations.map((invocation, idx) => {
                   // Find the I128/U128 parameter for display (often the amount)
@@ -747,30 +750,30 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     <Link
                       key={idx}
                       href={`/transaction/${invocation.txHash}`}
-                      className="block bg-white rounded-2xl shadow-sm p-4 border border-slate-200 hover:shadow-md transition-shadow"
+                      className="block bg-[var(--bg-secondary)] rounded-2xl shadow-sm p-4 border border-[var(--border-default)] hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-sky-100 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-sky-500/10 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="font-mono text-xs" style={{ color: getPrimaryColor() }}>
+                            <span className="font-mono text-xs" style={{ color: 'var(--primary-blue)' }}>
                               {shortenAddress(invocation.sourceAccount, 4)}
                             </span>
-                            <span className="text-slate-400 text-xs">invoked</span>
-                            <span className="font-mono text-sm font-bold" style={{ color: getPrimaryColor() }}>
+                            <span className="text-[var(--text-muted)] text-xs">invoked</span>
+                            <span className="font-mono text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>
                               {invocation.functionName}
                             </span>
                           </div>
                           {summary && (
-                            <div className="text-xs text-slate-600 mb-1">
+                            <div className="text-xs text-[var(--text-secondary)] mb-1">
                               {summary}
                             </div>
                           )}
-                          <div className="text-[11px] text-slate-400 mt-1">
+                          <div className="text-[11px] text-[var(--text-muted)] mt-1">
                             {new Date(invocation.createdAt).toLocaleString('en-US', {
                               month: 'short',
                               day: 'numeric',
@@ -791,7 +794,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
           {activeTab === 'operations' && (
             <div className="space-y-3">
               {!contract.events || contract.events.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-sm">No events found</div>
+                <div className="text-center py-8 text-[var(--text-muted)] text-sm">No events found</div>
               ) : (
                 contract.events.map((event, idx) => {
                   // Get display name - use raw event name for custom events
@@ -803,12 +806,12 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
                   const eventContent = (
                     <div className="flex items-center gap-3">
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${event.type === 'transfer' ? 'bg-blue-100 text-blue-600' :
-                        event.type === 'mint' ? 'bg-green-100 text-green-600' :
-                          event.type === 'burn' ? 'bg-orange-100 text-orange-600' :
-                            event.type === 'approve' ? 'bg-purple-100 text-purple-600' :
-                              event.type === 'clawback' ? 'bg-red-100 text-red-600' :
-                                'bg-slate-100 text-slate-500'
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${event.type === 'transfer' ? 'bg-blue-500/10 text-blue-400' :
+                        event.type === 'mint' ? 'bg-green-500/10 text-green-400' :
+                          event.type === 'burn' ? 'bg-orange-500/10 text-orange-400' :
+                            event.type === 'approve' ? 'bg-purple-500/10 text-purple-400' :
+                              event.type === 'clawback' ? 'bg-[var(--error)]/10 text-[var(--error)]' :
+                                'bg-[var(--bg-primary)] text-[var(--text-tertiary)]'
                         }`}>
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -816,31 +819,31 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-900">
-                            {displayName}{subType && <span className="text-slate-500 font-normal"> · {subType}</span>}
+                          <span className="text-xs font-semibold text-[var(--text-primary)]">
+                            {displayName}{subType && <span className="text-[var(--text-tertiary)] font-normal"> · {subType}</span>}
                           </span>
                           {isTransferEventData(event.data) && (
-                            <span className="text-xs font-bold text-slate-900">
-                              {formatEventAmount(event.data.amount || '0', contract.tokenMetadata?.decimals || 7)} <span className="text-[10px] text-slate-500">{tokenInfo?.symbol || ''}</span>
+                            <span className="text-xs font-bold text-[var(--text-primary)]">
+                              {formatEventAmount(event.data.amount || '0', contract.tokenMetadata?.decimals || 7)} <span className="text-[10px] text-[var(--text-tertiary)]">{tokenInfo?.symbol || ''}</span>
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                           {event.timestamp && (
-                            <span className="text-[11px] text-slate-500">{timeAgo(event.timestamp)}</span>
+                            <span className="text-[11px] text-[var(--text-tertiary)]">{timeAgo(event.timestamp)}</span>
                           )}
                           {isTransferEventData(event.data) && (
                             <>
-                              <span className="text-slate-300">|</span>
-                              <span className="text-[11px] font-mono text-slate-500">
+                              <span className="text-[var(--border-default)]">|</span>
+                              <span className="text-[11px] font-mono text-[var(--text-tertiary)]">
                                 {shortenAddress(event.data.from, 4)} → {shortenAddress(event.data.to, 4)}
                               </span>
                             </>
                           )}
                           {customData?.account && (
                             <>
-                              <span className="text-slate-300">|</span>
-                              <span className="text-[11px] font-mono text-slate-500">
+                              <span className="text-[var(--border-default)]">|</span>
+                              <span className="text-[11px] font-mono text-[var(--text-tertiary)]">
                                 {shortenAddress(customData.account, 4)}
                               </span>
                             </>
@@ -854,14 +857,14 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     <Link
                       key={idx}
                       href={`/transaction/${event.txHash}`}
-                      className="block bg-white rounded-2xl shadow-sm border border-slate-200 p-3 hover:border-[#0F4C81]/30 hover:bg-sky-50/50 transition-colors"
+                      className="block bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-3 hover:border-[var(--primary-blue)]/30 hover:bg-[var(--bg-tertiary)] transition-colors"
                     >
                       {eventContent}
                     </Link>
                   ) : (
                     <div
                       key={idx}
-                      className="block bg-white rounded-2xl shadow-sm border border-slate-200 p-3"
+                      className="block bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-3"
                     >
                       {eventContent}
                     </div>
@@ -876,7 +879,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
           {activeTab === 'interface' && (
             <div className="space-y-4">
               {contract.spec ? (
-                <div className="bg-[#0f172a] rounded-xl shadow-md border border-slate-800 overflow-hidden font-mono text-xs text-slate-300 relative group">
+                <div className="bg-[var(--bg-tertiary)] rounded-xl shadow-md border border-[var(--border-default)] overflow-hidden font-mono text-xs text-[var(--text-secondary)] relative group">
                   {/* Header Actions */}
                   <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <button
@@ -886,26 +889,26 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                           navigator.clipboard.writeText(text);
                         }
                       }}
-                      className="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white px-2 py-1 rounded text-[10px] font-sans font-medium transition-colors border border-slate-700 shadow-sm"
+                      className="bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] px-2 py-1 rounded text-[10px] font-sans font-medium transition-colors border border-[var(--border-default)] shadow-sm"
                     >
                       Copy
                     </button>
                   </div>
 
-                  <div className="px-5 py-3 border-b border-slate-800/50 flex items-center justify-between bg-[#0f172a]">
-                    <span className="font-bold text-slate-400 text-[11px] uppercase tracking-wider">Contract Interface</span>
-                    <span className="text-[10px] text-slate-600 font-medium px-2 py-0.5 rounded bg-slate-800/50">Rust / WASM</span>
+                  <div className="px-5 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-tertiary)]">
+                    <span className="font-bold text-[var(--text-muted)] text-[11px] uppercase tracking-wider">Contract Interface</span>
+                    <span className="text-[10px] text-[var(--text-muted)] font-medium px-2 py-0.5 rounded bg-[var(--bg-primary)]">Rust / WASM</span>
                   </div>
                   <div className="p-5 overflow-x-auto custom-scrollbar">
                     <pre id="contract-interface-code" className="whitespace-pre font-mono text-[11px] leading-relaxed">
-                      <span className="text-slate-500 italic block mb-4">// Protocol version: 20 (Soroban)</span>
+                      <span className="text-[var(--text-tertiary)] italic block mb-4">// Protocol version: 20 (Soroban)</span>
 
                       {/* Functions */}
                       {contract.spec.functions.map((fn, idx) => (
                         <div key={idx} className="mb-6 last:mb-0 group/fn">
                           {/* Doc string */}
                           {fn.doc && (
-                            <div className="text-slate-500 italic mb-1">
+                            <div className="text-[var(--text-tertiary)] italic mb-1">
                               {fn.doc.split('\n').map((line, i) => (
                                 <div key={i}>/// {line}</div>
                               ))}
@@ -916,58 +919,58 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                           <div className="flex flex-wrap items-baseline">
                             <span className="text-[#c678dd] mr-2">fn</span>
                             <span className="text-[#61afef] font-bold mr-1">{fn.name}</span>
-                            <span className="text-slate-400">(</span>
+                            <span className="text-[var(--text-muted)]">(</span>
                             <div className="inline-flex flex-col md:flex-row md:items-baseline">
                               {fn.inputs.map((arg, argIdx) => (
                                 <span key={argIdx} className="whitespace-nowrap">
-                                  {argIdx > 0 && <span className="text-slate-500 mr-1">, </span>}
+                                  {argIdx > 0 && <span className="text-[var(--text-tertiary)] mr-1">, </span>}
                                   <span className="text-[#e06c75]">{arg.name}</span>
-                                  <span className="text-slate-500 mr-1">: </span>
+                                  <span className="text-[var(--text-tertiary)] mr-1">: </span>
                                   <span className="text-[#98c379]">{formatSpecType(arg.type)}</span>
                                 </span>
                               ))}
                             </div>
-                            <span className="text-slate-400">)</span>
+                            <span className="text-[var(--text-muted)]">)</span>
                             {fn.outputs && fn.outputs.length > 0 && (
                               <>
-                                <span className="text-slate-500 mx-2">-&gt;</span>
+                                <span className="text-[var(--text-tertiary)] mx-2">-&gt;</span>
                                 <span className="text-[#98c379]">
                                   {fn.outputs.length === 1 ? formatSpecType(fn.outputs[0]) : `(${fn.outputs.map(formatSpecType).join(', ')})`}
                                 </span>
                               </>
                             )}
-                            <span className="text-slate-600 ml-1">;</span>
+                            <span className="text-[var(--text-muted)] ml-1">;</span>
                           </div>
                         </div>
                       ))}
 
                       {/* UDTs */}
                       {contract.spec.udts.length > 0 && (
-                        <div className="mt-8 pt-8 border-t border-slate-800/50">
-                          <div className="text-slate-600 uppercase text-[10px] tracking-widest font-bold mb-4">// Types</div>
+                        <div className="mt-8 pt-8 border-t border-[var(--border-subtle)]">
+                          <div className="text-[var(--text-muted)] uppercase text-[10px] tracking-widest font-bold mb-4">// Types</div>
                           {contract.spec.udts.map((udt, idx) => (
                             <div key={idx} className="mb-6">
-                              <div className="text-slate-500 italic mb-1">/// {udt.doc}</div>
+                              <div className="text-[var(--text-tertiary)] italic mb-1">/// {udt.doc}</div>
                               <div>
                                 <span className="text-[#c678dd] mr-2">{udt.type}</span>
                                 <span className="text-[#e5c07b] font-bold">{udt.name}</span>
-                                <span className="text-slate-400 ml-2">{'{'}</span>
+                                <span className="text-[var(--text-muted)] ml-2">{'{'}</span>
                               </div>
-                              <div className="pl-6 border-l-2 border-slate-800/30 ml-1 my-1">
+                              <div className="pl-6 border-l-2 border-[var(--border-subtle)] ml-1 my-1">
                                 {udt.fields.map((field, fIdx) => (
                                   <div key={fIdx}>
                                     <span className="text-[#e06c75]">{field.name}</span>
                                     {field.type && (
                                       <>
-                                        <span className="text-slate-500 mr-1">: </span>
+                                        <span className="text-[var(--text-tertiary)] mr-1">: </span>
                                         <span className="text-[#98c379]">{formatSpecType(field.type)}</span>
                                       </>
                                     )}
-                                    <span className="text-slate-500">,</span>
+                                    <span className="text-[var(--text-tertiary)]">,</span>
                                   </div>
                                 ))}
                               </div>
-                              <div className="text-slate-400">{'}'}</div>
+                              <div className="text-[var(--text-muted)]">{'}'}</div>
                             </div>
                           ))}
                         </div>
@@ -976,14 +979,14 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                   </div>
                 </div>
               ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 flex flex-col items-center justify-center text-center">
-                  <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4">
-                    <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-default)] p-12 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                     </svg>
                   </div>
-                  <h3 className="text-sm font-bold text-slate-900 mb-2">Interface Not Available</h3>
-                  <p className="text-sm text-slate-500 max-w-xs">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] mb-2">Interface Not Available</h3>
+                  <p className="text-sm text-[var(--text-tertiary)] max-w-xs">
                     The XDR specification for this contract could not be retrieved from the transaction history or parsed directly.
                   </p>
                 </div>
@@ -1027,22 +1030,22 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                 ...(contract.contractMetadata?.homeDomain ? [{ label: 'Home Domain', value: contract.contractMetadata.homeDomain, isLink: true, linkPrefix: 'https://' }] : []),
                 ...(contract.verifiedContract?.website ? [{ label: 'Website', value: contract.verifiedContract.website, isLink: true }] : []),
               ].map((item, i) => (
-                <div key={i} className="flex justify-between items-start py-2.5 border-b border-slate-200 last:border-0">
-                  <span className="text-xs text-slate-500 font-medium">{item.label}</span>
+                <div key={i} className="flex justify-between items-start py-2.5 border-b border-[var(--border-default)] last:border-0">
+                  <span className="text-xs text-[var(--text-tertiary)] font-medium">{item.label}</span>
                   {item.isLink ? (
-                    <a href={item.linkPrefix ? item.linkPrefix + item.value : item.value} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold hover:underline truncate max-w-[180px]" style={{ color: getPrimaryColor() }}>
+                    <a href={item.linkPrefix ? item.linkPrefix + item.value : item.value} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold hover:underline truncate max-w-[180px]" style={{ color: 'var(--primary-blue)' }}>
                       {item.value}
                     </a>
                   ) : item.isAccountLink ? (
-                    <Link href={`/account/${item.value}`} className="text-xs font-semibold hover:underline font-mono truncate max-w-[180px]" style={{ color: getPrimaryColor() }}>
+                    <Link href={`/account/${item.value}`} className="text-xs font-semibold hover:underline font-mono truncate max-w-[180px]" style={{ color: 'var(--primary-blue)' }}>
                       {shortenAddress(item.value, 6)}
                     </Link>
                   ) : item.isContractLink ? (
-                    <Link href={`/contract/${item.value}`} className="text-xs font-semibold hover:underline font-mono truncate max-w-[180px]" style={{ color: getPrimaryColor() }}>
+                    <Link href={`/contract/${item.value}`} className="text-xs font-semibold hover:underline font-mono truncate max-w-[180px]" style={{ color: 'var(--primary-blue)' }}>
                       {shortenAddress(item.value, 6)}
                     </Link>
                   ) : (
-                    <span className={`text-xs font-semibold text-slate-700 text-right ${item.mono ? 'font-mono break-all max-w-[180px]' : ''}`}>
+                    <span className={`text-xs font-semibold text-[var(--text-secondary)] text-right ${item.mono ? 'font-mono break-all max-w-[180px]' : ''}`}>
                       {item.value}
                     </span>
                   )}
