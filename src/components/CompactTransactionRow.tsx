@@ -35,14 +35,14 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
       <Link
         ref={ref}
         href={`/transaction/${transaction.hash}`}
-        className="block bg-white rounded-xl shadow-sm border border-slate-100 active:bg-slate-50 transition-colors"
+        className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
       >
         <div className="flex items-center justify-between px-3 py-3">
           {/* Left Side: Icon & Title/Meta */}
           <div className="flex items-start space-x-3">
             <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${transaction.successful
-              ? 'bg-emerald-50 text-emerald-500'
-              : 'bg-red-50 text-red-500'
+              ? 'bg-[var(--success)]/10 text-[var(--success)]'
+              : 'bg-[var(--error)]/10 text-[var(--error)]'
               }`}>
               {transaction.successful ? (
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -56,16 +56,16 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
             </div>
 
             <div className="flex flex-col">
-              <span className="text-sm font-bold leading-tight capitalize" style={{ color: getPrimaryColor() }}>
+              <span className="text-sm font-bold leading-tight capitalize text-[var(--primary-blue)]">
                 {info?.type === 'contract'
                   ? (info.functionName || 'Smart Contract')
                   : info?.type === 'payment'
                     ? 'Payment'
                     : 'Transaction'}
               </span>
-              <span className="text-xs text-slate-400 font-medium font-mono mt-0.5 flex items-center">
+              <span className="text-xs text-[var(--text-muted)] font-medium font-mono mt-0.5 flex items-center">
                 {shortenAddress(transaction.hash, 4)}
-                <span className="mx-1 text-slate-300">•</span>
+                <span className="mx-1 text-[var(--text-muted)]">•</span>
                 {timeAgo(transaction.created_at)}
               </span>
             </div>
@@ -75,14 +75,14 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
           <div className="text-right">
             {(info?.type === 'payment' && info.amount) || (info?.type === 'contract' && info.effectAmount) ? (
               <span className={`text-xs font-bold ${info.effectType === 'received' || info?.type === 'payment'
-                ? 'text-emerald-600'
-                : 'text-slate-900'
+                ? 'text-[var(--success)]'
+                : 'text-[var(--text-primary)]'
                 }`}>
                 {info.effectType === 'received' || info?.type === 'payment' ? '+' : ''}
                 {formatCompact(info.amount || info.effectAmount)} {info.asset || info.effectAsset}
               </span>
             ) : (
-              <span className="text-[11px] font-bold tracking-wider uppercase" style={{ color: getPrimaryColor() }}>
+              <span className="text-[11px] font-bold tracking-wider uppercase text-[var(--primary-blue)]">
                 {info?.type === 'contract' ? (info.functionName || 'Contract') : 'Details'}
               </span>
             )}

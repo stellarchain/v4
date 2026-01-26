@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MarketAsset } from '@/lib/stellar';
-import { containers, coreColors } from '@/lib/design-system';
+import { containers } from '@/lib/design-system';
 
 interface MarketsMobileViewProps {
   initialAssets: MarketAsset[];
@@ -60,7 +60,7 @@ function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
   if (!data || data.length === 0) {
     return (
       <svg className="overflow-visible" height="18" viewBox="0 0 48 18" width="48">
-        <path d="M0 9 L24 9 L48 9" fill="none" stroke="#94a3b8" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+        <path d="M0 9 L24 9 L48 9" fill="none" stroke="var(--text-muted)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
       </svg>
     );
   }
@@ -97,13 +97,13 @@ function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
 
 function ChangeIndicator({ value }: { value: number }) {
   if (value === 0 || isNaN(value)) {
-    return <span className="text-xs font-bold text-slate-400">0.00%</span>;
+    return <span className="text-xs font-bold text-[var(--text-muted)]">0.00%</span>;
   }
 
   const isPositive = value >= 0;
 
   return (
-    <span className={`text-xs font-bold ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+    <span className={`text-xs font-bold ${isPositive ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
       {isPositive ? '+' : ''}{value.toFixed(2)}%
     </span>
   );
@@ -235,57 +235,57 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
   return (
     <div className={`${containers.page}`}>
       {/* Header - Sticky */}
-      <header className="pt-3 pb-3 sticky top-0 z-20 bg-slate-100/90 backdrop-blur-md">
+      <header className="pt-3 pb-3 sticky top-0 z-20 bg-[var(--bg-primary)]/90 backdrop-blur-md">
         {/* Title Section */}
         <div className="flex items-center gap-2 mb-3 px-3">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: coreColors.primary }}>
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--primary-blue)' }}>
             <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           </div>
-          <h1 className="text-base font-bold text-slate-900">Assets</h1>
-          <span className="text-[11px] text-slate-400">by market cap</span>
+          <h1 className="text-base font-bold text-[var(--text-primary)]">Assets</h1>
+          <span className="text-[11px] text-[var(--text-muted)]">by market cap</span>
         </div>
 
         {/* Market Stats Summary */}
-        <div className="mx-3 mb-3 bg-white rounded-xl border border-slate-200 shadow-sm overflow-visible">
-          <div className="flex divide-x divide-slate-100">
+        <div className="mx-3 mb-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm overflow-visible">
+          <div className="flex divide-x divide-[var(--border-subtle)]">
             <div className="flex-1 py-2.5 px-3 text-center group relative">
               <div className="flex items-center justify-center gap-1 mb-0.5">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Market Cap</p>
-                <svg className="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium">Market Cap</p>
+                <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
                 </svg>
               </div>
-              <p className="text-sm font-bold" style={{ color: coreColors.primary }}>{formatLargeNumber(marketTotals.totalMarketCap)}</p>
-              <div className="absolute top-full left-0 mt-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30">
+              <p className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{formatLargeNumber(marketTotals.totalMarketCap)}</p>
+              <div className="absolute top-full left-0 mt-2 px-2 py-1 bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30 border border-[var(--border-default)]">
                 Total market cap of all Stellar assets
               </div>
             </div>
             <div className="flex-1 py-2.5 px-3 text-center group relative">
               <div className="flex items-center justify-center gap-1 mb-0.5">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Volume 24h</p>
-                <svg className="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium">Volume 24h</p>
+                <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
                 </svg>
               </div>
-              <p className="text-sm font-bold" style={{ color: coreColors.primary }}>{formatLargeNumber(marketTotals.totalVolume)}</p>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30">
+              <p className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{formatLargeNumber(marketTotals.totalVolume)}</p>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30 border border-[var(--border-default)]">
                 Combined 24h trading volume
               </div>
             </div>
             <div className="flex-1 py-2.5 px-3 text-center group relative">
               <div className="flex items-center justify-center gap-1 mb-0.5">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Assets</p>
-                <svg className="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium">Assets</p>
+                <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
                 </svg>
               </div>
-              <p className="text-sm font-bold" style={{ color: coreColors.primary }}>{marketTotals.totalAssets}</p>
-              <div className="absolute top-full right-0 mt-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30">
+              <p className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{marketTotals.totalAssets}</p>
+              <div className="absolute top-full right-0 mt-2 px-2 py-1 bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30 border border-[var(--border-default)]">
                 Total tracked Stellar assets
               </div>
             </div>
@@ -295,7 +295,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
         {/* Search & Filter - aligned with list */}
         <div className="flex gap-2 items-stretch px-3">
           <div className="relative flex-1">
-            <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
+            <span className="absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -305,29 +305,29 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search assets..."
-              className="w-full h-10 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-sm font-medium placeholder-slate-400 text-slate-900 outline-none"
+              className="w-full h-10 pl-9 pr-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm font-medium placeholder-[var(--text-muted)] text-[var(--text-primary)] outline-none"
             />
           </div>
           <div className="relative">
             <button
               onClick={() => setShowSortMenu(!showSortMenu)}
-              className="flex items-center gap-1.5 h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 whitespace-nowrap hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-1.5 h-10 px-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm font-medium text-[var(--text-secondary)] whitespace-nowrap hover:bg-[var(--bg-tertiary)] transition-colors"
             >
               {sortLabels[sortField]}
-              <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             {showSortMenu && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowSortMenu(false)} />
-                <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-20">
+                <div className="absolute right-0 mt-2 w-40 bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-default)] py-1 z-20">
                   {(Object.keys(sortLabels) as SortField[]).map((field) => (
                     <button
                       key={field}
                       onClick={() => handleSortChange(field)}
-                      className={`w-full text-left px-4 py-2 text-sm ${sortField === field ? 'bg-slate-50 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}
-                      style={sortField === field ? { color: coreColors.primary } : undefined}
+                      className={`w-full text-left px-4 py-2 text-sm ${sortField === field ? 'bg-[var(--bg-tertiary)] font-medium' : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'}`}
+                      style={sortField === field ? { color: 'var(--primary-blue)' } : undefined}
                     >
                       {sortLabels[field]}
                     </button>
@@ -340,12 +340,12 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
         {/* Stats Row */}
         <div className="flex justify-between items-center mt-3 px-4">
-          <span className="text-xs font-medium text-slate-500">
+          <span className="text-xs font-medium text-[var(--text-tertiary)]">
             {totalItems} assets {totalItems > ASSETS_PER_PAGE && `• Showing ${Math.min(visibleCount, totalItems)}`}
           </span>
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-medium text-slate-500">Live prices</span>
+            <div className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
+            <span className="text-xs font-medium text-[var(--text-tertiary)]">Live prices</span>
           </div>
         </div>
       </header>
@@ -354,10 +354,10 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
       <main className="px-3">
         {/* Column Headers */}
         <div className="flex items-center px-3 py-2">
-          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold w-9">Rank</span>
-          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold flex-1">Market Cap</span>
-          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold w-20 text-center">Price</span>
-          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold w-16 text-right">Change</span>
+          <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold w-9">Rank</span>
+          <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold flex-1">Market Cap</span>
+          <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold w-20 text-center">Price</span>
+          <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold w-16 text-right">Change</span>
         </div>
 
         {/* Asset Cards */}
@@ -372,30 +372,30 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
             return (
               <div
                 key={`${asset.code}-${asset.issuer || 'native'}`}
-                className={`bg-white rounded-xl shadow-sm border border-slate-100 px-3 py-3 flex items-center active:bg-slate-50 transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
+                className={`bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-3 py-3 flex items-center active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer ${!hasData ? 'opacity-50' : ''}`}
                 onClick={() => handleRowClick(asset)}
               >
                 {/* Rank */}
                 <div className="w-8 flex-shrink-0">
-                  <span className="text-sm font-medium text-slate-400">
+                  <span className="text-sm font-medium text-[var(--text-muted)]">
                     {hasData ? asset.rank : '--'}
                   </span>
                 </div>
 
                 {/* Asset Name/MCap */}
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-[15px] leading-tight" style={{ color: coreColors.primary }}>{asset.code}</div>
-                  <div className="text-xs text-slate-400 font-medium leading-tight">
+                  <div className="font-bold text-[15px] leading-tight" style={{ color: 'var(--primary-blue)' }}>{asset.code}</div>
+                  <div className="text-xs text-[var(--text-muted)] font-medium leading-tight">
                     {formatNumber(asset.market_cap || 0)}
                   </div>
                 </div>
 
                 {/* Price USD + XLM */}
                 <div className="w-20 text-right">
-                  <div className="font-bold text-[15px] leading-tight" style={{ color: coreColors.primary }}>
+                  <div className="font-bold text-[15px] leading-tight" style={{ color: 'var(--primary-blue)' }}>
                     {formatPrice(asset.price_usd || 0)}
                   </div>
-                  <div className="text-xs text-slate-400 font-medium leading-tight">
+                  <div className="text-xs text-[var(--text-muted)] font-medium leading-tight">
                     {formatXLMPrice(priceInXlm)}
                   </div>
                 </div>
@@ -403,7 +403,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
                 {/* Sparkline + Change */}
                 <div className="w-16 flex flex-col items-end pl-2">
                   <Sparkline data={asset.sparkline || []} positive={isPositive} />
-                  <span className={`text-xs font-medium ${isPositive ? 'text-emerald-500' : isNeutral ? 'text-slate-400' : 'text-red-500'}`}>
+                  <span className={`text-xs font-medium ${isPositive ? 'text-[var(--success)]' : isNeutral ? 'text-[var(--text-muted)]' : 'text-[var(--error)]'}`}>
                     {isPositive ? '+' : ''}{change.toFixed(2)}%
                   </span>
                 </div>
@@ -419,8 +419,8 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
         {isLoadingMore && (
           <div className="flex items-center justify-center py-4">
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
-              <span className="text-xs font-medium text-slate-500">Loading more...</span>
+              <div className="w-5 h-5 border-2 border-[var(--border-default)] border-t-[var(--primary-blue)] rounded-full animate-spin" />
+              <span className="text-xs font-medium text-[var(--text-tertiary)]">Loading more...</span>
             </div>
           </div>
         )}
@@ -430,7 +430,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
           <div className="flex justify-center py-4">
             <button
               onClick={loadMore}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 shadow-sm hover:bg-slate-50 active:bg-slate-100 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm font-medium text-[var(--text-tertiary)] shadow-sm hover:bg-[var(--bg-tertiary)] active:bg-[var(--bg-primary)] transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -443,7 +443,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
         {/* No More Items Message */}
         {!hasMoreItems && totalItems > ASSETS_PER_PAGE && (
           <div className="flex items-center justify-center py-4 pb-6">
-            <span className="text-xs font-medium text-slate-400">
+            <span className="text-xs font-medium text-[var(--text-muted)]">
               All {totalItems} assets displayed
             </span>
           </div>
@@ -451,14 +451,14 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
         {/* Empty State */}
         {filteredAndSortedAssets.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-slate-100">
-            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-slate-100">
-              <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center py-12 bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)]">
+            <div className="w-12 h-12 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center mx-auto mb-3 border border-[var(--border-subtle)]">
+              <svg className="w-6 h-6 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <h3 className="text-slate-900 font-semibold text-sm mb-1">No assets found</h3>
-            <p className="text-slate-500 text-xs">Try a different search term</p>
+            <h3 className="text-[var(--text-primary)] font-semibold text-sm mb-1">No assets found</h3>
+            <p className="text-[var(--text-tertiary)] text-xs">Try a different search term</p>
           </div>
         )}
       </main>

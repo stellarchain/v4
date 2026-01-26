@@ -621,13 +621,13 @@ export default function TransactionMobileView({ transaction, operations, effects
   const primaryColor = '#0F4C81';
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-700 pb-24">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-secondary)] pb-24">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-10 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="p-2 rounded-full bg-white shadow-sm hover:bg-slate-50 transition-colors text-slate-600"
+            className="p-2 rounded-full bg-[var(--bg-secondary)] shadow-sm hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)]"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -639,7 +639,7 @@ export default function TransactionMobileView({ transaction, operations, effects
         </div>
         <div className="flex-1 max-w-[180px] ml-auto">
           <form onSubmit={handleSearch} className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -647,8 +647,7 @@ export default function TransactionMobileView({ transaction, operations, effects
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..."
-              className="w-full pl-10 pr-3 py-2 bg-slate-200 border-none rounded-full text-sm text-slate-700 placeholder-slate-500 focus:ring-2 focus:bg-white transition-all"
-              style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+              className="w-full pl-10 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all"
             />
           </form>
         </div>
@@ -657,7 +656,7 @@ export default function TransactionMobileView({ transaction, operations, effects
       {/* Main Content */}
       <main className="px-4 pt-4 max-w-lg mx-auto w-full">
         {/* Meta Data Row */}
-        <div className="flex flex-wrap items-center gap-3 mb-4 text-xs font-medium text-slate-500">
+        <div className="flex flex-wrap items-center gap-3 mb-4 text-xs font-medium text-[var(--text-tertiary)]">
           <div className="flex items-center gap-1">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -665,8 +664,8 @@ export default function TransactionMobileView({ transaction, operations, effects
             <span>{formatDate(transaction.created_at)}</span>
           </div>
           <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${transaction.successful
-            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-            : 'bg-red-50 text-red-600 border-red-100'
+            ? 'bg-[var(--success-muted)] text-[var(--success)] border-[var(--success)]/30'
+            : 'bg-[var(--error-muted)] text-[var(--error)] border-[var(--error)]/30'
             }`}>
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               {transaction.successful
@@ -678,10 +677,10 @@ export default function TransactionMobileView({ transaction, operations, effects
           </span>
           <button
             onClick={handleCopy}
-            className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 font-mono text-[11px] tracking-wide hover:bg-slate-300 transition-colors"
+            className="px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] font-mono text-[11px] tracking-wide hover:bg-[var(--bg-hover)] transition-colors"
           >
             #{transaction.hash.slice(0, 4)}...{transaction.hash.slice(-3)}
-            {copied && <span className="text-emerald-500 ml-1">✓</span>}
+            {copied && <span className="text-[var(--success)] ml-1">✓</span>}
           </button>
         </div>
 
@@ -691,11 +690,11 @@ export default function TransactionMobileView({ transaction, operations, effects
             <div className={`${containers.cardCompact} p-4 mb-5`}>
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Transaction Type</div>
-                  <div className="text-base font-bold text-slate-900 mt-1 capitalize">{contractFunctionName || 'Smart Contract'}</div>
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Transaction Type</div>
+                  <div className="text-base font-bold text-[var(--text-primary)] mt-1 capitalize">{contractFunctionName || 'Smart Contract'}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Account</div>
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Account</div>
                   <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold hover:opacity-80 block mt-1" style={{ color: primaryColor }}>
                     {shortenAddress(transaction.source_account, 4)}
                   </Link>
@@ -704,9 +703,9 @@ export default function TransactionMobileView({ transaction, operations, effects
 
               {/* Contract Address */}
               {contractAddress && (
-                <div className="mt-3 pt-3 border-t border-slate-200/50">
+                <div className="mt-3 pt-3 border-t border-[var(--border-default)]/50">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Contract</span>
+                    <span className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Contract</span>
                     <Link
                       href={`/contract/${contractAddress}`}
                       className="text-xs font-mono font-semibold hover:opacity-80 transition-colors flex items-center gap-1"
@@ -722,42 +721,44 @@ export default function TransactionMobileView({ transaction, operations, effects
               )}
 
               {/* Smart Contract Summary Card */}
-              <div className="mt-4 bg-slate-50 border border-slate-100 rounded-2xl p-4 relative overflow-hidden transition-all duration-300">
+              <div className="mt-4 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-2xl p-4 relative overflow-hidden transition-all duration-300">
+                {/* Decorative glow effect */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary-blue)]/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
                 {contractEffectType === 'both' ? (
                   <div className="relative z-10">
                     <div className="space-y-4">
                       {/* Sent Row */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-[var(--warning)]/10 text-[var(--warning)] flex items-center justify-center">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
                             </svg>
                           </div>
                           <div>
-                            <div className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Sent</div>
-                            <div className="font-mono text-xs font-bold text-slate-900">
-                              {formatTokenAmount(contractSentAmount)} <span className="text-[11px] font-normal text-slate-500">{contractSentAsset}</span>
+                            <div className="text-[11px] font-bold uppercase text-[var(--text-muted)] tracking-wider">Sent</div>
+                            <div className="font-mono text-xs font-bold text-[var(--text-primary)]">
+                              {formatTokenAmount(contractSentAmount)} <span className="text-[11px] font-normal text-[var(--text-tertiary)]">{contractSentAsset}</span>
                             </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Connector */}
-                      <div className="absolute left-[15px] top-8 bottom-8 w-0.5 bg-slate-100 -z-10"></div>
+                      <div className="absolute left-[15px] top-8 bottom-8 w-0.5 bg-[var(--bg-tertiary)] -z-10"></div>
 
                       {/* Received Row */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-[var(--success-muted)] text-[var(--success)] flex items-center justify-center">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                             </svg>
                           </div>
                           <div>
-                            <div className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Received</div>
-                            <div className="font-mono text-xs font-bold text-slate-900">
-                              {formatTokenAmount(contractReceivedAmount)} <span className="text-[11px] font-normal text-slate-500">{contractReceivedAsset}</span>
+                            <div className="text-[11px] font-bold uppercase text-[var(--text-muted)] tracking-wider">Received</div>
+                            <div className="font-mono text-xs font-bold text-[var(--text-primary)]">
+                              {formatTokenAmount(contractReceivedAmount)} <span className="text-[11px] font-normal text-[var(--text-tertiary)]">{contractReceivedAsset}</span>
                             </div>
                           </div>
                         </div>
@@ -766,10 +767,10 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                     {/* Show expand button if there are more than 2 transfer effects */}
                     {contractTransferEffects.length > 2 && (
-                      <div className="mt-4 pt-3 border-t border-slate-200/50">
+                      <div className="mt-4 pt-3 border-t border-[var(--border-default)]/50">
                         <button
                           onClick={() => setIsExpanded(!isExpanded)}
-                          className="w-full flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-slate-700 transition-colors py-1"
+                          className="w-full flex items-center justify-center gap-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors py-1"
                         >
                           <span>{isExpanded ? 'Hide' : 'Show'} all {contractTransferEffects.length} effects</span>
                           <svg className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -785,9 +786,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                               const isDebit = effect.type.includes('debited');
                               const effectAsset = effect.asset_type === 'native' ? 'XLM' : (effect.asset_code || 'XLM');
                               return (
-                                <div key={effect.id || idx} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-slate-100">
+                                <div key={effect.id || idx} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-[var(--bg-tertiary)]">
                                   <div className="flex items-center gap-2">
-                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${isCredit ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
+                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${isCredit ? 'bg-[var(--success)]/20 text-[var(--success)]' : 'bg-[var(--warning)]/20 text-[var(--warning)]'}`}>
                                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         {isCredit ? (
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7" />
@@ -796,15 +797,15 @@ export default function TransactionMobileView({ transaction, operations, effects
                                         )}
                                       </svg>
                                     </div>
-                                    <span className={`text-[11px] font-bold uppercase ${isCredit ? 'text-emerald-600' : isDebit ? 'text-orange-600' : 'text-slate-500'}`}>
+                                    <span className={`text-[11px] font-bold uppercase ${isCredit ? 'text-[var(--success)]' : isDebit ? 'text-[var(--warning)]' : 'text-[var(--text-tertiary)]'}`}>
                                       {isCredit ? 'Received' : isDebit ? 'Sent' : effect.type.replace(/_/g, ' ')}
                                     </span>
                                   </div>
                                   <div className="text-right">
-                                    <span className={`font-mono text-xs font-bold ${isCredit ? 'text-emerald-600' : isDebit ? 'text-red-500' : 'text-slate-700'}`}>
+                                    <span className={`font-mono text-xs font-bold ${isCredit ? 'text-[var(--success)]' : isDebit ? 'text-[var(--error)]' : 'text-[var(--text-secondary)]'}`}>
                                       {isCredit ? '+' : isDebit ? '-' : ''}{formatTokenAmount(effect.amount)}
                                     </span>
-                                    <span className="text-[11px] text-slate-500 ml-1">{effectAsset}</span>
+                                    <span className="text-[11px] text-[var(--text-tertiary)] ml-1">{effectAsset}</span>
                                   </div>
                                 </div>
                               );
@@ -818,7 +819,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                   <div className="relative z-10">
                     <div className="flex items-start justify-between">
                       <div>
-                        <div className={`flex items-center text-[11px] font-bold uppercase tracking-wide mb-1 ${contractHeaderIsCredit ? 'text-emerald-600' : 'text-slate-500'
+                        <div className={`flex items-center text-[11px] font-bold uppercase tracking-wide mb-1 ${contractHeaderIsCredit ? 'text-[var(--success)]' : 'text-[var(--text-tertiary)]'
                           }`}>
                           <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             {contractHeaderIsCredit ? (
@@ -831,13 +832,13 @@ export default function TransactionMobileView({ transaction, operations, effects
                         </div>
 
                         {/* Primary Value */}
-                        <div className="text-xl font-bold text-slate-900 tracking-tight flex items-baseline gap-2">
+                        <div className="text-xl font-bold text-[var(--text-primary)] tracking-tight flex items-baseline gap-2">
                           {formatTokenAmount(contractHeaderAmount)}
-                          <span className="text-sm font-semibold text-slate-500">{contractHeaderAsset}</span>
+                          <span className="text-sm font-semibold text-[var(--text-tertiary)]">{contractHeaderAsset}</span>
                         </div>
 
                         {contractHeaderAccount && (
-                          <div className="text-[11px] text-slate-400 mt-1 font-mono">
+                          <div className="text-[11px] text-[var(--text-muted)] mt-1 font-mono">
                             <span className="opacity-75">{contractHeaderIsCredit ? 'from ' : 'to '}</span>
                             <Link href={`/account/${contractHeaderAccount}`} className="hover:opacity-80 transition-colors font-medium" style={{ color: primaryColor }}>
                               {shortenAddress(contractHeaderAccount, 4)}
@@ -850,7 +851,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       {contractTransferEffects.filter(e => contractHeaderIsCredit ? e.type.includes('credited') : e.type.includes('debited')).length > 1 && (
                         <button
                           onClick={() => setIsExpanded(!isExpanded)}
-                          className="bg-slate-100 border border-slate-200 rounded-lg p-2 text-slate-500 hover:text-slate-700 transition-all ml-4"
+                          className="bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded-lg p-2 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-all ml-4"
                         >
                           <svg className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -861,18 +862,18 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                     {/* Expanded List */}
                     {isExpanded && (
-                      <div className="mt-4 pt-4 border-t border-slate-200/50 space-y-4">
+                      <div className="mt-4 pt-4 border-t border-[var(--border-default)]/50 space-y-4">
                         {contractTransferEffects
                           .filter(e => contractHeaderIsCredit ? e.type.includes('credited') : e.type.includes('debited'))
                           .slice(1)
                           .map((effect, idx) => (
                             <div key={effect.id || idx}>
-                              <div className="text-lg font-bold text-slate-900 tracking-tight flex items-baseline gap-2">
+                              <div className="text-lg font-bold text-[var(--text-primary)] tracking-tight flex items-baseline gap-2">
                                 {formatTokenAmount(effect.amount)}
-                                <span className="text-sm font-semibold text-slate-500">{effect.asset_type === 'native' ? 'XLM' : (effect.asset_code || 'XLM')}</span>
+                                <span className="text-sm font-semibold text-[var(--text-tertiary)]">{effect.asset_type === 'native' ? 'XLM' : (effect.asset_code || 'XLM')}</span>
                               </div>
                               {effect.account && (
-                                <div className="text-[11px] text-slate-400 mt-1 font-mono">
+                                <div className="text-[11px] text-[var(--text-muted)] mt-1 font-mono">
                                   <span className="opacity-75">{contractHeaderIsCredit ? 'from ' : 'to '}</span>
                                   <Link href={`/account/${effect.account}`} className="hover:opacity-80 transition-colors font-medium" style={{ color: primaryColor }}>
                                     {shortenAddress(effect.account, 4)}
@@ -887,10 +888,10 @@ export default function TransactionMobileView({ transaction, operations, effects
                 )}
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-200/50">
+              <div className="mt-4 pt-4 border-t border-[var(--border-default)]/50">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400 text-[11px] font-medium">Network Fee</span>
-                  <span className="font-mono text-[11px] font-bold text-slate-700">{feeXLM} XLM</span>
+                  <span className="text-[var(--text-muted)] text-[11px] font-medium">Network Fee</span>
+                  <span className="font-mono text-[11px] font-bold text-[var(--text-secondary)]">{feeXLM} XLM</span>
                 </div>
               </div>
             </div>
@@ -904,32 +905,32 @@ export default function TransactionMobileView({ transaction, operations, effects
               <div className={`${containers.cardCompact} p-3 mb-3`}>
                 {/* Header */}
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-6 rounded-full bg-sky-50 flex items-center justify-center" style={{ color: primaryColor }}>
+                  <div className="w-6 h-6 rounded-full bg-[var(--info-muted)] flex items-center justify-center" style={{ color: primaryColor }}>
                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
                   </div>
-                  <span className="text-xs font-bold text-slate-900">DEX Limit Order</span>
+                  <span className="text-xs font-bold text-[var(--text-primary)]">DEX Limit Order</span>
                 </div>
 
                 {/* Vertical Trade Flow */}
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 mb-3 space-y-2.5">
+                <div className="bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl p-3 mb-3 space-y-2.5">
                   {/* SELLING ROW */}
                   <div className="flex items-center justify-between">
-                    <div className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Selling</div>
+                    <div className="text-[11px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Selling</div>
                     <div className="text-right" title={offerDetails?.amount || '0'}>
-                      <span className="text-sm font-bold text-slate-900">
+                      <span className="text-sm font-bold text-[var(--text-primary)]">
                         {offerDetails?.amount ? formatCompactNumber(offerDetails.amount) : '0'}
                       </span>
-                      <span className="text-xs text-slate-500 ml-1">{offerDetails?.selling}</span>
+                      <span className="text-xs text-[var(--text-tertiary)] ml-1">{offerDetails?.selling}</span>
                     </div>
                   </div>
 
                   {/* EXCHANGE RATE ROW */}
                   <div className="flex items-center justify-between gap-2">
-                    <div className="text-[11px] uppercase font-bold text-slate-400 tracking-wider shrink-0">Rate</div>
+                    <div className="text-[11px] uppercase font-bold text-[var(--text-muted)] tracking-wider shrink-0">Rate</div>
                     <div
-                      className="bg-slate-100 border border-slate-200 rounded-full px-2 py-1 text-[11px] font-mono text-slate-700 truncate"
+                      className="bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded-full px-2 py-1 text-[11px] font-mono text-[var(--text-secondary)] truncate"
                       title={`1 ${offerDetails?.selling} ≈ ${offerDetails?.price} ${offerDetails?.buying}`}
                     >
                       1 {offerDetails?.selling} ≈ {formatCompactNumber(offerDetails?.price || '0')} {offerDetails?.buying}
@@ -938,7 +939,7 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                   {/* BUYING ROW */}
                   <div className="flex items-center justify-between">
-                    <div className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Buying</div>
+                    <div className="text-[11px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Buying</div>
                     <div
                       className="text-right"
                       title={offerDetails?.amount && offerDetails?.price
@@ -952,14 +953,14 @@ export default function TransactionMobileView({ transaction, operations, effects
                           : '0'
                         }
                       </span>
-                      <span className="text-xs text-slate-500 ml-1">{offerDetails?.buying}</span>
+                      <span className="text-xs text-[var(--text-tertiary)] ml-1">{offerDetails?.buying}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Order By */}
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">Order by</span>
+                  <span className="text-[var(--text-muted)]">Order by</span>
                   <Link href={`/account/${transaction.source_account}`} className="font-semibold hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
                     {shortenAddress(transaction.source_account, 4)}
                   </Link>
@@ -969,24 +970,24 @@ export default function TransactionMobileView({ transaction, operations, effects
               /* Account Operation Card (no transfer) */
               <div className={`${containers.cardCompact} p-4 mb-4`}>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-secondary)] flex items-center justify-center">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                   </div>
                   <div>
-                    <div className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Account Operation</div>
-                    <div className="text-sm font-bold text-slate-900 capitalize">
+                    <div className="text-[11px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Account Operation</div>
+                    <div className="text-sm font-bold text-[var(--text-primary)] capitalize">
                       {operations[0]?.type.replace(/_/g, ' ') || 'Operation'}
                     </div>
                   </div>
                 </div>
 
                 {/* Operation Details */}
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-2">
+                <div className="bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Account</span>
+                    <span className="text-[11px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Account</span>
                     <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
                       {shortenAddress(transaction.source_account, 4)}
                     </Link>
@@ -995,11 +996,11 @@ export default function TransactionMobileView({ transaction, operations, effects
                   {/* Show asset info for trustline operations */}
                   {operations[0]?.type === 'change_trust' && (
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Asset</span>
+                      <span className="text-[11px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Asset</span>
                       <span className="text-xs font-semibold" style={{ color: primaryColor }}>
                         {(operations[0] as any).asset_code || 'Unknown'}
                         {(operations[0] as any).asset_issuer && (
-                          <span className="text-slate-400 ml-1">({shortenAddress((operations[0] as any).asset_issuer, 4)})</span>
+                          <span className="text-[var(--text-muted)] ml-1">({shortenAddress((operations[0] as any).asset_issuer, 4)})</span>
                         )}
                       </span>
                     </div>
@@ -1007,8 +1008,8 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                   {/* Show effect summary */}
                   {effects.length > 0 && (
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                      <span className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Effect</span>
+                    <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
+                      <span className="text-[11px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Effect</span>
                       <span className="text-xs font-semibold capitalize" style={{ color: primaryColor }}>
                         {effects[0]?.type.replace(/_/g, ' ') || 'None'}
                       </span>
@@ -1018,17 +1019,19 @@ export default function TransactionMobileView({ transaction, operations, effects
               </div>
             ) : (
               /* Visual Flow for transfer transactions - Deep Ocean Design */
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-4">
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden mb-4 relative">
+                {/* Decorative glow effect */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary-blue)]/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
                 {/* Header for Swap Transactions - matches contract card style */}
                 {isSwap && (
                   <div className="p-4 pb-0">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Transaction Type</div>
-                        <div className="text-base font-bold text-slate-900 mt-1">Swap</div>
+                        <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Transaction Type</div>
+                        <div className="text-base font-bold text-[var(--text-primary)] mt-1">Swap</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Account</div>
+                        <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Account</div>
                         <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold hover:opacity-80 block mt-1" style={{ color: primaryColor }}>
                           {shortenAddress(transaction.source_account, 4)}
                         </Link>
@@ -1037,19 +1040,19 @@ export default function TransactionMobileView({ transaction, operations, effects
                   </div>
                 )}
                 {/* FROM Section */}
-                <div className={`p-5 pb-8 relative ${isSwap ? 'pt-0' : 'bg-gradient-to-br from-slate-50 to-white'}`}>
+                <div className={`p-5 pb-8 relative ${isSwap ? 'pt-0' : 'bg-gradient-to-br from-[var(--bg-tertiary)] to-[var(--bg-secondary)]'}`}>
                   <div className="flex justify-between items-start">
                     <div className="flex gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500 shadow-sm">
+                      <div className="w-12 h-12 rounded-xl bg-[var(--success-muted)] flex items-center justify-center text-[var(--success)] shadow-sm">
                         <svg className="w-6 h-6 -rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
                         </svg>
                       </div>
                       <div>
-                        <p className="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-0.5">{fromLabel}</p>
+                        <p className="text-[11px] font-bold tracking-wider text-[var(--text-muted)] uppercase mb-0.5">{fromLabel}</p>
                         {isSwap ? (
                           <p className="text-lg font-bold font-mono tracking-tight" style={{ color: primaryColor }}>
-                            {formatTokenAmount(swapSold?.amount)} <span className="text-sm font-medium text-slate-400">{swapSold?.code}</span>
+                            {formatTokenAmount(swapSold?.amount)} <span className="text-sm font-medium text-[var(--text-muted)]">{swapSold?.code}</span>
                           </p>
                         ) : (
                           <Link href={`/account/${transaction.source_account}`} className="text-lg font-bold font-mono tracking-tight hover:opacity-80 transition-opacity" style={{ color: primaryColor }}>
@@ -1060,8 +1063,8 @@ export default function TransactionMobileView({ transaction, operations, effects
                     </div>
                     {!isSwap && fromCardAmount > 0 && (
                       <div className="text-right">
-                        <p className="text-lg font-bold text-red-500">-{fromCardAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-                        <p className="text-[11px] font-bold text-slate-400">{fromCardAsset}</p>
+                        <p className="text-lg font-bold text-[var(--error)]">-{fromCardAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                        <p className="text-[11px] font-bold text-[var(--text-muted)]">{fromCardAsset}</p>
                       </div>
                     )}
                   </div>
@@ -1070,29 +1073,29 @@ export default function TransactionMobileView({ transaction, operations, effects
                 {/* Connector */}
                 <div className="relative h-0 z-10">
                   <div className="absolute inset-x-0 -top-3 flex items-center justify-center">
-                    <div className="w-8 h-8 rounded-full bg-white shadow-md border border-slate-100 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="w-8 h-8 rounded-full bg-[var(--bg-secondary)] shadow-md border border-[var(--border-subtle)] flex items-center justify-center">
+                      <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7" />
                       </svg>
                     </div>
                   </div>
-                  <div className="absolute inset-x-6 top-1 border-t-2 border-dashed border-slate-200 -z-10"></div>
+                  <div className="absolute inset-x-6 top-1 border-t-2 border-dashed border-[var(--border-default)] -z-10"></div>
                 </div>
 
                 {/* TO Section */}
-                <div className="p-5 pt-8 bg-white">
+                <div className="p-5 pt-8 bg-[var(--bg-secondary)]">
                   <div className="flex justify-between items-start">
                     <div className="flex gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-sky-50 flex items-center justify-center shadow-sm" style={{ color: primaryColor }}>
+                      <div className="w-12 h-12 rounded-xl bg-[var(--info-muted)] flex items-center justify-center shadow-sm" style={{ color: primaryColor }}>
                         <svg className="w-6 h-6 rotate-45" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                         </svg>
                       </div>
                       <div>
-                        <p className="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-0.5">{toLabel}</p>
+                        <p className="text-[11px] font-bold tracking-wider text-[var(--text-muted)] uppercase mb-0.5">{toLabel}</p>
                         {isSwap ? (
                           <p className="text-lg font-bold font-mono tracking-tight" style={{ color: primaryColor }}>
-                            {formatTokenAmount(swapBought?.amount)} <span className="text-sm font-medium text-slate-400">{swapBought?.code}</span>
+                            {formatTokenAmount(swapBought?.amount)} <span className="text-sm font-medium text-[var(--text-muted)]">{swapBought?.code}</span>
                           </p>
                         ) : isMultiSend ? (
                           <button
@@ -1100,7 +1103,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                             className="text-lg font-bold font-mono tracking-tight flex items-center gap-1" style={{ color: primaryColor }}
                           >
                             {uniqueRecipientCount} Recipients
-                            <svg className={`w-4 h-4 text-slate-400 transition-transform ${showRecipients ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className={`w-4 h-4 text-[var(--text-muted)] transition-transform ${showRecipients ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                           </button>
@@ -1113,8 +1116,8 @@ export default function TransactionMobileView({ transaction, operations, effects
                     </div>
                     {!isSwap && (
                       <div className="text-right">
-                        <p className="text-lg font-bold text-emerald-500">+{(isMultiSend ? displayAmount : toCardAmount).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-                        <p className="text-[11px] font-bold text-slate-400">{isMultiSend ? displayAsset : toCardAsset}</p>
+                        <p className="text-lg font-bold text-[var(--success)]">+{(isMultiSend ? displayAmount : toCardAmount).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                        <p className="text-[11px] font-bold text-[var(--text-muted)]">{isMultiSend ? displayAsset : toCardAsset}</p>
                       </div>
                     )}
                   </div>
@@ -1122,8 +1125,8 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                 {/* Recipients List (expandable) */}
                 {isMultiSend && showRecipients && (
-                  <div className="border-t border-slate-100">
-                    <div className="max-h-[40vh] overflow-y-auto bg-slate-50/50">
+                  <div className="border-t border-[var(--border-subtle)]">
+                    <div className="max-h-[40vh] overflow-y-auto bg-[var(--bg-tertiary)]/50">
                       {Object.entries(
                         paymentOps.reduce((acc, op) => {
                           const to = op.to || (op as any).into || 'unknown';
@@ -1132,9 +1135,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                           return acc;
                         }, {} as Record<string, Operation[]>)
                       ).map(([to, ops], idx) => (
-                        <div key={to} className="flex items-center justify-between px-5 py-3 border-b border-slate-100 last:border-0">
+                        <div key={to} className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-subtle)] last:border-0">
                           <div className="flex items-center gap-3">
-                            <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-500">
+                            <span className="w-5 h-5 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center text-[11px] font-bold text-[var(--text-tertiary)]">
                               {idx + 1}
                             </span>
                             <Link href={`/account/${to}`} className="text-xs font-semibold hover:opacity-80" style={{ color: primaryColor }}>
@@ -1143,9 +1146,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                           </div>
                           <div className="text-right">
                             {ops.map((op, opIdx) => (
-                              <div key={op.id || opIdx} className="text-xs font-bold text-slate-700">
+                              <div key={op.id || opIdx} className="text-xs font-bold text-[var(--text-secondary)]">
                                 {op.amount ? parseFloat(op.amount).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0'}
-                                <span className="text-slate-400 font-medium ml-1">{op.asset_type === 'native' ? 'XLM' : op.asset_code}</span>
+                                <span className="text-[var(--text-muted)] font-medium ml-1">{op.asset_type === 'native' ? 'XLM' : op.asset_code}</span>
                               </div>
                             ))}
                           </div>
@@ -1156,8 +1159,8 @@ export default function TransactionMobileView({ transaction, operations, effects
                 )}
 
                 {/* Network Fee */}
-                <div className="flex justify-between items-center px-5 py-3 bg-sky-50/50 border-t border-slate-100">
-                  <span className="text-slate-500 font-medium text-sm">Network Fee</span>
+                <div className="flex justify-between items-center px-5 py-3 bg-[var(--info-muted)]/50 border-t border-[var(--border-subtle)]">
+                  <span className="text-[var(--text-tertiary)] font-medium text-sm">Network Fee</span>
                   <span className="font-mono font-medium text-sm" style={{ color: primaryColor }}>{feeXLM} XLM</span>
                 </div>
               </div>
@@ -1166,7 +1169,7 @@ export default function TransactionMobileView({ transaction, operations, effects
         )}
 
         {/* Tabs Navigation */}
-        <div className="mt-8 mb-4 border-b border-slate-200">
+        <div className="mt-8 mb-4 border-b border-[var(--border-default)]">
           <nav className="flex gap-6 overflow-x-auto">
             {[
               { id: 'operations', label: 'Operations', count: transaction.operation_count },
@@ -1179,15 +1182,15 @@ export default function TransactionMobileView({ transaction, operations, effects
                 key={tab.id}
                 onClick={() => setActiveTab(activeTab === tab.id ? null : tab.id as any)}
                 className={`whitespace-nowrap pb-3 border-b-2 font-semibold text-sm flex items-center gap-2 transition-colors ${activeTab === tab.id
-                  ? 'border-[#0F4C81] text-[#0F4C81]'
-                  : 'border-transparent text-slate-500 hover:text-[#0F4C81]'
+                  ? 'border-[var(--text-primary)] text-[var(--text-primary)]'
+                  : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                   }`}
               >
                 {tab.label}
                 {tab.count !== undefined && (
                   <span className={`py-0.5 px-2 rounded-full text-xs ${activeTab === tab.id
-                    ? 'bg-slate-100 text-slate-600'
-                    : 'bg-slate-100 text-slate-500'
+                    ? 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
+                    : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
                     }`}>
                     {tab.count}
                   </span>
@@ -1212,25 +1215,25 @@ export default function TransactionMobileView({ transaction, operations, effects
                 const isContract = op.type === 'invoke_host_function';
 
                 // Determine icon and colors
-                let iconBg = 'bg-slate-100';
-                let iconColor = 'text-slate-500';
+                let iconBg = 'bg-[var(--bg-tertiary)]';
+                let iconColor = 'text-[var(--text-tertiary)]';
                 let iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />;
 
                 if (isPathPayment) {
-                  iconBg = 'bg-blue-50';
-                  iconColor = 'text-blue-500';
+                  iconBg = 'bg-[var(--info)]/10';
+                  iconColor = 'text-[var(--info)]';
                   iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />;
                 } else if (isPaymentOp || isCreateAccount) {
-                  iconBg = 'bg-emerald-50';
-                  iconColor = 'text-emerald-500';
+                  iconBg = 'bg-[var(--success)]/10';
+                  iconColor = 'text-[var(--success)]';
                   iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
                 } else if (isOffer) {
-                  iconBg = 'bg-purple-50';
-                  iconColor = 'text-purple-500';
+                  iconBg = 'bg-[var(--accent)]/10';
+                  iconColor = 'text-[var(--accent)]';
                   iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />;
                 } else if (isContract) {
-                  iconBg = 'bg-orange-50';
-                  iconColor = 'text-orange-500';
+                  iconBg = 'bg-[var(--warning)]/10';
+                  iconColor = 'text-[var(--warning)]';
                   iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />;
                 }
 
@@ -1286,7 +1289,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                 }
 
                 return (
-                  <div key={op.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-4">
+                  <div key={op.id} className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden p-4">
                     {/* Operation Header */}
                     <div className="flex items-center gap-3 mb-4">
                       <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center ${iconColor}`}>
@@ -1299,29 +1302,29 @@ export default function TransactionMobileView({ transaction, operations, effects
                           <span className="text-[11px] font-bold text-white px-1.5 py-0.5 rounded" style={{ backgroundColor: primaryColor }}>OP {opNum}</span>
                           <span className="text-sm font-bold capitalize" style={{ color: primaryColor }}>{opTitle}</span>
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5">{opDescription}</p>
+                        <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{opDescription}</p>
                       </div>
                     </div>
 
                     {/* Operation Details */}
-                    <div className="space-y-2 bg-slate-50 rounded-xl p-3">
+                    <div className="space-y-2 bg-[var(--bg-tertiary)] rounded-xl p-3">
                       {/* From/To for payments */}
                       {(isPaymentOp || isCreateAccount) && (
                         <>
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium text-xs">From</span>
+                            <span className="text-[var(--text-muted)] font-medium text-xs">From</span>
                             <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
                               {shortenAddress(op.from || op.source_account, 6)}
                             </Link>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium text-xs">To</span>
+                            <span className="text-[var(--text-muted)] font-medium text-xs">To</span>
                             <Link href={`/account/${op.to || (op as any).account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
                               {shortenAddress(op.to || (op as any).account, 6)}
                             </Link>
                           </div>
-                          <div className="flex items-center justify-between pt-2 mt-2 border-t border-slate-200">
-                            <span className="text-slate-400 font-medium text-xs">Amount</span>
+                          <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-default)]">
+                            <span className="text-[var(--text-muted)] font-medium text-xs">Amount</span>
                             <span className="font-bold text-sm" style={{ color: primaryColor }}>
                               {formatCompactNumber(op.amount || (op as any).starting_balance)} {op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM'}
                             </span>
@@ -1333,26 +1336,26 @@ export default function TransactionMobileView({ transaction, operations, effects
                       {isPathPayment && (
                         <>
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium text-xs">From</span>
+                            <span className="text-[var(--text-muted)] font-medium text-xs">From</span>
                             <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
                               {shortenAddress(op.from || op.source_account, 6)}
                             </Link>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium text-xs">To</span>
+                            <span className="text-[var(--text-muted)] font-medium text-xs">To</span>
                             <Link href={`/account/${op.to}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
                               {shortenAddress(op.to || '', 6)}
                             </Link>
                           </div>
-                          <div className="flex items-center justify-between pt-2 mt-2 border-t border-slate-200">
-                            <span className="text-red-500 font-medium text-xs">Sent</span>
-                            <span className="font-bold text-sm text-red-500">
+                          <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-default)]">
+                            <span className="text-[var(--error)] font-medium text-xs">Sent</span>
+                            <span className="font-bold text-sm text-[var(--error)]">
                               -{formatCompactNumber(pathPaymentSent.amount)} {pathPaymentSent.asset}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-emerald-500 font-medium text-xs">Received</span>
-                            <span className="font-bold text-sm text-emerald-500">
+                            <span className="text-[var(--success)] font-medium text-xs">Received</span>
+                            <span className="font-bold text-sm text-[var(--success)]">
                               +{formatCompactNumber(pathPaymentReceived.amount)} {pathPaymentReceived.asset}
                             </span>
                           </div>
@@ -1363,19 +1366,19 @@ export default function TransactionMobileView({ transaction, operations, effects
                       {isOffer && (
                         <>
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium text-xs">Selling</span>
+                            <span className="text-[var(--text-muted)] font-medium text-xs">Selling</span>
                             <span className="font-bold text-sm" style={{ color: primaryColor }}>
                               {formatCompactNumber(op.amount || '0')} {(op as any).selling_asset_type === 'native' ? 'XLM' : (op as any).selling_asset_code || ''}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium text-xs">Buying</span>
+                            <span className="text-[var(--text-muted)] font-medium text-xs">Buying</span>
                             <span className="font-bold text-sm" style={{ color: primaryColor }}>
                               {(op as any).buying_asset_type === 'native' ? 'XLM' : (op as any).buying_asset_code || ''}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between pt-2 mt-2 border-t border-slate-200">
-                            <span className="text-slate-400 font-medium text-xs">Price</span>
+                          <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-default)]">
+                            <span className="text-[var(--text-muted)] font-medium text-xs">Price</span>
                             <span className="font-bold text-sm" style={{ color: primaryColor }}>{(op as any).price}</span>
                           </div>
                         </>
@@ -1385,27 +1388,27 @@ export default function TransactionMobileView({ transaction, operations, effects
                       {isContract && (
                         <>
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium text-xs">Contract</span>
+                            <span className="text-[var(--text-muted)] font-medium text-xs">Contract</span>
                             <Link href={`/contract/${extractContractAddress(op as any) || ''}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
                               {extractContractAddress(op as any) ? shortenAddress(extractContractAddress(op as any) || '', 6) : 'Unknown'}
                             </Link>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium text-xs">Function</span>
+                            <span className="text-[var(--text-muted)] font-medium text-xs">Function</span>
                             <span className="font-bold text-sm capitalize" style={{ color: primaryColor }}>
                               {contractFunctionName || 'Unknown'}
                             </span>
                           </div>
                           {/* Show contract effects summary */}
                           {effects.filter(e => e.account === transaction.source_account && (e.type === 'account_credited' || e.type === 'account_debited')).length > 0 && (
-                            <div className="mt-2 pt-2 border-t border-slate-200 space-y-1">
+                            <div className="mt-2 pt-2 border-t border-[var(--border-default)] space-y-1">
                               {effects
                                 .filter(e => e.account === transaction.source_account && e.type === 'account_debited')
                                 .slice(0, 2)
                                 .map((e, i) => (
                                   <div key={`debit-${i}`} className="flex items-center justify-between">
-                                    <span className="text-red-500 font-medium text-xs">Sent</span>
-                                    <span className="font-bold text-sm text-red-500">
+                                    <span className="text-[var(--error)] font-medium text-xs">Sent</span>
+                                    <span className="font-bold text-sm text-[var(--error)]">
                                       -{parseFloat(e.amount || '0').toLocaleString(undefined, { maximumFractionDigits: 7 })} {e.asset_type === 'native' ? 'XLM' : e.asset_code || ''}
                                     </span>
                                   </div>
@@ -1415,8 +1418,8 @@ export default function TransactionMobileView({ transaction, operations, effects
                                 .slice(0, 2)
                                 .map((e, i) => (
                                   <div key={`credit-${i}`} className="flex items-center justify-between">
-                                    <span className="text-emerald-500 font-medium text-xs">Received</span>
-                                    <span className="font-bold text-sm text-emerald-500">
+                                    <span className="text-[var(--success)] font-medium text-xs">Received</span>
+                                    <span className="font-bold text-sm text-[var(--success)]">
                                       +{parseFloat(e.amount || '0').toLocaleString(undefined, { maximumFractionDigits: 7 })} {e.asset_type === 'native' ? 'XLM' : e.asset_code || ''}
                                     </span>
                                   </div>
@@ -1429,7 +1432,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       {/* Fallback for other operations */}
                       {!isPaymentOp && !isCreateAccount && !isPathPayment && !isOffer && !isContract && op.amount && (
                         <div className="flex items-center justify-between">
-                          <span className="text-slate-400 font-medium text-xs">Amount</span>
+                          <span className="text-[var(--text-muted)] font-medium text-xs">Amount</span>
                           <span className="font-bold text-sm" style={{ color: primaryColor }}>
                             {formatCompactNumber(op.amount)} {op.asset_type === 'native' ? 'XLM' : op.asset_code || ''}
                           </span>
@@ -1446,13 +1449,13 @@ export default function TransactionMobileView({ transaction, operations, effects
                   {/* Loading spinner */}
                   {isLoadingOps && (
                     <div className="flex items-center justify-center py-4">
-                      <div className="w-6 h-6 border-2 border-slate-200 border-t-[#0F4C81] rounded-full animate-spin"></div>
+                      <div className="w-6 h-6 border-2 border-[var(--border-default)] border-t-[var(--info)] rounded-full animate-spin"></div>
                     </div>
                   )}
 
                   {/* Show status or load more button */}
                   {visibleOpsCount >= operations.length ? (
-                    <div className="text-center py-4 text-slate-400 text-sm font-medium">
+                    <div className="text-center py-4 text-[var(--text-muted)] text-sm font-medium">
                       No more operations
                     </div>
                   ) : (
@@ -1464,7 +1467,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       {!isLoadingOps && (
                         <button
                           onClick={loadMoreOps}
-                          className="w-full py-3 text-sm font-semibold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+                          className="w-full py-3 text-sm font-semibold rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
                           style={{ color: primaryColor }}
                         >
                           Load more ({operations.length - visibleOpsCount} remaining)
@@ -1481,7 +1484,7 @@ export default function TransactionMobileView({ transaction, operations, effects
           {activeTab === 'effects' && (
             <div className="space-y-3" ref={effectsContainerRef}>
               {effects.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-sm">
+                <div className="text-center py-8 text-[var(--text-muted)] text-sm">
                   No effects found for this transaction.
                 </div>
               ) : (
@@ -1497,10 +1500,10 @@ export default function TransactionMobileView({ transaction, operations, effects
                     }, {} as Record<string, Effect[]>);
 
                     return Object.entries(groupedEffects).map(([account, accountEffects]: [string, Effect[]]) => (
-                      <div key={account} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-                        <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100">
+                      <div key={account} className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
+                        <div className="flex items-center justify-between mb-3 pb-3 border-b border-[var(--border-subtle)]">
                           {account === 'unknown' ? (
-                            <span className="text-xs text-slate-400">Unknown account</span>
+                            <span className="text-xs text-[var(--text-muted)]">Unknown account</span>
                           ) : (
                             <Link href={`/account/${account}`} className="text-xs font-bold hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
                               {shortenAddress(account, 4)}
@@ -1510,7 +1513,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                             {accountEffects.length} effects
                           </span>
                         </div>
-                        <div className="space-y-2 bg-slate-50 rounded-xl p-3">
+                        <div className="space-y-2 bg-[var(--bg-tertiary)] rounded-xl p-3">
                           {accountEffects.map((ef) => {
                             const isCredit = ef.type.includes('credited');
                             const isDebit = ef.type.includes('debited');
@@ -1518,18 +1521,18 @@ export default function TransactionMobileView({ transaction, operations, effects
                             const effectAsset = ef.asset_type === 'native' ? 'XLM' : ef.asset_code;
                             return (
                               <div key={ef.id} className="flex items-center justify-between">
-                                <div className={`text-[11px] uppercase font-bold tracking-wide ${isCredit ? 'text-emerald-500' : isDebit ? 'text-red-500' : 'text-slate-400'}`}>
+                                <div className={`text-[11px] uppercase font-bold tracking-wide ${isCredit ? 'text-[var(--success)]' : isDebit ? 'text-[var(--error)]' : 'text-[var(--text-muted)]'}`}>
                                   {effectLabel}
                                 </div>
                                 <div className="flex items-center gap-1">
-                                  <span className={`font-mono text-sm font-bold ${isCredit ? 'text-emerald-500' : isDebit ? 'text-red-500' : 'text-slate-700'}`}>
+                                  <span className={`font-mono text-sm font-bold ${isCredit ? 'text-[var(--success)]' : isDebit ? 'text-[var(--error)]' : 'text-[var(--text-secondary)]'}`}>
                                     {ef.amount ? (
                                       <>{isCredit ? '+' : isDebit ? '-' : ''}{formatTokenAmount(ef.amount)}</>
                                     ) : (
                                       '--'
                                     )}
                                   </span>
-                                  <span className="text-[11px] text-slate-400 font-medium">
+                                  <span className="text-[11px] text-[var(--text-muted)] font-medium">
                                     {ef.amount && effectAsset}
                                   </span>
                                 </div>
@@ -1547,13 +1550,13 @@ export default function TransactionMobileView({ transaction, operations, effects
                       {/* Loading spinner */}
                       {isLoadingEffects && (
                         <div className="flex items-center justify-center py-4">
-                          <div className="w-6 h-6 border-2 border-slate-200 border-t-[#0F4C81] rounded-full animate-spin"></div>
+                          <div className="w-6 h-6 border-2 border-[var(--border-default)] border-t-[var(--info)] rounded-full animate-spin"></div>
                         </div>
                       )}
 
                       {/* Show status or load more button */}
                       {visibleEffectsCount >= effects.length ? (
-                        <div className="text-center py-4 text-slate-400 text-sm font-medium">
+                        <div className="text-center py-4 text-[var(--text-muted)] text-sm font-medium">
                           No more effects
                         </div>
                       ) : (
@@ -1565,7 +1568,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                           {!isLoadingEffects && (
                             <button
                               onClick={loadMoreEffects}
-                              className="w-full py-3 text-sm font-semibold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+                              className="w-full py-3 text-sm font-semibold rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
                               style={{ color: primaryColor }}
                             >
                               Load more ({effects.length - visibleEffectsCount} remaining)
@@ -1583,7 +1586,7 @@ export default function TransactionMobileView({ transaction, operations, effects
           {/* DETAILS TAB */}
           {activeTab === 'details' && (
             <div className="space-y-3">
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
                 {[
                   { label: 'Transaction Size', value: `${Math.ceil(transaction.envelope_xdr.length * 3 / 4).toLocaleString()} bytes` },
                   { label: 'Fee Charged', value: `${feeXLM} XLM` },
@@ -1593,8 +1596,8 @@ export default function TransactionMobileView({ transaction, operations, effects
                   { label: 'Sequence', value: transaction.source_account_sequence },
                   { label: 'Ledger', value: transaction.ledger.toString(), linkUrl: `/ledger/${transaction.ledger}` },
                 ].map((item, i) => (
-                  <div key={i} className="flex justify-between items-center px-4 py-3 border-b border-slate-100 last:border-0">
-                    <span className="text-xs text-slate-500 font-medium">{item.label}</span>
+                  <div key={i} className="flex justify-between items-center px-4 py-3 border-b border-[var(--border-subtle)] last:border-0">
+                    <span className="text-xs text-[var(--text-tertiary)] font-medium">{item.label}</span>
                     {item.isLink ? (
                       <Link href={`/account/${item.value}`} className="text-xs font-bold hover:opacity-80" style={{ color: primaryColor }}>
                         {shortenAddress(item.value!, 4)}
@@ -1604,19 +1607,19 @@ export default function TransactionMobileView({ transaction, operations, effects
                         {item.value}
                       </Link>
                     ) : (
-                      <span className="text-xs font-bold text-slate-700 text-right">{item.value}</span>
+                      <span className="text-xs font-bold text-[var(--text-secondary)] text-right">{item.value}</span>
                     )}
                   </div>
                 ))}
               </div>
 
               {/* Signatures */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
                 <h3 className="text-sm font-bold mb-3" style={{ color: primaryColor }}>Signatures</h3>
                 <div className="space-y-2">
                   {transaction.signatures.map((sig, idx) => (
-                    <div key={idx} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                      <p className="text-[11px] font-mono text-slate-600 break-all">{sig}</p>
+                    <div key={idx} className="bg-[var(--bg-tertiary)] p-3 rounded-xl border border-[var(--border-subtle)]">
+                      <p className="text-[11px] font-mono text-[var(--text-secondary)] break-all">{sig}</p>
                     </div>
                   ))}
                 </div>
@@ -1628,44 +1631,44 @@ export default function TransactionMobileView({ transaction, operations, effects
           {activeTab === 'resources' && isContractCall && (
             <div className="space-y-4">
               {/* Contract Execution */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600">Contract Execution</h3>
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+                <div className="px-4 py-3 bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)]">
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">Contract Execution</h3>
                 </div>
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-[var(--border-subtle)]">
                   {[
                     { label: 'Contract Address', value: contractAddress || 'N/A', isContract: true },
                     { label: 'Function Called', value: contractFunctionName || 'Unknown' },
                     { label: 'Function Type', value: contractFunctionType !== 'unknown' ? contractFunctionType : 'N/A' },
                   ].map((item, i) => (
                     <div key={i} className="flex justify-between items-center px-4 py-3">
-                      <span className="text-xs text-slate-500 font-medium">{item.label}</span>
+                      <span className="text-xs text-[var(--text-tertiary)] font-medium">{item.label}</span>
                       {item.isContract && contractAddress ? (
                         <Link href={`/contract/${contractAddress}`} className="text-xs font-mono font-bold hover:opacity-80" style={{ color: primaryColor }}>
                           {shortenAddress(contractAddress, 6)}
                         </Link>
                       ) : (
-                        <span className="text-xs font-mono font-bold text-slate-700 capitalize">{item.value}</span>
+                        <span className="text-xs font-mono font-bold text-[var(--text-secondary)] capitalize">{item.value}</span>
                       )}
                     </div>
                   ))}
                   {/* Signatures */}
                   {transaction.signatures.length > 0 && transaction.signatures.map((sig, idx) => (
                     <div key={idx} className="flex justify-between items-center px-4 py-3">
-                      <span className="text-xs text-slate-500 font-medium">Signature {transaction.signatures.length > 1 ? `${idx + 1}` : ''}</span>
+                      <span className="text-xs text-[var(--text-tertiary)] font-medium">Signature {transaction.signatures.length > 1 ? `${idx + 1}` : ''}</span>
                       <button
                         onClick={(e) => {
                           navigator.clipboard.writeText(sig);
                           const btn = e.currentTarget;
                           const original = btn.textContent;
                           btn.textContent = 'Copied!';
-                          btn.classList.add('text-emerald-600');
+                          btn.classList.add('text-[var(--success)]');
                           setTimeout(() => {
                             btn.textContent = original;
-                            btn.classList.remove('text-emerald-600');
+                            btn.classList.remove('text-[var(--success)]');
                           }, 1500);
                         }}
-                        className="text-xs font-mono font-bold text-slate-700 hover:opacity-70 transition-all cursor-pointer"
+                        className="text-xs font-mono font-bold text-[var(--text-secondary)] hover:opacity-70 transition-all cursor-pointer"
                         title="Click to copy"
                       >
                         {sig.slice(0, 8)}...{sig.slice(-6)}
@@ -1676,16 +1679,16 @@ export default function TransactionMobileView({ transaction, operations, effects
               </div>
 
               {/* Invocation Trace */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600">Invocation Trace</h3>
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+                <div className="px-4 py-3 bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)]">
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">Invocation Trace</h3>
                 </div>
                 <div className="p-4">
                   {/* Loading state */}
                   {isDecodingXdr && (
                     <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-violet-500 border-t-transparent"></div>
-                      <span className="ml-2 text-xs text-slate-500">Decoding XDR...</span>
+                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-[var(--accent)] border-t-transparent"></div>
+                      <span className="ml-2 text-xs text-[var(--text-tertiary)]">Decoding XDR...</span>
                     </div>
                   )}
 
@@ -1694,23 +1697,23 @@ export default function TransactionMobileView({ transaction, operations, effects
                     <>
                       {/* Return Value */}
                       {decodedMeta.returnValue && (
-                        <div className="mb-4 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                          <div className="text-[10px] uppercase text-emerald-600 font-semibold tracking-wider mb-1">Return Value</div>
-                          <div className="font-mono text-xs text-emerald-800 break-all">
-                            <span className="text-emerald-500">{decodedMeta.returnValue.type}:</span> {decodedMeta.returnValue.display}
+                        <div className="mb-4 p-3 bg-[var(--success-muted)] rounded-xl border border-[var(--success)]/30">
+                          <div className="text-[10px] uppercase text-[var(--success)] font-semibold tracking-wider mb-1">Return Value</div>
+                          <div className="font-mono text-xs text-[var(--success)] break-all">
+                            <span className="text-[var(--success)]">{decodedMeta.returnValue.type}:</span> {decodedMeta.returnValue.display}
                           </div>
                         </div>
                       )}
 
                       {/* Main invocation */}
                       <div className="flex items-start gap-3 mb-3">
-                        <div className="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center shrink-0 mt-0.5">
-                          <svg className="w-3 h-3 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="w-6 h-6 rounded-full bg-[var(--accent)]/20 flex items-center justify-center shrink-0 mt-0.5">
+                          <svg className="w-3 h-3 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs text-slate-500 mb-1">
+                          <div className="text-xs text-[var(--text-tertiary)] mb-1">
                             <Link href={`/account/${transaction.source_account}`} className="font-mono hover:opacity-80" style={{ color: primaryColor }}>
                               {shortenAddress(transaction.source_account, 4)}
                             </Link>
@@ -1719,11 +1722,11 @@ export default function TransactionMobileView({ transaction, operations, effects
                               {contractAddress ? shortenAddress(contractAddress, 4) : 'contract'}
                             </Link>
                           </div>
-                          <div className="bg-slate-100 rounded-lg px-3 py-2 font-mono text-xs">
-                            <span className="text-violet-600 font-semibold">{contractFunctionName || 'call'}</span>
-                            <span className="text-slate-500">(</span>
-                            <span className="text-slate-400">...</span>
-                            <span className="text-slate-500">)</span>
+                          <div className="bg-[var(--bg-tertiary)] rounded-lg px-3 py-2 font-mono text-xs">
+                            <span className="text-[var(--accent)] font-semibold">{contractFunctionName || 'call'}</span>
+                            <span className="text-[var(--text-tertiary)]">(</span>
+                            <span className="text-[var(--text-muted)]">...</span>
+                            <span className="text-[var(--text-tertiary)]">)</span>
                           </div>
                         </div>
                       </div>
@@ -1734,31 +1737,31 @@ export default function TransactionMobileView({ transaction, operations, effects
                           {decodedMeta.invocationTrace.slice(0, isTraceExpanded ? undefined : 15).map((call, idx) => (
                             <div
                               key={idx}
-                              className="flex items-start gap-3 border-l-2 border-slate-200 pl-4"
+                              className="flex items-start gap-3 border-l-2 border-[var(--border-default)] pl-4"
                               style={{ marginLeft: `${Math.min(call.depth, 4) * 16}px` }}
                             >
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${call.type === 'fn_call' ? 'bg-blue-100' :
-                                call.type === 'fn_return' ? 'bg-emerald-100' : 'bg-amber-100'
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${call.type === 'fn_call' ? 'bg-[var(--primary-blue)]/20' :
+                                call.type === 'fn_return' ? 'bg-[var(--success)]/20' : 'bg-[var(--warning)]/20'
                                 }`}>
                                 {call.type === 'fn_call' ? (
-                                  <svg className="w-2.5 h-2.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg className="w-2.5 h-2.5 text-[var(--primary-blue)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                   </svg>
                                 ) : call.type === 'fn_return' ? (
-                                  <svg className="w-2.5 h-2.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg className="w-2.5 h-2.5 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                                   </svg>
                                 ) : (
-                                  <svg className="w-2.5 h-2.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg className="w-2.5 h-2.5 text-[var(--warning)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                   </svg>
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="text-[11px] text-slate-500">
+                                <div className="text-[11px] text-[var(--text-tertiary)]">
                                   {call.type === 'fn_call' && (
                                     <>
-                                      <span className="text-blue-600 font-semibold">call</span>
+                                      <span className="text-[var(--primary-blue)] font-semibold">call</span>
                                       {call.contractId && (
                                         <>
                                           <span className="mx-1">to</span>
@@ -1768,26 +1771,26 @@ export default function TransactionMobileView({ transaction, operations, effects
                                         </>
                                       )}
                                       {call.functionName && (
-                                        <span className="font-mono text-violet-600 ml-1">.{call.functionName}()</span>
+                                        <span className="font-mono text-[var(--accent)] ml-1">.{call.functionName}()</span>
                                       )}
                                     </>
                                   )}
                                   {call.type === 'fn_return' && (
                                     <>
-                                      <span className="text-emerald-600 font-semibold">return</span>
+                                      <span className="text-[var(--success)] font-semibold">return</span>
                                       {call.functionName && (
-                                        <span className="font-mono text-slate-500 ml-1">{call.functionName}</span>
+                                        <span className="font-mono text-[var(--text-tertiary)] ml-1">{call.functionName}</span>
                                       )}
                                       {call.returnValue && (
-                                        <span className="font-mono text-emerald-700 ml-1">= {call.returnValue.display}</span>
+                                        <span className="font-mono text-[var(--success)] ml-1">= {call.returnValue.display}</span>
                                       )}
                                     </>
                                   )}
                                   {call.type === 'event' && (
                                     <>
-                                      <span className="text-amber-600 font-semibold">event</span>
+                                      <span className="text-[var(--warning)] font-semibold">event</span>
                                       {call.args && call.args.length > 0 && (
-                                        <span className="font-mono text-slate-700 font-bold ml-1">{call.args[0].display}</span>
+                                        <span className="font-mono text-[var(--text-secondary)] font-bold ml-1">{call.args[0].display}</span>
                                       )}
                                       {call.contractId && (
                                         <>
@@ -1799,14 +1802,14 @@ export default function TransactionMobileView({ transaction, operations, effects
                                       )}
 
                                       {/* Event Details (Topics & Data) */}
-                                      <div className="mt-1 bg-amber-50 rounded-lg p-2 text-[11px] font-mono text-slate-600 border border-amber-100/50">
+                                      <div className="mt-1 bg-[var(--bg-tertiary)] rounded-lg p-2 text-[11px] font-mono text-[var(--text-secondary)] border border-[var(--border-default)]">
                                         {/* Topics */}
                                         {call.args && call.args.length > 1 && (
                                           <div className="flex flex-col gap-1.5 mb-2">
                                             {call.args.slice(1).map((arg, argIdx) => (
                                               <div key={argIdx} className="flex flex-col">
-                                                <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">Topic {argIdx + 1}</span>
-                                                <span className="bg-white px-2 py-1 rounded border border-amber-100 text-amber-900 break-all leading-relaxed shadow-sm">
+                                                <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] font-bold mb-0.5">Topic {argIdx + 1}</span>
+                                                <span className="bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-subtle)] text-[var(--warning)] break-all leading-relaxed shadow-sm">
                                                   {arg.display}
                                                 </span>
                                               </div>
@@ -1816,20 +1819,20 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                                         {/* Data / Amount */}
                                         {call.returnValue && (
-                                          <div className="pt-2 border-t border-amber-100/50">
+                                          <div className="pt-2 border-t border-[var(--border-subtle)]">
                                             <div className="flex flex-col">
                                               {/* Special handling for 'mint' events where data is often amount */}
                                               {call.args && call.args.length > 0 && call.args[0].display === 'mint' ? (
                                                 <>
-                                                  <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">Amount (Minted)</span>
-                                                  <span className="font-bold text-amber-700 text-xs">
+                                                  <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] font-bold mb-0.5">Amount (Minted)</span>
+                                                  <span className="font-bold text-[var(--warning)] text-xs">
                                                     {formatTokenAmount((parseFloat(call.returnValue.display) / 10000000).toString())}
                                                   </span>
                                                 </>
                                               ) : (
                                                 <>
-                                                  <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">Data</span>
-                                                  <span className="text-slate-700 break-all leading-relaxed whitespace-pre-wrap">
+                                                  <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] font-bold mb-0.5">Data</span>
+                                                  <span className="text-[var(--text-secondary)] break-all leading-relaxed whitespace-pre-wrap">
                                                     {call.returnValue.display}
                                                   </span>
                                                 </>
@@ -1843,14 +1846,14 @@ export default function TransactionMobileView({ transaction, operations, effects
                                 </div>
                                 {/* Show args for function calls */}
                                 {call.type === 'fn_call' && call.args && call.args.length > 0 && (
-                                  <div className="mt-1 bg-slate-50 rounded px-2 py-1 text-[10px] font-mono text-slate-600 space-y-0.5">
+                                  <div className="mt-1 bg-[var(--bg-tertiary)] rounded px-2 py-1 text-[10px] font-mono text-[var(--text-secondary)] space-y-0.5">
                                     {call.args.slice(0, 4).map((arg, argIdx) => (
                                       <div key={argIdx} className="truncate">
-                                        <span className="text-slate-400">arg{argIdx}:</span> <span className="text-blue-700">{arg.display}</span>
+                                        <span className="text-[var(--text-muted)]">arg{argIdx}:</span> <span className="text-[var(--primary-blue)]">{arg.display}</span>
                                       </div>
                                     ))}
                                     {call.args.length > 4 && (
-                                      <div className="text-slate-400">+{call.args.length - 4} more args</div>
+                                      <div className="text-[var(--text-muted)]">+{call.args.length - 4} more args</div>
                                     )}
                                   </div>
                                 )}
@@ -1860,7 +1863,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                           {decodedMeta.invocationTrace.length > 15 && (
                             <button
                               onClick={() => setIsTraceExpanded(!isTraceExpanded)}
-                              className="w-full flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-slate-700 transition-colors py-2 mt-2"
+                              className="w-full flex items-center justify-center gap-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors py-2 mt-2"
                             >
                               {isTraceExpanded ? (
                                 <>
@@ -1885,19 +1888,19 @@ export default function TransactionMobileView({ transaction, operations, effects
                       {/* Contract Events with Enhanced Categorization */}
                       {decodedMeta.parsedEvents && decodedMeta.parsedEvents.length > 0 && (
                         <div className="mt-4">
-                          <div className="text-[10px] uppercase text-slate-500 font-semibold tracking-wider mb-2">Contract Events ({decodedMeta.parsedEvents.length})</div>
+                          <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-semibold tracking-wider mb-2">Contract Events ({decodedMeta.parsedEvents.length})</div>
                           <div className="space-y-2">
                             {decodedMeta.parsedEvents.slice(0, 10).map((event, idx) => {
-                              // Category-based colors
+                              // Category-based colors - theme-aware
                               const categoryColors = {
-                                transfer: { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-600', icon: 'text-emerald-500' },
-                                approval: { bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-600', icon: 'text-blue-500' },
-                                mint: { bg: 'bg-purple-50', border: 'border-purple-100', text: 'text-purple-600', icon: 'text-purple-500' },
-                                burn: { bg: 'bg-red-50', border: 'border-red-100', text: 'text-red-600', icon: 'text-red-500' },
-                                trade: { bg: 'bg-orange-50', border: 'border-orange-100', text: 'text-orange-600', icon: 'text-orange-500' },
-                                liquidity: { bg: 'bg-cyan-50', border: 'border-cyan-100', text: 'text-cyan-600', icon: 'text-cyan-500' },
-                                state: { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-600', icon: 'text-slate-500' },
-                                other: { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-600', icon: 'text-amber-500' },
+                                transfer: { bg: 'bg-[var(--success)]/10', border: 'border-[var(--success)]/30', text: 'text-[var(--success)]', icon: 'text-[var(--success)]' },
+                                approval: { bg: 'bg-[var(--info)]/10', border: 'border-[var(--info)]/30', text: 'text-[var(--info)]', icon: 'text-[var(--info)]' },
+                                mint: { bg: 'bg-[var(--accent)]/10', border: 'border-[var(--accent)]/30', text: 'text-[var(--accent)]', icon: 'text-[var(--accent)]' },
+                                burn: { bg: 'bg-[var(--error)]/10', border: 'border-[var(--error)]/30', text: 'text-[var(--error)]', icon: 'text-[var(--error)]' },
+                                trade: { bg: 'bg-[var(--warning)]/10', border: 'border-[var(--warning)]/30', text: 'text-[var(--warning)]', icon: 'text-[var(--warning)]' },
+                                liquidity: { bg: 'bg-[var(--info)]/10', border: 'border-[var(--info)]/30', text: 'text-[var(--info)]', icon: 'text-[var(--info)]' },
+                                state: { bg: 'bg-[var(--bg-tertiary)]', border: 'border-[var(--border-default)]', text: 'text-[var(--text-secondary)]', icon: 'text-[var(--text-tertiary)]' },
+                                other: { bg: 'bg-[var(--bg-tertiary)]', border: 'border-[var(--border-default)]', text: 'text-[var(--text-secondary)]', icon: 'text-[var(--text-tertiary)]' },
                               };
                               const colors = categoryColors[event.category || 'other'];
 
@@ -1908,7 +1911,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                                       {event.eventName || event.type}
                                     </span>
                                     {event.category && event.category !== 'other' && (
-                                      <span className="text-[9px] px-1.5 py-0.5 bg-white/50 rounded text-slate-500">
+                                      <span className="text-[9px] px-1.5 py-0.5 bg-[var(--bg-secondary)]/50 rounded text-[var(--text-tertiary)]">
                                         {event.category}
                                       </span>
                                     )}
@@ -1923,7 +1926,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                                     <div className="space-y-0.5 mt-1">
                                       {Object.entries(event.decodedParams).map(([key, val]) => (
                                         <div key={key} className={`text-[10px] font-mono ${colors.text}`}>
-                                          <span className="text-slate-500">{key}:</span>{' '}
+                                          <span className="text-[var(--text-tertiary)]">{key}:</span>{' '}
                                           <span className={colors.icon}>{val.display}</span>
                                         </div>
                                       ))}
@@ -1950,7 +1953,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                               );
                             })}
                             {decodedMeta.parsedEvents.length > 10 && (
-                              <div className="text-xs text-slate-400 text-center">
+                              <div className="text-xs text-[var(--text-muted)] text-center">
                                 +{decodedMeta.parsedEvents.length - 10} more events
                               </div>
                             )}
@@ -1961,13 +1964,13 @@ export default function TransactionMobileView({ transaction, operations, effects
                       {/* State Changes */}
                       {decodedMeta.stateChanges && decodedMeta.stateChanges.length > 0 && (
                         <div className="mt-4">
-                          <div className="text-[10px] uppercase text-slate-500 font-semibold tracking-wider mb-2">State Changes ({decodedMeta.stateChanges.length})</div>
+                          <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-semibold tracking-wider mb-2">State Changes ({decodedMeta.stateChanges.length})</div>
                           <div className="space-y-2">
                             {decodedMeta.stateChanges.slice(0, 8).map((change, idx) => {
                               const changeColors = {
-                                created: { bg: 'bg-emerald-50', border: 'border-emerald-100', badge: 'bg-emerald-100 text-emerald-700' },
-                                updated: { bg: 'bg-blue-50', border: 'border-blue-100', badge: 'bg-blue-100 text-blue-700' },
-                                removed: { bg: 'bg-red-50', border: 'border-red-100', badge: 'bg-red-100 text-red-700' },
+                                created: { bg: 'bg-[var(--success)]/10', border: 'border-[var(--success)]/30', badge: 'bg-[var(--success)]/20 text-[var(--success)]' },
+                                updated: { bg: 'bg-[var(--info)]/10', border: 'border-[var(--info)]/30', badge: 'bg-[var(--info)]/20 text-[var(--info)]' },
+                                removed: { bg: 'bg-[var(--error)]/10', border: 'border-[var(--error)]/30', badge: 'bg-[var(--error)]/20 text-[var(--error)]' },
                               };
                               const colors = changeColors[change.type];
 
@@ -1978,7 +1981,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                                       {change.type}
                                     </span>
                                     {change.durability && (
-                                      <span className="text-[9px] px-1.5 py-0.5 bg-white/50 rounded text-slate-500">
+                                      <span className="text-[9px] px-1.5 py-0.5 bg-[var(--bg-secondary)]/50 rounded text-[var(--text-tertiary)]">
                                         {change.durability}
                                       </span>
                                     )}
@@ -1989,30 +1992,30 @@ export default function TransactionMobileView({ transaction, operations, effects
                                     )}
                                   </div>
                                   {change.key && (
-                                    <div className="text-[10px] font-mono text-slate-600 mb-1">
-                                      <span className="text-slate-400">key:</span> {change.key.display}
+                                    <div className="text-[10px] font-mono text-[var(--text-secondary)] mb-1">
+                                      <span className="text-[var(--text-muted)]">key:</span> {change.key.display}
                                     </div>
                                   )}
                                   {change.type === 'updated' && change.valueBefore && change.valueAfter && (
                                     <div className="space-y-1 text-[10px] font-mono">
-                                      <div className="text-red-600">
-                                        <span className="text-slate-400">before:</span> {change.valueBefore.display}
+                                      <div className="text-[var(--error)]">
+                                        <span className="text-[var(--text-muted)]">before:</span> {change.valueBefore.display}
                                       </div>
-                                      <div className="text-emerald-600">
-                                        <span className="text-slate-400">after:</span> {change.valueAfter.display}
+                                      <div className="text-[var(--success)]">
+                                        <span className="text-[var(--text-muted)]">after:</span> {change.valueAfter.display}
                                       </div>
                                     </div>
                                   )}
                                   {change.type === 'created' && change.valueAfter && (
-                                    <div className="text-[10px] font-mono text-emerald-600">
-                                      <span className="text-slate-400">value:</span> {change.valueAfter.display}
+                                    <div className="text-[10px] font-mono text-[var(--success)]">
+                                      <span className="text-[var(--text-muted)]">value:</span> {change.valueAfter.display}
                                     </div>
                                   )}
                                 </div>
                               );
                             })}
                             {decodedMeta.stateChanges.length > 8 && (
-                              <div className="text-xs text-slate-400 text-center">
+                              <div className="text-xs text-[var(--text-muted)] text-center">
                                 +{decodedMeta.stateChanges.length - 8} more state changes
                               </div>
                             )}
@@ -2022,8 +2025,8 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                       {/* No trace data available */}
                       {decodedMeta.invocationTrace.length === 0 && decodedMeta.parsedEvents.length === 0 && decodedMeta.stateChanges.length === 0 && (
-                        <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                          <p className="text-xs text-slate-500">No detailed invocation trace available for this transaction.</p>
+                        <div className="mt-3 p-3 bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border-subtle)]">
+                          <p className="text-xs text-[var(--text-tertiary)]">No detailed invocation trace available for this transaction.</p>
                         </div>
                       )}
                     </>
@@ -2034,13 +2037,13 @@ export default function TransactionMobileView({ transaction, operations, effects
                     <>
                       {/* Main invocation */}
                       <div className="flex items-start gap-3 mb-3">
-                        <div className="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center shrink-0 mt-0.5">
-                          <svg className="w-3 h-3 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="w-6 h-6 rounded-full bg-[var(--accent)]/20 flex items-center justify-center shrink-0 mt-0.5">
+                          <svg className="w-3 h-3 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs text-slate-500 mb-1">
+                          <div className="text-xs text-[var(--text-tertiary)] mb-1">
                             <Link href={`/account/${transaction.source_account}`} className="font-mono hover:opacity-80" style={{ color: primaryColor }}>
                               {shortenAddress(transaction.source_account, 4)}
                             </Link>
@@ -2049,23 +2052,23 @@ export default function TransactionMobileView({ transaction, operations, effects
                               {contractAddress ? shortenAddress(contractAddress, 4) : 'contract'}
                             </Link>
                           </div>
-                          <div className="bg-slate-100 rounded-lg px-3 py-2 font-mono text-xs">
-                            <span className="text-violet-600 font-semibold">{contractFunctionName || 'call'}</span>
-                            <span className="text-slate-500">(</span>
-                            <span className="text-slate-400">...</span>
-                            <span className="text-slate-500">)</span>
+                          <div className="bg-[var(--bg-tertiary)] rounded-lg px-3 py-2 font-mono text-xs">
+                            <span className="text-[var(--accent)] font-semibold">{contractFunctionName || 'call'}</span>
+                            <span className="text-[var(--text-tertiary)]">(</span>
+                            <span className="text-[var(--text-muted)]">...</span>
+                            <span className="text-[var(--text-tertiary)]">)</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Effects as trace items */}
                       {effects.slice(0, 6).map((effect, idx) => (
-                        <div key={idx} className="flex items-start gap-3 mb-2 ml-4 border-l-2 border-slate-200 pl-4">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${effect.type.includes('credited') ? 'bg-emerald-100' :
-                            effect.type.includes('debited') ? 'bg-red-100' : 'bg-slate-100'
+                        <div key={idx} className="flex items-start gap-3 mb-2 ml-4 border-l-2 border-[var(--border-default)] pl-4">
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${effect.type.includes('credited') ? 'bg-[var(--success)]/20' :
+                            effect.type.includes('debited') ? 'bg-[var(--error)]/20' : 'bg-[var(--bg-tertiary)]'
                             }`}>
-                            <svg className={`w-2.5 h-2.5 ${effect.type.includes('credited') ? 'text-emerald-600' :
-                              effect.type.includes('debited') ? 'text-red-600' : 'text-slate-500'
+                            <svg className={`w-2.5 h-2.5 ${effect.type.includes('credited') ? 'text-[var(--success)]' :
+                              effect.type.includes('debited') ? 'text-[var(--error)]' : 'text-[var(--text-tertiary)]'
                               }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               {effect.type.includes('credited') ? (
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -2077,9 +2080,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                             </svg>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-[11px] text-slate-500">
+                            <div className="text-[11px] text-[var(--text-tertiary)]">
                               {effect.amount && (
-                                <span className={`font-mono font-bold ${effect.type.includes('credited') ? 'text-emerald-600' : effect.type.includes('debited') ? 'text-red-600' : ''}`}>
+                                <span className={`font-mono font-bold ${effect.type.includes('credited') ? 'text-[var(--success)]' : effect.type.includes('debited') ? 'text-[var(--error)]' : ''}`}>
                                   {effect.type.includes('credited') ? '+' : effect.type.includes('debited') ? '-' : ''}
                                   {parseFloat(effect.amount).toLocaleString(undefined, { maximumFractionDigits: 7 })} {effect.asset_type === 'native' ? 'XLM' : effect.asset_code || ''}
                                 </span>
@@ -2094,21 +2097,21 @@ export default function TransactionMobileView({ transaction, operations, effects
                       ))}
 
                       {effects.length > 6 && (
-                        <div className="text-xs text-slate-400 text-center mt-2">
+                        <div className="text-xs text-[var(--text-muted)] text-center mt-2">
                           +{effects.length - 6} more effects
                         </div>
                       )}
 
                       {/* Error message if decoding failed */}
                       {decodedMeta && !decodedMeta.success && decodedMeta.error && (
-                        <div className="mt-4 p-3 bg-red-50 rounded-xl border border-red-100">
+                        <div className="mt-4 p-3 bg-[var(--error-muted)] rounded-xl border border-[var(--error)]/30">
                           <div className="flex items-start gap-2">
-                            <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4 text-[var(--error)] mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <div>
-                              <p className="text-xs text-red-700 font-medium">XDR decoding error</p>
-                              <p className="text-[11px] text-red-600 mt-1">{decodedMeta.error}</p>
+                              <p className="text-xs text-[var(--error)] font-medium">XDR decoding error</p>
+                              <p className="text-[11px] text-[var(--error)] mt-1">{decodedMeta.error}</p>
                             </div>
                           </div>
                         </div>
@@ -2116,14 +2119,14 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                       {/* Note when no XDR available after fetch attempt */}
                       {xdrFetchAttempted && !transaction.result_meta_xdr && !fetchedXdr && (
-                        <div className="mt-4 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                        <div className="mt-4 p-3 bg-[var(--warning)]/10 rounded-xl border border-[var(--warning)]/30">
                           <div className="flex items-start gap-2">
-                            <svg className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4 text-[var(--warning)] mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                             <div>
-                              <p className="text-xs text-amber-700 font-medium">Invocation trace not available</p>
-                              <p className="text-[11px] text-amber-600 mt-1">This transaction may be too old or the Soroban RPC data has expired.</p>
+                              <p className="text-xs text-[var(--warning)] font-medium">Invocation trace not available</p>
+                              <p className="text-[11px] text-[var(--warning)] mt-1">This transaction may be too old or the Soroban RPC data has expired.</p>
                             </div>
                           </div>
                         </div>
@@ -2134,12 +2137,12 @@ export default function TransactionMobileView({ transaction, operations, effects
               </div>
 
               {/* Transaction Resources & Metrics - Combined Section */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-5">
-                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600">Transaction Resources</h3>
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden mb-5">
+                <div className="px-4 py-3 bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)]">
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">Transaction Resources</h3>
                 </div>
 
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-[var(--border-subtle)]">
                   {/* Transaction Overview */}
                   <div className="p-4">
                     <div className="grid grid-cols-4 gap-2">
@@ -2149,9 +2152,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                         { label: 'Effects', value: effects.length.toString() },
                         { label: 'Sigs', value: transaction.signatures.length.toString() },
                       ].map((item, i) => (
-                        <div key={i} className="bg-slate-50 rounded-lg p-2 border border-slate-100 text-center">
-                          <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-wider">{item.label}</div>
-                          <div className="text-xs font-bold text-slate-700 font-mono mt-0.5">{item.value}</div>
+                        <div key={i} className="bg-[var(--bg-tertiary)] rounded-lg p-2 border border-[var(--border-subtle)] text-center">
+                          <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">{item.label}</div>
+                          <div className="text-xs font-bold text-[var(--text-secondary)] font-mono mt-0.5">{item.value}</div>
                         </div>
                       ))}
                     </div>
@@ -2159,7 +2162,7 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                   {/* Fees */}
                   <div className="p-4">
-                    <div className="text-[10px] uppercase text-slate-500 font-bold tracking-wider mb-3">Fees</div>
+                    <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-bold tracking-wider mb-3">Fees</div>
                     <div className="space-y-2">
                       {[
                         { label: 'Fee Charged', value: `${(parseInt(transaction.fee_charged) / 10000000).toFixed(7)} XLM` },
@@ -2167,30 +2170,30 @@ export default function TransactionMobileView({ transaction, operations, effects
                         { label: 'Base Fee', value: `${(100 / 10000000).toFixed(7)} XLM` },
                       ].map((item, i) => (
                         <div key={i} className="flex justify-between items-center text-xs">
-                          <span className="text-slate-500">{item.label}</span>
-                          <span className="font-mono font-semibold text-slate-700">{item.value}</span>
+                          <span className="text-[var(--text-tertiary)]">{item.label}</span>
+                          <span className="font-mono font-semibold text-[var(--text-secondary)]">{item.value}</span>
                         </div>
                       ))}
                       {/* Detailed fee breakdown */}
                       {decodedMeta && decodedMeta.success && decodedMeta.metrics && (
                         (decodedMeta.metrics.totalRefundableResourceFeeCharged || decodedMeta.metrics.totalNonRefundableResourceFeeCharged || decodedMeta.metrics.rentFeeCharged) && (
-                          <div className="pt-2 mt-2 border-t border-slate-100 space-y-2">
+                          <div className="pt-2 mt-2 border-t border-[var(--border-subtle)] space-y-2">
                             {decodedMeta.metrics.totalRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) > 0 && (
                               <div className="flex justify-between items-center text-xs">
-                                <span className="text-slate-400">└ Refundable</span>
-                                <span className="font-mono text-slate-600">{(parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM</span>
+                                <span className="text-[var(--text-muted)]">└ Refundable</span>
+                                <span className="font-mono text-[var(--text-secondary)]">{(parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM</span>
                               </div>
                             )}
                             {decodedMeta.metrics.totalNonRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) > 0 && (
                               <div className="flex justify-between items-center text-xs">
-                                <span className="text-slate-400">└ Non-Refundable</span>
-                                <span className="font-mono text-slate-600">{(parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM</span>
+                                <span className="text-[var(--text-muted)]">└ Non-Refundable</span>
+                                <span className="font-mono text-[var(--text-secondary)]">{(parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM</span>
                               </div>
                             )}
                             {decodedMeta.metrics.rentFeeCharged && parseInt(decodedMeta.metrics.rentFeeCharged) > 0 && (
                               <div className="flex justify-between items-center text-xs">
-                                <span className="text-slate-400">└ Rent</span>
-                                <span className="font-mono text-slate-600">{(parseInt(decodedMeta.metrics.rentFeeCharged) / 10000000).toFixed(7)} XLM</span>
+                                <span className="text-[var(--text-muted)]">└ Rent</span>
+                                <span className="font-mono text-[var(--text-secondary)]">{(parseInt(decodedMeta.metrics.rentFeeCharged) / 10000000).toFixed(7)} XLM</span>
                               </div>
                             )}
                           </div>
@@ -2202,32 +2205,32 @@ export default function TransactionMobileView({ transaction, operations, effects
                   {/* Contract Resources */}
                   {(envelopeMetrics || (decodedMeta && decodedMeta.success)) && (
                     <div className="p-4">
-                      <div className="text-[10px] uppercase text-slate-500 font-bold tracking-wider mb-3">Contract Resources</div>
+                      <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-bold tracking-wider mb-3">Contract Resources</div>
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
-                          <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-wider">Instructions</div>
-                          <div className="text-xs font-bold font-mono text-slate-700 mt-0.5">
+                        <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                          <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">Instructions</div>
+                          <div className="text-xs font-bold font-mono text-[var(--text-secondary)] mt-0.5">
                             {envelopeMetrics?.cpuInsns ? parseInt(envelopeMetrics.cpuInsns).toLocaleString() :
                               decodedMeta?.metrics?.cpuInsns ? parseInt(decodedMeta.metrics.cpuInsns).toLocaleString() : '—'}
                           </div>
                         </div>
-                        <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
-                          <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-wider">Read Bytes</div>
-                          <div className="text-xs font-bold font-mono text-slate-700 mt-0.5">
+                        <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                          <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">Read Bytes</div>
+                          <div className="text-xs font-bold font-mono text-[var(--text-secondary)] mt-0.5">
                             {envelopeMetrics?.readBytes ? parseInt(envelopeMetrics.readBytes).toLocaleString() :
                               decodedMeta?.metrics?.txByteRead ? decodedMeta.metrics.txByteRead.toLocaleString() : '—'}
                           </div>
                         </div>
-                        <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
-                          <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-wider">Write Bytes</div>
-                          <div className="text-xs font-bold font-mono text-slate-700 mt-0.5">
+                        <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                          <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">Write Bytes</div>
+                          <div className="text-xs font-bold font-mono text-[var(--text-secondary)] mt-0.5">
                             {envelopeMetrics?.writeBytes ? parseInt(envelopeMetrics.writeBytes).toLocaleString() :
                               decodedMeta?.metrics?.txByteWrite ? decodedMeta.metrics.txByteWrite.toLocaleString() : '—'}
                           </div>
                         </div>
-                        <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
-                          <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-wider">Ledger Entries</div>
-                          <div className="text-xs font-bold font-mono text-slate-700 mt-0.5">
+                        <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                          <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">Ledger Entries</div>
+                          <div className="text-xs font-bold font-mono text-[var(--text-secondary)] mt-0.5">
                             {envelopeMetrics ? (
                               <>{envelopeMetrics.readEntries || 0}R / {envelopeMetrics.writeEntries || 0}W</>
                             ) : decodedMeta?.stateChanges ? (
@@ -2237,9 +2240,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                         </div>
                       </div>
                       {decodedMeta && decodedMeta.success && decodedMeta.events && decodedMeta.events.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                          <span className="text-slate-500">Events Emitted</span>
-                          <span className="font-mono font-semibold text-slate-700">{decodedMeta.events.length}</span>
+                        <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
+                          <span className="text-[var(--text-tertiary)]">Events Emitted</span>
+                          <span className="font-mono font-semibold text-[var(--text-secondary)]">{decodedMeta.events.length}</span>
                         </div>
                       )}
                     </div>
@@ -2247,7 +2250,7 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                   {/* Transaction Data */}
                   <div className="p-4">
-                    <div className="text-[10px] uppercase text-slate-500 font-bold tracking-wider mb-3">Transaction Data</div>
+                    <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-bold tracking-wider mb-3">Transaction Data</div>
                     <div className="space-y-2">
                       {[
                         { label: 'Envelope XDR', value: Math.ceil(transaction.envelope_xdr.length * 3 / 4) },
@@ -2256,13 +2259,13 @@ export default function TransactionMobileView({ transaction, operations, effects
                         ...(transaction.fee_meta_xdr ? [{ label: 'Fee Meta', value: Math.ceil(transaction.fee_meta_xdr.length * 3 / 4) }] : []),
                       ].map((item, i) => (
                         <div key={i} className="flex justify-between items-center text-xs">
-                          <span className="text-slate-500">{item.label}</span>
-                          <span className="font-mono font-semibold text-slate-700">{item.value.toLocaleString()} bytes</span>
+                          <span className="text-[var(--text-tertiary)]">{item.label}</span>
+                          <span className="font-mono font-semibold text-[var(--text-secondary)]">{item.value.toLocaleString()} bytes</span>
                         </div>
                       ))}
-                      <div className="pt-2 mt-2 border-t border-slate-100 flex justify-between items-center text-xs">
-                        <span className="text-slate-600 font-medium">Total Size</span>
-                        <span className="font-mono font-bold text-slate-800">
+                      <div className="pt-2 mt-2 border-t border-[var(--border-subtle)] flex justify-between items-center text-xs">
+                        <span className="text-[var(--text-secondary)] font-medium">Total Size</span>
+                        <span className="font-mono font-bold text-[var(--text-primary)]">
                           {(
                             Math.ceil(transaction.envelope_xdr.length * 3 / 4) +
                             Math.ceil(transaction.result_xdr.length * 3 / 4) +
@@ -2281,7 +2284,7 @@ export default function TransactionMobileView({ transaction, operations, effects
           {/* RAW DATA TAB */}
           {activeTab === 'raw' && (
             <div className="space-y-3">
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-xs font-bold uppercase tracking-wide" style={{ color: primaryColor }}>Envelope XDR</div>
                   <button
@@ -2299,11 +2302,11 @@ export default function TransactionMobileView({ transaction, operations, effects
                     Copy
                   </button>
                 </div>
-                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                  <p className="font-mono text-[11px] text-slate-600 break-all leading-relaxed">{transaction.envelope_xdr}</p>
+                <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)]">
+                  <p className="font-mono text-[11px] text-[var(--text-secondary)] break-all leading-relaxed">{transaction.envelope_xdr}</p>
                 </div>
               </div>
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-xs font-bold uppercase tracking-wide" style={{ color: primaryColor }}>Result XDR</div>
                   <button
@@ -2321,8 +2324,8 @@ export default function TransactionMobileView({ transaction, operations, effects
                     Copy
                   </button>
                 </div>
-                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                  <p className="font-mono text-[11px] text-slate-600 break-all leading-relaxed">{transaction.result_xdr}</p>
+                <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)]">
+                  <p className="font-mono text-[11px] text-[var(--text-secondary)] break-all leading-relaxed">{transaction.result_xdr}</p>
                 </div>
               </div>
             </div>

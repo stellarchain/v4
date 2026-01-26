@@ -28,17 +28,17 @@ const ITEMS_PER_PAGE = 10;
 // Loading spinner component
 const LoadingSpinner = () => (
     <div className="flex items-center justify-center py-4">
-        <svg className="w-6 h-6 animate-spin text-[#0F4C81]" fill="none" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 animate-spin text-[var(--primary-blue)]" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
-        <span className="ml-2 text-sm text-slate-500">Loading more...</span>
+        <span className="ml-2 text-sm text-[var(--text-tertiary)]">Loading more...</span>
     </div>
 );
 
 // End of list message component
 const EndOfList = ({ message }: { message: string }) => (
-    <div className="flex items-center justify-center py-4 text-slate-400 text-sm">
+    <div className="flex items-center justify-center py-4 text-[var(--text-muted)] text-sm">
         <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
@@ -51,7 +51,7 @@ const LoadMoreButton = ({ onClick, loading }: { onClick: () => void; loading: bo
     <button
         onClick={onClick}
         disabled={loading}
-        className="w-full py-3 mt-2 bg-white rounded-xl border border-slate-200 text-sm font-semibold text-[#0F4C81] hover:bg-slate-50 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 mt-2 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] text-sm font-semibold text-[var(--primary-blue)] hover:bg-[var(--bg-tertiary)] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
     >
         {loading ? (
             <span className="flex items-center justify-center">
@@ -182,7 +182,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
     }, [activeTab, hasMoreOps, loadingOps, fetchMoreOperations]);
 
     return (
-        <div className="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans pb-24">
+        <div className="bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen flex flex-col font-sans pb-24">
             {/* Main Content Area */}
             <main className="flex-1 px-6 pt-2 pb-8 max-w-lg mx-auto w-full">
 
@@ -190,7 +190,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                 <div className="flex items-center justify-between mb-4 mt-1">
                     <Link
                         href="/ledgers"
-                        className="flex items-center text-slate-400 hover:text-slate-700 transition-colors text-xs font-semibold uppercase tracking-wide"
+                        className="flex items-center text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors text-xs font-semibold uppercase tracking-wide"
                     >
                         <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -199,23 +199,23 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                     </Link>
 
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#0F4C81] text-white">
+                        <div className="flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--primary-blue)] text-white">
                             Protocol v{ledger.protocol_version}
                         </div>
-                        <div className="flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <div className="flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/20">
                             {ledger.successful_transaction_count} Tx
                         </div>
                     </div>
                 </div>
 
                 {/* Ledger Main Card */}
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-5 relative overflow-hidden">
+                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-5 relative overflow-hidden">
                     <div className="relative z-10 flex flex-col gap-4">
                         <div className="flex items-start justify-between relative z-20">
                             <div>
-                                <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">Ledger Sequence</div>
-                                <div className="text-2xl font-bold mt-1" style={{ color: '#0F4C81' }}>#{ledger.sequence.toLocaleString()}</div>
-                                <div className="flex items-center gap-2 mt-2 text-xs text-slate-500 font-mono">
+                                <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Ledger Sequence</div>
+                                <div className="text-2xl font-bold mt-1" style={{ color: 'var(--primary-blue)' }}>#{ledger.sequence.toLocaleString()}</div>
+                                <div className="flex items-center gap-2 mt-2 text-xs text-[var(--text-tertiary)] font-mono">
                                     <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
@@ -224,19 +224,19 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                             </div>
 
                             <div className="flex flex-col gap-1.5">
-                                <div className="flex items-center gap-1.5 bg-emerald-50/80 backdrop-blur-sm border border-emerald-100 px-2 py-1 rounded-lg">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                <div className="flex items-center gap-1.5 bg-[var(--success)]/10 backdrop-blur-sm border border-[var(--success)]/20 px-2 py-1 rounded-lg">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--success)]"></div>
                                     <div className="flex flex-col leading-none">
-                                        <span className="text-[11px] font-bold text-emerald-700">{ledger.successful_transaction_count}</span>
-                                        <span className="text-[8px] font-bold uppercase text-emerald-600/60">Success</span>
+                                        <span className="text-[11px] font-bold text-[var(--success)]">{ledger.successful_transaction_count}</span>
+                                        <span className="text-[8px] font-bold uppercase text-[var(--success)]/60">Success</span>
                                     </div>
                                 </div>
                                 {ledger.failed_transaction_count > 0 && (
-                                    <div className="flex items-center gap-1.5 bg-red-50/80 backdrop-blur-sm border border-red-100 px-2 py-1 rounded-lg">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                                    <div className="flex items-center gap-1.5 bg-[var(--error)]/10 backdrop-blur-sm border border-[var(--error)]/20 px-2 py-1 rounded-lg">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[var(--error)]"></div>
                                         <div className="flex flex-col leading-none">
-                                            <span className="text-[11px] font-bold text-red-700">{ledger.failed_transaction_count}</span>
-                                            <span className="text-[8px] font-bold uppercase text-red-600/60">Failed</span>
+                                            <span className="text-[11px] font-bold text-[var(--error)]">{ledger.failed_transaction_count}</span>
+                                            <span className="text-[8px] font-bold uppercase text-[var(--error)]/60">Failed</span>
                                         </div>
                                     </div>
                                 )}
@@ -244,24 +244,24 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                         </div>
 
                         <div className="grid grid-cols-3 gap-2 mt-2">
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-2 text-center">
-                                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Ops</div>
-                                <div className="text-sm font-bold text-slate-900 mt-0.5">{ledger.operation_count}</div>
+                            <div className="bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl p-2 text-center">
+                                <div className="text-[10px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Ops</div>
+                                <div className="text-sm font-bold text-[var(--text-primary)] mt-0.5">{ledger.operation_count}</div>
                             </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-2 text-center">
-                                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Base Fee</div>
-                                <div className="text-sm font-bold text-slate-900 mt-0.5">{ledger.base_fee_in_stroops / 10000000} <span className="text-[10px] font-normal text-slate-500">XLM</span></div>
+                            <div className="bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl p-2 text-center">
+                                <div className="text-[10px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Base Fee</div>
+                                <div className="text-sm font-bold text-[var(--text-primary)] mt-0.5">{ledger.base_fee_in_stroops / 10000000} <span className="text-[10px] font-normal text-[var(--text-tertiary)]">XLM</span></div>
                             </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-2 text-center">
-                                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Reserve</div>
-                                <div className="text-sm font-bold text-slate-900 mt-0.5">{ledger.base_reserve_in_stroops / 10000000} <span className="text-[10px] font-normal text-slate-500">XLM</span></div>
+                            <div className="bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl p-2 text-center">
+                                <div className="text-[10px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Reserve</div>
+                                <div className="text-sm font-bold text-[var(--text-primary)] mt-0.5">{ledger.base_reserve_in_stroops / 10000000} <span className="text-[10px] font-normal text-[var(--text-tertiary)]">XLM</span></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Tabs Navigation */}
-                <div className="flex gap-6 border-b border-slate-200 pb-4 mb-4">
+                <div className="flex gap-6 border-b border-[var(--border-default)] pb-4 mb-4">
                     {[
                         { id: 'overview', label: 'Overview' },
                         { id: 'transactions', label: 'Transactions', count: ledger.successful_transaction_count + ledger.failed_transaction_count },
@@ -272,15 +272,15 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                             onClick={() => setActiveTab(tab.id as any)}
                             className={`text-sm font-semibold relative ${
                                 activeTab === tab.id
-                                    ? 'text-[#0F4C81] after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]'
-                                    : 'text-slate-500 hover:text-[#0F4C81]'
+                                    ? 'text-[var(--primary-blue)] after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--primary-blue)]'
+                                    : 'text-[var(--text-tertiary)] hover:text-[var(--primary-blue)]'
                             } transition-colors`}
                         >
                             {tab.label}
                             {tab.count !== undefined && (
                                 <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[11px] ${activeTab === tab.id
-                                    ? 'bg-slate-100 text-slate-600'
-                                    : 'bg-slate-100 text-slate-500'
+                                    ? 'bg-[var(--bg-primary)] text-[var(--text-secondary)]'
+                                    : 'bg-[var(--bg-primary)] text-[var(--text-tertiary)]'
                                     }`}>
                                     {tab.count}
                                 </span>
@@ -294,32 +294,32 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                     {/* OVERVIEW TAB */}
                     {activeTab === 'overview' && (
                         <div className="space-y-4">
-                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-                                <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Ledger Details</h2>
+                            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
+                                <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">Ledger Details</h2>
                                 <div className="space-y-3">
-                                    <div className="flex flex-col gap-1 border-b border-slate-100 pb-2.5">
-                                        <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Hash</span>
-                                        <span className="text-xs font-mono text-slate-700 break-all bg-slate-50 p-2 rounded-lg border border-slate-100">{ledger.hash}</span>
+                                    <div className="flex flex-col gap-1 border-b border-[var(--border-subtle)] pb-2.5">
+                                        <span className="text-[11px] text-[var(--text-tertiary)] font-medium uppercase tracking-wide">Hash</span>
+                                        <span className="text-xs font-mono text-[var(--text-secondary)] break-all bg-[var(--bg-tertiary)] p-2 rounded-lg border border-[var(--border-subtle)]">{ledger.hash}</span>
                                     </div>
-                                    <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
-                                        <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Max Tx Set Size</span>
-                                        <span className="text-xs font-bold text-slate-900">{ledger.max_tx_set_size}</span>
+                                    <div className="flex items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-2.5">
+                                        <span className="text-[11px] text-[var(--text-tertiary)] font-medium uppercase tracking-wide">Max Tx Set Size</span>
+                                        <span className="text-xs font-bold text-[var(--text-primary)]">{ledger.max_tx_set_size}</span>
                                     </div>
-                                    <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-2.5">
-                                        <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Total Coins</span>
-                                        <span className="text-xs font-bold text-slate-900">{formatXLM(ledger.total_coins)} XLM</span>
+                                    <div className="flex items-center justify-between gap-4 border-b border-[var(--border-subtle)] pb-2.5">
+                                        <span className="text-[11px] text-[var(--text-tertiary)] font-medium uppercase tracking-wide">Total Coins</span>
+                                        <span className="text-xs font-bold text-[var(--text-primary)]">{formatXLM(ledger.total_coins)} XLM</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4">
-                                        <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Fee Pool</span>
-                                        <span className="text-xs font-bold text-slate-900">{formatXLM(ledger.fee_pool)} XLM</span>
+                                        <span className="text-[11px] text-[var(--text-tertiary)] font-medium uppercase tracking-wide">Fee Pool</span>
+                                        <span className="text-xs font-bold text-[var(--text-primary)]">{formatXLM(ledger.fee_pool)} XLM</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 flex flex-col gap-2.5">
+                            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-3 flex flex-col gap-2.5">
                                 <Link
                                     href={`/ledger/${ledger.sequence - 1}`}
-                                    className="flex items-center justify-between px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100 text-slate-600 hover:text-[#0F4C81] hover:border-[#0F4C81]/30 hover:bg-sky-50/50 transition-all group"
+                                    className="flex items-center justify-between px-3 py-2.5 bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--primary-blue)] hover:border-[var(--primary-blue)]/30 hover:bg-[var(--primary-blue)]/5 transition-all group"
                                 >
                                     <span className="flex items-center gap-2 text-xs font-medium">
                                         <svg className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,11 +327,11 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                         </svg>
                                         Previous Ledger
                                     </span>
-                                    <span className="text-[11px] font-mono text-slate-400 group-hover:text-[#0F4C81]">#{(ledger.sequence - 1).toLocaleString()}</span>
+                                    <span className="text-[11px] font-mono text-[var(--text-muted)] group-hover:text-[var(--primary-blue)]">#{(ledger.sequence - 1).toLocaleString()}</span>
                                 </Link>
                                 <Link
                                     href={`/ledger/${ledger.sequence + 1}`}
-                                    className="flex items-center justify-between px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100 text-slate-600 hover:text-[#0F4C81] hover:border-[#0F4C81]/30 hover:bg-sky-50/50 transition-all group"
+                                    className="flex items-center justify-between px-3 py-2.5 bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--primary-blue)] hover:border-[var(--primary-blue)]/30 hover:bg-[var(--primary-blue)]/5 transition-all group"
                                 >
                                     <span className="flex items-center gap-2 text-xs font-medium">
                                         Next Ledger
@@ -339,7 +339,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                         </svg>
                                     </span>
-                                    <span className="text-[11px] font-mono text-slate-400 group-hover:text-[#0F4C81]">#{(ledger.sequence + 1).toLocaleString()}</span>
+                                    <span className="text-[11px] font-mono text-[var(--text-muted)] group-hover:text-[var(--primary-blue)]">#{(ledger.sequence + 1).toLocaleString()}</span>
                                 </Link>
                             </div>
                         </div>
@@ -353,57 +353,57 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 let description = 'Transaction';
                                 let typeDisplay = 'TRANSACTION';
                                 let valueDisplay = null;
-                                let typeColorClass = 'text-blue-500';
-                                let iconBgClass = 'bg-blue-50 text-blue-500';
+                                let typeColorClass = 'text-[var(--primary-blue)]';
+                                let iconBgClass = 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]';
 
                                 if (info.type === 'contract') {
                                     description = info.functionName || 'Smart Contract Call';
                                     typeDisplay = 'SMART CONTRACT';
-                                    typeColorClass = 'text-purple-500';
-                                    iconBgClass = 'bg-purple-50 text-purple-500';
+                                    typeColorClass = 'text-[var(--warning)]';
+                                    iconBgClass = 'bg-[var(--warning)]/10 text-[var(--warning)]';
                                 } else if (info.type === 'payment') {
                                     typeDisplay = info.isSwap ? 'SWAP' : 'PAYMENT';
                                     description = info.isSwap ? 'Swap Tokens' : 'Payment';
-                                    typeColorClass = info.isSwap ? 'text-indigo-500' : 'text-emerald-500';
-                                    iconBgClass = info.isSwap ? 'bg-indigo-50 text-indigo-500' : 'bg-emerald-50 text-emerald-500';
+                                    typeColorClass = info.isSwap ? 'text-[var(--primary-blue)]' : 'text-[var(--success)]';
+                                    iconBgClass = info.isSwap ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'bg-[var(--success)]/10 text-[var(--success)]';
 
                                     if (info.amount) {
                                         valueDisplay = (
-                                            <span className="font-bold text-slate-900 text-sm">
-                                                {info.amount} <span className="text-[11px] font-bold text-slate-400">{info.asset}</span>
+                                            <span className="font-bold text-[var(--text-primary)] text-sm">
+                                                {info.amount} <span className="text-[11px] font-bold text-[var(--text-muted)]">{info.asset}</span>
                                             </span>
                                         );
                                     }
                                 } else if (info.type === 'manage_offer') {
                                     description = 'Manage Offer';
                                     typeDisplay = 'OFFER';
-                                    typeColorClass = 'text-orange-500';
-                                    iconBgClass = 'bg-orange-50 text-orange-500';
+                                    typeColorClass = 'text-[var(--warning)]';
+                                    iconBgClass = 'bg-[var(--warning)]/10 text-[var(--warning)]';
                                 } else if (info.type === 'multi_send' || info.type === 'bulk_send') {
                                     description = info.type === 'bulk_send' ? 'Bulk Send' : 'Multi Send';
                                     typeDisplay = 'MULTI SEND';
-                                    typeColorClass = 'text-cyan-500';
-                                    iconBgClass = 'bg-cyan-50 text-cyan-500';
-                                    valueDisplay = <span className="font-bold text-slate-900 text-sm">{info.elementCount} Recipients</span>;
+                                    typeColorClass = 'text-[var(--primary-blue)]';
+                                    iconBgClass = 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]';
+                                    valueDisplay = <span className="font-bold text-[var(--text-primary)] text-sm">{info.elementCount} Recipients</span>;
                                 }
 
                                 if (!tx.successful) {
-                                    typeColorClass = 'text-red-500';
-                                    iconBgClass = 'bg-red-50 text-red-500';
+                                    typeColorClass = 'text-[var(--error)]';
+                                    iconBgClass = 'bg-[var(--error)]/10 text-[var(--error)]';
                                 }
 
                                 return (
                                     <Link
                                         href={`/transaction/${tx.hash}`}
                                         key={tx.id}
-                                        className="block bg-white rounded-2xl shadow-sm border border-slate-200 p-3 mb-2.5 active:scale-[0.99] transition-transform hover:shadow-md"
+                                        className="block bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-3 mb-2.5 active:scale-[0.99] transition-transform hover:shadow-md"
                                     >
                                         <div className="flex justify-between items-center mb-1.5">
                                             <span className={`text-[11px] font-bold uppercase tracking-widest pl-1 ${typeColorClass}`}>
                                                 {typeDisplay}
-                                                {!tx.successful && <span className="ml-1 text-red-500 font-extrabold">(FAILED)</span>}
+                                                {!tx.successful && <span className="ml-1 text-[var(--error)] font-extrabold">(FAILED)</span>}
                                             </span>
-                                            <span className="text-[11px] font-medium text-slate-400">
+                                            <span className="text-[11px] font-medium text-[var(--text-muted)]">
                                                 {timeAgo(tx.created_at)}
                                             </span>
                                         </div>
@@ -424,14 +424,14 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-start justify-between">
                                                     <div>
-                                                        <div className="font-bold text-slate-900 text-sm leading-tight">{description}</div>
+                                                        <div className="font-bold text-[var(--text-primary)] text-sm leading-tight">{description}</div>
                                                         <div className="flex items-center gap-1.5 mt-1">
-                                                            <div className="bg-slate-50 px-1.5 py-0.5 rounded-[0.4rem] border border-slate-100 flex items-center">
-                                                                <span className="text-[10px] font-mono font-bold text-slate-500">
+                                                            <div className="bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded-[0.4rem] border border-[var(--border-subtle)] flex items-center">
+                                                                <span className="text-[10px] font-mono font-bold text-[var(--text-tertiary)]">
                                                                     #{shortenAddress(tx.hash, 4)}
                                                                 </span>
                                                             </div>
-                                                            <span className="text-[11px] font-medium text-slate-400 truncate max-w-[100px]">
+                                                            <span className="text-[11px] font-medium text-[var(--text-muted)] truncate max-w-[100px]">
                                                                 From <span className="font-mono">{shortenAddress(tx.source_account, 4)}</span>
                                                             </span>
                                                         </div>
@@ -439,7 +439,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
 
                                                     <div className="text-right pl-2">
                                                         {valueDisplay}
-                                                        <div className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{tx.operation_count} Ops</div>
+                                                        <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase mt-0.5">{tx.operation_count} Ops</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -448,7 +448,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 );
                             })}
                             {transactions.length === 0 && (
-                                <div className="text-center py-8 text-slate-400 text-sm">
+                                <div className="text-center py-8 text-[var(--text-muted)] text-sm">
                                     No transactions found in this ledger.
                                 </div>
                             )}
@@ -516,19 +516,19 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                     <Link
                                         href={`/transaction/${op.transaction_hash}?tab=operations&op=${op.id}`}
                                         key={op.id}
-                                        className="block bg-white rounded-2xl shadow-sm border border-slate-200 p-0 overflow-hidden hover:shadow-md transition-shadow mb-2"
+                                        className="block bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-0 overflow-hidden hover:shadow-md transition-shadow mb-2"
                                     >
                                         <div className="flex items-center p-3 gap-3">
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-500 border border-slate-100">
+                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center text-xs font-bold text-[var(--text-tertiary)] border border-[var(--border-subtle)]">
                                                 {idx + 1}
                                             </div>
                                             <div className="flex-1 min-w-0 grid grid-cols-[auto_1fr] gap-x-2 items-center">
-                                                <span className="text-xs font-bold text-slate-900 capitalize truncate">
+                                                <span className="text-xs font-bold text-[var(--text-primary)] capitalize truncate">
                                                     {typeDisplay}
                                                 </span>
-                                                <div className="flex items-center text-[11px] text-slate-500 font-mono truncate">
+                                                <div className="flex items-center text-[11px] text-[var(--text-tertiary)] font-mono truncate">
                                                     {op.source_account && (
-                                                        <span className="truncate max-w-[80px] hover:text-slate-900 transition-colors">
+                                                        <span className="truncate max-w-[80px] hover:text-[var(--text-primary)] transition-colors">
                                                             {shortenAddress(op.source_account, 4)}
                                                         </span>
                                                     )}
@@ -536,8 +536,8 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                             </div>
                                             {(summary || summaryLabel) && (
                                                 <div className="text-right flex flex-col justify-center">
-                                                    <span className="text-xs font-bold text-slate-900">{summary}</span>
-                                                    <span className="text-[10px] font-medium text-slate-400">{summaryLabel}</span>
+                                                    <span className="text-xs font-bold text-[var(--text-primary)]">{summary}</span>
+                                                    <span className="text-[10px] font-medium text-[var(--text-muted)]">{summaryLabel}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -545,7 +545,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 );
                             })}
                             {operations.length === 0 && (
-                                <div className="text-center py-8 text-slate-400 text-sm">
+                                <div className="text-center py-8 text-[var(--text-muted)] text-sm">
                                     No operations found in this ledger.
                                 </div>
                             )}

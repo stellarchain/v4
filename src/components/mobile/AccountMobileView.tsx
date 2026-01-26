@@ -465,20 +465,20 @@ export default function AccountMobileView({ account, transactions, operations: i
   return (
     <div className={containers.page}>
       {/* Header */}
-      <header className="pt-8 px-3 pb-2 sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md border-b border-slate-200">
+      <header className="pt-8 px-3 pb-2 sticky top-0 z-20 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-default)]">
         {/* Title Row */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold tracking-tight" style={{ color: coreColors.primary }}>Account</h1>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--primary-blue)' }}>Account</h1>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-500 font-mono">
+            <span className="text-sm font-medium text-[var(--text-tertiary)] font-mono">
               {shortenAddress(account.id, 4)}
             </span>
             <button
               onClick={handleCopy}
-              className="w-9 h-9 flex items-center justify-center rounded-xl bg-white text-slate-500 hover:bg-slate-50 transition-colors shadow-sm border border-slate-200"
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] transition-colors shadow-sm border border-[var(--border-default)]"
             >
               {copied ? (
-                <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-[var(--success)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               ) : (
@@ -492,42 +492,42 @@ export default function AccountMobileView({ account, transactions, operations: i
 
         {/* Est. Total Value Section */}
         <div className="mb-6">
-          <div className="text-sm text-slate-500 mb-2">
+          <div className="text-sm text-[var(--text-tertiary)] mb-2">
             Est. Total Value
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-bold tracking-tight text-slate-900">
+            <span className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">
               ${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
           <div className="mt-1">
-            <span className={`text-sm font-semibold ${isPositivePnl ? 'text-emerald-600' : 'text-red-600'}`}>
+            <span className={`text-sm font-semibold ${isPositivePnl ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
               {isPositivePnl ? '+' : ''}${Math.abs(pnlData.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isPositivePnl ? '+' : ''}{pnlData.percent.toFixed(2)}%) 24h Change
             </span>
           </div>
         </div>
 
         {/* Divider line before tabs */}
-        <div className="border-t border-slate-200 mb-3"></div>
+        <div className="border-t border-[var(--border-default)] mb-3"></div>
 
         {/* Tabs */}
         <div className="flex items-center justify-between pb-3">
           <div className="flex gap-6">
             <button
               onClick={() => handleTabChange('assets')}
-              className={`text-sm font-semibold relative ${activeTab === 'assets' ? 'text-[#0F4C81] after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]' : 'text-slate-500 hover:text-[#0F4C81]'} transition-colors`}
+              className={`text-sm font-semibold relative ${activeTab === 'assets' ? 'text-[var(--primary-blue)] after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--primary-blue)]' : 'text-[var(--text-tertiary)] hover:text-[var(--primary-blue)]'} transition-colors`}
             >
               Assets
             </button>
             <button
               onClick={() => handleTabChange('activity')}
-              className={`text-sm font-semibold relative ${activeTab === 'activity' ? 'text-[#0F4C81] after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]' : 'text-slate-500 hover:text-[#0F4C81]'} transition-colors`}
+              className={`text-sm font-semibold relative ${activeTab === 'activity' ? 'text-[var(--primary-blue)] after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--primary-blue)]' : 'text-[var(--text-tertiary)] hover:text-[var(--primary-blue)]'} transition-colors`}
             >
               Activity
             </button>
             <button
               onClick={() => handleTabChange('details')}
-              className={`text-sm font-semibold relative ${activeTab === 'details' ? 'text-[#0F4C81] after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]' : 'text-slate-500 hover:text-[#0F4C81]'} transition-colors`}
+              className={`text-sm font-semibold relative ${activeTab === 'details' ? 'text-[var(--primary-blue)] after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--primary-blue)]' : 'text-[var(--text-tertiary)] hover:text-[var(--primary-blue)]'} transition-colors`}
             >
               Details
             </button>
@@ -541,41 +541,41 @@ export default function AccountMobileView({ account, transactions, operations: i
           <div className="space-y-2 pt-2">
             {/* XLM Card */}
             <div
-              className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-4 active:bg-slate-50 transition-colors cursor-pointer"
+              className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4 active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
               onClick={() => router.push('/asset/XLM')}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white">
+                  <div className="w-10 h-10 rounded-full bg-[var(--text-primary)] flex items-center justify-center text-[var(--bg-secondary)]">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-slate-900">XLM</div>
-                    <div className="text-xs text-slate-400">Stellar Lumens</div>
+                    <div className="text-sm font-bold text-[var(--text-primary)]">XLM</div>
+                    <div className="text-xs text-[var(--text-muted)]">Stellar Lumens</div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-base font-bold text-slate-900" title={formatExactNumber(xlmAmount)}>
+                  <div className="text-base font-bold text-[var(--text-primary)]" title={formatExactNumber(xlmAmount)}>
                     {formatCompactNumber(xlmAmount)}
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-[var(--text-muted)]">
                     ${(xlmAmount * xlmPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </div>
                 </div>
               </div>
               <div className="flex items-center justify-between pl-[52px]">
                 <div className="text-xs">
-                  <span className="text-slate-400">PNL </span>
-                  <span className={`font-medium ${xlmChange24h >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                  <span className="text-[var(--text-muted)]">PNL </span>
+                  <span className={`font-medium ${xlmChange24h >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
                     {xlmChange24h >= 0 ? '+' : ''}${((xlmAmount * xlmPrice) * (xlmChange24h / 100)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     {' '}({xlmChange24h >= 0 ? '+' : ''}{xlmChange24h.toFixed(2)}%)
                   </span>
                 </div>
                 <div className="text-xs">
-                  <span className="text-slate-400">Price </span>
-                  <span className="font-medium text-slate-600">${xlmPrice.toFixed(4)}</span>
+                  <span className="text-[var(--text-muted)]">Price </span>
+                  <span className="font-medium text-[var(--text-secondary)]">${xlmPrice.toFixed(4)}</span>
                 </div>
               </div>
             </div>
@@ -589,14 +589,14 @@ export default function AccountMobileView({ account, transactions, operations: i
               const pnl = priceData ? valueUSD * (priceData.change24h / 100) : 0;
               const pnlPercent = priceData?.change24h || 0;
 
-              const bgColors = ['bg-blue-50', 'bg-purple-50', 'bg-emerald-50', 'bg-orange-50', 'bg-pink-50', 'bg-indigo-50', 'bg-violet-50'];
-              const textColors = ['text-blue-600', 'text-purple-600', 'text-emerald-600', 'text-orange-600', 'text-pink-600', 'text-indigo-600', 'text-violet-600'];
+              const bgColors = ['bg-blue-500/10', 'bg-purple-500/10', 'bg-[var(--success)]/10', 'bg-orange-500/10', 'bg-pink-500/10', 'bg-indigo-500/10', 'bg-violet-500/10'];
+              const textColors = ['text-blue-400', 'text-purple-400', 'text-[var(--success)]', 'text-orange-400', 'text-pink-400', 'text-indigo-400', 'text-violet-400'];
               const colorIdx = (balance.asset_code || '').length % bgColors.length;
 
               return (
                 <div
                   key={idx}
-                  className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-4 active:bg-slate-50 transition-colors cursor-pointer"
+                  className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4 active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
                   onClick={() => router.push(getAssetUrl(balance.asset_code, balance.asset_issuer))}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -605,39 +605,39 @@ export default function AccountMobileView({ account, transactions, operations: i
                         <span className="font-bold text-base">{(balance.asset_code || 'LP')[0]}</span>
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-slate-900">{balance.asset_code || 'LP'}</div>
-                        <div className="text-xs text-slate-400 truncate max-w-[120px]">
+                        <div className="text-sm font-bold text-[var(--text-primary)]">{balance.asset_code || 'LP'}</div>
+                        <div className="text-xs text-[var(--text-muted)] truncate max-w-[120px]">
                           {balance.asset_issuer ? shortenAddress(balance.asset_issuer, 6) : 'Liquidity Pool'}
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-base font-bold text-slate-900" title={formatExactNumber(amount)}>
+                      <div className="text-base font-bold text-[var(--text-primary)]" title={formatExactNumber(amount)}>
                         {formatCompactNumber(amount)}
                       </div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-[var(--text-muted)]">
                         {valueUSD > 0 ? `$${valueUSD.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '--'}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center justify-between pl-[52px]">
                     <div className="text-xs">
-                      <span className="text-slate-400">PNL </span>
+                      <span className="text-[var(--text-muted)]">PNL </span>
                       {priceData ? (
-                        <span className={`font-medium ${pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                        <span className={`font-medium ${pnl >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
                           {pnl >= 0 ? '+' : ''}${Math.abs(pnl).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                           {' '}({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
                         </span>
                       ) : (
-                        <span className="text-slate-300">--</span>
+                        <span className="text-[var(--text-muted)]">--</span>
                       )}
                     </div>
                     <div className="text-xs">
-                      <span className="text-slate-400">Price </span>
+                      <span className="text-[var(--text-muted)]">Price </span>
                       {priceData ? (
-                        <span className="font-medium text-slate-600">${priceData.price.toFixed(priceData.price >= 1 ? 2 : 6)}</span>
+                        <span className="font-medium text-[var(--text-secondary)]">${priceData.price.toFixed(priceData.price >= 1 ? 2 : 6)}</span>
                       ) : (
-                        <span className="text-slate-300">--</span>
+                        <span className="text-[var(--text-muted)]">--</span>
                       )}
                     </div>
                   </div>
@@ -650,14 +650,14 @@ export default function AccountMobileView({ account, transactions, operations: i
         {activeTab === 'activity' && (
           <div ref={activityContainerRef}>
             {/* Activity Filters */}
-            <div className="flex gap-5 border-b border-slate-200 pb-2 mb-3 mt-3">
+            <div className="flex gap-5 border-b border-[var(--border-default)] pb-2 mb-3 mt-3">
               {['all', 'payments', 'swaps', 'contracts'].map((type) => (
                 <button
                   key={type}
                   onClick={() => setActivityType(type as any)}
                   className={`text-xs font-semibold relative ${activityType === type
-                      ? 'text-[#0F4C81] after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]'
-                      : 'text-slate-500 hover:text-[#0F4C81]'
+                      ? 'text-[var(--primary-blue)] after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--primary-blue)]'
+                      : 'text-[var(--text-tertiary)] hover:text-[var(--primary-blue)]'
                     } transition-colors`}
                 >
                   {type === 'all' ? 'All' : type === 'payments' ? 'Payments' : type === 'swaps' ? 'Swaps' : 'Contracts'}
@@ -666,7 +666,7 @@ export default function AccountMobileView({ account, transactions, operations: i
             </div>
 
             {currentDataSource.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-100 text-center py-8 text-slate-400">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] text-center py-8 text-[var(--text-muted)]">
                 <p className="text-xs font-medium">No activity found</p>
               </div>
             ) : (
@@ -749,20 +749,20 @@ export default function AccountMobileView({ account, transactions, operations: i
                     const isSwapDisplay = typeDisplay.toLowerCase() === 'swap';
 
                     const colorIdx = (isSwapOrOffer || isSwapDisplay) ? 2 : (isContract ? 3 : (isReceive ? 0 : 1));
-                    const bgColors = ['bg-emerald-50', 'bg-red-50', 'bg-blue-50', 'bg-purple-50', 'bg-orange-50'];
-                    const textColors = ['text-emerald-600', 'text-red-600', 'text-blue-600', 'text-purple-600', 'text-orange-600'];
+                    const bgColors = ['bg-[var(--success)]/10', 'bg-[var(--error)]/10', 'bg-blue-500/10', 'bg-purple-500/10', 'bg-orange-500/10'];
+                    const textColors = ['text-[var(--success)]', 'text-[var(--error)]', 'text-blue-400', 'text-purple-400', 'text-orange-400'];
 
                     const timeStr = new Date(op.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
                     return (
                       <div key={op.id}>
                         {showDateHeader && (
-                          <div className={`text-sm font-semibold text-slate-900 ${index > 0 ? 'mt-4' : ''} mb-2 px-1`}>
+                          <div className={`text-sm font-semibold text-[var(--text-primary)] ${index > 0 ? 'mt-4' : ''} mb-2 px-1`}>
                             {formatDateHeader(op.created_at)}
                           </div>
                         )}
                         <div
-                          className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-3 active:bg-slate-50 transition-colors cursor-pointer"
+                          className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
                           onClick={() => router.push(`/transaction/${op.transaction_hash}`)}
                         >
                           <div className="flex items-center justify-between">
@@ -781,20 +781,20 @@ export default function AccountMobileView({ account, transactions, operations: i
                                 </svg>
                               </div>
                               <div>
-                                <div className="text-sm font-semibold capitalize text-slate-900">{typeDisplay}</div>
-                                <div className="text-xs text-slate-400 font-medium">{timeStr}</div>
+                                <div className="text-sm font-semibold capitalize text-[var(--text-primary)]">{typeDisplay}</div>
+                                <div className="text-xs text-[var(--text-muted)] font-medium">{timeStr}</div>
                               </div>
                             </div>
                             <div className="text-right">
                               {amount ? (
                                 <>
-                                  <div className={`text-sm font-bold ${isReceive ? 'text-emerald-500' : 'text-slate-900'}`}>
+                                  <div className={`text-sm font-bold ${isReceive ? 'text-[var(--success)]' : 'text-[var(--text-primary)]'}`}>
                                     {isReceive ? '+' : '-'}{amount}
                                   </div>
-                                  <div className="text-xs text-slate-400 font-medium">{asset}</div>
+                                  <div className="text-xs text-[var(--text-muted)] font-medium">{asset}</div>
                                 </>
                               ) : (
-                                <div className="text-sm font-medium text-slate-300">--</div>
+                                <div className="text-sm font-medium text-[var(--text-muted)]">--</div>
                               )}
                             </div>
                           </div>
@@ -808,15 +808,15 @@ export default function AccountMobileView({ account, transactions, operations: i
                 <div ref={sentinelRef} className="py-4">
                   {loadingMore && (
                     <div className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-[#0F4C81] border-t-transparent rounded-full animate-spin" />
-                      <span className="text-xs font-medium text-slate-500">Loading more...</span>
+                      <div className="w-5 h-5 border-2 border-[var(--primary-blue)] border-t-transparent rounded-full animate-spin" />
+                      <span className="text-xs font-medium text-[var(--text-tertiary)]">Loading more...</span>
                     </div>
                   )}
 
                   {!loadingMore && hasMoreToFetch && (
                     <button
                       onClick={fetchMoreOperations}
-                      className="w-full py-3 text-xs font-semibold text-[#0F4C81] bg-white rounded-xl border border-slate-200 shadow-sm active:bg-slate-50 transition-colors"
+                      className="w-full py-3 text-xs font-semibold text-[var(--primary-blue)] bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm active:bg-[var(--bg-tertiary)] transition-colors"
                     >
                       Load more activity
                     </button>
@@ -824,7 +824,7 @@ export default function AccountMobileView({ account, transactions, operations: i
 
                   {!hasMoreToFetch && currentDataSource.length > 0 && (
                     <div className="text-center py-2">
-                      <span className="text-xs font-medium text-slate-400">No more activity to load</span>
+                      <span className="text-xs font-medium text-[var(--text-muted)]">No more activity to load</span>
                     </div>
                   )}
                 </div>
@@ -836,54 +836,54 @@ export default function AccountMobileView({ account, transactions, operations: i
         {activeTab === 'details' && (
           <div className="space-y-3 pt-2">
             {/* Account Info Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-4">
-              <div className="text-[11px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4">
+              <div className="text-[11px] uppercase tracking-widest text-[var(--text-muted)] font-bold pb-2 border-b border-[var(--border-subtle)] mb-3">
                 Account Info
               </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500">
+                  <div className="w-8 h-8 rounded-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-tertiary)]">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[11px] text-slate-400 font-medium">Account ID</div>
-                    <div className="text-sm font-mono text-slate-900 truncate">{shortenAddress(account.id, 10)}</div>
+                    <div className="text-[11px] text-[var(--text-muted)] font-medium">Account ID</div>
+                    <div className="text-sm font-mono text-[var(--text-primary)] truncate">{shortenAddress(account.id, 10)}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+                  <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-[11px] text-slate-400 font-medium">Sequence Number</div>
-                    <div className="text-sm font-mono text-slate-900">{account.sequence}</div>
+                    <div className="text-[11px] text-[var(--text-muted)] font-medium">Sequence Number</div>
+                    <div className="text-sm font-mono text-[var(--text-primary)]">{account.sequence}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-500">
+                  <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="text-[11px] text-slate-400 font-medium">Subentries</div>
-                    <div className="text-sm font-bold text-slate-900">{account.subentry_count}</div>
+                    <div className="text-[11px] text-[var(--text-muted)] font-medium">Subentries</div>
+                    <div className="text-sm font-bold text-[var(--text-primary)]">{account.subentry_count}</div>
                   </div>
                 </div>
                 {account.home_domain && (
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
+                    <div className="w-8 h-8 rounded-full bg-[var(--success)]/10 flex items-center justify-center text-[var(--success)]">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <div className="text-[11px] text-slate-400 font-medium">Home Domain</div>
-                      <a href={`https://${account.home_domain}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#0F4C81] hover:underline">
+                      <div className="text-[11px] text-[var(--text-muted)] font-medium">Home Domain</div>
+                      <a href={`https://${account.home_domain}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[var(--primary-blue)] hover:underline">
                         {account.home_domain}
                       </a>
                     </div>
@@ -893,48 +893,48 @@ export default function AccountMobileView({ account, transactions, operations: i
             </div>
 
             {/* Thresholds Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-4">
-              <div className="text-[11px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4">
+              <div className="text-[11px] uppercase tracking-widest text-[var(--text-muted)] font-bold pb-2 border-b border-[var(--border-subtle)] mb-3">
                 Thresholds
               </div>
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                  <div className="text-[11px] text-slate-400 font-medium mb-1">Low</div>
-                  <div className="text-lg font-bold text-slate-900">{account.thresholds.low_threshold}</div>
+                <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 text-center border border-[var(--border-subtle)]">
+                  <div className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Low</div>
+                  <div className="text-lg font-bold text-[var(--text-primary)]">{account.thresholds.low_threshold}</div>
                 </div>
-                <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                  <div className="text-[11px] text-slate-400 font-medium mb-1">Medium</div>
-                  <div className="text-lg font-bold text-slate-900">{account.thresholds.med_threshold}</div>
+                <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 text-center border border-[var(--border-subtle)]">
+                  <div className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Medium</div>
+                  <div className="text-lg font-bold text-[var(--text-primary)]">{account.thresholds.med_threshold}</div>
                 </div>
-                <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                  <div className="text-[11px] text-slate-400 font-medium mb-1">High</div>
-                  <div className="text-lg font-bold text-slate-900">{account.thresholds.high_threshold}</div>
+                <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 text-center border border-[var(--border-subtle)]">
+                  <div className="text-[11px] text-[var(--text-muted)] font-medium mb-1">High</div>
+                  <div className="text-lg font-bold text-[var(--text-primary)]">{account.thresholds.high_threshold}</div>
                 </div>
               </div>
             </div>
 
             {/* Signers Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-4">
-              <div className="text-[11px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4">
+              <div className="text-[11px] uppercase tracking-widest text-[var(--text-muted)] font-bold pb-2 border-b border-[var(--border-subtle)] mb-3">
                 Signers ({account.signers.length})
               </div>
               <div className="space-y-2">
                 {account.signers.map((signer, idx) => (
-                  <div key={idx} className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
-                    <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
+                  <div key={idx} className="flex items-center gap-3 py-2 border-b border-[var(--border-subtle)] last:border-0">
+                    <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-400">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <Link href={`/account/${signer.key}`} className="text-sm font-mono text-slate-900 hover:text-[#0F4C81] truncate block">
+                      <Link href={`/account/${signer.key}`} className="text-sm font-mono text-[var(--text-primary)] hover:text-[var(--primary-blue)] truncate block">
                         {shortenAddress(signer.key, 8)}
                       </Link>
-                      <div className="text-[11px] text-slate-400 capitalize">{signer.type.replace(/_/g, ' ')}</div>
+                      <div className="text-[11px] text-[var(--text-muted)] capitalize">{signer.type.replace(/_/g, ' ')}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-bold text-slate-900">{signer.weight}</div>
-                      <div className="text-[11px] text-slate-400">weight</div>
+                      <div className="text-sm font-bold text-[var(--text-primary)]">{signer.weight}</div>
+                      <div className="text-[11px] text-[var(--text-muted)]">weight</div>
                     </div>
                   </div>
                 ))}
@@ -942,38 +942,38 @@ export default function AccountMobileView({ account, transactions, operations: i
             </div>
 
             {/* Flags Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-4">
-              <div className="text-[11px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3">
+            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4">
+              <div className="text-[11px] uppercase tracking-widest text-[var(--text-muted)] font-bold pb-2 border-b border-[var(--border-subtle)] mb-3">
                 Account Flags
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div className={`rounded-xl p-3 border ${account.flags.auth_required ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'}`}>
+                <div className={`rounded-xl p-3 border ${account.flags.auth_required ? 'bg-amber-500/10 border-amber-500/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_required ? 'bg-amber-500' : 'bg-slate-300'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_required ? 'text-amber-700' : 'text-slate-400'}`}>Auth Required</span>
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_required ? 'bg-amber-500' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account.flags.auth_required ? 'text-amber-400' : 'text-[var(--text-muted)]'}`}>Auth Required</span>
                   </div>
-                  <p className="text-[11px] text-slate-500">Requires authorization for trustlines</p>
+                  <p className="text-[11px] text-[var(--text-tertiary)]">Requires authorization for trustlines</p>
                 </div>
-                <div className={`rounded-xl p-3 border ${account.flags.auth_revocable ? 'bg-orange-50 border-orange-100' : 'bg-slate-50 border-slate-100'}`}>
+                <div className={`rounded-xl p-3 border ${account.flags.auth_revocable ? 'bg-orange-500/10 border-orange-500/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_revocable ? 'bg-orange-500' : 'bg-slate-300'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_revocable ? 'text-orange-700' : 'text-slate-400'}`}>Auth Revocable</span>
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_revocable ? 'bg-orange-500' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account.flags.auth_revocable ? 'text-orange-400' : 'text-[var(--text-muted)]'}`}>Auth Revocable</span>
                   </div>
-                  <p className="text-[11px] text-slate-500">Can revoke trustlines</p>
+                  <p className="text-[11px] text-[var(--text-tertiary)]">Can revoke trustlines</p>
                 </div>
-                <div className={`rounded-xl p-3 border ${account.flags.auth_immutable ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
+                <div className={`rounded-xl p-3 border ${account.flags.auth_immutable ? 'bg-[var(--error)]/10 border-[var(--error)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_immutable ? 'bg-red-500' : 'bg-slate-300'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_immutable ? 'text-red-700' : 'text-slate-400'}`}>Auth Immutable</span>
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_immutable ? 'bg-[var(--error)]' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account.flags.auth_immutable ? 'text-[var(--error)]' : 'text-[var(--text-muted)]'}`}>Auth Immutable</span>
                   </div>
-                  <p className="text-[11px] text-slate-500">Flags cannot be changed</p>
+                  <p className="text-[11px] text-[var(--text-tertiary)]">Flags cannot be changed</p>
                 </div>
-                <div className={`rounded-xl p-3 border ${account.flags.auth_clawback_enabled ? 'bg-purple-50 border-purple-100' : 'bg-slate-50 border-slate-100'}`}>
+                <div className={`rounded-xl p-3 border ${account.flags.auth_clawback_enabled ? 'bg-purple-500/10 border-purple-500/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_clawback_enabled ? 'bg-purple-500' : 'bg-slate-300'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_clawback_enabled ? 'text-purple-700' : 'text-slate-400'}`}>Clawback</span>
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_clawback_enabled ? 'bg-purple-500' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account.flags.auth_clawback_enabled ? 'text-purple-400' : 'text-[var(--text-muted)]'}`}>Clawback</span>
                   </div>
-                  <p className="text-[11px] text-slate-500">Can clawback assets</p>
+                  <p className="text-[11px] text-[var(--text-tertiary)]">Can clawback assets</p>
                 </div>
               </div>
             </div>

@@ -9,40 +9,143 @@
   --primary-hover: #0a0a0a;
   --primary-muted: rgba(23, 23, 23, 0.05);
 
-  /* Backgrounds - Gray theme */
-  --bg-primary: #F5F5F7;
-  /* Light gray main background */
-  --bg-secondary: #EBEBED;
-  /* Medium gray for cards */
-  --bg-tertiary: #E0E0E2;
-  /* Slightly darker gray for nested elements */
-  --bg-elevated: #F5F5F7;
-  --bg-hover: #D5D5D7;
+  /* Backgrounds - Matching original Tailwind classes */
+  --bg-primary: #f1f5f9;
+  /* slate-100 - was bg-slate-100 */
+  --bg-secondary: #FFFFFF;
+  /* white - was bg-white */
+  --bg-tertiary: #f8fafc;
+  /* slate-50 - was bg-slate-50 */
+  --bg-elevated: #FFFFFF;
+  /* white */
+  --bg-hover: #f1f5f9;
+  /* slate-100 - was hover:bg-slate-100 */
 
-  /* Text hierarchy */
-  --text-primary: #111827;
-  --text-secondary: #374151;
-  --text-tertiary: #6B7280;
-  --text-muted: #9CA3AF;
+  /* Text hierarchy - Matching original Tailwind slate classes */
+  --text-primary: #0f172a;
+  /* slate-900 - was text-slate-900 */
+  --text-secondary: #475569;
+  /* slate-600 - was text-slate-600 */
+  --text-tertiary: #64748b;
+  /* slate-500 - was text-slate-500 */
+  --text-muted: #94a3b8;
+  /* slate-400 - was text-slate-400 */
 
-  /* Borders - Subtle */
-  --border-subtle: #E5E7EB;
-  --border-default: #E5E7EB;
-  --border-strong: #D1D5DB;
-  --border-color: #E5E7EB;
+  /* Borders - Matching original Tailwind classes */
+  --border-subtle: #f1f5f9;
+  /* slate-100 - was border-slate-100 */
+  --border-default: #e2e8f0;
+  /* slate-200 - was border-slate-200 */
+  --border-strong: #cbd5e1;
+  /* slate-300 */
+  --border-color: #e2e8f0;
+  /* slate-200 */
 
-  /* Status colors */
+  /* Status colors - Emerald/Red */
   --success: #10B981;
+  /* emerald-500 */
   --success-muted: rgba(16, 185, 129, 0.1);
+  /* emerald-50 background */
   --error: #EF4444;
+  /* red-500 */
   --error-muted: rgba(239, 68, 68, 0.1);
+  /* red-50 background */
   --info: #3B82F6;
   --info-muted: rgba(59, 130, 246, 0.1);
+
+  /* Warning color */
+  --warning: #F97316;
+  /* orange-500 */
+  --warning-muted: rgba(249, 115, 22, 0.1);
+
+  /* Accent colors for categorization */
+  --purple: #8B5CF6;
+  --purple-muted: rgba(139, 92, 246, 0.1);
+  --indigo: #6366F1;
+  --indigo-muted: rgba(99, 102, 241, 0.1);
+  --pink: #EC4899;
+  --pink-muted: rgba(236, 72, 153, 0.1);
+  --violet: #7C3AED;
+  --violet-muted: rgba(124, 58, 237, 0.1);
 
   /* Shadows - Soft */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+
+  /* Accent color */
+  --accent: #10B981;
+
+  /* Primary blue - for titles and links */
+  --primary-blue: #0F4C81;
+
+  /* Header background */
+  --header-bg: #050b20;
+}
+
+/* Dark Mode - Obsidian Theme */
+[data-theme="dark"] {
+  --primary: #FFFFFF;
+  --primary-light: #E5E7EB;
+  --primary-dark: #F9FAFB;
+  --primary-hover: #F3F4F6;
+  --primary-muted: rgba(255, 255, 255, 0.05);
+
+  /* Backgrounds - Deep obsidian */
+  --bg-primary: #0B1118;
+  --bg-secondary: #161E29;
+  --bg-tertiary: #1C2633;
+  --bg-elevated: #161E29;
+  --bg-hover: #1F2937;
+
+  /* Text hierarchy - Light for dark backgrounds */
+  --text-primary: #FFFFFF;
+  --text-secondary: #E5E7EB;
+  --text-tertiary: #9CA3AF;
+  --text-muted: #6B7280;
+
+  /* Borders - Subtle dark */
+  --border-subtle: rgba(31, 41, 55, 0.7);
+  --border-default: #1F2937;
+  --border-strong: #374151;
+  --border-color: rgba(31, 41, 55, 0.7);
+
+  /* Status colors - Same but with darker muted backgrounds */
+  --success: #00C08B;
+  --success-muted: rgba(0, 192, 139, 0.1);
+  --error: #EF4444;
+  --error-muted: rgba(239, 68, 68, 0.1);
+  --info: #3B82F6;
+  --info-muted: rgba(59, 130, 246, 0.1);
+
+  /* Warning color */
+  --warning: #FB923C;
+  /* orange-400 */
+  --warning-muted: rgba(251, 146, 60, 0.15);
+
+  /* Accent colors - brighter for dark mode */
+  --purple: #A78BFA;
+  --purple-muted: rgba(167, 139, 250, 0.15);
+  --indigo: #818CF8;
+  --indigo-muted: rgba(129, 140, 248, 0.15);
+  --pink: #F472B6;
+  --pink-muted: rgba(244, 114, 182, 0.15);
+  --violet: #A78BFA;
+  --violet-muted: rgba(167, 139, 250, 0.15);
+
+  /* Shadows - Deeper for dark mode */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+
+  /* Accent color - Teal green */
+  --accent: #00C08B;
+
+  /* Primary blue - lighter for dark mode visibility */
+  --primary-blue: #60A5FA;
+
+  /* Header background - matches dark theme */
+  --header-bg: #0B1118;
 }
 
 @theme inline {

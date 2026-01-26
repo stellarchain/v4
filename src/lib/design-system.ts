@@ -17,26 +17,26 @@
 
 export const coreColors = {
   // Primary brand color - Deep Sapphire Blue
-  primary: '#0F4C81',
+  primary: 'var(--primary-blue)',
 
-  // Backgrounds
-  pageBg: '#F1F5F9',        // slate-100
-  cardBg: '#FFFFFF',         // white
-  cardInnerBg: '#F8FAFC',    // slate-50 (for nested sections)
+  // Backgrounds - Uses CSS variables for theme support
+  pageBg: 'var(--bg-primary)',
+  cardBg: 'var(--bg-secondary)',
+  cardInnerBg: 'var(--bg-tertiary)',
 
   // Accent backgrounds
-  skyTint: '#E0F2FE',        // sky-50 (for fee sections, highlights)
-  skyTintStrong: '#BAE6FD',  // sky-200
+  skyTint: 'var(--info-muted)',
+  skyTintStrong: 'var(--info-muted)',
 
   // Status colors
-  success: '#10B981',        // emerald-500
-  successLight: '#D1FAE5',   // emerald-100
-  error: '#EF4444',          // red-500
-  errorLight: '#FEE2E2',     // red-100
+  success: 'var(--success)',
+  successLight: 'var(--success-muted)',
+  error: 'var(--error)',
+  errorLight: 'var(--error-muted)',
 
   // Border
-  border: '#E2E8F0',         // slate-200
-  borderLight: '#F1F5F9',    // slate-100
+  border: 'var(--border-default)',
+  borderLight: 'var(--border-subtle)',
 } as const;
 
 // =============================================================================
@@ -44,47 +44,47 @@ export const coreColors = {
 // =============================================================================
 
 export const colors = {
-  // Primary (use inline style for exact color: style={{ color: coreColors.primary }})
-  primary: 'text-[#0F4C81]',
-  primaryBg: 'bg-[#0F4C81]',
+  // Primary (uses CSS variable for theme support)
+  primary: 'text-[var(--info)]',
+  primaryBg: 'bg-[var(--info)]',
 
-  // Backgrounds
-  pageBg: 'bg-slate-100',
-  cardBg: 'bg-white',
-  cardInnerBg: 'bg-slate-50',
+  // Backgrounds - Uses CSS variables for theme support
+  pageBg: 'bg-[var(--bg-primary)]',
+  cardBg: 'bg-[var(--bg-secondary)]',
+  cardInnerBg: 'bg-[var(--bg-tertiary)]',
 
   // Accent backgrounds
-  skyTint: 'bg-sky-50',
-  skyTintHalf: 'bg-sky-50/50',
+  skyTint: 'bg-[var(--info-muted)]',
+  skyTintHalf: 'bg-[var(--info-muted)]/50',
 
-  // Text hierarchy
-  textPrimary: 'text-slate-900',
-  textSecondary: 'text-slate-700',
-  textTertiary: 'text-slate-500',
-  textMuted: 'text-slate-400',
+  // Text hierarchy - Uses CSS variables for theme support
+  textPrimary: 'text-[var(--text-primary)]',
+  textSecondary: 'text-[var(--text-secondary)]',
+  textTertiary: 'text-[var(--text-tertiary)]',
+  textMuted: 'text-[var(--text-muted)]',
 
-  // Status
-  success: 'text-emerald-500',
-  successBg: 'bg-emerald-50',
-  successIcon: 'text-emerald-600',
+  // Status - Uses CSS variables for theme support
+  success: 'text-[var(--success)]',
+  successBg: 'bg-[var(--success-muted)]',
+  successIcon: 'text-[var(--success)]',
 
-  error: 'text-red-500',
-  errorBg: 'bg-red-50',
-  errorIcon: 'text-red-600',
+  error: 'text-[var(--error)]',
+  errorBg: 'bg-[var(--error-muted)]',
+  errorIcon: 'text-[var(--error)]',
 
-  info: 'text-blue-500',
-  infoBg: 'bg-blue-50',
-  infoIcon: 'text-blue-600',
+  info: 'text-[var(--info)]',
+  infoBg: 'bg-[var(--info-muted)]',
+  infoIcon: 'text-[var(--info)]',
 
-  warning: 'text-orange-500',
-  warningBg: 'bg-orange-50',
-  warningIcon: 'text-orange-600',
+  warning: 'text-[var(--warning)]',
+  warningBg: 'bg-[var(--warning-muted)]',
+  warningIcon: 'text-[var(--warning)]',
 
-  // Accent colors for icons/badges
-  purple: { bg: 'bg-purple-50', text: 'text-purple-600' },
-  indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600' },
-  pink: { bg: 'bg-pink-50', text: 'text-pink-600' },
-  violet: { bg: 'bg-violet-50', text: 'text-violet-600' },
+  // Accent colors for icons/badges - Theme-aware
+  purple: { bg: 'bg-[var(--purple-muted)]', text: 'text-[var(--purple)]' },
+  indigo: { bg: 'bg-[var(--indigo-muted)]', text: 'text-[var(--indigo)]' },
+  pink: { bg: 'bg-[var(--pink-muted)]', text: 'text-[var(--pink)]' },
+  violet: { bg: 'bg-[var(--violet-muted)]', text: 'text-[var(--violet)]' },
 } as const;
 
 // =============================================================================
@@ -92,35 +92,35 @@ export const colors = {
 // =============================================================================
 
 export const containers = {
-  // Main page wrapper - Deep Ocean style
-  page: 'w-full bg-slate-100 min-h-screen pb-24 font-sans',
+  // Main page wrapper - Theme-aware
+  page: 'w-full bg-[var(--bg-primary)] min-h-screen pb-24 font-sans',
 
-  // Card container - Premium white with soft shadow (no border)
-  card: 'bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden',
+  // Card container - Theme-aware with shadow
+  card: 'bg-[var(--bg-secondary)] rounded-2xl shadow-[var(--shadow-md)] border border-[var(--border-subtle)] overflow-hidden',
 
   // Card extended to edges (for full-width lists)
-  cardEdge: 'bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden -mx-4',
+  cardEdge: 'bg-[var(--bg-secondary)] rounded-2xl shadow-[var(--shadow-md)] border border-[var(--border-subtle)] overflow-hidden -mx-4',
 
   // Card container (compact - smaller, no negative margin)
-  cardCompact: 'bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden',
+  cardCompact: 'bg-[var(--bg-secondary)] rounded-2xl shadow-[var(--shadow-md)] border border-[var(--border-subtle)] overflow-hidden',
 
   // Card container (full width - edge to edge, no rounded corners)
-  cardFullWidth: 'bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden -mx-6',
+  cardFullWidth: 'bg-[var(--bg-secondary)] shadow-[var(--shadow-md)] border-y border-[var(--border-subtle)] overflow-hidden -mx-6',
 
   // Card with list dividers (default for lists)
-  cardList: 'bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden divide-y divide-slate-100',
+  cardList: 'bg-[var(--bg-secondary)] rounded-2xl shadow-[var(--shadow-md)] border border-[var(--border-subtle)] overflow-hidden divide-y divide-[var(--border-subtle)]',
 
   // Card with subtle border (when you need more definition)
-  cardBordered: 'bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden',
+  cardBordered: 'bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden',
 
   // Inner section (nested inside cards) - softer styling
-  innerSection: 'bg-slate-50/70 rounded-xl p-3',
+  innerSection: 'bg-[var(--bg-tertiary)] rounded-xl p-3',
 
   // Content section with padding
   section: 'px-4 py-4',
 
   // Sky tint footer (for fees, totals)
-  skyFooter: 'bg-sky-50/50 border-t border-slate-100',
+  skyFooter: 'bg-[var(--info-muted)]/50 border-t border-[var(--border-subtle)]',
 } as const;
 
 // =============================================================================
@@ -128,19 +128,19 @@ export const containers = {
 // =============================================================================
 
 export const headers = {
-  // Sticky header with blur - Deep Ocean style
-  sticky: 'sticky top-0 z-10 bg-slate-100/95 backdrop-blur-md border-b border-slate-200',
+  // Sticky header with blur - Theme-aware
+  sticky: 'sticky top-0 z-10 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)]',
 
-  // Page title (use with inline style for primary color)
-  pageTitle: 'text-xl font-bold tracking-tight',
-  pageTitleColor: 'text-[#0F4C81]',
+  // Page title
+  pageTitle: 'text-xl font-bold tracking-tight text-[var(--text-primary)]',
+  pageTitleColor: 'text-[var(--info)]',
 
   // Section title
-  sectionTitle: 'text-sm font-bold text-slate-900',
-  sectionTitlePrimary: 'text-sm font-bold text-[#0F4C81]',
+  sectionTitle: 'text-sm font-bold text-[var(--text-primary)]',
+  sectionTitlePrimary: 'text-sm font-bold text-[var(--info)]',
 
   // Section label (uppercase)
-  sectionLabel: 'text-[10px] uppercase tracking-widest text-slate-400 font-bold',
+  sectionLabel: 'text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold',
 } as const;
 
 // =============================================================================
@@ -149,17 +149,17 @@ export const headers = {
 
 export const dividers = {
   // List divider
-  list: 'divide-y divide-slate-100',
+  list: 'divide-y divide-[var(--border-subtle)]',
 
   // Border bottom
-  borderBottom: 'border-b border-slate-200',
-  borderBottomLight: 'border-b border-slate-100',
+  borderBottom: 'border-b border-[var(--border-default)]',
+  borderBottomLight: 'border-b border-[var(--border-subtle)]',
 
   // Border for sections
-  borderSection: 'border-b border-slate-100',
+  borderSection: 'border-b border-[var(--border-subtle)]',
 
   // Dashed border (for connectors)
-  dashed: 'border-t-2 border-dashed border-slate-200',
+  dashed: 'border-t-2 border-dashed border-[var(--border-default)]',
 } as const;
 
 // =============================================================================
@@ -168,25 +168,25 @@ export const dividers = {
 
 export const interactive = {
   // Clickable row
-  row: 'active:bg-slate-50 transition-colors cursor-pointer',
+  row: 'active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer',
 
   // Button base
   button: 'transition-colors',
 
   // Primary button
-  buttonPrimary: 'bg-[#0F4C81] text-white font-bold rounded-lg hover:opacity-90 transition-colors',
+  buttonPrimary: 'bg-[var(--info)] text-white font-bold rounded-lg hover:opacity-90 transition-colors',
 
-  // Secondary button (white with border)
-  buttonSecondary: 'bg-white border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors shadow-sm',
+  // Secondary button - Theme-aware
+  buttonSecondary: 'bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] font-semibold rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors shadow-sm',
 
   // Tab (inactive)
-  tabInactive: 'text-slate-500 hover:text-[#0F4C81] border-transparent',
+  tabInactive: 'text-[var(--text-tertiary)] hover:text-[var(--info)] border-transparent',
 
   // Tab (active)
-  tabActive: 'text-[#0F4C81] border-[#0F4C81]',
+  tabActive: 'text-[var(--info)] border-[var(--info)]',
 
   // Link with primary color
-  link: 'text-[#0F4C81] hover:opacity-80 transition-opacity',
+  link: 'text-[var(--info)] hover:opacity-80 transition-opacity',
 } as const;
 
 // =============================================================================
@@ -195,20 +195,20 @@ export const interactive = {
 
 export const badges = {
   // Primary badge (filled)
-  primary: 'bg-[#0F4C81] text-white text-[10px] font-bold px-2 py-0.5 rounded',
+  primary: 'bg-[var(--primary)] text-[var(--bg-primary)] text-[10px] font-bold px-2 py-0.5 rounded',
 
   // Secondary badge (outline)
-  secondary: 'bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded',
+  secondary: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-[10px] font-bold px-2 py-0.5 rounded',
 
   // Success badge
-  success: 'bg-emerald-50 text-emerald-600 border border-emerald-100 text-xs font-semibold px-2.5 py-0.5 rounded-full',
+  success: 'bg-[var(--success-muted)] text-[var(--success)] border border-[var(--success)]/30 text-xs font-semibold px-2.5 py-0.5 rounded-full',
 
   // Error badge
-  error: 'bg-red-50 text-red-600 border border-red-100 text-xs font-semibold px-2.5 py-0.5 rounded-full',
+  error: 'bg-[var(--error-muted)] text-[var(--error)] border border-[var(--error)]/30 text-xs font-semibold px-2.5 py-0.5 rounded-full',
 
   // Count badge (for tabs)
-  count: 'bg-slate-100 text-slate-500 text-xs font-semibold py-0.5 px-2 rounded-full',
-  countActive: 'bg-slate-100 text-slate-600 text-xs font-semibold py-0.5 px-2 rounded-full',
+  count: 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] text-xs font-semibold py-0.5 px-2 rounded-full',
+  countActive: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-xs font-semibold py-0.5 px-2 rounded-full',
 } as const;
 
 // =============================================================================
@@ -217,25 +217,25 @@ export const badges = {
 
 export const typography = {
   // Large number display
-  displayLarge: 'text-4xl font-bold tracking-tight text-slate-900',
+  displayLarge: 'text-4xl font-bold tracking-tight text-[var(--text-primary)]',
 
   // Medium number display
-  displayMedium: 'text-2xl font-bold text-slate-900',
+  displayMedium: 'text-2xl font-bold text-[var(--text-primary)]',
 
   // Large with primary color
-  displayPrimary: 'text-lg font-bold text-[#0F4C81]',
+  displayPrimary: 'text-lg font-bold text-[var(--info)]',
 
   // Body text
-  body: 'text-sm text-slate-700',
+  body: 'text-sm text-[var(--text-secondary)]',
 
   // Small text
-  small: 'text-xs text-slate-500',
+  small: 'text-xs text-[var(--text-tertiary)]',
 
   // Tiny text (labels)
-  tiny: 'text-[10px] text-slate-400',
+  tiny: 'text-[10px] text-[var(--text-muted)]',
 
   // Uppercase label
-  label: 'text-[10px] font-bold uppercase tracking-wider text-slate-400',
+  label: 'text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]',
 
   // Monospace (for numbers, addresses)
   mono: 'font-mono',
@@ -244,8 +244,8 @@ export const typography = {
   tabular: 'tabular-nums',
 
   // Amount styles
-  amountPositive: 'text-emerald-500 font-bold',
-  amountNegative: 'text-red-500 font-bold',
+  amountPositive: 'text-[var(--success)] font-bold',
+  amountNegative: 'text-[var(--error)] font-bold',
 } as const;
 
 // =============================================================================
@@ -293,13 +293,13 @@ export const icons = {
   sizeMd: 'w-10 h-10',
   sizeLg: 'w-12 h-12',
 
-  // Icon backgrounds
-  bgSuccess: 'bg-emerald-50 text-emerald-500',
-  bgError: 'bg-red-50 text-red-500',
-  bgInfo: 'bg-blue-50 text-blue-500',
-  bgPrimary: 'bg-sky-50 text-[#0F4C81]',
-  bgWarning: 'bg-orange-50 text-orange-500',
-  bgPurple: 'bg-purple-50 text-purple-500',
+  // Icon backgrounds - Theme-aware
+  bgSuccess: 'bg-[var(--success-muted)] text-[var(--success)]',
+  bgError: 'bg-[var(--error-muted)] text-[var(--error)]',
+  bgInfo: 'bg-[var(--info-muted)] text-[var(--info)]',
+  bgPrimary: 'bg-[var(--info-muted)] text-[var(--info)]',
+  bgWarning: 'bg-[var(--warning-muted)] text-[var(--warning)]',
+  bgPurple: 'bg-[var(--purple-muted)] text-[var(--purple)]',
 } as const;
 
 // =============================================================================
@@ -308,7 +308,7 @@ export const icons = {
 
 export const tabs = {
   // Container
-  container: 'border-b border-slate-200',
+  container: 'border-b border-[var(--border-subtle)]',
 
   // Nav wrapper
   nav: 'flex gap-6 overflow-x-auto',
@@ -317,10 +317,10 @@ export const tabs = {
   tab: 'whitespace-nowrap pb-3 border-b-2 font-semibold text-sm flex items-center gap-2 transition-colors',
 
   // Active tab
-  tabActive: 'border-[#0F4C81] text-[#0F4C81]',
+  tabActive: 'border-[var(--text-primary)] text-[var(--text-primary)]',
 
   // Inactive tab
-  tabInactive: 'border-transparent text-slate-500 hover:text-[#0F4C81]',
+  tabInactive: 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]',
 } as const;
 
 // =============================================================================
@@ -329,13 +329,13 @@ export const tabs = {
 
 export const inputs = {
   // Search input
-  search: 'w-full pl-10 pr-3 py-2 bg-slate-200 border-none rounded-full text-sm text-slate-700 placeholder-slate-500 focus:ring-2 focus:ring-[#0F4C81] focus:bg-white transition-all',
+  search: 'w-full pl-10 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all',
 
   // Standard input
-  input: 'w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-[#0F4C81] focus:border-transparent transition-all',
+  input: 'w-full px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all',
 
   // Select dropdown
-  select: 'w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:ring-2 focus:ring-[#0F4C81] focus:border-transparent transition-all appearance-none',
+  select: 'w-full px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all appearance-none',
 } as const;
 
 // =============================================================================
@@ -347,10 +347,10 @@ export const pagination = {
   container: 'flex items-center justify-center gap-1 mt-4 pt-3',
 
   // Nav button (prev/next)
-  navButton: 'w-8 h-8 flex items-center justify-center rounded-lg bg-white shadow-sm border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
+  navButton: 'w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] shadow-sm border border-[var(--border-default)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
 
   // Page button (inactive)
-  pageButton: 'w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-100 transition-colors',
+  pageButton: 'w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] transition-colors',
 
   // Page button (active) - use with inline style for bg color
   pageButtonActive: 'w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold text-white shadow-sm',
@@ -362,22 +362,22 @@ export const pagination = {
 
 export const transferFlow = {
   // Card wrapper
-  card: 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden',
+  card: 'bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden',
 
   // FROM section
-  fromSection: 'p-5 pb-8 relative bg-gradient-to-br from-slate-50 to-white',
+  fromSection: 'p-5 pb-8 relative bg-[var(--bg-tertiary)]',
 
   // TO section
-  toSection: 'p-5 pt-8 bg-white',
+  toSection: 'p-5 pt-8 bg-[var(--bg-secondary)]',
 
   // Connector circle
-  connector: 'w-8 h-8 rounded-full bg-white shadow-md border border-slate-100 flex items-center justify-center',
+  connector: 'w-8 h-8 rounded-full bg-[var(--bg-secondary)] shadow-md border border-[var(--border-subtle)] flex items-center justify-center',
 
   // Dashed line
-  dashedLine: 'border-t-2 border-dashed border-slate-200',
+  dashedLine: 'border-t-2 border-dashed border-[var(--border-default)]',
 
   // Fee footer
-  feeFooter: 'flex justify-between items-center px-5 py-3 bg-sky-50/50 border-t border-slate-100',
+  feeFooter: 'flex justify-between items-center px-5 py-3 bg-[var(--info-muted)]/50 border-t border-[var(--border-subtle)]',
 } as const;
 
 // =============================================================================
@@ -386,20 +386,20 @@ export const transferFlow = {
 
 export const orderbook = {
   // Bid (buy) styles
-  bidText: 'text-emerald-500',
-  bidBg: 'bg-emerald-500/12',
-  bidBgStrong: 'bg-emerald-500/15',
+  bidText: 'text-[var(--success)]',
+  bidBg: 'bg-[var(--success)]/12',
+  bidBgStrong: 'bg-[var(--success)]/15',
 
   // Ask (sell) styles
-  askText: 'text-red-500',
-  askBg: 'bg-red-500/12',
-  askBgStrong: 'bg-red-500/15',
+  askText: 'text-[var(--error)]',
+  askBg: 'bg-[var(--error)]/12',
+  askBgStrong: 'bg-[var(--error)]/15',
 
   // Row styling
   row: 'relative flex items-center justify-between px-3 py-[7px]',
 
   // Header styling
-  header: 'flex items-center justify-between px-3 py-2 text-slate-400 font-semibold text-[9px] uppercase tracking-wide',
+  header: 'flex items-center justify-between px-3 py-2 text-[var(--text-muted)] font-semibold text-[9px] uppercase tracking-wide',
 } as const;
 
 // =============================================================================
@@ -426,15 +426,15 @@ export function getPrimaryColor(): string {
 export function getTransactionColors(type: 'receive' | 'send' | 'swap' | 'contract') {
   switch (type) {
     case 'receive':
-      return { bg: 'bg-emerald-50', text: 'text-emerald-600', icon: 'text-emerald-500' };
+      return { bg: 'bg-[var(--success-muted)]', text: 'text-[var(--success)]', icon: 'text-[var(--success)]' };
     case 'send':
-      return { bg: 'bg-red-50', text: 'text-red-600', icon: 'text-red-500' };
+      return { bg: 'bg-[var(--error-muted)]', text: 'text-[var(--error)]', icon: 'text-[var(--error)]' };
     case 'swap':
-      return { bg: 'bg-blue-50', text: 'text-blue-600', icon: 'text-blue-500' };
+      return { bg: 'bg-[var(--info-muted)]', text: 'text-[var(--info)]', icon: 'text-[var(--info)]' };
     case 'contract':
-      return { bg: 'bg-purple-50', text: 'text-purple-600', icon: 'text-purple-500' };
+      return { bg: 'bg-[var(--purple-muted)]', text: 'text-[var(--purple)]', icon: 'text-[var(--purple)]' };
     default:
-      return { bg: 'bg-slate-50', text: 'text-slate-600', icon: 'text-slate-500' };
+      return { bg: 'bg-[var(--bg-tertiary)]', text: 'text-[var(--text-secondary)]', icon: 'text-[var(--text-tertiary)]' };
   }
 }
 
@@ -443,28 +443,36 @@ export function getTransactionColors(type: 'receive' | 'send' | 'swap' | 'contra
  */
 export function getOperationColors(type: string) {
   if (type.includes('payment') || type === 'create_account') {
-    return { bg: 'bg-emerald-50', text: 'text-emerald-500' };
+    return { bg: 'bg-[var(--success-muted)]', text: 'text-[var(--success)]' };
   }
   if (type.includes('path_payment')) {
-    return { bg: 'bg-blue-50', text: 'text-blue-500' };
+    return { bg: 'bg-[var(--info-muted)]', text: 'text-[var(--info)]' };
   }
   if (type.includes('offer')) {
-    return { bg: 'bg-purple-50', text: 'text-purple-500' };
+    return { bg: 'bg-[var(--purple-muted)]', text: 'text-[var(--purple)]' };
   }
   if (type === 'invoke_host_function') {
-    return { bg: 'bg-orange-50', text: 'text-orange-500' };
+    return { bg: 'bg-[var(--warning-muted)]', text: 'text-[var(--warning)]' };
   }
-  return { bg: 'bg-slate-100', text: 'text-slate-500' };
+  return { bg: 'bg-[var(--bg-tertiary)]', text: 'text-[var(--text-tertiary)]' };
 }
 
 /**
  * Get asset icon color based on asset code
+ * Uses CSS variables for theme support
  */
 export function getAssetColors(assetCode: string) {
-  const bgColors = ['bg-blue-50', 'bg-purple-50', 'bg-emerald-50', 'bg-orange-50', 'bg-pink-50', 'bg-indigo-50', 'bg-violet-50'];
-  const textColors = ['text-blue-600', 'text-purple-600', 'text-emerald-600', 'text-orange-600', 'text-pink-600', 'text-indigo-600', 'text-violet-600'];
-  const colorIdx = assetCode.length % bgColors.length;
-  return { bg: bgColors[colorIdx], text: textColors[colorIdx] };
+  const colorOptions = [
+    { bg: 'bg-[var(--info-muted)]', text: 'text-[var(--info)]' },
+    { bg: 'bg-[var(--purple-muted)]', text: 'text-[var(--purple)]' },
+    { bg: 'bg-[var(--success-muted)]', text: 'text-[var(--success)]' },
+    { bg: 'bg-[var(--warning-muted)]', text: 'text-[var(--warning)]' },
+    { bg: 'bg-[var(--pink-muted)]', text: 'text-[var(--pink)]' },
+    { bg: 'bg-[var(--indigo-muted)]', text: 'text-[var(--indigo)]' },
+    { bg: 'bg-[var(--violet-muted)]', text: 'text-[var(--violet)]' },
+  ];
+  const colorIdx = assetCode.length % colorOptions.length;
+  return colorOptions[colorIdx];
 }
 
 // =============================================================================
@@ -477,7 +485,7 @@ export function getAssetColors(assetCode: string) {
 export function listRow(options?: { extended?: boolean }) {
   return cn(
     options?.extended ? 'px-4 py-4' : 'px-4 py-3',
-    'active:bg-slate-50 transition-colors cursor-pointer'
+    'active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer'
   );
 }
 
@@ -497,7 +505,7 @@ export function card(options?: { compact?: boolean; fullWidth?: boolean; withDiv
  * Build classes for section header
  */
 export function sectionHeader() {
-  return 'text-[10px] uppercase tracking-widest text-slate-400 font-bold pb-2 border-b border-slate-100 mb-3';
+  return 'text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold pb-2 border-b border-[var(--border-subtle)] mb-3';
 }
 
 /**
