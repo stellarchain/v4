@@ -226,7 +226,7 @@ function extractWasmMetadata(wasmCode: Buffer): SCMetaEntry[] {
   try {
     // WASM magic number check
     if (wasmCode.length < 8 || wasmCode[0] !== 0x00 || wasmCode[1] !== 0x61 ||
-        wasmCode[2] !== 0x73 || wasmCode[3] !== 0x6d) {
+      wasmCode[2] !== 0x73 || wasmCode[3] !== 0x6d) {
       return entries;
     }
 
@@ -719,3 +719,432 @@ export async function getContractAccessControlBatch(
 
   return results;
 }
+
+// ============================================================================
+// Contract Spec Extraction (SEP-0046 / XDR Spec)
+// ============================================================================
+
+export interface ContractSpecResult {
+  functions: SpecFunction[];
+  udts: SpecUDT[];
+}
+
+export interface SpecFunction {
+  name: string;
+  doc: string;
+  inputs: SpecInput[];
+  outputs: SpecType[];
+}
+
+export interface SpecInput {
+  name: string;
+  type: SpecType;
+  doc: string;
+}
+
+export interface SpecType {
+  type: string;
+  subType?: string | SpecType; // For Vector, Map, Option, etc.
+  refName?: string; // For UDT references
+}
+
+export interface SpecUDT {
+  name: string;
+  doc: string;
+  type: 'struct' | 'union' | 'enum';
+  fields: SpecField[];
+}
+
+export interface SpecField {
+  name: string;
+  doc: string;
+  type?: SpecType; // Struct/Union fields have types
+  cases?: SpecCase[]; // Enum/Union cases
+}
+
+export interface SpecCase {
+  name: string;
+  value?: number; // Enum value
+  type?: SpecType; // Union case type
+}
+
+const specCache: Map<string, MetadataCacheEntry<ContractSpecResult>> = new Map();
+
+/**
+ * Get contract spec (functions, types) from WASM
+ */
+export async function getContractSpec(contractId: string): Promise<ContractSpecResult | null> {
+  if (!contractId || !isContractAddress(contractId)) return null;
+
+  const cached = getCached(specCache, contractId);
+  if (cached !== undefined) return cached;
+
+  try {
+    // Get contract instance to find WASM hash
+    const instanceData = await getContractInstanceData(contractId);
+    if (!instanceData) {
+      setCache(specCache, contractId, null, true);
+      return null;
+    }
+
+    const instance = instanceData.val();
+    if (instance.switch().name !== 'scvContractInstance') {
+      setCache(specCache, contractId, null, true);
+      return null;
+    }
+
+    const contractInstance = instance.instance();
+    const executable = contractInstance.executable();
+
+    if (executable.switch().name === 'contractExecutableWasm') {
+      const wasmHash = executable.wasmHash();
+      const codeEntry = await getContractCode(wasmHash);
+
+      if (codeEntry) {
+        const code = codeEntry.code();
+        const spec = extractWasmSpec(code);
+
+        // Sort functions by name
+        if (spec) {
+          spec.functions.sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        const result = spec && (spec.functions.length > 0 || spec.udts.length > 0) ? spec : null;
+        setCache(specCache, contractId, result, !result);
+        return result;
+      }
+    }
+
+    setCache(specCache, contractId, null, true);
+    return null;
+  } catch (error) {
+    console.error('Error fetching contract spec:', error);
+    setCache(specCache, contractId, null, true);
+    return null;
+  }
+}
+
+// Extract and parse spec from WASM custom section
+function extractWasmSpec(wasmCode: Buffer): ContractSpecResult | null {
+  try {
+    // WASM magic number check
+    if (wasmCode.length < 8 || wasmCode[0] !== 0x00 || wasmCode[1] !== 0x61 ||
+      wasmCode[2] !== 0x73 || wasmCode[3] !== 0x6d) {
+      return null;
+    }
+
+    let offset = 8;
+    const functions: SpecFunction[] = [];
+    const udts: SpecUDT[] = [];
+
+    while (offset < wasmCode.length) {
+      const sectionId = wasmCode[offset++];
+
+      // Read LEB128 section size
+      let sectionSize = 0;
+      let shift = 0;
+      while (offset < wasmCode.length) {
+        const byte = wasmCode[offset++];
+        sectionSize |= (byte & 0x7f) << shift;
+        if ((byte & 0x80) === 0) break;
+        shift += 7;
+      }
+
+      if (sectionId === 0) { // Custom section
+        const sectionStart = offset;
+        const sectionEnd = offset + sectionSize;
+
+        // Read section name
+        let nameLen = 0;
+        shift = 0;
+        while (offset < sectionEnd) {
+          const byte = wasmCode[offset++];
+          nameLen |= (byte & 0x7f) << shift;
+          if ((byte & 0x80) === 0) break;
+          shift += 7;
+        }
+
+        if (offset + nameLen <= sectionEnd) {
+          const name = wasmCode.slice(offset, offset + nameLen).toString('utf8');
+          offset += nameLen;
+
+          if (name === 'contractspecv0') {
+            const data = wasmCode.slice(offset, sectionEnd);
+            parseSpecData(data, functions, udts);
+          }
+        }
+        offset = sectionEnd;
+      } else {
+        offset += sectionSize;
+      }
+    }
+
+    return { functions, udts };
+
+  } catch (error) {
+    console.error('Error extracting WASM spec:', error);
+    return null;
+  }
+}
+
+// Minimal XDR Reader Helper
+class XdrReader {
+  buffer: Buffer;
+  offset: number;
+
+  constructor(buffer: Buffer) {
+    this.buffer = buffer;
+    this.offset = 0;
+  }
+
+  readU32(): number {
+    if (this.offset + 4 > this.buffer.length) throw new Error('EOF');
+    const val = this.buffer.readUInt32BE(this.offset);
+    this.offset += 4;
+    return val;
+  }
+
+  readString(): string {
+    const len = this.readU32();
+    if (this.offset + len > this.buffer.length) throw new Error('EOF');
+    const str = this.buffer.slice(this.offset, this.offset + len).toString('utf8');
+    this.offset += len;
+    // Padding
+    const pad = (4 - (len % 4)) % 4;
+    this.offset += pad;
+    return str;
+  }
+
+  readBytes(): Buffer {
+    const len = this.readU32();
+    if (this.offset + len > this.buffer.length) throw new Error('EOF');
+    const buf = this.buffer.slice(this.offset, this.offset + len);
+    this.offset += len;
+    const pad = (4 - (len % 4)) % 4;
+    this.offset += pad;
+    return buf;
+  }
+
+  ensureMore(): boolean {
+    return this.offset < this.buffer.length;
+  }
+}
+
+function parseSpecData(data: Buffer, functions: SpecFunction[], udts: SpecUDT[]) {
+  const reader = new XdrReader(data);
+
+  while (reader.ensureMore()) {
+    try {
+      const discriminant = reader.readU32();
+
+      // ScSpecEntryKind
+      /*
+        FunctionV0 = 0,
+        UdtStructV0 = 1,
+        UdtUnionV0 = 2,
+        UdtEnumV0 = 3,
+        UdtErrorEnumV0 = 4
+      */
+
+      switch (discriminant) {
+        case 0: { // FunctionV0
+          const doc = reader.readString();
+          const name = reader.readString(); // symbol
+
+          // Inputs: vector<ScSpecFunctionInputV0>
+          const inputCount = reader.readU32();
+          const inputs: SpecInput[] = [];
+          for (let i = 0; i < inputCount; i++) {
+            const argDoc = reader.readString();
+            const argName = reader.readString();
+            const argType = readSpecTypeDef(reader);
+            inputs.push({ name: argName, type: argType, doc: argDoc });
+          }
+
+          // Outputs: vector<ScSpecTypeDef>
+          const outputCount = reader.readU32();
+          const outputs: SpecType[] = [];
+          for (let i = 0; i < outputCount; i++) {
+            outputs.push(readSpecTypeDef(reader));
+          }
+
+          functions.push({ name, doc, inputs, outputs });
+          break;
+        }
+        case 1: { // UdtStructV0
+          const doc = reader.readString();
+          const lib = reader.readString();
+          const name = reader.readString();
+
+          const fieldCount = reader.readU32();
+          const fields: SpecField[] = [];
+          for (let i = 0; i < fieldCount; i++) {
+            const fDoc = reader.readString();
+            const fName = reader.readString();
+            const fType = readSpecTypeDef(reader);
+            fields.push({ name: fName, doc: fDoc, type: fType });
+          }
+          udts.push({ name, doc, type: 'struct', fields });
+          break;
+        }
+        case 2: { // UdtUnionV0
+          const doc = reader.readString();
+          const lib = reader.readString();
+          const name = reader.readString();
+
+          const caseCount = reader.readU32();
+          const fields: SpecField[] = [];
+
+          // We map Union cases to "fields" for simplicity in display
+          // The UI will iterate fields and show cases
+          const cases: SpecCase[] = [];
+
+          for (let i = 0; i < caseCount; i++) {
+            const cDoc = reader.readString();
+            const cName = reader.readString();
+            const caseKind = reader.readU32(); // 0=Void, 1=Tuple
+
+            let cType: SpecType | undefined;
+            if (caseKind === 1) { // generic type
+              cType = readSpecTypeDef(reader);
+            }
+
+            // We store cases as fields in our UI model
+            fields.push({ name: cName, doc: cDoc, type: cType });
+          }
+          udts.push({ name, doc, type: 'union', fields });
+          break;
+        }
+        case 3: { // UdtEnumV0
+          const doc = reader.readString();
+          const lib = reader.readString();
+          const name = reader.readString();
+
+          const caseCount = reader.readU32();
+          const fields: SpecField[] = [];
+
+          for (let i = 0; i < caseCount; i++) {
+            const cDoc = reader.readString();
+            const cName = reader.readString();
+            const cValue = reader.readU32();
+            // Store enum cases as fields for display logic, but mark as enum
+            // We can abuse type to show value if we want, or add 'value' to SpecField
+            // But SpecField interface might need update if we want to be clean.
+            // For now, let's put value in documentation or handle separately?
+            // Let's rely on standard display. 
+            // Actually, I'll assume fields for UDTEnum are just the names. 
+            fields.push({ name: `${cName} = ${cValue}`, doc: cDoc });
+          }
+          udts.push({ name, doc, type: 'enum', fields });
+          break;
+        }
+        case 4: { // UdtErrorEnumV0
+          const doc = reader.readString();
+          const lib = reader.readString();
+          const name = reader.readString();
+
+          const caseCount = reader.readU32();
+          const fields: SpecField[] = [];
+
+          for (let i = 0; i < caseCount; i++) {
+            const cDoc = reader.readString();
+            const cName = reader.readString();
+            const cValue = reader.readU32();
+            fields.push({ name: `${cName} = ${cValue}`, doc: cDoc });
+          }
+          udts.push({ name, doc, type: 'enum', fields }); // Treat error enum as enum
+          break;
+        }
+        default:
+          // Unknown entry type, we can't safely proceed as we don't know the size
+          return;
+      }
+    } catch (e) {
+      console.error('Spec parsing error:', e);
+      break;
+    }
+  }
+}
+
+function readSpecTypeDef(reader: XdrReader): SpecType {
+  const typeDisc = reader.readU32();
+  /*
+  Val: 0
+  Bool: 1
+  Void: 2
+  Error: 3
+  U32: 4
+  I32: 5
+  U64: 6
+  I64: 7
+  ... (see known types)
+  */
+
+  switch (typeDisc) {
+    case 0: return { type: 'Val' };
+    case 1: return { type: 'bool' };
+    case 2: return { type: 'void' };
+    case 3: return { type: 'Error' };
+    case 4: return { type: 'u32' };
+    case 5: return { type: 'i32' };
+    case 6: return { type: 'u64' };
+    case 7: return { type: 'i64' };
+    case 8: return { type: 'Timepoint' };
+    case 9: return { type: 'Duration' };
+    case 10: return { type: 'u128' };
+    case 11: return { type: 'i128' };
+    case 12: return { type: 'u256' };
+    case 13: return { type: 'i256' };
+    case 14: return { type: 'Bytes' };
+    case 16: return { type: 'String' };
+    case 17: return { type: 'Symbol' };
+    case 19: return { type: 'Address' };
+
+    case 1000: { // Option
+      const valType = readSpecTypeDef(reader);
+      return { type: 'Option', subType: valType };
+    }
+    case 1001: { // Result
+      const okType = readSpecTypeDef(reader);
+      const errType = readSpecTypeDef(reader);
+      // We only support one subtype in our interface, so for Result we might combine string
+      return { type: 'Result', subType: { type: `${formatTypeString(okType)}, ${formatTypeString(errType)}` } };
+    }
+    case 1002: { // Vec
+      const elType = readSpecTypeDef(reader);
+      return { type: 'Vec', subType: elType };
+    }
+    case 1004: { // Map
+      const keyType = readSpecTypeDef(reader);
+      const valType = readSpecTypeDef(reader);
+      return { type: 'Map', subType: { type: `${formatTypeString(keyType)}, ${formatTypeString(valType)}` } };
+    }
+    case 1005: { // Tuple
+      const count = reader.readU32();
+      const types: string[] = [];
+      for (let i = 0; i < count; i++) {
+        types.push(formatTypeString(readSpecTypeDef(reader)));
+      }
+      return { type: `(${types.join(', ')})` };
+    }
+    case 1006: { // BytesN
+      const n = reader.readU32();
+      return { type: `BytesN<${n}>` };
+    }
+    case 2000: { // Udt
+      const name = reader.readString();
+      return { type: name, refName: name };
+    }
+    default:
+      return { type: 'Unknown' };
+  }
+}
+
+function formatTypeString(t: SpecType): string {
+  if (t.subType) {
+    if (typeof t.subType === 'string') return `${t.type}<${t.subType}>`;
+    return `${t.type}<${formatTypeString(t.subType)}>`;
+  }
+  return t.type;
+}
+

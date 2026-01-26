@@ -7,7 +7,7 @@ import ContractMobileView from '@/components/mobile/ContractMobileView';
 import ContractDesktopView from '@/components/desktop/ContractDesktopView';
 import verifiedContracts from '@/data/verified-contracts.json';
 import { verifyContract, toContractVerification } from '@/lib/contractVerification';
-import { getContractMetadata, getContractAccessControl, detectContractType } from '@/lib/contractMetadata';
+import { getContractMetadata, getContractAccessControl, detectContractType, getContractSpec } from '@/lib/contractMetadata';
 import { getNFTInfo, getVaultInfo, getRWAComplianceStatus, isNFTContract, isVaultContract, isRWAContract } from '@/lib/contractExtensions';
 import { getContractEvents, ParsedEvent, getEventSummary } from '@/lib/eventParser';
 import { getContractStorage, ContractStorageResult } from '@/lib/contractStorage';
@@ -61,6 +61,7 @@ export default async function ContractPage({ params }: ContractPageProps) {
   let eventsResult: PromiseSettledResult<ParsedEvent[]> | null = null;
   let storageResult: PromiseSettledResult<ContractStorageResult | null> | null = null;
   let invocationsResult: PromiseSettledResult<ContractInvocation[]> | null = null;
+  let specResult: PromiseSettledResult<Awaited<ReturnType<typeof getContractSpec>>> | null = null;
 
   try {
     // Fetch all enhanced data in parallel
@@ -77,6 +78,7 @@ export default async function ContractPage({ params }: ContractPageProps) {
       eventsRes,
       storageRes,
       invocationsRes,
+      specRes,
     ] = await Promise.allSettled([
       getTokenMetadata(id),
       verifyContract(id),
@@ -88,6 +90,7 @@ export default async function ContractPage({ params }: ContractPageProps) {
       getContractEvents(id, 50),
       getContractStorage(id),
       getContractInvocations(id, 50),
+      getContractSpec(id),
     ]);
 
     // Extract core data results
@@ -105,6 +108,7 @@ export default async function ContractPage({ params }: ContractPageProps) {
     eventsResult = eventsRes;
     storageResult = storageRes;
     invocationsResult = invocationsRes;
+    specResult = specRes;
   } catch (e) {
     error = 'Error fetching contract data';
     console.error(e);
@@ -134,6 +138,7 @@ export default async function ContractPage({ params }: ContractPageProps) {
     eventSummary: eventsResult?.status === 'fulfilled' ? getEventSummary(eventsResult.value) : null,
     storage: storageResult?.status === 'fulfilled' ? storageResult.value : null,
     invocations: invocationsResult?.status === 'fulfilled' ? invocationsResult.value : [],
+    spec: specResult?.status === 'fulfilled' ? specResult.value : null,
   };
 
   // If we couldn't fetch any data, show error
