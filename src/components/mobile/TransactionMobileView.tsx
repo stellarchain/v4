@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { shortenAddress, timeAgo, getOperationTypeLabel, formatDate, formatXLM, extractContractAddress, detectContractFunctionType } from '@/lib/stellar';
 import type { ContractFunctionType } from '@/lib/types/token';
 import { containers, spacing } from '@/lib/design-system';
-import { decodeTransactionMeta, type DecodedTransactionMeta } from '@/lib/xdrDecoder';
+import { decodeTransactionMeta, decodeTransactionResources, type DecodedTransactionMeta, type SorobanMetrics } from '@/lib/xdrDecoder';
 
 interface Operation {
   id: string;
@@ -66,10 +66,16 @@ export default function TransactionMobileView({ transaction, operations, effects
 
   const [activeTab, setActiveTab] = useState<'operations' | 'effects' | 'details' | 'resources' | 'raw' | null>('operations');
   const [showRecipients, setShowRecipients] = useState(false);
+  const [isTraceExpanded, setIsTraceExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+
+  // Buffer decoded metrics
+  const envelopeMetrics = useMemo(() => {
+    return decodeTransactionResources(transaction.envelope_xdr);
+  }, [transaction.envelope_xdr]);
 
   // XDR decoded data for contract transactions
   const [decodedMeta, setDecodedMeta] = useState<DecodedTransactionMeta | null>(null);
@@ -855,26 +861,24 @@ export default function TransactionMobileView({ transaction, operations, effects
 
                     {/* Expanded List */}
                     {isExpanded && (
-                      <div className="mt-4 pt-4 border-t border-slate-200/50 space-y-3">
+                      <div className="mt-4 pt-4 border-t border-slate-200/50 space-y-4">
                         {contractTransferEffects
                           .filter(e => contractHeaderIsCredit ? e.type.includes('credited') : e.type.includes('debited'))
                           .slice(1)
                           .map((effect, idx) => (
-                            <div key={effect.id || idx} className="flex justify-between items-center text-sm">
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-slate-700">{formatTokenAmount(effect.amount)}</span>
-                                <span className="text-xs text-slate-500 font-medium">{effect.asset_type === 'native' ? 'XLM' : (effect.asset_code || 'XLM')}</span>
+                            <div key={effect.id || idx}>
+                              <div className="text-lg font-bold text-slate-900 tracking-tight flex items-baseline gap-2">
+                                {formatTokenAmount(effect.amount)}
+                                <span className="text-sm font-semibold text-slate-500">{effect.asset_type === 'native' ? 'XLM' : (effect.asset_code || 'XLM')}</span>
                               </div>
-                              <div className="text-[11px] font-mono text-slate-400">
-                                {effect.account && (
-                                  <>
-                                    <span className="opacity-50 mr-1">from</span>
-                                    <Link href={`/account/${effect.account}`} className="hover:underline">
-                                      {shortenAddress(effect.account, 4)}
-                                    </Link>
-                                  </>
-                                )}
-                              </div>
+                              {effect.account && (
+                                <div className="text-[11px] text-slate-400 mt-1 font-mono">
+                                  <span className="opacity-75">{contractHeaderIsCredit ? 'from ' : 'to '}</span>
+                                  <Link href={`/account/${effect.account}`} className="hover:opacity-80 transition-colors font-medium" style={{ color: primaryColor }}>
+                                    {shortenAddress(effect.account, 4)}
+                                  </Link>
+                                </div>
+                              )}
                             </div>
                           ))}
                       </div>
@@ -1623,26 +1627,6 @@ export default function TransactionMobileView({ transaction, operations, effects
           {/* RESOURCES TAB (Contract transactions only) */}
           {activeTab === 'resources' && isContractCall && (
             <div className="space-y-4">
-              {/* Transaction Size & Fees */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600">Transaction Size & Fees</h3>
-                </div>
-                <div className="divide-y divide-slate-100">
-                  {[
-                    { label: 'Transaction Size', value: `${Math.ceil(transaction.envelope_xdr.length * 3 / 4).toLocaleString()} bytes` },
-                    { label: 'Fee Charged', value: `${(parseInt(transaction.fee_charged) / 10000000).toFixed(7)} XLM` },
-                    { label: 'Max Fee', value: `${(parseInt(transaction.max_fee) / 10000000).toFixed(7)} XLM` },
-                    { label: 'Base Fee', value: `${(100 / 10000000).toFixed(7)} XLM` },
-                  ].map((item, i) => (
-                    <div key={i} className="flex justify-between items-center px-4 py-3">
-                      <span className="text-xs text-slate-500 font-medium">{item.label}</span>
-                      <span className="text-xs font-mono font-bold text-slate-700">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Contract Execution */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
@@ -1663,6 +1647,29 @@ export default function TransactionMobileView({ transaction, operations, effects
                       ) : (
                         <span className="text-xs font-mono font-bold text-slate-700 capitalize">{item.value}</span>
                       )}
+                    </div>
+                  ))}
+                  {/* Signatures */}
+                  {transaction.signatures.length > 0 && transaction.signatures.map((sig, idx) => (
+                    <div key={idx} className="flex justify-between items-center px-4 py-3">
+                      <span className="text-xs text-slate-500 font-medium">Signature {transaction.signatures.length > 1 ? `${idx + 1}` : ''}</span>
+                      <button
+                        onClick={(e) => {
+                          navigator.clipboard.writeText(sig);
+                          const btn = e.currentTarget;
+                          const original = btn.textContent;
+                          btn.textContent = 'Copied!';
+                          btn.classList.add('text-emerald-600');
+                          setTimeout(() => {
+                            btn.textContent = original;
+                            btn.classList.remove('text-emerald-600');
+                          }, 1500);
+                        }}
+                        className="text-xs font-mono font-bold text-slate-700 hover:opacity-70 transition-all cursor-pointer"
+                        title="Click to copy"
+                      >
+                        {sig.slice(0, 8)}...{sig.slice(-6)}
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -1724,7 +1731,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       {/* Decoded invocation trace items */}
                       {decodedMeta.invocationTrace.length > 0 && (
                         <div className="space-y-2">
-                          {decodedMeta.invocationTrace.slice(0, 15).map((call, idx) => (
+                          {decodedMeta.invocationTrace.slice(0, isTraceExpanded ? undefined : 15).map((call, idx) => (
                             <div
                               key={idx}
                               className="flex items-start gap-3 border-l-2 border-slate-200 pl-4"
@@ -1779,6 +1786,9 @@ export default function TransactionMobileView({ transaction, operations, effects
                                   {call.type === 'event' && (
                                     <>
                                       <span className="text-amber-600 font-semibold">event</span>
+                                      {call.args && call.args.length > 0 && (
+                                        <span className="font-mono text-slate-700 font-bold ml-1">{call.args[0].display}</span>
+                                      )}
                                       {call.contractId && (
                                         <>
                                           <span className="mx-1">from</span>
@@ -1787,6 +1797,47 @@ export default function TransactionMobileView({ transaction, operations, effects
                                           </Link>
                                         </>
                                       )}
+
+                                      {/* Event Details (Topics & Data) */}
+                                      <div className="mt-1 bg-amber-50 rounded-lg p-2 text-[11px] font-mono text-slate-600 border border-amber-100/50">
+                                        {/* Topics */}
+                                        {call.args && call.args.length > 1 && (
+                                          <div className="flex flex-col gap-1.5 mb-2">
+                                            {call.args.slice(1).map((arg, argIdx) => (
+                                              <div key={argIdx} className="flex flex-col">
+                                                <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">Topic {argIdx + 1}</span>
+                                                <span className="bg-white px-2 py-1 rounded border border-amber-100 text-amber-900 break-all leading-relaxed shadow-sm">
+                                                  {arg.display}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+
+                                        {/* Data / Amount */}
+                                        {call.returnValue && (
+                                          <div className="pt-2 border-t border-amber-100/50">
+                                            <div className="flex flex-col">
+                                              {/* Special handling for 'mint' events where data is often amount */}
+                                              {call.args && call.args.length > 0 && call.args[0].display === 'mint' ? (
+                                                <>
+                                                  <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">Amount (Minted)</span>
+                                                  <span className="font-bold text-amber-700 text-xs">
+                                                    {formatTokenAmount((parseFloat(call.returnValue.display) / 10000000).toString())}
+                                                  </span>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">Data</span>
+                                                  <span className="text-slate-700 break-all leading-relaxed whitespace-pre-wrap">
+                                                    {call.returnValue.display}
+                                                  </span>
+                                                </>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
                                     </>
                                   )}
                                 </div>
@@ -1807,9 +1858,26 @@ export default function TransactionMobileView({ transaction, operations, effects
                             </div>
                           ))}
                           {decodedMeta.invocationTrace.length > 15 && (
-                            <div className="text-xs text-slate-400 text-center mt-2">
-                              +{decodedMeta.invocationTrace.length - 15} more trace items
-                            </div>
+                            <button
+                              onClick={() => setIsTraceExpanded(!isTraceExpanded)}
+                              className="w-full flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-slate-700 transition-colors py-2 mt-2"
+                            >
+                              {isTraceExpanded ? (
+                                <>
+                                  <span>Show less</span>
+                                  <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </>
+                              ) : (
+                                <>
+                                  <span>+{decodedMeta.invocationTrace.length - 15} more trace items</span>
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </>
+                              )}
+                            </button>
                           )}
                         </div>
                       )}
@@ -2065,155 +2133,148 @@ export default function TransactionMobileView({ transaction, operations, effects
                 </div>
               </div>
 
-              {/* Resource Usage Note */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              {/* Transaction Resources & Metrics - Combined Section */}
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-5">
                 <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600">Resource Usage</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600">Transaction Resources</h3>
                 </div>
-                <div className="p-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { label: 'Ledger', value: transaction.ledger.toString() },
-                      { label: 'Operations', value: transaction.operation_count.toString() },
-                      { label: 'Effects', value: effects.length.toString() },
-                      { label: 'Signatures', value: transaction.signatures.length.toString() },
-                    ].map((item, i) => (
-                      <div key={i} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                        <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider mb-1">{item.label}</div>
-                        <div className="text-sm font-bold text-slate-800">{item.value}</div>
-                      </div>
-                    ))}
+
+                <div className="divide-y divide-slate-100">
+                  {/* Transaction Overview */}
+                  <div className="p-4">
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { label: 'Ledger', value: transaction.ledger.toLocaleString() },
+                        { label: 'Ops', value: transaction.operation_count.toString() },
+                        { label: 'Effects', value: effects.length.toString() },
+                        { label: 'Sigs', value: transaction.signatures.length.toString() },
+                      ].map((item, i) => (
+                        <div key={i} className="bg-slate-50 rounded-lg p-2 border border-slate-100 text-center">
+                          <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-wider">{item.label}</div>
+                          <div className="text-xs font-bold text-slate-700 font-mono mt-0.5">{item.value}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  {/* Detailed metrics note */}
-                  <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                    <div className="flex items-start gap-2">
-                      <svg className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <div>
-                        <p className="text-xs text-blue-700 font-medium">Detailed contract metrics (CPU instructions, memory, read/write bytes) are encoded in the transaction XDR.</p>
-                        <p className="text-[11px] text-blue-600 mt-1">View Raw Data tab for full transaction envelope.</p>
+                  {/* Fees */}
+                  <div className="p-4">
+                    <div className="text-[10px] uppercase text-slate-500 font-bold tracking-wider mb-3">Fees</div>
+                    <div className="space-y-2">
+                      {[
+                        { label: 'Fee Charged', value: `${(parseInt(transaction.fee_charged) / 10000000).toFixed(7)} XLM` },
+                        { label: 'Max Fee', value: `${(parseInt(transaction.max_fee) / 10000000).toFixed(7)} XLM` },
+                        { label: 'Base Fee', value: `${(100 / 10000000).toFixed(7)} XLM` },
+                      ].map((item, i) => (
+                        <div key={i} className="flex justify-between items-center text-xs">
+                          <span className="text-slate-500">{item.label}</span>
+                          <span className="font-mono font-semibold text-slate-700">{item.value}</span>
+                        </div>
+                      ))}
+                      {/* Detailed fee breakdown */}
+                      {decodedMeta && decodedMeta.success && decodedMeta.metrics && (
+                        (decodedMeta.metrics.totalRefundableResourceFeeCharged || decodedMeta.metrics.totalNonRefundableResourceFeeCharged || decodedMeta.metrics.rentFeeCharged) && (
+                          <div className="pt-2 mt-2 border-t border-slate-100 space-y-2">
+                            {decodedMeta.metrics.totalRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) > 0 && (
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-slate-400">└ Refundable</span>
+                                <span className="font-mono text-slate-600">{(parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM</span>
+                              </div>
+                            )}
+                            {decodedMeta.metrics.totalNonRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) > 0 && (
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-slate-400">└ Non-Refundable</span>
+                                <span className="font-mono text-slate-600">{(parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM</span>
+                              </div>
+                            )}
+                            {decodedMeta.metrics.rentFeeCharged && parseInt(decodedMeta.metrics.rentFeeCharged) > 0 && (
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-slate-400">└ Rent</span>
+                                <span className="font-mono text-slate-600">{(parseInt(decodedMeta.metrics.rentFeeCharged) / 10000000).toFixed(7)} XLM</span>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Contract Resources */}
+                  {(envelopeMetrics || (decodedMeta && decodedMeta.success)) && (
+                    <div className="p-4">
+                      <div className="text-[10px] uppercase text-slate-500 font-bold tracking-wider mb-3">Contract Resources</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+                          <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-wider">Instructions</div>
+                          <div className="text-xs font-bold font-mono text-slate-700 mt-0.5">
+                            {envelopeMetrics?.cpuInsns ? parseInt(envelopeMetrics.cpuInsns).toLocaleString() :
+                              decodedMeta?.metrics?.cpuInsns ? parseInt(decodedMeta.metrics.cpuInsns).toLocaleString() : '—'}
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+                          <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-wider">Read Bytes</div>
+                          <div className="text-xs font-bold font-mono text-slate-700 mt-0.5">
+                            {envelopeMetrics?.readBytes ? parseInt(envelopeMetrics.readBytes).toLocaleString() :
+                              decodedMeta?.metrics?.txByteRead ? decodedMeta.metrics.txByteRead.toLocaleString() : '—'}
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+                          <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-wider">Write Bytes</div>
+                          <div className="text-xs font-bold font-mono text-slate-700 mt-0.5">
+                            {envelopeMetrics?.writeBytes ? parseInt(envelopeMetrics.writeBytes).toLocaleString() :
+                              decodedMeta?.metrics?.txByteWrite ? decodedMeta.metrics.txByteWrite.toLocaleString() : '—'}
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+                          <div className="text-[9px] uppercase text-slate-400 font-semibold tracking-wider">Ledger Entries</div>
+                          <div className="text-xs font-bold font-mono text-slate-700 mt-0.5">
+                            {envelopeMetrics ? (
+                              <>{envelopeMetrics.readEntries || 0}R / {envelopeMetrics.writeEntries || 0}W</>
+                            ) : decodedMeta?.stateChanges ? (
+                              <>{decodedMeta.stateChanges.filter(c => c.type === 'updated' || c.type === 'removed').length}R / {decodedMeta.stateChanges.length}W</>
+                            ) : '—'}
+                          </div>
+                        </div>
+                      </div>
+                      {decodedMeta && decodedMeta.success && decodedMeta.events && decodedMeta.events.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                          <span className="text-slate-500">Events Emitted</span>
+                          <span className="font-mono font-semibold text-slate-700">{decodedMeta.events.length}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Transaction Data */}
+                  <div className="p-4">
+                    <div className="text-[10px] uppercase text-slate-500 font-bold tracking-wider mb-3">Transaction Data</div>
+                    <div className="space-y-2">
+                      {[
+                        { label: 'Envelope XDR', value: Math.ceil(transaction.envelope_xdr.length * 3 / 4) },
+                        { label: 'Result XDR', value: Math.ceil(transaction.result_xdr.length * 3 / 4) },
+                        ...(transaction.result_meta_xdr ? [{ label: 'Result Meta', value: Math.ceil(transaction.result_meta_xdr.length * 3 / 4) }] : []),
+                        ...(transaction.fee_meta_xdr ? [{ label: 'Fee Meta', value: Math.ceil(transaction.fee_meta_xdr.length * 3 / 4) }] : []),
+                      ].map((item, i) => (
+                        <div key={i} className="flex justify-between items-center text-xs">
+                          <span className="text-slate-500">{item.label}</span>
+                          <span className="font-mono font-semibold text-slate-700">{item.value.toLocaleString()} bytes</span>
+                        </div>
+                      ))}
+                      <div className="pt-2 mt-2 border-t border-slate-100 flex justify-between items-center text-xs">
+                        <span className="text-slate-600 font-medium">Total Size</span>
+                        <span className="font-mono font-bold text-slate-800">
+                          {(
+                            Math.ceil(transaction.envelope_xdr.length * 3 / 4) +
+                            Math.ceil(transaction.result_xdr.length * 3 / 4) +
+                            (transaction.result_meta_xdr ? Math.ceil(transaction.result_meta_xdr.length * 3 / 4) : 0) +
+                            (transaction.fee_meta_xdr ? Math.ceil(transaction.fee_meta_xdr.length * 3 / 4) : 0)
+                          ).toLocaleString()} bytes
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-
-
-              {/* Combined Contract Resources & XDR Data */}
-              {!isDecodingXdr && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-5">
-                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
-                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600">Contract Resources</h3>
-                  </div>
-
-                  {/* Metrics Section */}
-                  {decodedMeta && decodedMeta.success && (
-                    <div className="p-4">
-                      <div className="grid grid-cols-2 gap-y-4 gap-x-4">
-                        {/* Ledger I/O - Only show if available */}
-                        <div>
-                          <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">Entries Read</div>
-                          <div className="font-mono text-sm text-slate-700 font-semibold">
-                            {decodedMeta.stateChanges?.filter(c => c.type === 'updated' || c.type === 'removed').length || 0} <span className="text-xs text-slate-400 font-normal">(est)</span>
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">Entries Write</div>
-                          <div className="font-mono text-sm text-slate-700 font-semibold">
-                            {decodedMeta.stateChanges?.length || 0}
-                          </div>
-                        </div>
-
-                        {decodedMeta.metrics?.txByteRead && (
-                          <div>
-                            <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">Ledger Read</div>
-                            <div className="font-mono text-sm text-slate-700 font-semibold">
-                              {decodedMeta.metrics.txByteRead.toLocaleString()} B
-                            </div>
-                          </div>
-                        )}
-                        {decodedMeta.metrics?.txByteWrite && (
-                          <div>
-                            <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">Ledger Write</div>
-                            <div className="font-mono text-sm text-slate-700 font-semibold">
-                              {decodedMeta.metrics.txByteWrite.toLocaleString()} B
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Execution */}
-                        <div>
-                          <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">Events Emitted</div>
-                          <div className="font-mono text-sm text-slate-700 font-semibold">
-                            {decodedMeta.events?.length || 0}
-                          </div>
-                        </div>
-
-                        {decodedMeta.metrics?.cpuInsns && (
-                          <div>
-                            <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">Instructions</div>
-                            <div className="font-mono text-sm text-slate-700 font-semibold">
-                              {parseInt(decodedMeta.metrics.cpuInsns).toLocaleString()}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="col-span-2 border-t border-slate-100 my-1"></div>
-
-                        {/* Fees Breakdown */}
-                        <div className="col-span-2">
-                          <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">Fee Breakdown</div>
-                          <div className="space-y-2">
-                            {decodedMeta.metrics?.totalRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) > 0 && (
-                              <div className="flex justify-between items-center text-xs">
-                                <span className="text-slate-500">Refundable (Temporary)</span>
-                                <span className="font-mono font-medium text-emerald-600">
-                                  {(parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM
-                                </span>
-                              </div>
-                            )}
-                            {decodedMeta.metrics?.totalNonRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) > 0 && (
-                              <div className="flex justify-between items-center text-xs">
-                                <span className="text-slate-500">Execution (Non-Ref)</span>
-                                <span className="font-mono font-medium text-orange-600">
-                                  {(parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM
-                                </span>
-                              </div>
-                            )}
-                            {decodedMeta.metrics?.rentFeeCharged && parseInt(decodedMeta.metrics.rentFeeCharged) > 0 && (
-                              <div className="flex justify-between items-center text-xs">
-                                <span className="text-slate-500">Rent (Archival)</span>
-                                <span className="font-mono font-medium text-blue-600">
-                                  {(parseInt(decodedMeta.metrics.rentFeeCharged) / 10000000).toFixed(7)} XLM
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="col-span-2 border-t border-slate-100 my-1"></div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* XDR Data Section (Merged) */}
-                  <div className={`divide-y divide-slate-100 ${decodedMeta ? 'border-t border-slate-100' : ''}`}>
-                    {[
-                      { label: 'Envelope XDR', value: `${Math.ceil(transaction.envelope_xdr.length * 3 / 4).toLocaleString()} bytes` },
-                      { label: 'Result XDR', value: `${Math.ceil(transaction.result_xdr.length * 3 / 4).toLocaleString()} bytes` },
-                      ...(transaction.result_meta_xdr ? [{ label: 'Result Meta', value: `${Math.ceil(transaction.result_meta_xdr.length * 3 / 4).toLocaleString()} bytes` }] : []),
-                      ...(transaction.fee_meta_xdr ? [{ label: 'Fee Meta', value: `${Math.ceil(transaction.fee_meta_xdr.length * 3 / 4).toLocaleString()} bytes` }] : []),
-                    ].map((item, i) => (
-                      <div key={i} className="flex justify-between items-center px-4 py-3">
-                        <span className="text-xs text-slate-500 font-medium">{item.label}</span>
-                        <span className="text-xs font-mono font-bold text-slate-700">{item.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

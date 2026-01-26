@@ -330,17 +330,54 @@ function decodeDiagnosticEvent(event: xdr.DiagnosticEvent): InvocationCall | nul
 
     const firstTopic = decodeScVal(topics[0]);
 
-    // Check for fn_call or fn_return
+    // Check for fn_call
     if (firstTopic.value === 'fn_call' && topics.length >= 2) {
-      const functionName = decodeScVal(topics[1]);
-      const args: DecodedScVal[] = [];
+      let functionName = 'unknown';
+      let argsStart = 2;
+      let targetContractId = contractId; // Default to event source if not in topics
 
-      // Remaining topics are args (if using diagnostic events format)
-      for (let i = 2; i < topics.length; i++) {
+      const secondTopic = decodeScVal(topics[1]);
+
+      // Heuristic: If 2nd topic is Address or Bytes (32b) and we have a 3rd topic (Function), 
+      // then topics structure is [fn_call, ContractID, FunctionName, ...args]
+      const isContractId = secondTopic.type === 'scvAddress' ||
+        (secondTopic.type === 'scvBytes' && (secondTopic.value as string).replace(/^0x/, '').length === 64);
+
+      if (topics.length >= 3 && isContractId) {
+        // Try to encode the contract ID
+        const extractedId = extractContractIdFromScVal(topics[1]);
+        if (extractedId) {
+          targetContractId = extractedId;
+        } else if (secondTopic.type === 'scvBytes') {
+          // If bytes, might be a contract hash we can't easily encode to C-address without type, 
+          // or it IS the contract ID in hex. 
+          // Try to treat as contract address if possible, otherwise keep as is?
+          // Actually extractContractIdFromScVal only handles scvAddress.
+          // Let's rely on StrKey if possible or just use display.
+          try {
+            // If it's pure bytes, it might be the hash.
+            const rawBytes = Buffer.from((secondTopic.value as string).replace(/^0x/, ''), 'hex');
+            targetContractId = StrKey.encodeContract(rawBytes);
+          } catch {
+            targetContractId = secondTopic.display;
+          }
+        }
+
+        const fnNameTopic = decodeScVal(topics[2]);
+        functionName = fnNameTopic.display;
+        argsStart = 3;
+      } else {
+        // Standard: [fn_call, FunctionName, ...args]
+        functionName = secondTopic.display;
+        argsStart = 2;
+      }
+
+      const args: DecodedScVal[] = [];
+      for (let i = argsStart; i < topics.length; i++) {
         args.push(decodeScVal(topics[i]));
       }
 
-      // Data might also contain args
+      // Data might also contain args (for some SDK versions/events)
       const data = v0.data();
       const decodedData = decodeScVal(data);
       if (decodedData.type === 'scvVec') {
@@ -351,31 +388,59 @@ function decodeDiagnosticEvent(event: xdr.DiagnosticEvent): InvocationCall | nul
               args.push(decodeScVal(arg));
             }
           }
-        } catch {
-          // Not a vec
-        }
+        } catch { /* Not a vec */ }
       } else if (decodedData.type !== 'scvVoid') {
+        // If data is present and not void, and not a vec of args, what is it? return value? 
+        // For fn_call, it's usually args list.
         args.push(decodedData);
       }
 
       return {
         type: 'fn_call',
-        contractId,
-        functionName: functionName.display,
+        contractId: targetContractId,
+        functionName,
         args,
-        depth: 0, // Will be calculated later
+        depth: 0,
         successful: inSuccessfulCall,
       };
     }
 
+    // Check for fn_return
     if (firstTopic.value === 'fn_return' && topics.length >= 2) {
-      const functionName = decodeScVal(topics[1]);
+      let functionName = 'unknown';
+      let targetContractId = contractId;
+
+      const secondTopic = decodeScVal(topics[1]);
+
+      // Similar heuristic for return
+      const isContractId = secondTopic.type === 'scvAddress' ||
+        (secondTopic.type === 'scvBytes' && (secondTopic.value as string).replace(/^0x/, '').length === 64);
+
+      if (topics.length >= 3 && isContractId) {
+        // Extract contract ID
+        const extractedId = extractContractIdFromScVal(topics[1]);
+        if (extractedId) targetContractId = extractedId;
+        else {
+          try {
+            const rawBytes = Buffer.from((secondTopic.value as string).replace(/^0x/, ''), 'hex');
+            targetContractId = StrKey.encodeContract(rawBytes);
+          } catch {
+            targetContractId = secondTopic.display;
+          }
+        }
+
+        const fnNameTopic = decodeScVal(topics[2]);
+        functionName = fnNameTopic.display;
+      } else {
+        functionName = secondTopic.display;
+      }
+
       const returnValue = decodeScVal(v0.data());
 
       return {
         type: 'fn_return',
-        contractId,
-        functionName: functionName.display,
+        contractId: targetContractId,
+        functionName,
         returnValue,
         depth: 0,
         successful: inSuccessfulCall,
@@ -383,11 +448,23 @@ function decodeDiagnosticEvent(event: xdr.DiagnosticEvent): InvocationCall | nul
     }
 
     // Regular event
+    const decodedTopics = topics.map(t => decodeScVal(t));
+
+    // For regular events, we capture the data too as a 'returnValue'-like field 
+    // or just stick it in args or add a new field. InvocationCall has args?: DecodedScVal[].
+    // Let's put topics in 'args' and data in 'returnValue' (optional) or maybe better to follow the ContractEvent structure.
+    // However InvocationCall is limited.
+    // Let's use 'args' for topics.
+
+    const decodedData = decodeScVal(v0.data());
+
     return {
       type: 'event',
       contractId,
       depth: 0,
       successful: inSuccessfulCall,
+      args: decodedTopics,
+      returnValue: decodedData.type !== 'scvVoid' ? decodedData : undefined
     };
   } catch {
     return null;
@@ -913,4 +990,78 @@ export function formatDecodedValue(decoded: DecodedScVal, maxLength: number = 50
     return decoded.display;
   }
   return decoded.display.slice(0, maxLength - 3) + '...';
+}
+
+/**
+ * Decode transaction envelope XDR to extract Soroban resource limits
+ * These represent the LIMITS set by the user, not necessarily the exact usage.
+ */
+export function decodeTransactionResources(envelopeXdr: string): SorobanMetrics | null {
+  try {
+    const txEnvelope = xdr.TransactionEnvelope.fromXDR(envelopeXdr, 'base64');
+    let tx: xdr.Transaction;
+
+    const envelopeType = txEnvelope.switch();
+    if (envelopeType.name === 'envelopeTypeTx') {
+      tx = txEnvelope.v1().tx();
+    } else if (envelopeType.name === 'envelopeTypeTxFeeBump') {
+      const inner = txEnvelope.feeBump().tx().innerTx();
+      if (inner.switch().name === 'envelopeTypeTx') {
+        tx = inner.v1().tx();
+      } else {
+        return null; // Classic transaction inside fee bump or other type
+      }
+    } else {
+      return null;
+    }
+
+
+    // Check for Soroban Data in ext
+    // Transaction ext is a union: case 0: void, case 1: SorobanTransactionData
+    const ext = tx.ext();
+    const extSwitch = ext.switch();
+    let extValue = 0;
+
+    if (typeof extSwitch === 'number') {
+      extValue = extSwitch;
+    } else if (extSwitch && typeof extSwitch === 'object' && 'value' in extSwitch) {
+      extValue = (extSwitch as any).value;
+    } else if (extSwitch && typeof extSwitch === 'object' && 'name' in extSwitch) {
+      // Fallback for some SDK versions where name might be used (though usually value)
+      if ((extSwitch as any).name === 'sorobanTransactionData') extValue = 1;
+    }
+
+    // Assuming v1 is the case for SorobanTransactionData (which is usually case 1)
+    if (extValue !== 1) {
+      return null;
+    }
+
+    let sorobanData;
+    try {
+      sorobanData = ext.sorobanData();
+    } catch {
+      return null; // Not available
+    }
+
+    if (!sorobanData) return null;
+
+    const resources = sorobanData.resources();
+    const footprint = resources.footprint();
+
+    // Safely access properties as they might vary by SDK version
+    const instructions = typeof resources.instructions === 'function' ? resources.instructions() : (resources as any).instructions;
+    const readBytes = typeof (resources as any).readBytes === 'function' ? (resources as any).readBytes() : (resources as any).readBytes;
+    const writeBytes = typeof (resources as any).writeBytes === 'function' ? (resources as any).writeBytes() : (resources as any).writeBytes;
+
+    return {
+      cpuInsns: instructions?.toString() || '0',
+      readBytes: readBytes?.toString() || '0',
+      writeBytes: writeBytes?.toString() || '0',
+      readEntries: footprint.readOnly().length + footprint.readWrite().length,
+      writeEntries: footprint.readWrite().length,
+    };
+  } catch (error) {
+    console.error('Failed to decode envelope resources:', error);
+    return null;
+  }
 }
