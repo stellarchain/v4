@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { shortenAddress, timeAgo, getOperationTypeLabel, ContractInvocation } from '@/lib/stellar';
 import type { TokenRegistryEntry, ContractVerification } from '@/lib/types/token';
-import type { ContractMetadataResult, ContractAccessControlResult } from '@/lib/contractMetadata';
+import type { ContractMetadataResult, ContractAccessControlResult, ContractSpecResult } from '@/lib/contractMetadata';
 import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
 import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isCustomEventData, CustomEventData } from '@/lib/eventParser';
 import type { ContractStorageResult } from '@/lib/contractStorage';
@@ -55,6 +55,7 @@ interface ContractData {
   eventSummary?: EventSummary | null;
   storage?: ContractStorageResult | null;
   invocations?: ContractInvocation[];
+  spec?: ContractSpecResult | null;
 }
 
 interface ContractMobileViewProps {
@@ -63,7 +64,7 @@ interface ContractMobileViewProps {
 }
 
 export default function ContractMobileView({ contract, operations }: ContractMobileViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'details' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'details' | 'history' | 'interface'>('overview');
   const [copied, setCopied] = useState(false);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
 
@@ -135,6 +136,19 @@ export default function ContractMobileView({ contract, operations }: ContractMob
     return (totalAssets / totalShares).toFixed(6);
   };
 
+  // Helper to format spec types
+  const formatSpecType = (type: any): string => {
+    if (typeof type === 'string') return type;
+    if (typeof type === 'object') {
+      // Handle complex types like Vector<T>, Map<K,V>, Option<T>
+      if (type.subType) {
+        return `${type.type}<${formatSpecType(type.subType)}>`;
+      }
+      return type.type || 'Any';
+    }
+    return 'unknown';
+  };
+
   return (
     <div className="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans pb-24">
       <main className="flex-1 px-6 pt-2 pb-8 max-w-lg mx-auto w-full">
@@ -174,11 +188,10 @@ export default function ContractMobileView({ contract, operations }: ContractMob
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-5">
           <div className="flex items-start gap-4">
             {/* Icon */}
-            <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${
-              isNFT ? 'bg-gradient-to-br from-pink-500 to-rose-600' :
+            <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${isNFT ? 'bg-gradient-to-br from-pink-500 to-rose-600' :
               isVault ? 'bg-gradient-to-br from-amber-500 to-orange-600' :
-              isToken ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gradient-to-br from-slate-600 to-slate-800'
-            } text-white text-xl font-bold shadow-lg`}>
+                isToken ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gradient-to-br from-slate-600 to-slate-800'
+              } text-white text-xl font-bold shadow-lg`}>
               {isNFT ? (
                 <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -195,10 +208,10 @@ export default function ContractMobileView({ contract, operations }: ContractMob
             <div className="flex-1 min-w-0">
               <div className="text-[11px] uppercase font-semibold text-slate-400 tracking-widest">
                 {isNFT ? 'NFT Collection' :
-                 isVault ? 'Vault Contract' :
-                 contract.type === 'dex' ? 'DEX Contract' :
-                 contract.type === 'lending' ? 'Lending Protocol' :
-                 isToken ? 'Token Contract' : 'Smart Contract'}
+                  isVault ? 'Vault Contract' :
+                    contract.type === 'dex' ? 'DEX Contract' :
+                      contract.type === 'lending' ? 'Lending Protocol' :
+                        isToken ? 'Token Contract' : 'Smart Contract'}
               </div>
               <div className="text-xl font-bold text-slate-900 mt-0.5 truncate">
                 {contractDisplayName}
@@ -331,11 +344,10 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
               <span className="text-sm font-bold text-slate-900">Build Verification</span>
-              <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                contract.verification.isVerified
-                  ? 'bg-[#0F4C81] text-white'
-                  : 'bg-slate-100 text-slate-500'
-              }`}>
+              <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold ${contract.verification.isVerified
+                ? 'bg-[#0F4C81] text-white'
+                : 'bg-slate-100 text-slate-500'
+                }`}>
                 {contract.verification.isVerified ? 'Verified' : 'Unverified'}
               </span>
             </div>
@@ -510,22 +522,21 @@ export default function ContractMobileView({ contract, operations }: ContractMob
             { id: 'overview', label: 'Overview' },
             { id: 'history', label: 'History', count: contract.invocations?.length || 0 },
             { id: 'operations', label: 'Events', count: contract.events?.length || 0 },
+            { id: 'interface', label: 'Interface' },
             { id: 'details', label: 'Details' },
           ].filter(tab => tab.id !== 'history' || (contract.invocations && contract.invocations.length > 0)).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`text-sm font-semibold relative ${
-                activeTab === tab.id
-                  ? 'text-[#0F4C81] after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]'
-                  : 'text-slate-500 hover:text-[#0F4C81]'
-              } transition-colors`}
+              className={`text-sm font-semibold relative ${activeTab === tab.id
+                ? 'text-[#0F4C81] after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-[#0F4C81]'
+                : 'text-slate-500 hover:text-[#0F4C81]'
+                } transition-colors`}
             >
               {tab.label}
               {tab.count !== undefined && (
-                <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[11px] ${
-                  activeTab === tab.id ? 'bg-slate-100 text-slate-600' : 'bg-slate-100 text-slate-500'
-                }`}>
+                <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[11px] ${activeTab === tab.id ? 'bg-slate-100 text-slate-600' : 'bg-slate-100 text-slate-500'
+                  }`}>
                   {tab.count}
                 </span>
               )}
@@ -567,13 +578,12 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                       const eventContent = (
                         <div className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-slate-50 transition-colors">
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                              event.type === 'transfer' ? 'bg-blue-50 text-blue-600' :
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${event.type === 'transfer' ? 'bg-blue-50 text-blue-600' :
                               event.type === 'mint' ? 'bg-green-50 text-green-600' :
-                              event.type === 'burn' ? 'bg-orange-50 text-orange-600' :
-                              event.type === 'approve' ? 'bg-purple-50 text-purple-600' :
-                              'bg-slate-100 text-slate-600'
-                            }`}>
+                                event.type === 'burn' ? 'bg-orange-50 text-orange-600' :
+                                  event.type === 'approve' ? 'bg-purple-50 text-purple-600' :
+                                    'bg-slate-100 text-slate-600'
+                              }`}>
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                               </svg>
@@ -646,11 +656,10 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     {contract.storage.entries.map((entry, idx) => (
                       <div key={idx} className="flex items-center justify-between py-2">
                         <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                            entry.durability === 'instance' ? 'bg-[#0F4C81] text-white' :
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${entry.durability === 'instance' ? 'bg-[#0F4C81] text-white' :
                             entry.durability === 'persistent' ? 'bg-emerald-100 text-emerald-700' :
-                            'bg-amber-100 text-amber-700'
-                          }`}>
+                              'bg-amber-100 text-amber-700'
+                            }`}>
                             {entry.durability}
                           </span>
                           <span className="text-xs font-medium text-slate-700">{entry.keyDisplay}</span>
@@ -794,14 +803,13 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
                   const eventContent = (
                     <div className="flex items-center gap-3">
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                        event.type === 'transfer' ? 'bg-blue-100 text-blue-600' :
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${event.type === 'transfer' ? 'bg-blue-100 text-blue-600' :
                         event.type === 'mint' ? 'bg-green-100 text-green-600' :
-                        event.type === 'burn' ? 'bg-orange-100 text-orange-600' :
-                        event.type === 'approve' ? 'bg-purple-100 text-purple-600' :
-                        event.type === 'clawback' ? 'bg-red-100 text-red-600' :
-                        'bg-slate-100 text-slate-500'
-                      }`}>
+                          event.type === 'burn' ? 'bg-orange-100 text-orange-600' :
+                            event.type === 'approve' ? 'bg-purple-100 text-purple-600' :
+                              event.type === 'clawback' ? 'bg-red-100 text-red-600' :
+                                'bg-slate-100 text-slate-500'
+                        }`}>
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
@@ -859,6 +867,126 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     </div>
                   );
                 })
+              )}
+            </div>
+          )}
+
+          {/* INTERFACE TAB */}
+          {/* INTERFACE TAB */}
+          {activeTab === 'interface' && (
+            <div className="space-y-4">
+              {contract.spec ? (
+                <div className="bg-[#0f172a] rounded-xl shadow-md border border-slate-800 overflow-hidden font-mono text-xs text-slate-300 relative group">
+                  {/* Header Actions */}
+                  <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <button
+                      onClick={() => {
+                        const text = document.getElementById('contract-interface-code')?.innerText;
+                        if (text) {
+                          navigator.clipboard.writeText(text);
+                        }
+                      }}
+                      className="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white px-2 py-1 rounded text-[10px] font-sans font-medium transition-colors border border-slate-700 shadow-sm"
+                    >
+                      Copy
+                    </button>
+                  </div>
+
+                  <div className="px-5 py-3 border-b border-slate-800/50 flex items-center justify-between bg-[#0f172a]">
+                    <span className="font-bold text-slate-400 text-[11px] uppercase tracking-wider">Contract Interface</span>
+                    <span className="text-[10px] text-slate-600 font-medium px-2 py-0.5 rounded bg-slate-800/50">Rust / WASM</span>
+                  </div>
+                  <div className="p-5 overflow-x-auto custom-scrollbar">
+                    <pre id="contract-interface-code" className="whitespace-pre font-mono text-[11px] leading-relaxed">
+                      <span className="text-slate-500 italic block mb-4">// Protocol version: 20 (Soroban)</span>
+
+                      {/* Functions */}
+                      {contract.spec.functions.map((fn, idx) => (
+                        <div key={idx} className="mb-6 last:mb-0 group/fn">
+                          {/* Doc string */}
+                          {fn.doc && (
+                            <div className="text-slate-500 italic mb-1">
+                              {fn.doc.split('\n').map((line, i) => (
+                                <div key={i}>/// {line}</div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Function signature */}
+                          <div className="flex flex-wrap items-baseline">
+                            <span className="text-[#c678dd] mr-2">fn</span>
+                            <span className="text-[#61afef] font-bold mr-1">{fn.name}</span>
+                            <span className="text-slate-400">(</span>
+                            <div className="inline-flex flex-col md:flex-row md:items-baseline">
+                              {fn.inputs.map((arg, argIdx) => (
+                                <span key={argIdx} className="whitespace-nowrap">
+                                  {argIdx > 0 && <span className="text-slate-500 mr-1">, </span>}
+                                  <span className="text-[#e06c75]">{arg.name}</span>
+                                  <span className="text-slate-500 mr-1">: </span>
+                                  <span className="text-[#98c379]">{formatSpecType(arg.type)}</span>
+                                </span>
+                              ))}
+                            </div>
+                            <span className="text-slate-400">)</span>
+                            {fn.outputs && fn.outputs.length > 0 && (
+                              <>
+                                <span className="text-slate-500 mx-2">-&gt;</span>
+                                <span className="text-[#98c379]">
+                                  {fn.outputs.length === 1 ? formatSpecType(fn.outputs[0]) : `(${fn.outputs.map(formatSpecType).join(', ')})`}
+                                </span>
+                              </>
+                            )}
+                            <span className="text-slate-600 ml-1">;</span>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* UDTs */}
+                      {contract.spec.udts.length > 0 && (
+                        <div className="mt-8 pt-8 border-t border-slate-800/50">
+                          <div className="text-slate-600 uppercase text-[10px] tracking-widest font-bold mb-4">// Types</div>
+                          {contract.spec.udts.map((udt, idx) => (
+                            <div key={idx} className="mb-6">
+                              <div className="text-slate-500 italic mb-1">/// {udt.doc}</div>
+                              <div>
+                                <span className="text-[#c678dd] mr-2">{udt.type}</span>
+                                <span className="text-[#e5c07b] font-bold">{udt.name}</span>
+                                <span className="text-slate-400 ml-2">{'{'}</span>
+                              </div>
+                              <div className="pl-6 border-l-2 border-slate-800/30 ml-1 my-1">
+                                {udt.fields.map((field, fIdx) => (
+                                  <div key={fIdx}>
+                                    <span className="text-[#e06c75]">{field.name}</span>
+                                    {field.type && (
+                                      <>
+                                        <span className="text-slate-500 mr-1">: </span>
+                                        <span className="text-[#98c379]">{formatSpecType(field.type)}</span>
+                                      </>
+                                    )}
+                                    <span className="text-slate-500">,</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="text-slate-400">{'}'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </pre>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900 mb-2">Interface Not Available</h3>
+                  <p className="text-sm text-slate-500 max-w-xs">
+                    The XDR specification for this contract could not be retrieved from the transaction history or parsed directly.
+                  </p>
+                </div>
               )}
             </div>
           )}
