@@ -20,8 +20,8 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
       if (isNaN(num)) return '0';
       if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
       if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
-      // Show <0.01 for very small non-zero amounts
-      if (num > 0 && num < 0.01) return '<0.01';
+      // Show 0.01 for very small non-zero amounts
+      if (num > 0 && num < 0.01) return '0.01';
       return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
     };
 
