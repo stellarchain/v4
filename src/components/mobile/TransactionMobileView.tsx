@@ -418,44 +418,105 @@ export default function TransactionMobileView({ transaction, operations, effects
   let contractSentAsset = 'XLM';
   let contractEffectType: 'received' | 'sent' | 'both' | null = null;
   // Check for effects that look like transfers (credited/debited) to show "Value"
-  // Check for effects that look like transfers (credited/debited) to show "Value"
-  // Check for effects that look like transfers (credited/debited) to show "Value"
+  // For swaps, calculate NET change per asset to handle internal DEX accounting
   if (isContractCall) {
-    const accounts = Array.from(new Set(effects.map(e => e.account)));
-    let validDebit = undefined;
-    let validCredit = undefined;
+    const userAccount = transaction.source_account;
 
-    // 1. Swap Search (Same Account)
-    for (const account of accounts) {
-      const d = effects.find(e => e.account === account && e.type.includes('debited'));
-      const c = effects.find(e => e.account === account && e.type.includes('credited'));
-      if (d && c) {
-        validDebit = d;
-        validCredit = c;
-        break;
+    // Calculate NET changes per asset for the user's account
+    // This handles DEX swaps where there are multiple credits/debits of the same asset
+    const assetChanges = new Map<string, number>();
+
+    const userEffects = effects.filter(e =>
+      e.account === userAccount && (e.type.includes('debited') || e.type.includes('credited'))
+    );
+
+    for (const e of userEffects) {
+      const assetKey = e.asset_type === 'native' ? 'XLM' : (e.asset_code || 'XLM');
+      const amount = parseFloat(e.amount || '0');
+      const change = e.type.includes('credited') ? amount : -amount;
+      assetChanges.set(assetKey, (assetChanges.get(assetKey) || 0) + change);
+    }
+
+    // Find assets with net changes (sold = negative, bought = positive)
+    let soldAmount = '';
+    let soldAsset = '';
+    let boughtAmount = '';
+    let boughtAsset = '';
+    let foundSold = false;
+    let foundBought = false;
+
+    for (const [asset, netChange] of assetChanges.entries()) {
+      // Only consider significant changes (ignore dust/rounding)
+      if (Math.abs(netChange) < 0.0000001) continue;
+
+      if (netChange < 0 && !foundSold) {
+        soldAmount = Math.abs(netChange).toString();
+        soldAsset = asset;
+        foundSold = true;
+      } else if (netChange > 0 && !foundBought) {
+        boughtAmount = netChange.toString();
+        boughtAsset = asset;
+        foundBought = true;
       }
     }
 
-    // 2. General Flow Search (if no swap found)
-    if (!validDebit && !validCredit) {
-      validDebit = effects.find(e => e.type.includes('debited'));
-      validCredit = effects.find(e => e.type.includes('credited'));
-    }
-
-    if (validDebit && validCredit) {
+    if (foundSold && foundBought) {
+      // True swap: user gave one asset and received another
       contractEffectType = 'both';
-      contractReceivedAmount = validCredit.amount || '0';
-      contractReceivedAsset = validCredit.asset_type === 'native' ? 'XLM' : (validCredit.asset_code || 'XLM');
-      contractSentAmount = validDebit.amount || '0';
-      contractSentAsset = validDebit.asset_type === 'native' ? 'XLM' : (validDebit.asset_code || 'XLM');
-    } else if (validCredit) {
-      contractEffectAmount = validCredit.amount || '0';
-      contractEffectAsset = validCredit.asset_type === 'native' ? 'XLM' : (validCredit.asset_code || 'XLM');
+      contractSentAmount = soldAmount;
+      contractSentAsset = soldAsset;
+      contractReceivedAmount = boughtAmount;
+      contractReceivedAsset = boughtAsset;
+    } else if (foundBought && !foundSold) {
+      // Only received (mint, claim, etc.)
       contractEffectType = 'received';
-    } else if (validDebit) {
-      contractEffectAmount = validDebit.amount || '0';
-      contractEffectAsset = validDebit.asset_type === 'native' ? 'XLM' : (validDebit.asset_code || 'XLM');
+      contractEffectAmount = boughtAmount;
+      contractEffectAsset = boughtAsset;
+    } else if (foundSold && !foundBought) {
+      // Only sent (burn, deposit, etc.)
       contractEffectType = 'sent';
+      contractEffectAmount = soldAmount;
+      contractEffectAsset = soldAsset;
+    } else {
+      // Fallback: look for a credit/debit pair with DIFFERENT assets (true swap indicator)
+      const debits = effects.filter(e => e.type.includes('debited'));
+      const credits = effects.filter(e => e.type.includes('credited'));
+
+      // Find a swap pair with different assets
+      let foundSwapPair = false;
+      for (const debit of debits) {
+        const debitAsset = debit.asset_type === 'native' ? 'XLM' : (debit.asset_code || 'XLM');
+        for (const credit of credits) {
+          const creditAsset = credit.asset_type === 'native' ? 'XLM' : (credit.asset_code || 'XLM');
+          if (debitAsset !== creditAsset) {
+            // Found a swap pair with different assets!
+            contractEffectType = 'both';
+            contractSentAmount = debit.amount || '0';
+            contractSentAsset = debitAsset;
+            contractReceivedAmount = credit.amount || '0';
+            contractReceivedAsset = creditAsset;
+            foundSwapPair = true;
+            break;
+          }
+        }
+        if (foundSwapPair) break;
+      }
+
+      // If no swap pair found, fallback to single effect display
+      if (!foundSwapPair) {
+        const validCredit = credits[0];
+        const validDebit = debits[0];
+
+        if (validCredit) {
+          contractEffectAmount = validCredit.amount || '0';
+          contractEffectAsset = validCredit.asset_type === 'native' ? 'XLM' : (validCredit.asset_code || 'XLM');
+          contractEffectType = 'received';
+        } else if (validDebit) {
+          contractEffectAmount = validDebit.amount || '0';
+          contractEffectAsset = validDebit.asset_type === 'native' ? 'XLM' : (validDebit.asset_code || 'XLM');
+          contractEffectType = 'sent';
+        }
+      }
     }
   }
 
@@ -691,7 +752,14 @@ export default function TransactionMobileView({ transaction, operations, effects
               <div className="flex justify-between items-start">
                 <div>
                   <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Transaction Type</div>
-                  <div className="text-base font-bold text-[var(--text-primary)] mt-1 capitalize">{contractFunctionName || 'Smart Contract'}</div>
+                  <div className="text-base font-bold text-[var(--text-primary)] mt-1 capitalize">
+                    {contractFunctionType === 'swap' ? 'Swap' : (contractFunctionName || 'Smart Contract')}
+                  </div>
+                  {contractEffectType === 'both' && contractSentAsset !== contractReceivedAsset && (
+                    <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                      {contractSentAsset} → {contractReceivedAsset}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
                   <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Account</div>
@@ -730,90 +798,55 @@ export default function TransactionMobileView({ transaction, operations, effects
                       {/* Sent Row */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[var(--warning)]/10 text-[var(--warning)] flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-[var(--error)]/10 text-[var(--error)] flex items-center justify-center">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
                             </svg>
                           </div>
                           <div>
-                            <div className="text-[11px] font-bold uppercase text-[var(--text-muted)] tracking-wider">Sent</div>
-                            <div className="font-mono text-xs font-bold text-[var(--text-primary)]">
-                              {formatTokenAmount(contractSentAmount)} <span className="text-[11px] font-normal text-[var(--text-tertiary)]">{contractSentAsset}</span>
-                            </div>
+                            <div className="text-[11px] font-bold uppercase text-[var(--error)] tracking-wider">Sent</div>
                           </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-mono text-sm font-bold text-[var(--error)]">
+                            -{formatTokenAmount(contractSentAmount)}
+                          </div>
+                          <div className="text-[11px] font-medium text-[var(--text-muted)]">{contractSentAsset}</div>
                         </div>
                       </div>
 
-                      {/* Connector */}
-                      <div className="absolute left-[15px] top-8 bottom-8 w-0.5 bg-[var(--bg-tertiary)] -z-10"></div>
+                      {/* Connector Arrow */}
+                      <div className="flex justify-center -my-1">
+                        <div className="w-6 h-6 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-default)] flex items-center justify-center">
+                          <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7" />
+                          </svg>
+                        </div>
+                      </div>
 
                       {/* Received Row */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[var(--success-muted)] text-[var(--success)] flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-[var(--success)]/10 text-[var(--success)] flex items-center justify-center">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                             </svg>
                           </div>
                           <div>
-                            <div className="text-[11px] font-bold uppercase text-[var(--text-muted)] tracking-wider">Received</div>
-                            <div className="font-mono text-xs font-bold text-[var(--text-primary)]">
-                              {formatTokenAmount(contractReceivedAmount)} <span className="text-[11px] font-normal text-[var(--text-tertiary)]">{contractReceivedAsset}</span>
-                            </div>
+                            <div className="text-[11px] font-bold uppercase text-[var(--success)] tracking-wider">Received</div>
                           </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-mono text-sm font-bold text-[var(--success)]">
+                            +{formatTokenAmount(contractReceivedAmount)}
+                          </div>
+                          <div className="text-[11px] font-medium text-[var(--text-muted)]">{contractReceivedAsset}</div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Show expand button if there are more than 2 transfer effects */}
-                    {contractTransferEffects.length > 2 && (
-                      <div className="mt-4 pt-3 border-t border-[var(--border-default)]/50">
-                        <button
-                          onClick={() => setIsExpanded(!isExpanded)}
-                          className="w-full flex items-center justify-center gap-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors py-1"
-                        >
-                          <span>{isExpanded ? 'Hide' : 'Show'} all {contractTransferEffects.length} effects</span>
-                          <svg className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-
-                        {/* Expanded Effects List */}
-                        {isExpanded && (
-                          <div className="mt-3 space-y-2 max-h-[300px] overflow-y-auto">
-                            {contractTransferEffects.map((effect, idx) => {
-                              const isCredit = effect.type.includes('credited');
-                              const isDebit = effect.type.includes('debited');
-                              const effectAsset = effect.asset_type === 'native' ? 'XLM' : (effect.asset_code || 'XLM');
-                              return (
-                                <div key={effect.id || idx} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-[var(--bg-tertiary)]">
-                                  <div className="flex items-center gap-2">
-                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${isCredit ? 'bg-[var(--success)]/20 text-[var(--success)]' : 'bg-[var(--warning)]/20 text-[var(--warning)]'}`}>
-                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        {isCredit ? (
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7" />
-                                        ) : (
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7" />
-                                        )}
-                                      </svg>
-                                    </div>
-                                    <span className={`text-[11px] font-bold uppercase ${isCredit ? 'text-[var(--success)]' : isDebit ? 'text-[var(--warning)]' : 'text-[var(--text-tertiary)]'}`}>
-                                      {isCredit ? 'Received' : isDebit ? 'Sent' : effect.type.replace(/_/g, ' ')}
-                                    </span>
-                                  </div>
-                                  <div className="text-right">
-                                    <span className={`font-mono text-xs font-bold ${isCredit ? 'text-[var(--success)]' : isDebit ? 'text-[var(--error)]' : 'text-[var(--text-secondary)]'}`}>
-                                      {isCredit ? '+' : isDebit ? '-' : ''}{formatTokenAmount(effect.amount)}
-                                    </span>
-                                    <span className="text-[11px] text-[var(--text-tertiary)] ml-1">{effectAsset}</span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {/* For swaps with different assets, don't show raw effects - they're confusing internal operations */}
+                    {/* Users can see raw effects in the Effects tab if needed */}
                   </div>
                 ) : (
                   <div className="relative z-10">
@@ -1168,36 +1201,35 @@ export default function TransactionMobileView({ transaction, operations, effects
           </>
         )}
 
-        {/* Tabs Navigation */}
-        <div className="mt-8 mb-4 border-b border-[var(--border-default)]">
-          <nav className="flex gap-6 overflow-x-auto">
-            {[
-              { id: 'operations', label: 'Operations', count: transaction.operation_count },
-              { id: 'effects', label: 'Effects', count: effects.length > 0 ? effects.length : undefined },
-              { id: 'details', label: 'Details' },
-              ...(isContractCall ? [{ id: 'resources', label: 'Resources' }] : []),
-              { id: 'raw', label: 'Raw Data' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(activeTab === tab.id ? null : tab.id as any)}
-                className={`whitespace-nowrap pb-3 border-b-2 font-semibold text-sm flex items-center gap-2 transition-colors ${activeTab === tab.id
-                  ? 'border-[var(--text-primary)] text-[var(--text-primary)]'
-                  : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-                  }`}
-              >
-                {tab.label}
-                {tab.count !== undefined && (
-                  <span className={`py-0.5 px-2 rounded-full text-xs ${activeTab === tab.id
-                    ? 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
-                    : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
-                    }`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
+        {/* Tabs Navigation - Compact Scrollable */}
+        <div className="flex gap-4 overflow-x-auto no-scrollbar border-b border-[var(--border-default)] pb-3 mb-4 mt-6 -mx-4 px-4">
+          {[
+            { id: 'operations', label: 'Operations', count: transaction.operation_count },
+            { id: 'effects', label: 'Effects', count: effects.length > 0 ? effects.length : undefined },
+            { id: 'details', label: 'Details' },
+            ...(isContractCall ? [{ id: 'resources', label: 'Resources' }] : []),
+            { id: 'raw', label: 'Raw' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(activeTab === tab.id ? null : tab.id as any)}
+              className="text-xs font-semibold relative transition-colors whitespace-nowrap pb-1"
+              style={{
+                color: activeTab === tab.id ? 'var(--primary-blue)' : 'var(--text-tertiary)',
+              }}
+            >
+              {tab.label}
+              {tab.count !== undefined && (
+                <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[10px] bg-[var(--bg-tertiary)] ${activeTab === tab.id ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]'
+                  }`}>
+                  {tab.count}
+                </span>
+              )}
+              {activeTab === tab.id && (
+                <span className="absolute -bottom-3 left-0 right-0 h-0.5 rounded-full" style={{ backgroundColor: 'var(--primary-blue)' }} />
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Tab Content */}

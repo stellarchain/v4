@@ -70,6 +70,7 @@ export default function MobileHeader() {
   if (pathname?.startsWith('/markets')) return null;
   if (pathname?.startsWith('/asset/')) return null;
   if (pathname?.startsWith('/transaction/')) return null;
+  if (pathname?.startsWith('/contract/')) return null;
 
   // Simplified Header for non-homepage
   if (!isHomePage) {
