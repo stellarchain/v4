@@ -9,79 +9,90 @@ interface TopAccountsMobileListProps {
 }
 
 export default function TopAccountsMobileList({ initialAccounts }: TopAccountsMobileListProps) {
-    const [accounts, setAccounts] = useState<RichListAccount[]>(initialAccounts);
-    // Pagination would be implemented here in a full version
+    const [accounts] = useState<RichListAccount[]>(initialAccounts || []);
+
+    const formatBalance = (balance: number) => {
+        if (balance >= 1e9) return `${(balance / 1e9).toFixed(2)}B`;
+        if (balance >= 1e6) return `${(balance / 1e6).toFixed(2)}M`;
+        if (balance >= 1e3) return `${(balance / 1e3).toFixed(2)}K`;
+        return balance.toFixed(2);
+    };
 
     return (
-        <div className="space-y-3">
-            {accounts.map((account) => (
-                <div
-                    key={account.account}
-                    className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] p-3 relative overflow-hidden"
-                >
-                    {/* Rank Badge */}
-                    <div className="absolute top-3 right-3">
-                        <div className="bg-[var(--primary)]/10 text-[var(--primary)] text-xs font-bold px-2 py-0.5 rounded-full border border-[var(--primary)]/20">
-                            #{account.rank}
-                        </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                        {/* Verification Icon */}
-                        <div className="mt-0.5">
-                            {account.label?.verified ? (
-                                <div className="w-8 h-8 bg-blue-500/10 rounded-full flex items-center justify-center border border-blue-500/20">
-                                    <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                            ) : (
-                                <div className="w-8 h-8 bg-[var(--success)]/10 rounded-full flex items-center justify-center border border-[var(--success)]/20">
-                                    <svg className="w-4 h-4 text-[var(--success)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex-1 pr-12">
-                            {/* Account Name/Label */}
-                            <div className="font-bold text-sm text-[var(--text-primary)] mb-0.5 truncate">
-                                {account.label?.name || 'UNKNOWN'}
-                            </div>
-
-                            {/* Account Address */}
-                            <Link href={`/account/${account.account}`} className="text-xs font-mono text-[var(--text-tertiary)] hover:text-[var(--primary)] transition-colors block mb-2">
-                                {shortenAddress(account.account)}
-                            </Link>
-
-                            {/* Stats Grid */}
-                            <div className="grid grid-cols-2 gap-y-2 gap-x-4 border-t border-[var(--border-subtle)] pt-2">
-                                <div>
-                                    <p className="text-[10px] uppercase text-[var(--text-muted)] font-medium">Balance</p>
-                                    <p className="text-xs font-mono font-medium text-[var(--text-secondary)]">
-                                        {(account.balance / 1000000).toLocaleString(undefined, { maximumFractionDigits: 1 })}M XLM
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p className="text-[10px] uppercase text-[var(--text-muted)] font-medium">% of Coins</p>
-                                    <p className="text-xs font-mono font-medium text-[var(--text-secondary)]">
-                                        {parseFloat(account.percent_of_coins).toFixed(4)}%
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p className="text-[10px] uppercase text-[var(--text-muted)] font-medium">Transactions</p>
-                                    <p className="text-xs font-mono font-medium text-[var(--text-secondary)]">
-                                        {account.transactions.toLocaleString()}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+        <div className="min-h-screen bg-[var(--bg-primary)] pb-20 pt-1">
+            <div className="px-3">
+                {/* Mobile Header - Matching transactions/ledgers style */}
+                <div className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-primary)]">
+                            Top Accounts
+                        </span>
+                        <span className="bg-[var(--success)]/10 text-[var(--success)] text-[10px] px-1.5 py-0.5 rounded font-bold">
+                            Top 50
+                        </span>
                     </div>
                 </div>
-            ))}
+
+                {/* Accounts List - Matching transactions/ledgers card style */}
+                <div className="space-y-2">
+                    {accounts.length === 0 ? (
+                        <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
+                            No accounts found
+                        </div>
+                    ) : (
+                        accounts.map((account) => (
+                            <Link
+                                key={account.account}
+                                href={`/account/${account.account}`}
+                                className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
+                            >
+                                <div className="px-3 py-3 flex items-center justify-between">
+                                    <div className="flex items-start space-x-3">
+                                        <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                                            account.label?.verified
+                                                ? 'bg-[var(--success)]/10 text-[var(--success)]'
+                                                : 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]'
+                                        }`}>
+                                            {account.label?.verified ? (
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            ) : (
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-sm font-bold leading-tight text-[var(--primary-blue)]">
+                                                    {account.label?.name || 'Unknown'}
+                                                </span>
+                                                {account.label?.verified && (
+                                                    <svg className="w-3.5 h-3.5 text-[var(--success)]" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                )}
+                                            </div>
+                                            <span className="text-xs text-[var(--text-muted)] font-medium font-mono mt-0.5">
+                                                {shortenAddress(account.account, 4)} • #{account.rank}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs font-bold text-[var(--text-primary)]">
+                                            {formatBalance(account.balance || 0)} <span className="text-[var(--text-muted)] font-medium">XLM</span>
+                                        </div>
+                                        <div className="text-[11px] text-[var(--text-muted)]">
+                                            {parseFloat(account.percent_of_coins || '0').toFixed(2)}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </Link>
+                        ))
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
