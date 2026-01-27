@@ -271,22 +271,16 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
     }
   }, [limit, enrichTransactions]);
 
-  // Initial load on mount
+  // Initial load and polling
   useEffect(() => {
-    if (filter === 'payments') {
-      fetchPayments(true);
-    } else {
-      fetchAllTransactions(true);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // Always fetch on mount
+    const fetchFn = filter === 'payments' ? fetchPayments : fetchAllTransactions;
+    fetchFn(true);
 
-  // Live updates interval (only after initial load)
-  useEffect(() => {
-    if (isInitialLoading) return;
-    const fetchFn = filter === 'payments' ? () => fetchPayments(false) : () => fetchAllTransactions(false);
-    const interval = setInterval(fetchFn, 8000);
+    // Start polling immediately (shorter interval for better UX)
+    const interval = setInterval(() => fetchFn(false), 5000);
     return () => clearInterval(interval);
-  }, [filter, fetchPayments, fetchAllTransactions, isInitialLoading]);
+  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setRowRef = useCallback((id: string) => (el: HTMLAnchorElement | null) => {
     if (el) {
