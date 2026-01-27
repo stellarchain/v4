@@ -1998,6 +1998,58 @@ export async function fetchAllAccounts(
   }
 }
 
+// Known/Labeled Accounts API types
+export interface LabeledAccount {
+  account: string;
+  org_name: string | null;
+  label: {
+    name: string;
+    description: string | null;
+    verified: number;
+  } | null;
+  balance: number;
+  transactions: string;
+  rank: number;
+}
+
+export interface LabeledAccountsAPIResponse {
+  current_page: number;
+  total: number;
+  per_page: number;
+  last_page: number;
+  data: LabeledAccount[];
+}
+
+// Fetch known/labeled accounts from Stellarchain API
+export async function fetchLabeledAccounts(
+  page: number = 1,
+  perPage: number = 25
+): Promise<LabeledAccountsAPIResponse> {
+  try {
+    const url = `https://api.stellarchain.io/v1/accounts?page=${page}&labels[]=undefined&paginate=${perPage}`;
+
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 60 }, // Cache for 1 minute
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch labeled accounts: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching labeled accounts:', error);
+    return {
+      current_page: 1,
+      total: 0,
+      per_page: perPage,
+      last_page: 1,
+      data: [],
+    };
+  }
+}
+
 // Contracts API types
 export interface APIContract {
   id: number;
