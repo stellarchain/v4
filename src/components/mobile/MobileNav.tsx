@@ -8,7 +8,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 const mainNavItems = [
   { name: 'Home', href: '/', icon: 'home' },
   { name: 'Txns', href: '/transactions', icon: 'arrows' },
-  { name: 'Assets', href: '/markets', icon: 'chart' },
+  { name: 'Markets', href: '/markets', icon: 'chart' },
 ];
 
 // Menu structure with categories
