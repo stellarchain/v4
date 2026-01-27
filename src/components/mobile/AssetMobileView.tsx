@@ -1213,9 +1213,9 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                               {asset.code} → {pair.counterAsset.code}
                             </div>
                             {pair.counterAsset.issuer && pair.counterAsset.type !== 'native' && (
-                              <div className="text-[10px] font-mono text-[var(--text-muted)] truncate">
+                              <Link href={`/account/${pair.counterAsset.issuer}`} className="text-[10px] font-mono text-[var(--text-muted)] truncate hover:text-[var(--primary-blue)] block">
                                 {shortenAddress(pair.counterAsset.issuer, 6)}
-                              </div>
+                              </Link>
                             )}
                           </div>
                           <div className="text-right flex-shrink-0">
