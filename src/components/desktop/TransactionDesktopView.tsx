@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { shortenAddress, timeAgo, getOperationTypeLabel, formatDate, formatStroopsToXLM, extractContractAddress, detectContractFunctionType } from '@/lib/stellar';
 import type { ContractFunctionType } from '@/lib/types/token';
+import { decodeTransactionMeta, decodeTransactionResources, type DecodedTransactionMeta, type SorobanMetrics } from '@/lib/xdrDecoder';
 
 interface Operation {
   id: string;
@@ -80,8 +81,18 @@ const formatTokenAmount = (value?: string, digits = 7) => {
 };
 
 export default function TransactionDesktopView({ transaction, operations, effects }: TransactionDesktopViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'effects' | 'raw' | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'effects' | 'resources' | 'raw' | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isTraceExpanded, setIsTraceExpanded] = useState(false);
+
+  // XDR decoded data for contract transactions
+  const [decodedMeta, setDecodedMeta] = useState<DecodedTransactionMeta | null>(null);
+  const [isDecodingXdr, setIsDecodingXdr] = useState(false);
+  const [fetchedXdr, setFetchedXdr] = useState<string | null>(null);
+  const [fetchedDiagnosticEventsXdr, setFetchedDiagnosticEventsXdr] = useState<string[] | null>(null);
+  const [xdrFetchAttempted, setXdrFetchAttempted] = useState(false);
+  const [decodedXdr, setDecodedXdr] = useState<string | null>(null);
+
   const contractOp = operations.find(op => op.type === 'invoke_host_function');
   const isContractCall = !!contractOp;
   const isSwap = operations.some(op =>
@@ -258,6 +269,78 @@ export default function TransactionDesktopView({ transaction, operations, effect
       return acc;
     }, {} as Record<string, Effect[]>);
   }, [effects]);
+
+  // Buffer decoded metrics from envelope XDR
+  const envelopeMetrics = useMemo(() => {
+    return decodeTransactionResources(transaction.envelope_xdr);
+  }, [transaction.envelope_xdr]);
+
+  // Decode XDR when on Resources tab for contract transactions
+  useEffect(() => {
+    if (!isContractCall || activeTab !== 'resources' || isDecodingXdr) {
+      return;
+    }
+
+    const xdrToUse = fetchedXdr || transaction.result_meta_xdr;
+    if (!xdrToUse || decodedXdr === xdrToUse) {
+      return;
+    }
+
+    setIsDecodingXdr(true);
+    setTimeout(() => {
+      const decoded = decodeTransactionMeta(xdrToUse);
+      setDecodedMeta(decoded);
+      setDecodedXdr(xdrToUse);
+      setIsDecodingXdr(false);
+    }, 0);
+  }, [isContractCall, activeTab, transaction.result_meta_xdr, fetchedXdr, fetchedDiagnosticEventsXdr, decodedXdr, isDecodingXdr]);
+
+  // Fetch Soroban RPC XDR if Horizon data is missing trace details
+  useEffect(() => {
+    if (!isContractCall || activeTab !== 'resources' || isDecodingXdr || xdrFetchAttempted || fetchedXdr) {
+      return;
+    }
+
+    const hasTraceData = !!(
+      decodedMeta?.success &&
+      ((decodedMeta.invocationTrace?.length || 0) > 0 ||
+        (decodedMeta.parsedEvents?.length || 0) > 0 ||
+        (decodedMeta.stateChanges?.length || 0) > 0)
+    );
+
+    const shouldFetchRpcXdr = !transaction.result_meta_xdr || !hasTraceData || (decodedMeta && !decodedMeta.success);
+
+    if (!shouldFetchRpcXdr) {
+      return;
+    }
+
+    setXdrFetchAttempted(true);
+    setIsDecodingXdr(true);
+
+    fetch(`/api/transaction-meta?hash=${transaction.hash}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.resultMetaXdr) {
+          setFetchedXdr(data.resultMetaXdr);
+          if (Array.isArray(data.diagnosticEventsXdr) && data.diagnosticEventsXdr.length > 0) {
+            setFetchedDiagnosticEventsXdr(data.diagnosticEventsXdr);
+          }
+        }
+        setIsDecodingXdr(false);
+      })
+      .catch(() => {
+        setIsDecodingXdr(false);
+      });
+  }, [
+    isContractCall,
+    activeTab,
+    isDecodingXdr,
+    xdrFetchAttempted,
+    fetchedXdr,
+    decodedMeta,
+    transaction.result_meta_xdr,
+    transaction.hash,
+  ]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(transaction.hash);
@@ -547,6 +630,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                 { id: 'overview', label: 'Overview' },
                 { id: 'operations', label: 'Operations' },
                 { id: 'effects', label: 'Effects' },
+                ...(isContractCall ? [{ id: 'resources', label: 'Resources' }] : []),
                 { id: 'raw', label: 'Raw Data' },
               ].map(tab => (
                 <button
@@ -770,6 +854,636 @@ export default function TransactionDesktopView({ transaction, operations, effect
                     )}
                   </div>
                 </section>
+              )}
+
+              {activeTab === 'resources' && isContractCall && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Left Column - Contract Execution & Invocation Trace */}
+                  <div className="space-y-6">
+                    {/* Contract Execution */}
+                    <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                      <div className="px-5 py-4 bg-slate-50 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-800">Contract Execution</h3>
+                      </div>
+                      <div className="divide-y divide-slate-100">
+                        {[
+                          { label: 'Contract Address', value: contractAddress || 'N/A', isContract: true },
+                          { label: 'Function Called', value: contractFunctionName || 'Unknown' },
+                          { label: 'Function Type', value: contractFunctionType !== 'unknown' ? contractFunctionType : 'N/A' },
+                        ].map((item, i) => (
+                          <div key={i} className="flex justify-between items-center px-5 py-3">
+                            <span className="text-xs text-slate-500 font-medium">{item.label}</span>
+                            {item.isContract && contractAddress ? (
+                              <Link href={`/contract/${contractAddress}`} className="text-xs font-mono font-bold text-sky-600 hover:text-sky-700">
+                                {shortenAddress(contractAddress, 8)}
+                              </Link>
+                            ) : (
+                              <span className="text-xs font-mono font-bold text-slate-700 capitalize">{item.value}</span>
+                            )}
+                          </div>
+                        ))}
+                        {/* Signatures */}
+                        {transaction.signatures.length > 0 && transaction.signatures.map((sig, idx) => (
+                          <div key={idx} className="flex justify-between items-center px-5 py-3">
+                            <span className="text-xs text-slate-500 font-medium">Signature {transaction.signatures.length > 1 ? `${idx + 1}` : ''}</span>
+                            <button
+                              onClick={(e) => {
+                                navigator.clipboard.writeText(sig);
+                                const btn = e.currentTarget;
+                                const original = btn.textContent;
+                                btn.textContent = 'Copied!';
+                                btn.classList.add('text-emerald-600');
+                                setTimeout(() => {
+                                  btn.textContent = original;
+                                  btn.classList.remove('text-emerald-600');
+                                }, 1500);
+                              }}
+                              className="text-xs font-mono font-bold text-slate-600 hover:text-slate-800 transition-all cursor-pointer"
+                              title="Click to copy"
+                            >
+                              {sig.slice(0, 12)}...{sig.slice(-8)}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    {/* Invocation Trace */}
+                    <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                      <div className="px-5 py-4 bg-slate-50 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-800">Invocation Trace</h3>
+                      </div>
+                      <div className="p-5">
+                        {/* Loading state */}
+                        {isDecodingXdr && (
+                          <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-sky-500 border-t-transparent"></div>
+                            <span className="ml-3 text-sm text-slate-500">Decoding XDR...</span>
+                          </div>
+                        )}
+
+                        {/* Decoded invocation trace */}
+                        {!isDecodingXdr && decodedMeta && decodedMeta.success && (
+                          <>
+                            {/* Return Value */}
+                            {decodedMeta.returnValue && (
+                              <div className="mb-4 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                                <div className="text-[10px] uppercase text-emerald-600 font-semibold tracking-wider mb-2">Return Value</div>
+                                <div className="font-mono text-sm text-emerald-700 break-all">
+                                  <span className="text-emerald-600">{decodedMeta.returnValue.type}:</span> {decodedMeta.returnValue.display}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Main invocation */}
+                            <div className="flex items-start gap-3 mb-4">
+                              <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center shrink-0 mt-0.5">
+                                <svg className="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs text-slate-500 mb-1">
+                                  <Link href={`/account/${transaction.source_account}`} className="font-mono text-sky-600 hover:text-sky-700">
+                                    {shortenAddress(transaction.source_account, 6)}
+                                  </Link>
+                                  <span className="mx-1">invoked</span>
+                                  <Link href={`/contract/${contractAddress}`} className="font-mono text-indigo-600 hover:text-indigo-700">
+                                    {contractAddress ? shortenAddress(contractAddress, 6) : 'contract'}
+                                  </Link>
+                                </div>
+                                <div className="bg-slate-50 rounded-lg px-4 py-2 font-mono text-sm border border-slate-100">
+                                  <span className="text-indigo-600 font-semibold">{contractFunctionName || 'call'}</span>
+                                  <span className="text-slate-400">(</span>
+                                  <span className="text-slate-500">...</span>
+                                  <span className="text-slate-400">)</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Decoded invocation trace items */}
+                            {decodedMeta.invocationTrace && decodedMeta.invocationTrace.length > 0 && (
+                              <div className="space-y-2">
+                                {decodedMeta.invocationTrace.slice(0, isTraceExpanded ? undefined : 15).map((call, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-start gap-3 border-l-2 border-slate-200 pl-4"
+                                    style={{ marginLeft: `${Math.min(call.depth, 4) * 20}px` }}
+                                  >
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${call.type === 'fn_call' ? 'bg-sky-100' :
+                                      call.type === 'fn_return' ? 'bg-emerald-100' : 'bg-amber-100'
+                                      }`}>
+                                      {call.type === 'fn_call' ? (
+                                        <svg className="w-3 h-3 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                        </svg>
+                                      ) : call.type === 'fn_return' ? (
+                                        <svg className="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                        </svg>
+                                      ) : (
+                                        <svg className="w-3 h-3 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                      )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-xs text-slate-600">
+                                        {call.type === 'fn_call' && (
+                                          <>
+                                            <span className="text-sky-600 font-semibold">call</span>
+                                            {call.contractId && (
+                                              <>
+                                                <span className="mx-1">to</span>
+                                                <Link href={`/contract/${call.contractId}`} className="font-mono text-indigo-600 hover:text-indigo-700">
+                                                  {shortenAddress(call.contractId, 4)}
+                                                </Link>
+                                              </>
+                                            )}
+                                            {call.functionName && (
+                                              <span className="font-mono text-indigo-600 ml-1">.{call.functionName}()</span>
+                                            )}
+                                          </>
+                                        )}
+                                        {call.type === 'fn_return' && (
+                                          <>
+                                            <span className="text-emerald-600 font-semibold">return</span>
+                                            {call.functionName && (
+                                              <span className="font-mono text-slate-500 ml-1">{call.functionName}</span>
+                                            )}
+                                            {call.returnValue && (
+                                              <span className="font-mono text-emerald-600 ml-1">= {call.returnValue.display}</span>
+                                            )}
+                                          </>
+                                        )}
+                                        {call.type === 'event' && (
+                                          <>
+                                            <span className="text-amber-600 font-semibold">event</span>
+                                            {call.args && call.args.length > 0 && (
+                                              <span className="font-mono text-slate-700 font-bold ml-1">{call.args[0].display}</span>
+                                            )}
+                                            {call.contractId && (
+                                              <>
+                                                <span className="mx-1">from</span>
+                                                <Link href={`/contract/${call.contractId}`} className="font-mono text-indigo-600 hover:text-indigo-700">
+                                                  {shortenAddress(call.contractId, 4)}
+                                                </Link>
+                                              </>
+                                            )}
+
+                                            {/* Event Details (Topics & Data) */}
+                                            <div className="mt-2 bg-slate-50 rounded-lg p-3 text-[11px] font-mono text-slate-600 border border-slate-100">
+                                              {/* Topics */}
+                                              {call.args && call.args.length > 1 && (
+                                                <div className="flex flex-col gap-2 mb-3">
+                                                  {call.args.slice(1).map((arg, argIdx) => (
+                                                    <div key={argIdx} className="flex flex-col">
+                                                      <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-1">Topic {argIdx + 1}</span>
+                                                      <span className="bg-white px-3 py-1.5 rounded border border-slate-200 text-amber-600 break-all leading-relaxed">
+                                                        {arg.display}
+                                                      </span>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              )}
+
+                                              {/* Data / Amount */}
+                                              {call.returnValue && (
+                                                <div className={`${call.args && call.args.length > 1 ? 'pt-3 border-t border-slate-200' : ''}`}>
+                                                  <div className="flex flex-col">
+                                                    <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-1">Data</span>
+                                                    <span className="text-slate-700 break-all leading-relaxed whitespace-pre-wrap">
+                                                      {call.returnValue.display}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
+                                      {/* Show args for function calls */}
+                                      {call.type === 'fn_call' && call.args && call.args.length > 0 && (
+                                        <div className="mt-1 bg-slate-50 rounded px-3 py-2 text-[11px] font-mono text-slate-600 space-y-0.5 border border-slate-100">
+                                          {call.args.slice(0, 4).map((arg, argIdx) => (
+                                            <div key={argIdx} className="truncate">
+                                              <span className="text-slate-400">arg{argIdx}:</span> <span className="text-sky-600">{arg.display}</span>
+                                            </div>
+                                          ))}
+                                          {call.args.length > 4 && (
+                                            <div className="text-slate-400">+{call.args.length - 4} more args</div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                                {decodedMeta.invocationTrace.length > 15 && (
+                                  <button
+                                    onClick={() => setIsTraceExpanded(!isTraceExpanded)}
+                                    className="w-full flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-slate-700 transition-colors py-3 mt-2"
+                                  >
+                                    {isTraceExpanded ? (
+                                      <>
+                                        <span>Show less</span>
+                                        <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span>+{decodedMeta.invocationTrace.length - 15} more trace items</span>
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Contract Events */}
+                            {decodedMeta.parsedEvents && decodedMeta.parsedEvents.length > 0 && (
+                              <div className="mt-6">
+                                <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider mb-3">Contract Events ({decodedMeta.parsedEvents.length})</div>
+                                <div className="space-y-2">
+                                  {decodedMeta.parsedEvents.slice(0, 10).map((event, idx) => {
+                                    const categoryColors = {
+                                      transfer: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' },
+                                      approval: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-600' },
+                                      mint: { bg: 'bg-violet-50', border: 'border-violet-200', text: 'text-violet-600' },
+                                      burn: { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-600' },
+                                      trade: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600' },
+                                      liquidity: { bg: 'bg-cyan-50', border: 'border-cyan-200', text: 'text-cyan-600' },
+                                      state: { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-600' },
+                                      other: { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-600' },
+                                    };
+                                    const colors = categoryColors[event.category || 'other'];
+
+                                    return (
+                                      <div key={idx} className={`${colors.bg} rounded-lg px-4 py-3 border ${colors.border}`}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <span className={`text-[11px] uppercase ${colors.text} font-semibold`}>
+                                            {event.eventName || event.type}
+                                          </span>
+                                          {event.category && event.category !== 'other' && (
+                                            <span className="text-[10px] px-2 py-0.5 bg-white/50 rounded text-slate-500">
+                                              {event.category}
+                                            </span>
+                                          )}
+                                          {event.contractId && (
+                                            <Link href={`/contract/${event.contractId}`} className="text-[11px] font-mono text-indigo-600 hover:text-indigo-700 ml-auto">
+                                              {shortenAddress(event.contractId, 4)}
+                                            </Link>
+                                          )}
+                                        </div>
+                                        {event.decodedParams && Object.keys(event.decodedParams).length > 0 && (
+                                          <div className="space-y-0.5 mt-2">
+                                            {Object.entries(event.decodedParams).map(([key, val]) => (
+                                              <div key={key} className={`text-[11px] font-mono ${colors.text}`}>
+                                                <span className="text-slate-400">{key}:</span>{' '}
+                                                <span>{val.display}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                  {decodedMeta.parsedEvents.length > 10 && (
+                                    <div className="text-xs text-slate-400 text-center py-2">
+                                      +{decodedMeta.parsedEvents.length - 10} more events
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* State Changes */}
+                            {decodedMeta.stateChanges && decodedMeta.stateChanges.length > 0 && (
+                              <div className="mt-6">
+                                <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider mb-3">State Changes ({decodedMeta.stateChanges.length})</div>
+                                <div className="space-y-2">
+                                  {decodedMeta.stateChanges.slice(0, 8).map((change, idx) => {
+                                    const changeColors = {
+                                      created: { bg: 'bg-emerald-50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-700' },
+                                      updated: { bg: 'bg-sky-50', border: 'border-sky-200', badge: 'bg-sky-100 text-sky-700' },
+                                      removed: { bg: 'bg-rose-50', border: 'border-rose-200', badge: 'bg-rose-100 text-rose-700' },
+                                    };
+                                    const colors = changeColors[change.type];
+
+                                    return (
+                                      <div key={idx} className={`${colors.bg} rounded-lg px-4 py-3 border ${colors.border}`}>
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <span className={`text-[10px] uppercase px-2 py-0.5 rounded font-semibold ${colors.badge}`}>
+                                            {change.type}
+                                          </span>
+                                          {change.durability && (
+                                            <span className="text-[10px] px-2 py-0.5 bg-white/50 rounded text-slate-500">
+                                              {change.durability}
+                                            </span>
+                                          )}
+                                          {change.contractId && (
+                                            <Link href={`/contract/${change.contractId}`} className="text-[11px] font-mono text-indigo-600 hover:text-indigo-700 ml-auto">
+                                              {shortenAddress(change.contractId, 6)}
+                                            </Link>
+                                          )}
+                                        </div>
+                                        {change.key && (
+                                          <div className="text-[11px] font-mono text-slate-600 mb-1">
+                                            <span className="text-slate-400">key:</span> {change.key.display}
+                                          </div>
+                                        )}
+                                        {change.type === 'updated' && change.valueBefore && change.valueAfter && (
+                                          <div className="space-y-1 text-[11px] font-mono">
+                                            <div className="text-rose-600">
+                                              <span className="text-slate-400">before:</span> {change.valueBefore.display}
+                                            </div>
+                                            <div className="text-emerald-600">
+                                              <span className="text-slate-400">after:</span> {change.valueAfter.display}
+                                            </div>
+                                          </div>
+                                        )}
+                                        {change.type === 'created' && change.valueAfter && (
+                                          <div className="text-[11px] font-mono text-emerald-600">
+                                            <span className="text-slate-400">value:</span> {change.valueAfter.display}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                  {decodedMeta.stateChanges.length > 8 && (
+                                    <div className="text-xs text-slate-400 text-center py-2">
+                                      +{decodedMeta.stateChanges.length - 8} more state changes
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* No trace data available */}
+                            {(!decodedMeta.invocationTrace || decodedMeta.invocationTrace.length === 0) &&
+                             (!decodedMeta.parsedEvents || decodedMeta.parsedEvents.length === 0) &&
+                             (!decodedMeta.stateChanges || decodedMeta.stateChanges.length === 0) && (
+                              <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                <p className="text-sm text-slate-500">No detailed invocation trace available for this transaction.</p>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Fallback when XDR not available or decoding failed */}
+                        {!isDecodingXdr && (!decodedMeta || !decodedMeta.success) && (
+                          <>
+                            {/* Main invocation */}
+                            <div className="flex items-start gap-3 mb-4">
+                              <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center shrink-0 mt-0.5">
+                                <svg className="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs text-slate-500 mb-1">
+                                  <Link href={`/account/${transaction.source_account}`} className="font-mono text-sky-600 hover:text-sky-700">
+                                    {shortenAddress(transaction.source_account, 6)}
+                                  </Link>
+                                  <span className="mx-1">invoked</span>
+                                  <Link href={`/contract/${contractAddress}`} className="font-mono text-indigo-600 hover:text-indigo-700">
+                                    {contractAddress ? shortenAddress(contractAddress, 6) : 'contract'}
+                                  </Link>
+                                </div>
+                                <div className="bg-slate-50 rounded-lg px-4 py-2 font-mono text-sm border border-slate-100">
+                                  <span className="text-indigo-600 font-semibold">{contractFunctionName || 'call'}</span>
+                                  <span className="text-slate-400">(</span>
+                                  <span className="text-slate-500">...</span>
+                                  <span className="text-slate-400">)</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Effects as trace items */}
+                            {effects.slice(0, 6).map((effect, idx) => (
+                              <div key={idx} className="flex items-start gap-3 mb-2 ml-6 border-l-2 border-slate-200 pl-4">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${effect.type.includes('credited') ? 'bg-emerald-100' :
+                                  effect.type.includes('debited') ? 'bg-rose-100' : 'bg-slate-100'
+                                  }`}>
+                                  <svg className={`w-3 h-3 ${effect.type.includes('credited') ? 'text-emerald-600' :
+                                    effect.type.includes('debited') ? 'text-rose-600' : 'text-slate-500'
+                                    }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    {effect.type.includes('credited') ? (
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                    ) : effect.type.includes('debited') ? (
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                                    ) : (
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    )}
+                                  </svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs text-slate-600">
+                                    {effect.amount && (
+                                      <span className={`font-mono font-bold ${effect.type.includes('credited') ? 'text-emerald-600' : effect.type.includes('debited') ? 'text-rose-600' : ''}`}>
+                                        {effect.type.includes('credited') ? '+' : effect.type.includes('debited') ? '-' : ''}
+                                        {parseFloat(effect.amount).toLocaleString(undefined, { maximumFractionDigits: 7 })} {effect.asset_type === 'native' ? 'XLM' : effect.asset_code || ''}
+                                      </span>
+                                    )}
+                                    <span className="mx-1">{effect.type.includes('credited') ? 'credited to' : effect.type.includes('debited') ? 'debited from' : effect.type.replace(/_/g, ' ')}</span>
+                                    <Link href={`/account/${effect.account}`} className="font-mono text-sky-600 hover:text-sky-700">
+                                      {shortenAddress(effect.account, 4)}
+                                    </Link>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+
+                            {effects.length > 6 && (
+                              <div className="text-xs text-slate-400 text-center mt-3">
+                                +{effects.length - 6} more effects
+                              </div>
+                            )}
+
+                            {/* Error message if decoding failed */}
+                            {decodedMeta && !decodedMeta.success && decodedMeta.error && (
+                              <div className="mt-4 p-4 bg-rose-50 rounded-xl border border-rose-200">
+                                <div className="flex items-start gap-3">
+                                  <svg className="w-5 h-5 text-rose-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <div>
+                                    <p className="text-sm text-rose-700 font-medium">XDR decoding error</p>
+                                    <p className="text-xs text-rose-600 mt-1">{decodedMeta.error}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Note when no XDR available after fetch attempt */}
+                            {xdrFetchAttempted && !transaction.result_meta_xdr && !fetchedXdr && (
+                              <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                                <div className="flex items-start gap-3">
+                                  <svg className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                  </svg>
+                                  <div>
+                                    <p className="text-sm text-amber-700 font-medium">Invocation trace not available</p>
+                                    <p className="text-xs text-amber-600 mt-1">This transaction may be too old or the Soroban RPC data has expired.</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </section>
+                  </div>
+
+                  {/* Right Column - Transaction Resources & Metrics */}
+                  <div className="space-y-6">
+                    {/* Transaction Resources */}
+                    <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                      <div className="px-5 py-4 bg-slate-50 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-800">Transaction Resources</h3>
+                      </div>
+
+                      <div className="divide-y divide-slate-100">
+                        {/* Transaction Overview */}
+                        <div className="p-5">
+                          <div className="grid grid-cols-4 gap-3">
+                            {[
+                              { label: 'Ledger', value: transaction.ledger.toLocaleString() },
+                              { label: 'Ops', value: transaction.operation_count.toString() },
+                              { label: 'Effects', value: effects.length.toString() },
+                              { label: 'Sigs', value: transaction.signatures.length.toString() },
+                            ].map((item, i) => (
+                              <div key={i} className="bg-slate-50 rounded-lg p-3 border border-slate-100 text-center">
+                                <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider">{item.label}</div>
+                                <div className="text-sm font-bold text-slate-700 font-mono mt-1">{item.value}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Fees */}
+                        <div className="p-5">
+                          <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-4">Fees</div>
+                          <div className="space-y-3">
+                            {[
+                              { label: 'Fee Charged', value: `${(parseInt(transaction.fee_charged) / 10000000).toFixed(7)} XLM` },
+                              { label: 'Max Fee', value: `${(parseInt(transaction.max_fee) / 10000000).toFixed(7)} XLM` },
+                              { label: 'Base Fee', value: `${(100 / 10000000).toFixed(7)} XLM` },
+                            ].map((item, i) => (
+                              <div key={i} className="flex justify-between items-center text-sm">
+                                <span className="text-slate-500">{item.label}</span>
+                                <span className="font-mono font-semibold text-slate-700">{item.value}</span>
+                              </div>
+                            ))}
+                            {/* Detailed fee breakdown */}
+                            {decodedMeta && decodedMeta.success && decodedMeta.metrics && (
+                              (decodedMeta.metrics.totalRefundableResourceFeeCharged || decodedMeta.metrics.totalNonRefundableResourceFeeCharged || decodedMeta.metrics.rentFeeCharged) && (
+                                <div className="pt-3 mt-3 border-t border-slate-100 space-y-2">
+                                  {decodedMeta.metrics.totalRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) > 0 && (
+                                    <div className="flex justify-between items-center text-sm">
+                                      <span className="text-slate-400">└ Refundable</span>
+                                      <span className="font-mono text-slate-600">{(parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM</span>
+                                    </div>
+                                  )}
+                                  {decodedMeta.metrics.totalNonRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) > 0 && (
+                                    <div className="flex justify-between items-center text-sm">
+                                      <span className="text-slate-400">└ Non-Refundable</span>
+                                      <span className="font-mono text-slate-600">{(parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM</span>
+                                    </div>
+                                  )}
+                                  {decodedMeta.metrics.rentFeeCharged && parseInt(decodedMeta.metrics.rentFeeCharged) > 0 && (
+                                    <div className="flex justify-between items-center text-sm">
+                                      <span className="text-slate-400">└ Rent</span>
+                                      <span className="font-mono text-slate-600">{(parseInt(decodedMeta.metrics.rentFeeCharged) / 10000000).toFixed(7)} XLM</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Contract Resources */}
+                        {(envelopeMetrics || (decodedMeta && decodedMeta.success)) && (
+                          <div className="p-5">
+                            <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-4">Contract Resources</div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                                <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider">Instructions</div>
+                                <div className="text-sm font-bold font-mono text-slate-700 mt-1">
+                                  {envelopeMetrics?.cpuInsns ? parseInt(envelopeMetrics.cpuInsns).toLocaleString() :
+                                    decodedMeta?.metrics?.cpuInsns ? parseInt(decodedMeta.metrics.cpuInsns).toLocaleString() : '—'}
+                                </div>
+                              </div>
+                              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                                <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider">Read Bytes</div>
+                                <div className="text-sm font-bold font-mono text-slate-700 mt-1">
+                                  {envelopeMetrics?.readBytes ? parseInt(envelopeMetrics.readBytes).toLocaleString() :
+                                    decodedMeta?.metrics?.txByteRead ? decodedMeta.metrics.txByteRead.toLocaleString() : '—'}
+                                </div>
+                              </div>
+                              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                                <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider">Write Bytes</div>
+                                <div className="text-sm font-bold font-mono text-slate-700 mt-1">
+                                  {envelopeMetrics?.writeBytes ? parseInt(envelopeMetrics.writeBytes).toLocaleString() :
+                                    decodedMeta?.metrics?.txByteWrite ? decodedMeta.metrics.txByteWrite.toLocaleString() : '—'}
+                                </div>
+                              </div>
+                              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                                <div className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider">Ledger Entries</div>
+                                <div className="text-sm font-bold font-mono text-slate-700 mt-1">
+                                  {envelopeMetrics ? (
+                                    <>{envelopeMetrics.readEntries || 0}R / {envelopeMetrics.writeEntries || 0}W</>
+                                  ) : decodedMeta?.stateChanges ? (
+                                    <>{decodedMeta.stateChanges.filter(c => c.type === 'updated' || c.type === 'removed').length}R / {decodedMeta.stateChanges.length}W</>
+                                  ) : '—'}
+                                </div>
+                              </div>
+                            </div>
+                            {decodedMeta && decodedMeta.success && decodedMeta.events && decodedMeta.events.length > 0 && (
+                              <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-sm">
+                                <span className="text-slate-500">Events Emitted</span>
+                                <span className="font-mono font-semibold text-slate-700">{decodedMeta.events.length}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Transaction Data */}
+                        <div className="p-5">
+                          <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-4">Transaction Data</div>
+                          <div className="space-y-3">
+                            {[
+                              { label: 'Envelope XDR', value: Math.ceil(transaction.envelope_xdr.length * 3 / 4) },
+                              { label: 'Result XDR', value: Math.ceil(transaction.result_xdr.length * 3 / 4) },
+                              ...(transaction.result_meta_xdr ? [{ label: 'Result Meta', value: Math.ceil(transaction.result_meta_xdr.length * 3 / 4) }] : []),
+                              ...(transaction.fee_meta_xdr ? [{ label: 'Fee Meta', value: Math.ceil(transaction.fee_meta_xdr.length * 3 / 4) }] : []),
+                            ].map((item, i) => (
+                              <div key={i} className="flex justify-between items-center text-sm">
+                                <span className="text-slate-500">{item.label}</span>
+                                <span className="font-mono font-semibold text-slate-700">{item.value.toLocaleString()} bytes</span>
+                              </div>
+                            ))}
+                            <div className="pt-3 mt-3 border-t border-slate-100 flex justify-between items-center text-sm">
+                              <span className="text-slate-700 font-medium">Total Size</span>
+                              <span className="font-mono font-bold text-slate-800">
+                                {(
+                                  Math.ceil(transaction.envelope_xdr.length * 3 / 4) +
+                                  Math.ceil(transaction.result_xdr.length * 3 / 4) +
+                                  (transaction.result_meta_xdr ? Math.ceil(transaction.result_meta_xdr.length * 3 / 4) : 0) +
+                                  (transaction.fee_meta_xdr ? Math.ceil(transaction.fee_meta_xdr.length * 3 / 4) : 0)
+                                ).toLocaleString()} bytes
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </div>
               )}
 
               {activeTab === 'raw' && (

@@ -71,6 +71,7 @@ export default function MobileHeader() {
   if (pathname?.startsWith('/asset/')) return null;
   if (pathname?.startsWith('/transaction/')) return null;
   if (pathname?.startsWith('/contract/')) return null;
+  if (pathname?.startsWith('/liquidity-pool/')) return null;
 
   // Simplified Header for non-homepage
   if (!isHomePage) {

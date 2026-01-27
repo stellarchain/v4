@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { LiquidityPool, Operation, Transaction, LiquidityPoolTrade, LiquidityPoolEffect, shortenAddress, timeAgo } from '@/lib/stellar';
+import { LiquidityPool, Operation, Transaction, LiquidityPoolTrade, LiquidityPoolEffect, shortenAddress, timeAgo, enrichTradesWithTransactionHashes } from '@/lib/stellar';
 
 interface LiquidityPoolMobileViewProps {
     pool: LiquidityPool;
@@ -12,9 +12,29 @@ interface LiquidityPoolMobileViewProps {
     effects: LiquidityPoolEffect[];
 }
 
-export default function LiquidityPoolMobileView({ pool, operations, transactions, trades, effects }: LiquidityPoolMobileViewProps) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'operations' | 'trades' | 'effects'>('overview');
+export default function LiquidityPoolMobileView({ pool, operations, transactions, trades: initialTrades, effects }: LiquidityPoolMobileViewProps) {
+    const [activeTab, setActiveTab] = useState<'transactions' | 'operations' | 'trades' | 'effects'>('trades');
     const [copied, setCopied] = useState(false);
+    const [trades, setTrades] = useState<LiquidityPoolTrade[]>(initialTrades);
+    const [loadingTxHashes, setLoadingTxHashes] = useState(false);
+
+    // Primary color for this design (matches TransactionMobileView)
+    const primaryColor = '#0F4C81';
+
+    // Fetch transaction hashes for trades when on trades tab
+    useEffect(() => {
+        if (activeTab !== 'trades' || loadingTxHashes) return;
+        if (trades.every(t => t.transaction_hash)) return; // Already have all hashes
+
+        setLoadingTxHashes(true);
+        enrichTradesWithTransactionHashes(trades)
+            .then(enrichedTrades => {
+                setTrades(enrichedTrades);
+            })
+            .finally(() => {
+                setLoadingTxHashes(false);
+            });
+    }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleCopy = () => {
         navigator.clipboard.writeText(pool.id);
@@ -60,189 +80,156 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
     const amountB = parseFloat(assetB.amount);
     const priceRatio = amountA > 0 ? (amountB / amountA).toFixed(4) : '0';
 
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        const query = searchQuery.trim();
+        if (!query) return;
+        const upperQuery = query.toUpperCase();
+        if (query.length === 56 && upperQuery.startsWith('C')) {
+            window.location.href = `/contract/${upperQuery}`;
+        } else if (query.length === 56 && upperQuery.startsWith('G')) {
+            window.location.href = `/account/${upperQuery}`;
+        } else if (query.length === 64) {
+            window.location.href = `/transaction/${query.toLowerCase()}`;
+        } else if (/^\d+$/.test(query)) {
+            window.location.href = `/ledger/${query}`;
+        } else {
+            window.location.href = `/account/${query}`;
+        }
+        setSearchQuery('');
+    };
+
     const tabs = [
-        { id: 'overview', label: 'Info' },
-        { id: 'trades', label: 'Trades' },
-        { id: 'effects', label: 'Effects' },
-        { id: 'transactions', label: 'Txns' },
-        { id: 'operations', label: 'Ops' },
+        { id: 'trades', label: 'Trades', count: trades.length },
+        { id: 'effects', label: 'Effects', count: effects.length },
+        { id: 'transactions', label: 'Transactions', count: transactions.length },
+        { id: 'operations', label: 'Operations', count: operations.length },
     ] as const;
 
     return (
         <div className="bg-[var(--bg-primary)] text-[var(--text-secondary)] min-h-screen flex flex-col font-sans pb-24">
-            <main className="flex-1 px-4 pt-3 pb-8 max-w-lg mx-auto w-full">
-                {/* Pool Header Card */}
-                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-4">
-                    {/* Pool Identity */}
-                    <div className="flex items-center gap-3">
-                        {/* Icon */}
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-blue-500 to-cyan-600 text-white shadow-lg">
-                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                            </svg>
-                        </div>
+            {/* Header - matching transaction page */}
+            <header className="sticky top-0 z-10 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <Link
+                        href="/liquidity-pools"
+                        className="p-2 rounded-full bg-[var(--bg-secondary)] shadow-sm hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)]"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </Link>
+                    <h1 className="text-xl font-bold tracking-tight" style={{ color: primaryColor }}>Liquidity Pool</h1>
+                </div>
+                <div className="flex-1 max-w-[180px] ml-auto">
+                    <form onSubmit={handleSearch} className="relative">
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search..."
+                            className="w-full pl-10 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all"
+                        />
+                    </form>
+                </div>
+            </header>
 
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                                <span className="text-lg font-bold text-[var(--text-primary)] truncate">
-                                    {codeA} / {codeB}
-                                </span>
-                                {/* Back Button */}
-                                <Link
-                                    href="/liquidity-pools"
-                                    className="ml-auto flex-shrink-0 p-1 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-                                >
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                    </svg>
-                                </Link>
-                            </div>
-                            <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-wide">
-                                Liquidity Pool
-                            </div>
+            <main className="px-4 pt-4 max-w-lg mx-auto w-full">
+                {/* Metadata Row - matching transaction page */}
+                <div className="flex flex-wrap items-center gap-3 mb-4 text-xs font-medium text-[var(--text-tertiary)]">
+                    <span
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
+                        style={{
+                            backgroundColor: `${primaryColor}15`,
+                            color: primaryColor,
+                            borderColor: `${primaryColor}40`
+                        }}
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        {codeA} / {codeB}
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
+                        Fee {(pool.fee_bp / 100).toFixed(2)}%
+                    </span>
+                    <button
+                        onClick={handleCopy}
+                        className="px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] font-mono text-[11px] tracking-wide hover:bg-[var(--bg-hover)] transition-colors"
+                    >
+                        #{pool.id.slice(0, 4)}...{pool.id.slice(-3)}
+                        {copied && <span className="text-[var(--success)] ml-1">✓</span>}
+                    </button>
+                </div>
+
+                {/* Summary Card - Reserve Assets */}
+                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-5">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Pool Type</div>
+                            <div className="text-base font-bold text-[var(--text-primary)] mt-1">Constant Product</div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Trustlines</div>
+                            <div className="text-base font-bold text-[var(--text-primary)] mt-1">{pool.total_trustlines}</div>
                         </div>
                     </div>
 
-                    {/* Pool ID - Compact */}
-                    <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
-                        <div className="flex items-center justify-between gap-2">
-                            <div className="font-mono text-[11px] text-[var(--text-muted)] truncate flex-1">{pool.id}</div>
-                            <button
-                                onClick={handleCopy}
-                                className="text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 flex-shrink-0"
-                                style={{ color: 'var(--primary-blue)' }}
-                            >
-                                {copied ? 'Copied!' : 'Copy'}
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                            </button>
+                    {/* Reserve Assets Display */}
+                    <div className="mt-4 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-2xl p-4">
+                        {/* Asset A */}
+                        <div className="flex items-center justify-between">
+                            <span className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Reserve A</span>
+                            <span className="text-base font-bold text-[var(--text-primary)] font-mono">{formatAmount(assetA.amount)} <span className="text-sm text-[var(--text-muted)]">{codeA}</span></span>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="my-3 border-t border-dashed border-[var(--border-subtle)]"></div>
+
+                        {/* Asset B */}
+                        <div className="flex items-center justify-between">
+                            <span className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Reserve B</span>
+                            <span className="text-base font-bold text-[var(--text-primary)] font-mono">{formatAmount(assetB.amount)} <span className="text-sm text-[var(--text-muted)]">{codeB}</span></span>
+                        </div>
+                    </div>
+
+                    {/* Network Fee */}
+                    <div className="mt-4 pt-4 border-t border-[var(--border-default)]/50">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-[var(--text-muted)]">Exchange Rate</span>
+                            <span className="text-sm font-mono font-semibold" style={{ color: primaryColor }}>1 {codeA} = {formatFullAmount(priceRatio)} {codeB}</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex gap-1 mb-4 bg-[var(--bg-secondary)] rounded-xl p-1 border border-[var(--border-subtle)]">
+                {/* Tabs Navigation */}
+                <div className="flex gap-4 overflow-x-auto no-scrollbar border-b border-[var(--border-default)] pb-3 mb-4 -mx-4 px-4">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`flex-1 py-2 px-2 rounded-lg text-xs font-semibold transition-all ${activeTab === tab.id
-                                ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm'
-                                : 'text-[var(--text-muted)]'
-                                }`}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className="text-xs font-semibold relative transition-colors whitespace-nowrap pb-1"
+                            style={{
+                                color: activeTab === tab.id ? primaryColor : 'var(--text-tertiary)',
+                            }}
                         >
                             {tab.label}
+                            {tab.count > 0 && (
+                                <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[10px] bg-[var(--bg-tertiary)] ${activeTab === tab.id ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]'}`}>
+                                    {tab.count}
+                                </span>
+                            )}
+                            {activeTab === tab.id && (
+                                <span className="absolute -bottom-3 left-0 right-0 h-0.5 rounded-full" style={{ backgroundColor: primaryColor }} />
+                            )}
                         </button>
                     ))}
                 </div>
-
-                {/* Tab Content */}
-                {activeTab === 'overview' && (
-                    <div className="space-y-4">
-                        {/* Reserve Assets */}
-                        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] p-4">
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">Reserve Assets</h3>
-                            <div className="space-y-3">
-                                {/* Asset A */}
-                                <div className="bg-[var(--bg-tertiary)] rounded-lg p-3">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <span className="text-sm font-bold text-[var(--text-primary)]">{codeA}</span>
-                                        <span className="font-mono text-sm text-[var(--text-primary)]">{formatAmount(assetA.amount)}</span>
-                                    </div>
-                                    {issuerA && (
-                                        <Link
-                                            href={`/account/${issuerA}`}
-                                            className="text-[10px] font-mono text-[var(--text-muted)] hover:text-[var(--primary-blue)]"
-                                        >
-                                            {shortenAddress(issuerA, 6)}
-                                        </Link>
-                                    )}
-                                    {!issuerA && (
-                                        <span className="text-[10px] text-[var(--text-muted)]">Native Asset</span>
-                                    )}
-                                </div>
-
-                                {/* Swap Arrow */}
-                                <div className="flex justify-center">
-                                    <div className="w-8 h-8 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center">
-                                        <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                                        </svg>
-                                    </div>
-                                </div>
-
-                                {/* Asset B */}
-                                <div className="bg-[var(--bg-tertiary)] rounded-lg p-3">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <span className="text-sm font-bold text-[var(--text-primary)]">{codeB}</span>
-                                        <span className="font-mono text-sm text-[var(--text-primary)]">{formatAmount(assetB.amount)}</span>
-                                    </div>
-                                    {issuerB && (
-                                        <Link
-                                            href={`/account/${issuerB}`}
-                                            className="text-[10px] font-mono text-[var(--text-muted)] hover:text-[var(--primary-blue)]"
-                                        >
-                                            {shortenAddress(issuerB, 6)}
-                                        </Link>
-                                    )}
-                                    {!issuerB && (
-                                        <span className="text-[10px] text-[var(--text-muted)]">Native Asset</span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Exchange Rate */}
-                            <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
-                                <div className="text-xs text-[var(--text-muted)]">Exchange Rate</div>
-                                <div className="font-mono text-sm text-[var(--text-primary)]">
-                                    1 {codeA} = {priceRatio} {codeB}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Pool Stats */}
-                        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] p-4">
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">Pool Information</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-wide">Type</div>
-                                    <div className="text-sm font-medium text-[var(--text-primary)] mt-1 capitalize">{pool.type.replace('_', ' ')}</div>
-                                </div>
-                                <div>
-                                    <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-wide">Total Shares</div>
-                                    <div className="text-sm font-mono text-[var(--text-primary)] mt-1">{formatFullAmount(pool.total_shares)}</div>
-                                </div>
-                                <div>
-                                    <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-wide">Trustlines</div>
-                                    <div className="text-sm font-medium text-[var(--text-primary)] mt-1">{pool.total_trustlines.toLocaleString()}</div>
-                                </div>
-                                <div>
-                                    <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-wide">Fee</div>
-                                    <div className="text-sm font-medium text-[var(--text-primary)] mt-1">
-                                        {pool.fee_bp ? `${(pool.fee_bp / 100).toFixed(2)}%` : '0.30%'}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-wide">Last Modified</div>
-                                    <div className="text-sm font-medium text-[var(--text-primary)] mt-1">
-                                        {pool.last_modified_time ? timeAgo(pool.last_modified_time) : '-'}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-wide">Ledger</div>
-                                    <Link
-                                        href={`/ledger/${pool.last_modified_ledger}`}
-                                        className="text-sm font-mono mt-1 block"
-                                        style={{ color: 'var(--primary-blue)' }}
-                                    >
-                                        {pool.last_modified_ledger?.toLocaleString() || '-'}
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {activeTab === 'transactions' && (
                     <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)]">
@@ -261,7 +248,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                         href={`/transaction/${tx.hash}`}
                                         className="flex items-center gap-3 p-3 active:bg-[var(--bg-tertiary)] transition-colors"
                                     >
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tx.successful ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${tx.successful ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'bg-[var(--error)]/10 text-[var(--error)]'
                                             }`}>
                                             {tx.successful ? (
                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -274,19 +261,19 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                             )}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-mono text-xs text-[var(--text-primary)] truncate">
+                                            <div className="font-mono text-sm font-semibold text-[var(--text-primary)] truncate">
                                                 {shortenAddress(tx.hash, 8)}
                                             </div>
-                                            <div className="text-[10px] text-[var(--text-muted)]">
+                                            <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
                                                 {tx.operation_count} operation{tx.operation_count !== 1 ? 's' : ''}
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="text-[10px] text-[var(--text-muted)]">
+                                        <div className="text-right flex-shrink-0">
+                                            <div className="text-[11px] text-[var(--text-tertiary)]">
                                                 {timeAgo(tx.created_at)}
                                             </div>
                                         </div>
-                                        <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="w-4 h-4 text-[var(--text-tertiary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                         </svg>
                                     </Link>
@@ -310,42 +297,50 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                 {trades.map((trade) => {
                                     const baseAsset = trade.base_asset_type === 'native' ? 'XLM' : trade.base_asset_code || 'UNK';
                                     const counterAsset = trade.counter_asset_type === 'native' ? 'XLM' : trade.counter_asset_code || 'UNK';
-                                    return (
-                                        <div
-                                            key={trade.id}
-                                            className="p-3"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-cyan-500/10 text-cyan-500">
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                    const tradeContent = (
+                                        <>
+                                            <div
+                                                className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                                                style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className="font-mono text-sm font-bold text-[var(--error)]">-{formatAmount(trade.base_amount)}</span>
+                                                    <span className="text-xs font-medium text-[var(--text-muted)]">{baseAsset}</span>
+                                                    <svg className="w-3.5 h-3.5 text-[var(--text-tertiary)] mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                                     </svg>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 text-xs">
-                                                        <span className="font-mono text-red-400">-{formatAmount(trade.base_amount)}</span>
-                                                        <span className="text-[var(--text-muted)]">{baseAsset}</span>
-                                                        <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                                        </svg>
-                                                        <span className="font-mono text-green-400">+{formatAmount(trade.counter_amount)}</span>
-                                                        <span className="text-[var(--text-muted)]">{counterAsset}</span>
-                                                    </div>
-                                                    {trade.base_account && (
-                                                        <Link
-                                                            href={`/account/${trade.base_account}`}
-                                                            className="font-mono text-[10px] text-[var(--text-muted)] hover:text-[var(--primary-blue)]"
-                                                        >
-                                                            {shortenAddress(trade.base_account, 6)}
-                                                        </Link>
-                                                    )}
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="text-[10px] text-[var(--text-muted)]">
-                                                        {timeAgo(trade.ledger_close_time)}
-                                                    </div>
+                                                    <span className="font-mono text-sm font-bold text-[var(--success)]">+{formatAmount(trade.counter_amount)}</span>
+                                                    <span className="text-xs font-medium text-[var(--text-muted)]">{counterAsset}</span>
                                                 </div>
                                             </div>
+                                            <div className="text-right flex-shrink-0 flex items-center gap-2">
+                                                <div className="text-[11px] text-[var(--text-tertiary)]">
+                                                    {timeAgo(trade.ledger_close_time)}
+                                                </div>
+                                                {trade.transaction_hash && (
+                                                    <svg className="w-4 h-4 text-[var(--text-tertiary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                )}
+                                            </div>
+                                        </>
+                                    );
+                                    return trade.transaction_hash ? (
+                                        <Link
+                                            key={trade.id}
+                                            href={`/transaction/${trade.transaction_hash}`}
+                                            className="p-3 flex items-center gap-3 active:bg-[var(--bg-tertiary)] cursor-pointer"
+                                        >
+                                            {tradeContent}
+                                        </Link>
+                                    ) : (
+                                        <div key={trade.id} className="p-3 flex items-center gap-3">
+                                            {tradeContent}
                                         </div>
                                     );
                                 })}
@@ -374,7 +369,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                             className="p-3"
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDeposit ? 'bg-green-500/10 text-green-500' : isWithdraw ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'
+                                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isDeposit ? 'bg-[var(--success)]/10 text-[var(--success)]' : isWithdraw ? 'bg-[var(--error)]/10 text-[var(--error)]' : 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]'
                                                     }`}>
                                                     {isDeposit ? (
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -391,24 +386,24 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                                     )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="text-xs font-medium text-[var(--text-primary)] capitalize">
+                                                    <div className="text-sm font-semibold text-[var(--text-primary)] capitalize">
                                                         {effect.type.replace(/_/g, ' ')}
                                                     </div>
                                                     <Link
                                                         href={`/account/${effect.account}`}
-                                                        className="font-mono text-[10px] text-[var(--text-muted)] hover:text-[var(--primary-blue)]"
+                                                        className="font-mono text-[11px] text-[var(--text-tertiary)] hover:text-[var(--primary-blue)] mt-0.5 block"
                                                     >
                                                         {shortenAddress(effect.account, 6)}
                                                     </Link>
                                                     {effect.shares_received && (
-                                                        <div className="text-[10px] text-green-400">+{formatAmount(effect.shares_received)} shares</div>
+                                                        <div className="text-xs font-bold text-[var(--success)] mt-1">+{formatAmount(effect.shares_received)} shares</div>
                                                     )}
                                                     {effect.shares_redeemed && (
-                                                        <div className="text-[10px] text-red-400">-{formatAmount(effect.shares_redeemed)} shares</div>
+                                                        <div className="text-xs font-bold text-[var(--error)] mt-1">-{formatAmount(effect.shares_redeemed)} shares</div>
                                                     )}
                                                 </div>
-                                                <div className="text-right">
-                                                    <div className="text-[10px] text-[var(--text-muted)]">
+                                                <div className="text-right flex-shrink-0">
+                                                    <div className="text-[11px] text-[var(--text-tertiary)]">
                                                         {timeAgo(effect.created_at)}
                                                     </div>
                                                 </div>
@@ -438,26 +433,26 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                         href={`/transaction/${op.transaction_hash}`}
                                         className="flex items-center gap-3 p-3 active:bg-[var(--bg-tertiary)] transition-colors"
                                     >
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${op.transaction_successful ? 'bg-blue-500/10 text-blue-500' : 'bg-red-500/10 text-red-500'
+                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${op.transaction_successful ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'bg-[var(--error)]/10 text-[var(--error)]'
                                             }`}>
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                             </svg>
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="text-xs font-medium text-[var(--text-primary)] capitalize">
+                                            <div className="text-sm font-semibold text-[var(--text-primary)] capitalize">
                                                 {op.type.replace(/_/g, ' ')}
                                             </div>
-                                            <div className="font-mono text-[10px] text-[var(--text-muted)] truncate">
+                                            <div className="font-mono text-[11px] text-[var(--text-tertiary)] truncate mt-0.5">
                                                 {shortenAddress(op.source_account, 6)}
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="text-[10px] text-[var(--text-muted)]">
+                                        <div className="text-right flex-shrink-0">
+                                            <div className="text-[11px] text-[var(--text-tertiary)]">
                                                 {timeAgo(op.created_at)}
                                             </div>
                                         </div>
-                                        <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="w-4 h-4 text-[var(--text-tertiary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                         </svg>
                                     </Link>
@@ -467,6 +462,16 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                     </div>
                 )}
             </main>
+
+            <style jsx global>{`
+                .no-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                .no-scrollbar {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
         </div>
     );
 }

@@ -1,6 +1,7 @@
 import { getLiquidityPool, getLiquidityPoolOperations, getLiquidityPoolTransactions, getLiquidityPoolTrades, getLiquidityPoolEffects } from '@/lib/stellar';
 import Link from 'next/link';
 import LiquidityPoolMobileView from '@/components/mobile/LiquidityPoolMobileView';
+import LiquidityPoolDesktopView from '@/components/desktop/LiquidityPoolDesktopView';
 
 export const revalidate = 60;
 
@@ -76,9 +77,14 @@ export default async function LiquidityPoolPage({ params }: LiquidityPoolPagePro
 
   return (
     <>
-      <div className="hidden md:block p-8 min-h-screen bg-[var(--bg-primary)]">
-        <h1 className="text-3xl font-bold mb-4 text-[var(--text-primary)]">Liquidity Pool</h1>
-        <p className="text-[var(--text-muted)]">Desktop view coming soon. Please view on mobile.</p>
+      <div className="hidden md:block">
+        <LiquidityPoolDesktopView
+          pool={pool}
+          operations={operations || []}
+          transactions={transactions || []}
+          trades={trades || []}
+          effects={effects || []}
+        />
       </div>
       <div className="md:hidden">
         <LiquidityPoolMobileView

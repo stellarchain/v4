@@ -14,6 +14,9 @@ export default function MobileLiquidityPools({ initialPools }: MobileLiquidityPo
     const [loading, setLoading] = useState(false);
     const sentinelRef = useRef<HTMLDivElement>(null);
 
+    // Primary color for this design (matches TransactionMobileView)
+    const primaryColor = '#0F4C81';
+
     const loadMore = useCallback(async () => {
         if (!nextLink || loading) return;
         setLoading(true);
@@ -82,7 +85,7 @@ export default function MobileLiquidityPools({ initialPools }: MobileLiquidityPo
                 <div className="mb-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <h1 className="text-lg font-bold text-[var(--text-primary)]">Liquidity Pools</h1>
+                            <h1 className="text-xl font-bold tracking-tight" style={{ color: primaryColor }}>Liquidity Pools</h1>
                             <span className="bg-[var(--success)]/10 text-[var(--success)] text-[10px] px-1.5 py-0.5 rounded font-bold">
                                 {pools.length}+
                             </span>
@@ -115,7 +118,7 @@ export default function MobileLiquidityPools({ initialPools }: MobileLiquidityPo
                                 {/* Pool Header */}
                                 <div className="p-3 pb-2">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-bold text-[var(--text-primary)]">
+                                        <span className="text-sm font-bold" style={{ color: primaryColor }}>
                                             {codeA} / {codeB}
                                         </span>
                                     </div>

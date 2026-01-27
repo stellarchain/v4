@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
-import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, getAssetTrades, getTradeTransactionHash, getAssetHolders, getAssetTradingPairs, USDC_ISSUER, shortenAddress, OrderBook as OrderBookType, AssetTrade, AssetHolder, TradingPair } from '@/lib/stellar';
+import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, getAssetTrades, getAssetTradeTransactionHash, getAssetHolders, getAssetTradingPairs, USDC_ISSUER, shortenAddress, OrderBook as OrderBookType, AssetTrade, AssetHolder, TradingPair } from '@/lib/stellar';
 import { getXLMHoldersAction } from '@/app/actions/stellar';
 import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/design-system';
 
@@ -345,7 +345,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   const handleTradeClick = async (trade: AssetTrade) => {
     setNavigatingTradeId(trade.id);
     try {
-      const txHash = await getTradeTransactionHash(trade);
+      const txHash = await getAssetTradeTransactionHash(trade);
       if (txHash) {
         router.push(`/transaction/${txHash}`);
       }

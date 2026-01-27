@@ -24,7 +24,6 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
       );
       const json = await response.json();
 
-      // API returns pagination in meta object
       setAccounts(json.data || []);
       setCurrentPage(json.meta?.current_page || 1);
       setTotalPages(json.meta?.last_page || 1);
@@ -93,8 +92,8 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
           </div>
         )}
 
-        {/* Accounts Table */}
-        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] overflow-hidden">
+        {/* Mobile List View */}
+        <div className="md:hidden bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] overflow-hidden">
           {accounts.length === 0 ? (
             <div className="px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
               No accounts found
@@ -108,7 +107,6 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
                   index % 2 === 1 ? 'bg-[var(--bg-primary)]/30' : ''
                 } ${index !== accounts.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}
               >
-                {/* Name & Address */}
                 <div className="flex-1 min-w-0 pr-3">
                   <div className="flex items-center gap-1">
                     <span className="text-sm font-semibold text-[var(--primary-blue)] truncate">
@@ -124,8 +122,6 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
                     {shortenAddress(account.account, 4)}
                   </div>
                 </div>
-
-                {/* Balance & Transactions */}
                 <div className="text-right flex-shrink-0">
                   <div className="text-sm font-bold text-[var(--text-primary)]">
                     {formatBalance(account.balance || 0)} <span className="text-[var(--text-muted)] font-normal text-xs">XLM</span>
@@ -136,6 +132,70 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
                 </div>
               </Link>
             ))
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] overflow-hidden">
+          {accounts.length === 0 ? (
+            <div className="px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
+              No accounts found
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--border-subtle)]">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Account</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Address</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Balance</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Transactions</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-16"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-subtle)]">
+                {accounts.map((account) => (
+                  <tr
+                    key={account.account}
+                    className="hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                    onClick={() => window.location.href = `/account/${account.account}`}
+                  >
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-[var(--primary-blue)]">
+                          {account.label?.name || account.org_name || 'Unknown'}
+                        </span>
+                        {account.label?.verified === 1 && (
+                          <svg className="w-4 h-4 text-[var(--success)]" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="font-mono text-sm text-[var(--text-muted)]">
+                        {shortenAddress(account.account, 8)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <span className="font-mono font-semibold text-[var(--text-primary)]">
+                        {formatBalance(account.balance || 0)}
+                      </span>
+                      <span className="text-[var(--text-muted)] ml-1">XLM</span>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <span className="text-[var(--text-secondary)]">
+                        {parseInt(account.transactions || '0').toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <svg className="w-4 h-4 text-[var(--text-muted)] inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
 
