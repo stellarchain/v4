@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { LiquidityPool, PaginatedResponse, shortenAddress } from '@/lib/stellar';
 
 interface MobileLiquidityPoolsProps {
@@ -9,6 +10,7 @@ interface MobileLiquidityPoolsProps {
 }
 
 export default function MobileLiquidityPools({ initialPools }: MobileLiquidityPoolsProps) {
+    const router = useRouter();
     const [pools, setPools] = useState<LiquidityPool[]>(initialPools._embedded.records);
     const [nextLink, setNextLink] = useState<string | null>(initialPools._links.next?.href || null);
     const [loading, setLoading] = useState(false);
@@ -133,9 +135,12 @@ export default function MobileLiquidityPools({ initialPools }: MobileLiquidityPo
                                                 {formatAmount(assetA.amount)}
                                             </div>
                                             {issuerA && (
-                                                <div className="text-[9px] text-[var(--text-muted)] font-mono truncate">
+                                                <button
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/account/${issuerA}`); }}
+                                                    className="text-[9px] text-[var(--text-muted)] font-mono truncate hover:text-[var(--primary-blue)] text-left"
+                                                >
                                                     {shortenAddress(issuerA, 4)}
-                                                </div>
+                                                </button>
                                             )}
                                         </div>
                                         <div className="text-[var(--text-muted)]">
@@ -149,9 +154,12 @@ export default function MobileLiquidityPools({ initialPools }: MobileLiquidityPo
                                                 {formatAmount(assetB.amount)}
                                             </div>
                                             {issuerB && (
-                                                <div className="text-[9px] text-[var(--text-muted)] font-mono truncate">
+                                                <button
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/account/${issuerB}`); }}
+                                                    className="text-[9px] text-[var(--text-muted)] font-mono truncate hover:text-[var(--primary-blue)] text-left"
+                                                >
                                                     {shortenAddress(issuerB, 4)}
-                                                </div>
+                                                </button>
                                             )}
                                         </div>
                                     </div>

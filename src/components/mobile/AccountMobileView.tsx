@@ -572,10 +572,8 @@ export default function AccountMobileView({ account, transactions, operations: i
             <div className="text-sm text-[var(--text-tertiary)] mb-2">
               Est. Total Value
             </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">
-                ${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
+            <div className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">
+              ~${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="mt-1">
               <span className={`text-sm font-semibold ${isPositivePnl ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
@@ -694,7 +692,11 @@ export default function AccountMobileView({ account, transactions, operations: i
                       <div>
                         <div className="text-sm font-bold text-[var(--text-primary)]">{balance.asset_code || 'LP'}</div>
                         <div className="text-xs text-[var(--text-muted)] truncate max-w-[120px]">
-                          {balance.asset_issuer ? shortenAddress(balance.asset_issuer, 6) : 'Liquidity Pool'}
+                          {balance.asset_issuer ? (
+                            <Link href={`/account/${balance.asset_issuer}`} onClick={(e) => e.stopPropagation()} className="hover:text-[var(--primary-blue)]">
+                              {shortenAddress(balance.asset_issuer, 6)}
+                            </Link>
+                          ) : 'Liquidity Pool'}
                         </div>
                       </div>
                     </div>
