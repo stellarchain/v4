@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Transaction, Operation, Effect, shortenAddress, formatXLM } from '@/lib/stellar';
 import { containers, colors, coreColors, tabs, badges } from '@/lib/design-system';
+import { QRCodeSVG } from 'qrcode.react';
 
 function formatCompactNumber(value: number): string {
   if (value === 0) return '0';
@@ -75,11 +76,13 @@ export default function AccountMobileView({ account, transactions, operations: i
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
 
   // Read initial tab from URL params
   const initialTab = (searchParams.get('tab') as 'assets' | 'activity' | 'details') || 'assets';
   const [activeTab, setActiveTab] = useState<'assets' | 'activity' | 'details'>(initialTab);
   const [activityType, setActivityType] = useState<'all' | 'payments' | 'swaps' | 'contracts'>('all');
+  const [showUsdValue, setShowUsdValue] = useState(false);
 
   // Update URL when tab changes
   const handleTabChange = (tab: 'assets' | 'activity' | 'details') => {
@@ -96,6 +99,7 @@ export default function AccountMobileView({ account, transactions, operations: i
   const [assetPrices, setAssetPrices] = useState<Record<string, AssetPriceData>>({});
   const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
   const [xlmChange24h, setXlmChange24h] = useState(0);
+  const [activityAssets, setActivityAssets] = useState<Array<{ code: string; issuer: string; type: string }>>([]);
 
   // Operations state for infinite scroll
   const [allOperations, setAllOperations] = useState<Operation[]>(initialOperations);
@@ -349,6 +353,74 @@ export default function AccountMobileView({ account, transactions, operations: i
     fetchEffects();
   }, [allOperations, opEffects]);
 
+  // Extract unique assets from activity effects for price fetching
+  useEffect(() => {
+    const assets = new Map<string, { code: string; issuer: string; type: string }>();
+
+    Object.values(opEffects).forEach(effects => {
+      effects.forEach(effect => {
+        const e = effect as any;
+        if (e.asset_code && e.asset_issuer && e.asset_type !== 'native') {
+          const key = `${e.asset_code}:${e.asset_issuer}`;
+          if (!assets.has(key)) {
+            assets.set(key, {
+              code: e.asset_code,
+              issuer: e.asset_issuer,
+              type: e.asset_type || 'credit_alphanum4',
+            });
+          }
+        }
+      });
+    });
+
+    setActivityAssets(Array.from(assets.values()));
+  }, [opEffects]);
+
+  // Fetch prices for activity assets that aren't in account balances
+  useEffect(() => {
+    const fetchActivityPrices = async () => {
+      const newPrices: Record<string, AssetPriceData> = {};
+
+      // Filter to assets we don't have prices for yet
+      const assetsToFetch = activityAssets.filter(a => {
+        const key = `${a.code}:${a.issuer}`;
+        return !assetPrices[key];
+      });
+
+      if (assetsToFetch.length === 0) return;
+
+      await Promise.all(assetsToFetch.map(async (asset) => {
+        const key = `${asset.code}:${asset.issuer}`;
+
+        if (asset.code === 'USDC' || asset.code === 'yUSDC') {
+          newPrices[key] = { price: 1.0, priceInXlm: 1 / xlmPrice, change24h: 0 };
+          return;
+        }
+
+        try {
+          const res = await fetch(
+            `https://horizon.stellar.org/order_book?selling_asset_type=${asset.type}&selling_asset_code=${asset.code}&selling_asset_issuer=${asset.issuer}&buying_asset_type=native&limit=1`
+          );
+          const data = await res.json();
+
+          if (data.bids && data.bids.length > 0) {
+            const priceInXlm = parseFloat(data.bids[0].price);
+            const priceUSD = priceInXlm * xlmPrice;
+            newPrices[key] = { price: priceUSD, priceInXlm, change24h: 0 };
+          }
+        } catch { /* ignore */ }
+      }));
+
+      if (Object.keys(newPrices).length > 0) {
+        setAssetPrices(prev => ({ ...prev, ...newPrices }));
+      }
+    };
+
+    if (activityAssets.length > 0 && xlmPrice > 0) {
+      fetchActivityPrices();
+    }
+  }, [activityAssets, xlmPrice, assetPrices]);
+
   const handleCopy = () => {
     navigator.clipboard.writeText(account.id);
     setCopied(true);
@@ -416,6 +488,8 @@ export default function AccountMobileView({ account, transactions, operations: i
         type: 'received' as const,
         amount: (largestCredit as any).amount,
         asset: (largestCredit as any).asset_code || ((largestCredit as any).asset_type === 'native' ? 'XLM' : 'Unknown'),
+        asset_issuer: (largestCredit as any).asset_issuer || null,
+        asset_type: (largestCredit as any).asset_type || 'native',
       };
     }
 
@@ -424,6 +498,8 @@ export default function AccountMobileView({ account, transactions, operations: i
         type: 'sent' as const,
         amount: (largestDebit as any).amount,
         asset: (largestDebit as any).asset_code || ((largestDebit as any).asset_type === 'native' ? 'XLM' : 'Unknown'),
+        asset_issuer: (largestDebit as any).asset_issuer || null,
+        asset_type: (largestDebit as any).asset_type || 'native',
       };
     }
 
@@ -491,20 +567,31 @@ export default function AccountMobileView({ account, transactions, operations: i
         </div>
 
         {/* Est. Total Value Section */}
-        <div className="mb-6">
-          <div className="text-sm text-[var(--text-tertiary)] mb-2">
-            Est. Total Value
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <div className="text-sm text-[var(--text-tertiary)] mb-2">
+              Est. Total Value
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">
+                ${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="mt-1">
+              <span className={`text-sm font-semibold ${isPositivePnl ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
+                {isPositivePnl ? '+' : ''}${Math.abs(pnlData.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isPositivePnl ? '+' : ''}{pnlData.percent.toFixed(2)}%) 24h Change
+              </span>
+            </div>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">
-              ${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div className="mt-1">
-            <span className={`text-sm font-semibold ${isPositivePnl ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-              {isPositivePnl ? '+' : ''}${Math.abs(pnlData.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isPositivePnl ? '+' : ''}{pnlData.percent.toFixed(2)}%) 24h Change
-            </span>
-          </div>
+          {/* QR Code Button */}
+          <button
+            onClick={() => setShowQrModal(true)}
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-[#0F4C81]/10 text-[#0F4C81] hover:bg-[#0F4C81]/20 transition-colors border border-[#0F4C81]/20"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+            </svg>
+          </button>
         </div>
 
         {/* Divider line before tabs */}
@@ -650,19 +737,33 @@ export default function AccountMobileView({ account, transactions, operations: i
         {activeTab === 'activity' && (
           <div ref={activityContainerRef}>
             {/* Activity Filters */}
-            <div className="flex gap-5 border-b border-[var(--border-default)] pb-2 mb-3 mt-3">
-              {['all', 'payments', 'swaps', 'contracts'].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setActivityType(type as any)}
-                  className={`text-xs font-semibold relative ${activityType === type
-                      ? 'text-[var(--primary-blue)] after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--primary-blue)]'
-                      : 'text-[var(--text-tertiary)] hover:text-[var(--primary-blue)]'
-                    } transition-colors`}
-                >
-                  {type === 'all' ? 'All' : type === 'payments' ? 'Payments' : type === 'swaps' ? 'Swaps' : 'Contracts'}
-                </button>
-              ))}
+            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-2 mb-3 mt-3">
+              <div className="flex gap-5">
+                {['all', 'payments', 'swaps', 'contracts'].map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setActivityType(type as any)}
+                    className={`text-xs font-semibold relative ${activityType === type
+                        ? 'text-[var(--primary-blue)] after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--primary-blue)]'
+                        : 'text-[var(--text-tertiary)] hover:text-[var(--primary-blue)]'
+                      } transition-colors`}
+                  >
+                    {type === 'all' ? 'All' : type === 'payments' ? 'Payments' : type === 'swaps' ? 'Swaps' : 'Contracts'}
+                  </button>
+                ))}
+              </div>
+              {/* USD Toggle */}
+              <button
+                onClick={() => setShowUsdValue(!showUsdValue)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors ${
+                  showUsdValue
+                    ? 'bg-[var(--primary-blue)]/15 text-[var(--primary-blue)]'
+                    : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
+                }`}
+              >
+                <span>$</span>
+                <span>USD</span>
+              </button>
             </div>
 
             {currentDataSource.length === 0 ? (
@@ -716,31 +817,38 @@ export default function AccountMobileView({ account, transactions, operations: i
                     let typeDisplay = op.type.replace(/_/g, ' ');
                     let amount = '';
                     let asset = '';
+                    let assetIssuer: string | null = null;
 
                     if (isContract) {
                       typeDisplay = decodeContractFunctionName(op);
                       if (effectInfo) {
                         amount = formatXLM(effectInfo.amount || '0');
                         asset = effectInfo.asset;
+                        assetIssuer = effectInfo.asset_issuer || null;
                       }
                     } else if (isPayment) {
                       const isReceive = op.to === account.id;
                       typeDisplay = isReceive ? 'Received' : 'Sent';
                       amount = formatXLM(op.amount || (op as any).starting_balance || '0');
                       asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
+                      assetIssuer = op.asset_issuer || null;
                     } else if (isSwap) {
                       typeDisplay = 'Swap';
                       const sourceAssetType = (op as any).source_asset_type;
                       const sourceAssetCode = (op as any).source_asset_code;
+                      const sourceAssetIssuer = (op as any).source_asset_issuer;
                       amount = formatXLM(op.amount || '0');
                       asset = sourceAssetType === 'native' ? 'XLM' : sourceAssetCode || '';
+                      assetIssuer = sourceAssetIssuer || null;
                     } else if (isOffer) {
                       typeDisplay = op.type === 'manage_sell_offer' ? 'Sell Offer' : op.type === 'manage_buy_offer' ? 'Buy Offer' : 'Passive Offer';
                       amount = formatXLM(op.amount || '0');
                       asset = (op as any).selling_asset_type === 'native' ? 'XLM' : (op as any).selling_asset_code || '';
+                      assetIssuer = (op as any).selling_asset_issuer || null;
                     } else if (effectInfo) {
                       amount = formatXLM(effectInfo.amount || '0');
                       asset = effectInfo.asset;
+                      assetIssuer = effectInfo.asset_issuer || null;
                       typeDisplay = effectInfo.type === 'received' ? 'Received' : 'Sent';
                     }
 
@@ -787,12 +895,49 @@ export default function AccountMobileView({ account, transactions, operations: i
                             </div>
                             <div className="text-right">
                               {amount ? (
-                                <>
-                                  <div className={`text-sm font-bold ${isReceive ? 'text-[var(--success)]' : 'text-[var(--text-primary)]'}`}>
-                                    {isReceive ? '+' : '-'}{amount}
-                                  </div>
-                                  <div className="text-xs text-[var(--text-muted)] font-medium">{asset}</div>
-                                </>
+                                (() => {
+                                  // Calculate USD value
+                                  const numAmount = parseFloat(amount.replace(/,/g, ''));
+                                  let usdValue: number | null = null;
+
+                                  if (asset === 'XLM') {
+                                    usdValue = numAmount * xlmPrice;
+                                  } else if (asset === 'USDC' || asset === 'yUSDC') {
+                                    usdValue = numAmount;
+                                  } else {
+                                    // Try to find price using full key first (code:issuer)
+                                    if (assetIssuer) {
+                                      const fullKey = `${asset}:${assetIssuer}`;
+                                      if (assetPrices[fullKey]) {
+                                        usdValue = numAmount * assetPrices[fullKey].price;
+                                      }
+                                    }
+                                    // Fallback: try to find any matching asset code
+                                    if (usdValue === null) {
+                                      const priceKey = Object.keys(assetPrices).find(k => k.startsWith(`${asset}:`));
+                                      if (priceKey && assetPrices[priceKey]) {
+                                        usdValue = numAmount * assetPrices[priceKey].price;
+                                      }
+                                    }
+                                  }
+
+                                  return (
+                                    <>
+                                      <div className={`text-sm font-bold ${isReceive ? 'text-[var(--success)]' : 'text-[var(--text-primary)]'}`}>
+                                        {showUsdValue && usdValue !== null ? (
+                                          <>{isReceive ? '+' : '-'}${usdValue < 0.01
+                                            ? usdValue.toFixed(8).replace(/\.?0+$/, '')
+                                            : usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</>
+                                        ) : (
+                                          <>{isReceive ? '+' : '-'}{amount}</>
+                                        )}
+                                      </div>
+                                      <div className="text-xs text-[var(--text-muted)] font-medium">
+                                        {showUsdValue && usdValue !== null ? 'USD' : asset}
+                                      </div>
+                                    </>
+                                  );
+                                })()
                               ) : (
                                 <div className="text-sm font-medium text-[var(--text-muted)]">--</div>
                               )}
@@ -980,6 +1125,74 @@ export default function AccountMobileView({ account, transactions, operations: i
           </div>
         )}
       </main>
+
+      {/* QR Code Modal */}
+      {showQrModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowQrModal(false)}
+        >
+          <div
+            className="bg-[var(--bg-primary)] rounded-3xl p-6 mx-4 max-w-sm w-full shadow-2xl border border-[var(--border-default)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-bold text-[var(--text-primary)]">Receive</h3>
+              <p className="text-sm text-[var(--text-muted)] mt-1">Scan to get account address</p>
+            </div>
+
+            <div className="flex justify-center mb-4">
+              <div className="bg-white p-4 rounded-2xl">
+                <QRCodeSVG
+                  value={account.id}
+                  size={200}
+                  level="H"
+                  bgColor="#ffffff"
+                  fgColor="#0F4C81"
+                />
+              </div>
+            </div>
+
+            <div className="bg-[var(--bg-secondary)] rounded-xl p-3 mb-4 border border-[var(--border-subtle)]">
+              <p className="text-xs text-[var(--text-muted)] mb-1">Account Address</p>
+              <p className="text-xs font-mono text-[var(--text-primary)] break-all">{account.id}</p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(account.id);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="flex-1 py-3 rounded-xl bg-[#0F4C81] text-white font-semibold text-sm flex items-center justify-center gap-2"
+              >
+                {copied ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy Address
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setShowQrModal(false)}
+                className="py-3 px-4 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-secondary)] font-semibold text-sm border border-[var(--border-default)]"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
