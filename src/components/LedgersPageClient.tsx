@@ -30,7 +30,8 @@ export default function LedgersPageClient({
   initialLedgers,
   limit = 25
 }: LedgersPageClientProps) {
-  const [ledgers, setLedgers] = useState<Ledger[]>(initialLedgers);
+  const [ledgers, setLedgers] = useState<Ledger[]>([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -38,18 +39,29 @@ export default function LedgersPageClient({
   const mobileContainerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
-  const previousIdsRef = useRef<Set<string>>(new Set(initialLedgers.map(l => l.id)));
+  const previousIdsRef = useRef<Set<string>>(new Set());
+  const isInitialLoadRef = useRef(true);
 
   const [mobileLoadedCount, setMobileLoadedCount] = useState(PAGE_SIZE);
   const isMobile = useIsMobile();
 
   // Fetch latest ledgers for live updates
-  const fetchLedgers = useCallback(async () => {
+  const fetchLedgers = useCallback(async (isInitial = false) => {
     try {
       const res = await fetch(`https://horizon.stellar.org/ledgers?limit=${limit}&order=desc`);
       const data = await res.json();
       const newLedgers: Ledger[] = data._embedded.records;
 
+      if (isInitial) {
+        // Initial load - just set the data, no animation
+        setLedgers(newLedgers);
+        previousIdsRef.current = new Set(newLedgers.map(l => l.id));
+        isInitialLoadRef.current = false;
+        setIsInitialLoading(false);
+        return;
+      }
+
+      // Live update - merge and animate new entries
       setLedgers(prevLedgers => {
         const existingMap = new Map(prevLedgers.map(l => [l.id, l]));
         const addedIds: string[] = [];
@@ -64,30 +76,35 @@ export default function LedgersPageClient({
         const merged = Array.from(existingMap.values())
           .sort((a, b) => b.sequence - a.sequence);
 
-        // Animate new entries
-        setTimeout(() => {
-          addedIds.forEach((id, index) => {
-            const el = rowRefs.current.get(id);
-            if (el) {
-              gsap.fromTo(el,
-                { opacity: 0, y: -4 },
-                { opacity: 1, y: 0, duration: 0.25, delay: index * 0.03, ease: 'power2.out' }
-              );
-              gsap.fromTo(el,
-                { backgroundColor: 'rgba(0, 192, 139, 0.05)' },
-                { backgroundColor: 'rgba(0, 0, 0, 0)', duration: 0.6, delay: index * 0.03 + 0.1, ease: 'power1.out' }
-              );
-            }
-          });
-        }, 10);
+        // Animate only genuinely new ledgers (simple slide-in, no color change)
+        if (addedIds.length > 0) {
+          setTimeout(() => {
+            addedIds.forEach((id, index) => {
+              const el = rowRefs.current.get(id);
+              if (el) {
+                gsap.fromTo(el,
+                  { opacity: 0, y: -4 },
+                  { opacity: 1, y: 0, duration: 0.25, delay: index * 0.03, ease: 'power2.out' }
+                );
+              }
+            });
+          }, 10);
+        }
 
         previousIdsRef.current = new Set(merged.map(l => l.id));
         return merged;
       });
     } catch (error) {
       console.error('Failed to fetch ledgers:', error);
+      // On error during initial load, fall back to server data
+      if (isInitial) {
+        setLedgers(initialLedgers);
+        previousIdsRef.current = new Set(initialLedgers.map(l => l.id));
+        isInitialLoadRef.current = false;
+        setIsInitialLoading(false);
+      }
     }
-  }, [limit]);
+  }, [limit, initialLedgers]);
 
   // Load more older ledgers
   const loadMoreForMobile = useCallback(async () => {
@@ -161,11 +178,17 @@ export default function LedgersPageClient({
     return () => observer.disconnect();
   }, [isMobile, isLoadingMore, hasMore, loadMoreForMobile]);
 
-  // Live updates interval
+  // Initial fetch on mount
   useEffect(() => {
-    const interval = setInterval(fetchLedgers, 6000);
+    fetchLedgers(true);
+  }, []);
+
+  // Live updates interval (only after initial load)
+  useEffect(() => {
+    if (isInitialLoading) return;
+    const interval = setInterval(() => fetchLedgers(false), 6000);
     return () => clearInterval(interval);
-  }, [fetchLedgers]);
+  }, [fetchLedgers, isInitialLoading]);
 
   const setRowRef = useCallback((id: string) => (el: HTMLAnchorElement | null) => {
     if (el) {
@@ -221,7 +244,28 @@ export default function LedgersPageClient({
                 </tr>
               </thead>
               <tbody className="text-[12px] font-mono divide-y divide-[var(--border-subtle)]">
-                {visibleLedgers.length > 0 ? (
+                {isInitialLoading ? (
+                  // Desktop Skeleton
+                  Array.from({ length: 15 }).map((_, i) => (
+                    <tr key={i} className="h-[52px]">
+                      <td className="px-4 py-3">
+                        <div className="h-4 w-24 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="h-4 w-16 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="h-4 w-12 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="h-4 w-10 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="h-4 w-4 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+                      </td>
+                    </tr>
+                  ))
+                ) : visibleLedgers.length > 0 ? (
                   visibleLedgers.map((ledger) => (
                     <tr key={ledger.id} className="hover:bg-[var(--bg-hover)] transition-colors group h-[52px]">
                       <td className="px-4 py-3 align-middle">
@@ -288,7 +332,28 @@ export default function LedgersPageClient({
 
           {/* Mobile Card List */}
           <div className="md:hidden flex-1 overflow-auto" ref={mobileContainerRef}>
-            {mobileVisibleLedgers.length > 0 ? (
+            {isInitialLoading ? (
+              // Mobile Skeleton
+              <div className="space-y-2">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <div key={i} className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)]">
+                    <div className="px-3 py-3 flex items-center justify-between">
+                      <div className="flex items-start space-x-3">
+                        <div className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+                        <div className="flex flex-col gap-1.5">
+                          <div className="h-4 w-20 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+                          <div className="h-3 w-14 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <div className="h-3 w-12 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+                        <div className="h-3 w-10 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : mobileVisibleLedgers.length > 0 ? (
               <div className="space-y-2">
                 {mobileVisibleLedgers.map((ledger) => (
                   <Link

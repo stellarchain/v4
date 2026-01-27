@@ -376,6 +376,14 @@ export interface LiquidityPoolTrade {
     n: number;
     d: number;
   };
+  // Added for linking to transactions
+  transaction_hash?: string;
+  _links?: {
+    self: { href: string };
+    base?: { href: string };
+    counter?: { href: string };
+    operation?: { href: string };
+  };
 }
 
 export async function getLiquidityPoolTrades(
@@ -385,6 +393,37 @@ export async function getLiquidityPoolTrades(
 ): Promise<PaginatedResponse<LiquidityPoolTrade>> {
   return fetchJSON<PaginatedResponse<LiquidityPoolTrade>>(
     `${getBaseUrl()}/liquidity_pools/${poolId}/trades?limit=${limit}&order=${order}`
+  );
+}
+
+// Fetch transaction hash for a trade from its operation link
+export async function getTradeTransactionHash(trade: LiquidityPoolTrade): Promise<string | null> {
+  try {
+    if (!trade._links?.operation?.href) return null;
+    const operationUrl = trade._links.operation.href;
+    const response = await fetch(operationUrl);
+    if (!response.ok) return null;
+    const operation = await response.json();
+    return operation.transaction_hash || null;
+  } catch {
+    return null;
+  }
+}
+
+// Batch fetch transaction hashes for multiple trades
+export async function enrichTradesWithTransactionHashes(
+  trades: LiquidityPoolTrade[]
+): Promise<LiquidityPoolTrade[]> {
+  const results = await Promise.allSettled(
+    trades.map(async (trade) => {
+      if (trade.transaction_hash) return trade;
+      const hash = await getTradeTransactionHash(trade);
+      return { ...trade, transaction_hash: hash || undefined };
+    })
+  );
+
+  return results.map((result, index) =>
+    result.status === 'fulfilled' ? result.value : trades[index]
   );
 }
 
@@ -487,8 +526,8 @@ export async function getAssetTrades(
   return fetchJSON<PaginatedResponse<AssetTrade>>(url);
 }
 
-// Get transaction hash from a trade's operation
-export async function getTradeTransactionHash(trade: AssetTrade): Promise<string | null> {
+// Get transaction hash from an asset trade's operation
+export async function getAssetTradeTransactionHash(trade: AssetTrade): Promise<string | null> {
   try {
     // Extract operation ID from trade ID (format: "{operation_id}-{index}")
     const operationId = trade.id.split('-')[0];

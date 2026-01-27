@@ -12,11 +12,13 @@ interface LiveTransactionFeedProps {
 }
 
 export default function LiveTransactionFeed({ initialTransactions, limit = 10, filter = 'all' }: LiveTransactionFeedProps) {
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
-  const previousIdsRef = useRef<Set<string>>(new Set(initialTransactions.map(t => t.id)));
+  const previousIdsRef = useRef<Set<string>>(new Set());
   const displayInfoCache = useRef<Map<string, TransactionDisplayInfo>>(new Map());
+  const isInitialLoadRef = useRef(true);
 
   // Convert payment operations to Transaction format with displayInfo (same as TransactionPageClient)
   const convertPaymentsToTransactions = useCallback((operations: Operation[]): Transaction[] => {
@@ -81,7 +83,7 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
   }, []);
 
   // Fetch payments directly from /payments endpoint
-  const fetchPayments = useCallback(async () => {
+  const fetchPayments = useCallback(async (isInitial = false) => {
     try {
       const res = await fetch(`https://horizon.stellar.org/payments?limit=${limit}&order=desc`);
       if (!res.ok) return;
@@ -91,6 +93,15 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
       // Convert to transactions and filter to only show actual payments (not contract calls)
       const allTransactions = convertPaymentsToTransactions(paymentOps);
       const newPaymentTxs = allTransactions.filter(tx => tx.displayInfo?.type === 'payment');
+
+      if (isInitial) {
+        // Initial load - just set the data, no animation
+        setTransactions(newPaymentTxs.slice(0, 50));
+        previousIdsRef.current = new Set(newPaymentTxs.map(t => t.id));
+        isInitialLoadRef.current = false;
+        setIsInitialLoading(false);
+        return;
+      }
 
       setTransactions(prevTransactions => {
         // Merge new transactions with existing ones, keeping history
@@ -111,17 +122,19 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
           .filter(t => !previousIdsRef.current.has(t.id))
           .map(t => t.id);
 
-        setTimeout(() => {
-          addedIds.forEach((id, index) => {
-            const el = rowRefs.current.get(id);
-            if (el) {
-              gsap.fromTo(el,
-                { opacity: 0, y: -4 },
-                { opacity: 1, y: 0, duration: 0.25, delay: index * 0.03, ease: 'power2.out' }
-              );
-            }
-          });
-        }, 10);
+        if (addedIds.length > 0) {
+          setTimeout(() => {
+            addedIds.forEach((id, index) => {
+              const el = rowRefs.current.get(id);
+              if (el) {
+                gsap.fromTo(el,
+                  { opacity: 0, y: -4 },
+                  { opacity: 1, y: 0, duration: 0.25, delay: index * 0.03, ease: 'power2.out' }
+                );
+              }
+            });
+          }, 10);
+        }
 
         // Update seen IDs
         previousIdsRef.current = new Set(merged.map(t => t.id));
@@ -129,16 +142,28 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
       });
     } catch (error) {
       console.error('Failed to fetch payments:', error);
+      if (isInitial) {
+        setIsInitialLoading(false);
+      }
     }
   }, [limit, convertPaymentsToTransactions]);
 
   // Fetch all transactions
-  const fetchAllTransactions = useCallback(async () => {
+  const fetchAllTransactions = useCallback(async (isInitial = false) => {
     try {
       const res = await fetch(`https://horizon.stellar.org/transactions?limit=${limit}&order=desc`);
       const data = await res.json();
       const rawTransactions: Transaction[] = data._embedded.records;
       const newTransactions = await enrichTransactions(rawTransactions);
+
+      if (isInitial) {
+        // Initial load - just set the data, no animation
+        setTransactions(newTransactions.slice(0, 50));
+        previousIdsRef.current = new Set(newTransactions.map(t => t.id));
+        isInitialLoadRef.current = false;
+        setIsInitialLoading(false);
+        return;
+      }
 
       setTransactions(prevTransactions => {
         // Merge new transactions with existing ones, keeping history
@@ -158,42 +183,47 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
           .filter(t => !previousIdsRef.current.has(t.id))
           .map(t => t.id);
 
-        setTimeout(() => {
-          addedIds.forEach((id, index) => {
-            const el = rowRefs.current.get(id);
-            if (el) {
-              gsap.fromTo(el,
-                { opacity: 0, y: -4 },
-                { opacity: 1, y: 0, duration: 0.25, delay: index * 0.03, ease: 'power2.out' }
-              );
-            }
-          });
-        }, 10);
+        if (addedIds.length > 0) {
+          setTimeout(() => {
+            addedIds.forEach((id, index) => {
+              const el = rowRefs.current.get(id);
+              if (el) {
+                gsap.fromTo(el,
+                  { opacity: 0, y: -4 },
+                  { opacity: 1, y: 0, duration: 0.25, delay: index * 0.03, ease: 'power2.out' }
+                );
+              }
+            });
+          }, 10);
+        }
 
         previousIdsRef.current = new Set(merged.map(t => t.id));
         return merged;
       });
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
+      if (isInitial) {
+        setIsInitialLoading(false);
+      }
     }
   }, [limit, enrichTransactions]);
 
-  // Initial load and polling based on filter
+  // Initial load on mount
   useEffect(() => {
     if (filter === 'payments') {
-      fetchPayments(); // Fetch immediately on mount
+      fetchPayments(true);
     } else {
-      enrichTransactions(initialTransactions).then(enriched => {
-        setTransactions(enriched);
-      });
+      fetchAllTransactions(true);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Live updates interval (only after initial load)
   useEffect(() => {
-    const fetchFn = filter === 'payments' ? fetchPayments : fetchAllTransactions;
+    if (isInitialLoading) return;
+    const fetchFn = filter === 'payments' ? () => fetchPayments(false) : () => fetchAllTransactions(false);
     const interval = setInterval(fetchFn, 8000);
     return () => clearInterval(interval);
-  }, [filter, fetchPayments, fetchAllTransactions]);
+  }, [filter, fetchPayments, fetchAllTransactions, isInitialLoading]);
 
   const setRowRef = useCallback((id: string) => (el: HTMLAnchorElement | null) => {
     if (el) {
@@ -208,9 +238,30 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
     ? transactions.filter(tx => tx.displayInfo?.type === 'contract')
     : transactions;
 
+  // Skeleton row component
+  const SkeletonRow = () => (
+    <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)]">
+      <div className="flex items-center justify-between px-3 py-3">
+        <div className="flex items-start space-x-3">
+          <div className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+          <div className="flex flex-col gap-1.5">
+            <div className="h-4 w-20 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+            <div className="h-3 w-28 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="h-4 w-16 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+      </div>
+    </div>
+  );
+
   return (
     <div ref={containerRef} className="w-full space-y-2">
-      {filteredTransactions.length > 0 ? (
+      {isInitialLoading ? (
+        // Skeleton loader
+        Array.from({ length: limit }).map((_, i) => (
+          <SkeletonRow key={i} />
+        ))
+      ) : filteredTransactions.length > 0 ? (
         filteredTransactions.map((tx) => (
           <CompactTransactionRow
             key={tx.id}
@@ -220,7 +271,7 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
         ))
       ) : (
         <div className="py-8 text-center text-[var(--text-muted)] text-sm">
-          Loading transactions...
+          No transactions found
         </div>
       )}
     </div>
