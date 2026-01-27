@@ -1,5 +1,7 @@
 import { fetchAllAccounts } from '@/lib/stellar';
 import AccountDirectory from '@/components/AccountDirectory';
+import { getRichListAction } from '@/app/actions/stellar';
+import TopAccountsMobileList from '@/components/mobile/TopAccountsMobileList';
 
 export const revalidate = 60;
 
@@ -8,10 +10,11 @@ interface AccountsPageProps {
 }
 
 export default async function AccountsPage({ searchParams }: AccountsPageProps) {
-    const accounts = await fetchAllAccounts(50);
+    const knownAccounts = await fetchAllAccounts(50);
+    const richListAccounts = await getRichListAction(1, 50);
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-4 md:space-y-8">
             {/* Header */}
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 rounded-xl flex items-center justify-center">
@@ -30,7 +33,15 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
                 </div>
             </div>
 
-            <AccountDirectory initialAccounts={accounts} />
+            {/* Mobile View */}
+            <div className="block md:hidden">
+                <TopAccountsMobileList initialAccounts={richListAccounts} />
+            </div>
+
+            {/* Desktop View */}
+            <div className="hidden md:block">
+                <AccountDirectory initialAccounts={knownAccounts} />
+            </div>
         </div>
     );
 }

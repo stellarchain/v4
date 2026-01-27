@@ -689,7 +689,7 @@ export default function TransactionPageClient({
                           </div>
 
                           <div className="flex flex-col">
-                            <span className="text-sm font-bold leading-tight capitalize text-[var(--text-primary)]">
+                            <span className="text-sm font-bold leading-tight capitalize text-[var(--primary-blue)]">
                               {info?.type === 'contract'
                                 ? (functionName)
                                 : info?.type === 'payment'
@@ -715,7 +715,7 @@ export default function TransactionPageClient({
                               {formatCompact(info?.amount || info?.effectAmount)} {info?.asset || info?.effectAsset}
                             </span>
                           ) : (
-                            <span className="text-[11px] font-bold tracking-wider uppercase text-[var(--text-primary)]">
+                            <span className="text-[11px] font-bold tracking-wider uppercase text-[var(--primary-blue)]">
                               {info?.type === 'contract' ? (functionName) : 'Details'}
                             </span>
                           )}

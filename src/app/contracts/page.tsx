@@ -1,6 +1,23 @@
 import verifiedContracts from '@/data/verified-contracts.json';
 import { fetchContracts, APIContract } from '@/lib/stellar';
 import ContractsClient from './ContractsClient';
+import { StrKey } from '@stellar/stellar-sdk';
+
+// Convert hex contract ID to StrKey format (C...)
+function hexToContractStrKey(hexId: string): string {
+  try {
+    // If already in StrKey format (starts with C and is 56 chars), return as is
+    if (hexId.startsWith('C') && hexId.length === 56) {
+      return hexId;
+    }
+    // Convert hex to buffer and encode as contract strkey
+    const buffer = Buffer.from(hexId, 'hex');
+    return StrKey.encodeContract(buffer);
+  } catch (e) {
+    console.error('Failed to convert contract ID:', e);
+    return hexId; // Return original if conversion fails
+  }
+}
 
 export const revalidate = 60; // Revalidate every minute
 
@@ -45,8 +62,11 @@ function transformContract(apiContract: APIContract): EnhancedContract {
     name = apiContract.asset_code;
   }
 
+  // Convert hex contract ID to StrKey format
+  const contractId = hexToContractStrKey(apiContract.contract_id);
+
   return {
-    id: apiContract.contract_id,
+    id: contractId,
     name,
     type,
     symbol: apiContract.asset_code || verifiedContract?.symbol,

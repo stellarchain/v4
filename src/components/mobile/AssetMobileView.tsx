@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
-import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, USDC_ISSUER, shortenAddress, OrderBook as OrderBookType } from '@/lib/stellar';
+import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, getAssetTrades, getTradeTransactionHash, getAssetHolders, getAssetTradingPairs, USDC_ISSUER, shortenAddress, OrderBook as OrderBookType, AssetTrade, AssetHolder, TradingPair } from '@/lib/stellar';
+import { getXLMHoldersAction } from '@/app/actions/stellar';
 import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/design-system';
 
 interface AssetMobileViewProps {
@@ -88,6 +89,30 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   const [orderBookLoading, setOrderBookLoading] = useState(true);
   const [initialOrderBookLoad, setInitialOrderBookLoad] = useState(true);
   const [orderBookView, setOrderBookView] = useState<'both' | 'bids' | 'asks'>('both');
+
+  // Trade history state
+  const [trades, setTrades] = useState<AssetTrade[]>([]);
+  const [tradesLoading, setTradesLoading] = useState(true);
+  const [initialTradesLoad, setInitialTradesLoad] = useState(true);
+  const [tradesCursor, setTradesCursor] = useState<string | null>(null);
+  const [hasMoreTrades, setHasMoreTrades] = useState(true);
+  const [loadingMoreTrades, setLoadingMoreTrades] = useState(false);
+  const [navigatingTradeId, setNavigatingTradeId] = useState<string | null>(null);
+  const tradesEndRef = useRef<HTMLDivElement>(null);
+
+  // Tab state for trade history / asset holders / markets
+  const [activeTab, setActiveTab] = useState<'trades' | 'holders' | 'markets'>('trades');
+
+  // Asset holders state - pre-fetched on page load
+  const [allHolders, setAllHolders] = useState<AssetHolder[]>([]); // Full sorted list
+  const [displayedHoldersCount, setDisplayedHoldersCount] = useState(20); // How many to show
+  const [holdersLoading, setHoldersLoading] = useState(true); // Loading all holders
+  const [holdersTotalSupply, setHoldersTotalSupply] = useState(0);
+  const holdersEndRef = useRef<HTMLDivElement>(null);
+
+  // Markets/trading pairs state - pre-fetched on page load
+  const [tradingPairs, setTradingPairs] = useState<TradingPair[]>([]);
+  const [marketsLoading, setMarketsLoading] = useState(true);
 
   // Fetch chart data
   useEffect(() => {
@@ -254,6 +279,161 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     return () => clearInterval(interval);
   }, [asset]);
 
+  // Fetch trade history
+  useEffect(() => {
+    const fetchTrades = async () => {
+      setTradesLoading(true);
+      setTrades([]);
+      setTradesCursor(null);
+      setHasMoreTrades(true);
+      try {
+        const data = await getAssetTrades(asset.code, asset.issuer, 20);
+        setTrades(data._embedded.records);
+        // Set cursor for next page from last record's paging_token
+        const records = data._embedded.records;
+        if (records.length > 0) {
+          setTradesCursor(records[records.length - 1].paging_token);
+        }
+        setHasMoreTrades(records.length === 20);
+      } catch (e) {
+        console.error('Failed to fetch trades', e);
+      }
+      setTradesLoading(false);
+      setInitialTradesLoad(false);
+    };
+
+    fetchTrades();
+  }, [asset]);
+
+  // Load more trades function
+  const loadMoreTrades = async () => {
+    if (loadingMoreTrades || !hasMoreTrades || !tradesCursor) return;
+
+    setLoadingMoreTrades(true);
+    try {
+      const data = await getAssetTrades(asset.code, asset.issuer, 20, 'desc', tradesCursor);
+      const newRecords = data._embedded.records;
+      setTrades(prev => [...prev, ...newRecords]);
+      if (newRecords.length > 0) {
+        setTradesCursor(newRecords[newRecords.length - 1].paging_token);
+      }
+      setHasMoreTrades(newRecords.length === 20);
+    } catch (e) {
+      console.error('Failed to load more trades', e);
+    }
+    setLoadingMoreTrades(false);
+  };
+
+  // Infinite scroll observer for trades
+  useEffect(() => {
+    if (!tradesEndRef.current || !hasMoreTrades) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingMoreTrades && hasMoreTrades) {
+          loadMoreTrades();
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    observer.observe(tradesEndRef.current);
+    return () => observer.disconnect();
+  }, [hasMoreTrades, loadingMoreTrades, tradesCursor]);
+
+  // Handle trade click - navigate to transaction
+  const handleTradeClick = async (trade: AssetTrade) => {
+    setNavigatingTradeId(trade.id);
+    try {
+      const txHash = await getTradeTransactionHash(trade);
+      if (txHash) {
+        router.push(`/transaction/${txHash}`);
+      }
+    } catch (e) {
+      console.error('Failed to navigate to transaction', e);
+    }
+    setNavigatingTradeId(null);
+  };
+
+  // Pre-fetch ALL asset holders on page load (runs in background)
+  useEffect(() => {
+    if (!asset.issuer && asset.code !== 'XLM') {
+      setHoldersLoading(false);
+      return;
+    }
+
+    const fetchAllHolders = async () => {
+      setHoldersLoading(true);
+      const allFetched: AssetHolder[] = [];
+      let cursor: string | undefined;
+      const maxPages = 25; // Fetch up to 500 holders (25 pages × 20)
+      let pageCount = 0;
+
+      try {
+        while (pageCount < maxPages) {
+          const data = asset.code === 'XLM'
+            ? await getXLMHoldersAction(20, cursor)
+            : await getAssetHolders(asset.code, asset.issuer || '', 20, cursor);
+
+          allFetched.push(...data.holders);
+
+          if (!data.nextCursor) break; // No more pages
+          cursor = data.nextCursor;
+          pageCount++;
+        }
+
+        // Sort all holders by balance descending
+        allFetched.sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance));
+        setAllHolders(allFetched);
+        setHoldersTotalSupply(asset.total_supply || allFetched.reduce((sum, h) => sum + parseFloat(h.balance), 0));
+      } catch (e) {
+        console.error('Failed to fetch holders', e);
+      }
+      setHoldersLoading(false);
+    };
+
+    fetchAllHolders();
+  }, [asset]);
+
+  // Show more holders (just increases the display count from pre-loaded list)
+  const showMoreHolders = () => {
+    setDisplayedHoldersCount(prev => Math.min(prev + 20, allHolders.length));
+  };
+
+  // Infinite scroll observer for holders - just shows more from pre-loaded list
+  useEffect(() => {
+    if (!holdersEndRef.current || activeTab !== 'holders') return;
+    if (displayedHoldersCount >= allHolders.length) return; // All shown
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayedHoldersCount < allHolders.length) {
+          showMoreHolders();
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    observer.observe(holdersEndRef.current);
+    return () => observer.disconnect();
+  }, [displayedHoldersCount, allHolders.length, activeTab]);
+
+  // Pre-fetch trading pairs/markets on page load
+  useEffect(() => {
+    const fetchTradingPairs = async () => {
+      setMarketsLoading(true);
+      try {
+        const pairs = await getAssetTradingPairs(asset.code, asset.issuer);
+        setTradingPairs(pairs);
+      } catch (e) {
+        console.error('Failed to fetch trading pairs', e);
+      }
+      setMarketsLoading(false);
+    };
+
+    fetchTradingPairs();
+  }, [asset.code, asset.issuer]);
+
   // Render chart
   useEffect(() => {
     if (!chartContainerRef.current || chartData.length === 0) return;
@@ -394,7 +574,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   // Check if we have meaningful data to show
   const hasChartData = chartData.length > 2;
   const hasOrderBookData = processedBids.some(b => b.amount > 0 && b.price > 0) ||
-                           processedAsks.some(a => a.amount > 0 && a.price > 0);
+    processedAsks.some(a => a.amount > 0 && a.price > 0);
 
   return (
     <div className="w-full bg-[var(--bg-primary)] min-h-screen pb-24 font-sans relative">
@@ -411,6 +591,16 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
             </svg>
           </button>
           <div className="flex items-center gap-2">
+            {asset.image && (
+              <img
+                src={asset.image}
+                alt={asset.code}
+                className="w-6 h-6 rounded-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            )}
             <span className="font-bold text-lg" style={{ color: 'var(--primary-blue)' }}>{asset.code}</span>
             <span className="text-[var(--text-muted)] text-sm font-medium">/ USD</span>
           </div>
@@ -441,7 +631,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
             </div>
             {asset.code !== 'XLM' && asset.issuer && (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-[var(--text-muted)]">Contract:</span>
+                <span className="text-xs text-[var(--text-muted)]">Issuer:</span>
                 <Link
                   href={`/account/${asset.issuer}`}
                   className="flex items-center gap-1 text-xs text-[var(--text-tertiary)] font-mono hover:text-[var(--text-secondary)] transition-colors"
@@ -469,11 +659,10 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 <button
                   key={tf.label}
                   onClick={() => setSelectedTimeframe(tf.label)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                    selectedTimeframe === tf.label
-                      ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
-                      : 'bg-[var(--bg-primary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'
-                  }`}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${selectedTimeframe === tf.label
+                    ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
+                    : 'bg-[var(--bg-primary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'
+                    }`}
                 >
                   {tf.label}
                 </button>
@@ -811,6 +1000,353 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
             </div>
           </div>
         )}
+
+        {/* Trade History & Asset Holders Section */}
+        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+          {/* Tab Header */}
+          <div className="px-4 py-3 border-b border-[var(--border-default)]">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setActiveTab('trades')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'trades'
+                  ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
+                  : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'
+                  }`}
+              >
+                Trades
+              </button>
+              <button
+                onClick={() => setActiveTab('markets')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'markets'
+                  ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
+                  : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'
+                  }`}
+              >
+                Markets
+              </button>
+              <button
+                onClick={() => setActiveTab('holders')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'holders'
+                  ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
+                  : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'
+                  }`}
+              >
+                Holders
+              </button>
+            </div>
+          </div>
+
+          {/* Trade History Tab */}
+          {activeTab === 'trades' && (
+            <>
+              {tradesLoading && initialTradesLoad ? (
+                /* Trade History Skeleton */
+                <div className="divide-y divide-[var(--border-subtle)] animate-pulse">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="h-3 w-20 bg-[var(--border-default)] rounded" />
+                        <div className="h-3 w-16 bg-[var(--border-default)] rounded" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="h-4 w-40 bg-[var(--border-default)] rounded" />
+                        <div className="h-3 w-12 bg-[var(--border-default)] rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : trades.length > 0 ? (
+                <div className="divide-y divide-[var(--border-subtle)]">
+                  {trades.map((trade) => {
+                    const baseCode = trade.base_asset_type === 'native' ? 'XLM' : (trade.base_asset_code || 'Unknown');
+                    const counterCode = trade.counter_asset_type === 'native' ? 'XLM' : (trade.counter_asset_code || 'Unknown');
+                    const baseAmount = parseFloat(trade.base_amount);
+                    const counterAmount = parseFloat(trade.counter_amount);
+                    const priceValue = trade.price.d > 0 ? (trade.price.n / trade.price.d) : 0;
+                    const account = trade.base_account || trade.counter_account || '';
+                    const tradeTime = new Date(trade.ledger_close_time);
+
+                    // Determine if this trade involved our asset as base or counter
+                    const isBaseAsset = (baseCode === asset.code);
+                    const displayBaseCode = isBaseAsset ? baseCode : counterCode;
+                    const displayCounterCode = isBaseAsset ? counterCode : baseCode;
+                    const displayBaseAmount = isBaseAsset ? baseAmount : counterAmount;
+                    const displayCounterAmount = isBaseAsset ? counterAmount : baseAmount;
+
+                    const isNavigating = navigatingTradeId === trade.id;
+
+                    return (
+                      <button
+                        key={trade.id}
+                        onClick={() => handleTradeClick(trade)}
+                        disabled={isNavigating}
+                        className="w-full p-3 text-left hover:bg-[var(--bg-tertiary)] transition-colors active:bg-[var(--bg-primary)] disabled:opacity-50"
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/account/${account}`);
+                            }}
+                            className="text-[11px] font-mono text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                          >
+                            {shortenAddress(account, 4)}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {isNavigating && (
+                              <svg className="w-3 h-3 animate-spin text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                            )}
+                            <span className="text-[10px] text-[var(--text-muted)]">
+                              {tradeTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              {' '}
+                              {tradeTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                            </span>
+                            <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="font-mono font-medium text-[var(--text-primary)]">
+                              {displayBaseAmount >= 1000 ? displayBaseAmount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : displayBaseAmount.toFixed(4)}
+                            </span>
+                            <span className="text-[var(--text-muted)]">{displayBaseCode}</span>
+                            <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                            </svg>
+                            <span className="font-mono font-medium text-[var(--text-primary)]">
+                              {displayCounterAmount >= 1000 ? displayCounterAmount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : displayCounterAmount.toFixed(4)}
+                            </span>
+                            <span className="text-[var(--text-muted)]">{displayCounterCode}</span>
+                          </div>
+                          <span className="text-[11px] font-mono text-[var(--text-secondary)]">
+                            @{priceValue >= 1 ? priceValue.toFixed(4) : priceValue.toFixed(7)}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+
+                  {/* Infinite scroll trigger */}
+                  <div ref={tradesEndRef} className="h-1" />
+
+                  {/* Loading more indicator */}
+                  {loadingMoreTrades && (
+                    <div className="p-4 flex items-center justify-center gap-2">
+                      <svg className="w-4 h-4 animate-spin text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      <span className="text-xs text-[var(--text-muted)]">Loading more trades...</span>
+                    </div>
+                  )}
+
+                  {/* End of trades indicator */}
+                  {!hasMoreTrades && trades.length >= 20 && (
+                    <div className="p-3 text-center text-[11px] text-[var(--text-muted)]">
+                      All trades loaded
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* No trades state */
+                <div className="py-8 text-center text-[var(--text-muted)] text-xs">
+                  No recent trades
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Markets Tab */}
+          {activeTab === 'markets' && (
+            <>
+              {marketsLoading ? (
+                /* Markets Skeleton */
+                <div className="divide-y divide-[var(--border-subtle)] animate-pulse">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-24 bg-[var(--border-default)] rounded" />
+                      </div>
+                      <div className="text-right">
+                        <div className="h-3 w-16 bg-[var(--border-default)] rounded mb-1" />
+                        <div className="h-2 w-20 bg-[var(--border-default)] rounded ml-auto" />
+                      </div>
+                    </div>
+                  ))}
+                  <div className="p-3 text-center text-[11px] text-[var(--text-muted)]">
+                    Loading trading pairs...
+                  </div>
+                </div>
+              ) : tradingPairs.length > 0 ? (
+                <div className="divide-y divide-[var(--border-subtle)]">
+                  {/* Header */}
+                  <div className="px-3 py-2 bg-[var(--bg-tertiary)] grid grid-cols-[1fr_auto] text-[10px] text-[var(--text-muted)] font-bold uppercase">
+                    <span>Trading Pair</span>
+                    <span className="text-right">Exchange Rate</span>
+                  </div>
+
+                  {tradingPairs.map((pair) => {
+                    // Format price - shows how much of counter asset you get for 1 base asset
+                    const formatRate = (price: number) => {
+                      if (price >= 1000000) return (price / 1000000).toFixed(2) + 'M';
+                      if (price >= 1000) return price.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                      if (price >= 1) return price.toFixed(4);
+                      if (price >= 0.0001) return price.toFixed(6);
+                      return price.toFixed(8);
+                    };
+
+                    // Skip pairs where both assets have the same code (different issuers)
+                    // but show them with clearer labeling
+                    const isSameCode = asset.code === pair.counterAsset.code;
+                    const counterLabel = isSameCode && pair.counterAsset.issuer
+                      ? `${pair.counterAsset.code} (${shortenAddress(pair.counterAsset.issuer, 4)})`
+                      : pair.counterAsset.code;
+
+                    return (
+                      <div
+                        key={`${pair.counterAsset.code}-${pair.counterAsset.issuer || 'native'}`}
+                        className="p-3 hover:bg-[var(--bg-tertiary)] transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-[var(--text-primary)]">
+                              {asset.code} → {pair.counterAsset.code}
+                            </div>
+                            {pair.counterAsset.issuer && pair.counterAsset.type !== 'native' && (
+                              <div className="text-[10px] font-mono text-[var(--text-muted)] truncate">
+                                {shortenAddress(pair.counterAsset.issuer, 6)}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <div className="text-xs text-[var(--text-primary)]">
+                              <span className="text-[var(--text-muted)]">1 {asset.code} = </span>
+                              <span className="font-mono font-bold">{formatRate(pair.price)}</span>
+                              <span className="text-[var(--text-muted)]"> {pair.counterAsset.code}</span>
+                            </div>
+                            <div className="text-[10px] text-[var(--text-muted)]">
+                              {pair.totalTradeCount} trade{pair.totalTradeCount !== 1 ? 's' : ''} recently
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Footer with explanation */}
+                  <div className="p-3 text-center text-[11px] text-[var(--text-muted)]">
+                    {tradingPairs.length} trading pair{tradingPairs.length !== 1 ? 's' : ''} with recent activity
+                  </div>
+                </div>
+              ) : (
+                /* No markets state */
+                <div className="py-8 text-center text-[var(--text-muted)] text-xs">
+                  No active trading pairs found
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Asset Holders Tab */}
+          {activeTab === 'holders' && (
+            <>
+              {/* XLM native asset - can't query holders */}
+              {holdersLoading ? (
+                /* Holders Skeleton - loading in background */
+                <div className="divide-y divide-[var(--border-subtle)] animate-pulse">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 bg-[var(--border-default)] rounded-full" />
+                        <div className="h-3 w-24 bg-[var(--border-default)] rounded" />
+                      </div>
+                      <div className="text-right">
+                        <div className="h-3 w-20 bg-[var(--border-default)] rounded mb-1" />
+                        <div className="h-2 w-12 bg-[var(--border-default)] rounded ml-auto" />
+                      </div>
+                    </div>
+                  ))}
+                  <div className="p-3 text-center text-[11px] text-[var(--text-muted)]">
+                    Loading all holders...
+                  </div>
+                </div>
+              ) : allHolders.length > 0 ? (
+                <div className="divide-y divide-[var(--border-subtle)]">
+                  {/* Header showing total count */}
+                  <div className="px-3 py-2 bg-[var(--bg-tertiary)] text-[11px] text-[var(--text-muted)]">
+                    {allHolders.length} holders sorted by balance
+                  </div>
+
+                  {allHolders.slice(0, displayedHoldersCount).map((holder, index) => {
+                    const balance = parseFloat(holder.balance);
+                    const percentage = holdersTotalSupply > 0 ? (balance / holdersTotalSupply) * 100 : 0;
+
+                    // Format percentage based on size
+                    const formatPercentage = (pct: number) => {
+                      if (pct >= 1) return pct.toFixed(2) + '%';
+                      if (pct >= 0.01) return pct.toFixed(2) + '%';
+                      if (pct >= 0.0001) return pct.toFixed(4) + '%';
+                      if (pct > 0) return '< 0.0001%';
+                      return '0%';
+                    };
+
+                    return (
+                      <Link
+                        key={holder.account_id}
+                        href={`/account/${holder.account_id}`}
+                        className="flex items-center justify-between p-3 hover:bg-[var(--bg-tertiary)] transition-colors active:bg-[var(--bg-primary)]"
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="text-[10px] font-bold text-[var(--text-muted)] w-5 text-center">
+                            {index + 1}
+                          </span>
+                          <span className="text-xs font-mono text-[var(--text-secondary)] truncate">
+                            {shortenAddress(holder.account_id, 6)}
+                          </span>
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-2">
+                          <div className="text-xs font-mono font-medium text-[var(--text-primary)]">
+                            {balance >= 1000000
+                              ? (balance / 1000000).toFixed(2) + 'M'
+                              : balance >= 1000
+                                ? (balance / 1000).toFixed(2) + 'K'
+                                : balance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            <span className="text-[var(--text-muted)] ml-1">{asset.code}</span>
+                          </div>
+                          <div className="text-[10px] text-[var(--text-muted)]">
+                            ({formatPercentage(percentage)})
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+
+                  {/* Infinite scroll trigger */}
+                  {displayedHoldersCount < allHolders.length && (
+                    <div ref={holdersEndRef} className="h-1" />
+                  )}
+
+                  {/* End of holders indicator */}
+                  {displayedHoldersCount >= allHolders.length && (
+                    <div className="p-3 text-center text-[11px] text-[var(--text-muted)]">
+                      Showing all {allHolders.length} holders
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* No holders state */
+                <div className="py-8 text-center text-[var(--text-muted)] text-xs">
+                  No holders found
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

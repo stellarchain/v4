@@ -283,6 +283,26 @@ export interface NetworkStats {
   protocol_version: number;
 }
 
+export interface LiquidityPool {
+  id: string;
+  paging_token: string;
+  fee_bp: number;
+  type: string;
+  total_trustlines: number;
+  total_shares: string;
+  reserves: {
+    asset: string;
+    amount: string;
+  }[];
+  last_modified_ledger: number;
+  last_modified_time: string;
+  _links?: {
+    self: { href: string };
+    transactions: { href: string; templated: boolean };
+    operations: { href: string; templated: boolean };
+  };
+}
+
 // API Functions
 
 async function fetchJSON<T>(url: string): Promise<T> {
@@ -298,6 +318,188 @@ async function fetchJSON<T>(url: string): Promise<T> {
   }
 
   return response.json();
+}
+
+// Liquidity Pool endpoints
+export async function getLiquidityPools(
+  limit: number = 10,
+  order: 'asc' | 'desc' = 'desc',
+  cursor?: string
+): Promise<PaginatedResponse<LiquidityPool>> {
+  let url = `${getBaseUrl()}/liquidity_pools?limit=${limit}&order=${order}`;
+  if (cursor) url += `&cursor=${cursor}`;
+  return fetchJSON<PaginatedResponse<LiquidityPool>>(url);
+}
+
+export async function getLiquidityPool(poolId: string): Promise<LiquidityPool> {
+  return fetchJSON<LiquidityPool>(`${getBaseUrl()}/liquidity_pools/${poolId}`);
+}
+
+export async function getLiquidityPoolOperations(
+  poolId: string,
+  limit: number = 20,
+  order: 'asc' | 'desc' = 'desc'
+): Promise<PaginatedResponse<Operation>> {
+  return fetchJSON<PaginatedResponse<Operation>>(
+    `${getBaseUrl()}/liquidity_pools/${poolId}/operations?limit=${limit}&order=${order}`
+  );
+}
+
+export async function getLiquidityPoolTransactions(
+  poolId: string,
+  limit: number = 20,
+  order: 'asc' | 'desc' = 'desc'
+): Promise<PaginatedResponse<Transaction>> {
+  return fetchJSON<PaginatedResponse<Transaction>>(
+    `${getBaseUrl()}/liquidity_pools/${poolId}/transactions?limit=${limit}&order=${order}`
+  );
+}
+
+export interface LiquidityPoolTrade {
+  id: string;
+  paging_token: string;
+  ledger_close_time: string;
+  trade_type: string;
+  liquidity_pool_fee_bp: number;
+  base_offer_id?: string;
+  base_account?: string;
+  base_amount: string;
+  base_asset_type: string;
+  base_asset_code?: string;
+  base_asset_issuer?: string;
+  counter_liquidity_pool_id?: string;
+  counter_amount: string;
+  counter_asset_type: string;
+  counter_asset_code?: string;
+  counter_asset_issuer?: string;
+  price: {
+    n: number;
+    d: number;
+  };
+}
+
+export async function getLiquidityPoolTrades(
+  poolId: string,
+  limit: number = 20,
+  order: 'asc' | 'desc' = 'desc'
+): Promise<PaginatedResponse<LiquidityPoolTrade>> {
+  return fetchJSON<PaginatedResponse<LiquidityPoolTrade>>(
+    `${getBaseUrl()}/liquidity_pools/${poolId}/trades?limit=${limit}&order=${order}`
+  );
+}
+
+export interface LiquidityPoolEffect {
+  id: string;
+  paging_token: string;
+  account: string;
+  type: string;
+  type_i: number;
+  created_at: string;
+  liquidity_pool?: {
+    id: string;
+    fee_bp: number;
+    type: string;
+    total_trustlines: number;
+    total_shares: string;
+    reserves: { asset: string; amount: string }[];
+  };
+  reserves_deposited?: { asset: string; amount: string }[];
+  reserves_received?: { asset: string; amount: string }[];
+  shares_received?: string;
+  shares_redeemed?: string;
+}
+
+export async function getLiquidityPoolEffects(
+  poolId: string,
+  limit: number = 20,
+  order: 'asc' | 'desc' = 'desc'
+): Promise<PaginatedResponse<LiquidityPoolEffect>> {
+  return fetchJSON<PaginatedResponse<LiquidityPoolEffect>>(
+    `${getBaseUrl()}/liquidity_pools/${poolId}/effects?limit=${limit}&order=${order}`
+  );
+}
+
+// Asset Trades interface (for /trades endpoint)
+export interface AssetTrade {
+  id: string;
+  paging_token: string;
+  ledger_close_time: string;
+  trade_type: string;
+  base_offer_id?: string;
+  base_account?: string;
+  base_amount: string;
+  base_asset_type: string;
+  base_asset_code?: string;
+  base_asset_issuer?: string;
+  counter_offer_id?: string;
+  counter_account?: string;
+  counter_amount: string;
+  counter_asset_type: string;
+  counter_asset_code?: string;
+  counter_asset_issuer?: string;
+  base_is_seller: boolean;
+  price: {
+    n: number;
+    d: number;
+  };
+  _links?: {
+    self: { href: string };
+    base: { href: string };
+    counter: { href: string };
+    operation: { href: string };
+  };
+}
+
+// Get trades for a specific asset (paired with XLM for credit assets, or USDC for XLM)
+export async function getAssetTrades(
+  assetCode: string,
+  assetIssuer?: string,
+  limit: number = 20,
+  order: 'asc' | 'desc' = 'desc',
+  cursor?: string
+): Promise<PaginatedResponse<AssetTrade>> {
+  let url = `${getBaseUrl()}/trades?limit=${limit}&order=${order}`;
+
+  // Only treat as native XLM if code is exactly 'XLM' and no issuer
+  const isNative = assetCode === 'XLM' && (!assetIssuer || assetIssuer === '');
+
+  if (isNative) {
+    // Native asset (XLM) - pair with USDC
+    url += `&base_asset_type=native`;
+    url += `&counter_asset_type=credit_alphanum4`;
+    url += `&counter_asset_code=USDC`;
+    url += `&counter_asset_issuer=${USDC_ISSUER}`;
+  } else if (assetIssuer) {
+    // Credit asset with issuer - pair with XLM
+    url += `&base_asset_type=credit_alphanum${assetCode.length <= 4 ? '4' : '12'}`;
+    url += `&base_asset_code=${assetCode}`;
+    url += `&base_asset_issuer=${assetIssuer}`;
+    url += `&counter_asset_type=native`;
+  } else {
+    // No issuer for non-XLM asset - can't fetch trades
+    throw new Error(`Cannot fetch trades for ${assetCode} without issuer`);
+  }
+
+  if (cursor) {
+    url += `&cursor=${cursor}`;
+  }
+
+  return fetchJSON<PaginatedResponse<AssetTrade>>(url);
+}
+
+// Get transaction hash from a trade's operation
+export async function getTradeTransactionHash(trade: AssetTrade): Promise<string | null> {
+  try {
+    // Extract operation ID from trade ID (format: "{operation_id}-{index}")
+    const operationId = trade.id.split('-')[0];
+    if (!operationId) return null;
+
+    const operation = await getOperation(operationId);
+    return operation.transaction_hash || null;
+  } catch (error) {
+    console.error('Failed to get transaction hash for trade:', error);
+    return null;
+  }
 }
 
 // Ledger endpoints
@@ -1047,6 +1249,241 @@ export async function getAssetsByIssuer(
   );
 }
 
+// Asset holder interface
+export interface AssetHolder {
+  account_id: string;
+  balance: string;
+  paging_token: string;
+}
+
+// Get accounts holding a specific asset (sorted by balance descending)
+export async function getAssetHolders(
+  assetCode: string,
+  assetIssuer: string,
+  limit: number = 20,
+  cursor?: string
+): Promise<{ holders: AssetHolder[]; nextCursor: string | null; totalSupply: number }> {
+  // For native XLM, we can't query by asset filter - return empty
+  if (assetCode === 'XLM' && !assetIssuer) {
+    return { holders: [], nextCursor: null, totalSupply: 0 };
+  }
+
+  const assetType = assetCode.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12';
+  let url = `${getBaseUrl()}/accounts?asset=${assetCode}:${assetIssuer}&limit=${limit}&order=desc`;
+  if (cursor) {
+    url += `&cursor=${cursor}`;
+  }
+
+  const response = await fetchJSON<PaginatedResponse<StellarAccount>>(url);
+  const accounts = response._embedded.records;
+
+  // Extract the balance for the specific asset from each account
+  const holders: AssetHolder[] = accounts.map(account => {
+    const assetBalance = account.balances.find(
+      b => b.asset_code === assetCode && b.asset_issuer === assetIssuer
+    );
+    return {
+      account_id: account.account_id,
+      balance: assetBalance?.balance || '0',
+      paging_token: (account as any).paging_token || account.id,
+    };
+  }).filter(h => parseFloat(h.balance) > 0);
+
+  // Sort by balance descending (accounts endpoint doesn't sort by balance)
+  holders.sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance));
+
+  // Get next cursor from the last account
+  const lastAccount = accounts[accounts.length - 1];
+  const nextCursor = accounts.length === limit ? ((lastAccount as any).paging_token || lastAccount?.id || null) : null;
+
+  // Calculate total supply from all holders (approximate - for display purposes)
+  const totalSupply = holders.reduce((sum, h) => sum + parseFloat(h.balance), 0);
+
+  return { holders, nextCursor, totalSupply };
+}
+
+// Trading pair interface
+export interface TradingPair {
+  baseAsset: { code: string; issuer?: string; type: string };
+  counterAsset: { code: string; issuer?: string; type: string };
+  price: number;
+  baseVolume24h: number;
+  counterVolume24h: number;
+  tradeCount24h: number;
+  totalTradeCount: number;
+  priceChange24h: number;
+  spread: number;
+  lastTradeTime?: string;
+}
+
+// Get all trading pairs for a specific asset
+export async function getAssetTradingPairs(
+  assetCode: string,
+  assetIssuer?: string
+): Promise<TradingPair[]> {
+  const pairs: TradingPair[] = [];
+
+  const isNative = assetCode === 'XLM' && (!assetIssuer || assetIssuer === '');
+  const assetType = isNative ? 'native' : (assetCode.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12');
+
+  // The trades endpoint requires both assets (a pair) when filtering
+  // So we fetch general recent trades and filter client-side
+  const tradesUrl = `${getBaseUrl()}/trades?limit=200&order=desc`;
+
+  try {
+    // Fetch multiple pages to get more trades
+    let allTrades: AssetTrade[] = [];
+    let currentUrl: string = tradesUrl;
+    const maxPages = 5; // Fetch up to 5 pages (1000 trades)
+
+    for (let pageCount = 0; pageCount < maxPages; pageCount++) {
+      const response: PaginatedResponse<AssetTrade> = await fetchJSON<PaginatedResponse<AssetTrade>>(currentUrl);
+      allTrades = [...allTrades, ...response._embedded.records];
+      const nextHref = response._links.next?.href;
+      if (!nextHref) break;
+      currentUrl = nextHref;
+    }
+
+    // Filter trades that involve our asset
+    const relevantTrades = allTrades.filter(trade => {
+      const baseCode = trade.base_asset_type === 'native' ? 'XLM' : (trade.base_asset_code || '');
+      const baseIssuer = trade.base_asset_issuer || '';
+      const counterCode = trade.counter_asset_type === 'native' ? 'XLM' : (trade.counter_asset_code || '');
+      const counterIssuer = trade.counter_asset_issuer || '';
+
+      const normalizedAssetIssuer = assetIssuer || '';
+
+      // Check if our asset is involved
+      const isOurAssetBase = isNative
+        ? trade.base_asset_type === 'native'
+        : (baseCode === assetCode && baseIssuer === normalizedAssetIssuer);
+
+      const isOurAssetCounter = isNative
+        ? trade.counter_asset_type === 'native'
+        : (counterCode === assetCode && counterIssuer === normalizedAssetIssuer);
+
+      return isOurAssetBase || isOurAssetCounter;
+    });
+
+    if (relevantTrades.length === 0) {
+      return pairs;
+    }
+
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+
+    // Group trades by pair
+    const pairStats = new Map<string, {
+      baseAsset: { code: string; issuer?: string; type: string };
+      counterAsset: { code: string; issuer?: string; type: string };
+      trades24h: number;
+      totalTrades: number;
+      baseVolume: number;
+      counterVolume: number;
+      lastPrice: number;
+      firstPrice: number;
+      lastTradeTime: string;
+    }>();
+
+    for (const trade of relevantTrades) {
+      const baseCode = trade.base_asset_type === 'native' ? 'XLM' : (trade.base_asset_code || '');
+      const baseIssuer = trade.base_asset_issuer || '';
+      const counterCode = trade.counter_asset_type === 'native' ? 'XLM' : (trade.counter_asset_code || '');
+      const counterIssuer = trade.counter_asset_issuer || '';
+
+      // Check if our asset is the base or counter
+      const isOurAssetBase = isNative
+        ? trade.base_asset_type === 'native'
+        : (baseCode === assetCode && baseIssuer === (assetIssuer || ''));
+
+      const isOurAssetCounter = isNative
+        ? trade.counter_asset_type === 'native'
+        : (counterCode === assetCode && counterIssuer === (assetIssuer || ''));
+
+      // Create a unique key for this pair (always put our asset first)
+      const otherCode = isOurAssetBase ? counterCode : baseCode;
+      const otherIssuer = isOurAssetBase ? counterIssuer : baseIssuer;
+      const otherType = isOurAssetBase ? trade.counter_asset_type : trade.base_asset_type;
+
+      const pairKey = `${otherCode}:${otherIssuer || 'native'}`;
+
+      if (!pairStats.has(pairKey)) {
+        pairStats.set(pairKey, {
+          baseAsset: { code: assetCode, issuer: assetIssuer, type: isNative ? 'native' : assetType },
+          counterAsset: { code: otherCode, issuer: otherIssuer || undefined, type: otherType },
+          trades24h: 0,
+          totalTrades: 0,
+          baseVolume: 0,
+          counterVolume: 0,
+          lastPrice: 0,
+          firstPrice: 0,
+          lastTradeTime: trade.ledger_close_time,
+        });
+      }
+
+      const stats = pairStats.get(pairKey)!;
+      const tradeTime = new Date(trade.ledger_close_time).getTime();
+
+      stats.totalTrades++;
+
+      // Count 24h stats
+      if (tradeTime >= oneDayAgo) {
+        stats.trades24h++;
+        if (isOurAssetBase) {
+          stats.baseVolume += parseFloat(trade.base_amount);
+          stats.counterVolume += parseFloat(trade.counter_amount);
+        } else {
+          stats.baseVolume += parseFloat(trade.counter_amount);
+          stats.counterVolume += parseFloat(trade.base_amount);
+        }
+      }
+
+      // Track prices for change calculation (price is always base/counter in the trade)
+      const rawPrice = trade.price.d > 0 ? trade.price.n / trade.price.d : 0;
+      // If our asset is the counter, we need to invert the price
+      const price = isOurAssetBase ? rawPrice : (rawPrice > 0 ? 1 / rawPrice : 0);
+
+      if (stats.lastPrice === 0) {
+        stats.lastPrice = price;
+      }
+      stats.firstPrice = price;
+
+      if (trade.ledger_close_time > stats.lastTradeTime) {
+        stats.lastTradeTime = trade.ledger_close_time;
+        stats.lastPrice = price;
+      }
+    }
+
+    // Convert to TradingPair array - include ALL pairs, not just those with 24h activity
+    for (const [key, stats] of pairStats) {
+      const priceChange = stats.firstPrice > 0 && stats.lastPrice > 0
+        ? ((stats.lastPrice - stats.firstPrice) / stats.firstPrice) * 100
+        : 0;
+
+      pairs.push({
+        baseAsset: stats.baseAsset,
+        counterAsset: stats.counterAsset,
+        price: stats.lastPrice,
+        baseVolume24h: stats.baseVolume,
+        counterVolume24h: stats.counterVolume,
+        tradeCount24h: stats.trades24h,
+        totalTradeCount: stats.totalTrades,
+        priceChange24h: priceChange,
+        spread: 0,
+        lastTradeTime: stats.lastTradeTime,
+      });
+    }
+
+    // Sort by total trade count (most active pairs first)
+    pairs.sort((a, b) => b.totalTradeCount - a.totalTradeCount);
+
+  } catch (error) {
+    console.error('Failed to fetch trading pairs:', error);
+  }
+
+  return pairs;
+}
+
 // Calculate percentage change between two prices
 function calculatePriceChange(oldPrice: number, newPrice: number): number {
   if (oldPrice === 0) return 0;
@@ -1212,7 +1649,19 @@ export async function getMarketAssets(): Promise<MarketAsset[]> {
 
 // Fetch detailed asset information
 export async function getAssetDetails(code: string, issuer?: string): Promise<AssetDetails | null> {
-  const assetId = issuer ? `${code}-${issuer}` : code;
+  // Parse issuer from code if provided in "CODE-ISSUER" format (e.g., "AQUA-GBNZILSTVQZ...")
+  let parsedCode = code;
+  let parsedIssuer = issuer;
+  if (!issuer && code.includes('-')) {
+    const parts = code.split('-');
+    if (parts.length === 2 && parts[1].length > 20) {
+      // Looks like a "CODE-ISSUER" format
+      parsedCode = parts[0];
+      parsedIssuer = parts[1];
+    }
+  }
+
+  const assetId = parsedIssuer ? `${parsedCode}-${parsedIssuer}` : parsedCode;
   let stellarChainData: any = null;
 
   // 1. Try fetching from StellarChain.io API first
@@ -1307,8 +1756,8 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
         // If we have SC data but no expert data, return what we have
         return {
           rank: stellarChainData.rating || 0,
-          code: code,
-          issuer: issuer || '',
+          code: parsedCode,
+          issuer: parsedIssuer || '',
           name: stellarChainData.code || code,
           description: '',
           domain: stellarChainData.domain,
@@ -1363,7 +1812,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
     }
 
     // Get price from Horizon API (single source of truth)
-    const horizonPrice = await getAssetPriceFromHorizon(code, issuer);
+    const horizonPrice = await getAssetPriceFromHorizon(parsedCode, parsedIssuer);
     const currentPrice = horizonPrice.priceUsd;
     const priceInXlm = horizonPrice.priceXlm;
 
@@ -1391,8 +1840,8 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
 
     return {
       rank: Number(stellarChainData?.rating || asset.rating) || 0,
-      code: code,
-      issuer: issuer || '',
+      code: parsedCode,
+      issuer: parsedIssuer || '',
       name: String(toml.name || code),
       description: String(toml.desc || ''),
       domain: String(stellarChainData?.domain || asset.domain || toml.orgName || ''),
@@ -1424,15 +1873,16 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
   }
 }
 
-// Known Accounts
-// List All Accounts sorted by XLM balance (Rich List) - using Stellarchain API
-export async function fetchAllAccounts(
-  limit: number = 50,
-  page: number = 1
-): Promise<KnownAccount[]> {
+// Get XLM Holders (Top Accounts)
+export async function getXLMHolders(
+  limit: number = 20,
+  cursor?: string
+): Promise<{ holders: AssetHolder[]; nextCursor?: string }> {
   try {
-    // Use Stellarchain's top accounts API - returns accounts sorted by XLM balance with labels
-    const url = `https://api.stellarchain.io/v1/accounts/top?page=${page}&paginate=${limit}`;
+    const page = cursor ? parseInt(cursor) : 1;
+    // API only accepts specific pagination values, 50 is known to work
+    const safeLimit = 50;
+    const url = `https://api.stellarchain.io/v1/accounts/top?page=${page}&paginate=${safeLimit}`;
 
     const response = await fetch(url, {
       headers: { 'Accept': 'application/json' },
@@ -1440,40 +1890,108 @@ export async function fetchAllAccounts(
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch: ${response.status}`);
+      return { holders: [] };
     }
 
     const data = await response.json();
-
-    // Handle the response structure - data is in 'data' array
     const records = data.data || [];
 
-    return records.map((record: any) => {
-      const balance = parseFloat(record.balance || '0');
-      const formattedBalance = balance >= 1e9
-        ? `${(balance / 1e9).toFixed(2)}B XLM`
-        : balance >= 1e6
-          ? `${(balance / 1e6).toFixed(2)}M XLM`
-          : `${balance.toLocaleString()} XLM`;
+    const holders: AssetHolder[] = records.map((record: any) => ({
+      account_id: record.account,
+      balance: record.balance?.toString() || '0',
+      paging_token: (page + 1).toString(), // generic token
+    }));
 
-      // Build tags array
+    return {
+      holders,
+      // If we got full page, assume there is next page
+      nextCursor: records.length === safeLimit ? (page + 1).toString() : undefined
+    };
+  } catch (error) {
+    console.error('Failed to fetch XLM holders:', error);
+    return { holders: [] };
+  }
+}
+
+// Rich List specific types
+export interface RichListAccount {
+  rank: number;
+  account: string;
+  balance: number;
+  percent_of_coins: string;
+  transactions: number;
+  label?: {
+    name: string;
+    verified: boolean;
+    description?: string;
+  };
+}
+
+export async function getRichList(
+  page: number = 1,
+  limit: number = 50
+): Promise<RichListAccount[]> {
+  try {
+    const url = `https://api.stellarchain.io/v1/accounts/top?page=${page}&paginate=${limit}`;
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 300 },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch rich list: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return (data.data || []).map((record: any, index: number) => ({
+      rank: record.rank || ((page - 1) * limit + index + 1),
+      account: record.account,
+      balance: parseFloat(record.balance || '0'),
+      percent_of_coins: record.percent_of_coins,
+      transactions: parseInt(record.transactions || '0'),
+      label: record.label ? {
+        name: record.label.name,
+        verified: record.label.verified === 1,
+        description: record.label.description
+      } : undefined
+    }));
+  } catch (error) {
+    console.error('Error fetching rich list:', error);
+    return [];
+  }
+}
+
+// Known Accounts (Legacy wrapper for compatibility)
+// List All Accounts sorted by XLM balance (Rich List) - using Stellarchain API
+export async function fetchAllAccounts(
+  limit: number = 50,
+  page: number = 1
+): Promise<KnownAccount[]> {
+  try {
+    const richList = await getRichList(page, limit);
+    return richList.map(item => {
+      const formattedBalance = item.balance >= 1e9
+        ? `${(item.balance / 1e9).toFixed(2)}B XLM`
+        : item.balance >= 1e6
+          ? `${(item.balance / 1e6).toFixed(2)}M XLM`
+          : `${item.balance.toLocaleString()} XLM`;
+
       const tags: string[] = [formattedBalance];
-      if (record.percent_of_coins) {
-        tags.push(`${parseFloat(record.percent_of_coins).toFixed(2)}%`);
+      if (item.percent_of_coins) {
+        tags.push(`${parseFloat(item.percent_of_coins).toFixed(2)}%`);
       }
-      if (record.label?.verified) {
+      if (item.label?.verified) {
         tags.push('verified');
       }
 
       return {
-        address: record.account,
-        name: record.label?.name || shortenAddress(record.account),
-        domain: record.label?.domain || undefined,
+        address: item.account,
+        name: item.label?.name || shortenAddress(item.account),
+        domain: undefined,
         tags,
-        paging_token: record.rank?.toString() || record.account
+        paging_token: item.rank.toString()
       };
     });
-
   } catch (error) {
     console.error('Error fetching accounts:', error);
     return generateMockKnownAccounts(limit);
