@@ -579,72 +579,67 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   return (
     <div className="w-full bg-[var(--bg-primary)] min-h-screen pb-24 font-sans relative">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-[var(--bg-secondary)] border-b border-[var(--border-default)]">
-        {/* Top Bar */}
-        <div className="px-3 py-3 flex items-center justify-between">
-          <button
-            onClick={() => router.back()}
-            className="text-[var(--text-muted)] p-1"
-          >
+      <header className="sticky top-0 z-20 bg-[var(--bg-secondary)] border-b border-[var(--border-default)] px-4 py-3">
+        {/* Top Row: Back, Asset Info */}
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.back()} className="text-[var(--text-muted)]">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <div className="flex items-center gap-2">
-            {asset.image && (
-              <img
-                src={asset.image}
-                alt={asset.code}
-                className="w-6 h-6 rounded-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            )}
-            <span className="font-bold text-lg" style={{ color: 'var(--primary-blue)' }}>{asset.code}</span>
-            <span className="text-[var(--text-muted)] text-sm font-medium">/ USD</span>
-          </div>
-          <div className="w-6" /> {/* Spacer for centering */}
-        </div>
-
-        {/* Price Section */}
-        <div className="px-4 pb-4">
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[var(--text-secondary)] text-sm font-medium">{asset.name || asset.code}</span>
-            {rank > 0 && (
-              <span className="text-[var(--text-muted)] text-sm font-medium">#{rank}</span>
-            )}
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="text-3xl font-bold tracking-tight" style={{ color: 'var(--primary-blue)' }}>
-              {formatPrice(asset.price_usd)}
-            </div>
-            <div className={`px-3 py-1.5 rounded-lg ${isPositive ? 'bg-[var(--success)]' : 'bg-[var(--error)]'}`}>
-              <span className="text-white text-sm font-bold">
-                {isPositive ? '▲' : '▼'} {Math.abs(change24h).toFixed(2)}%
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between mt-1">
-            <div className="text-sm text-[var(--text-muted)]">
-              ≈ {asset.price_xlm.toFixed(4)} XLM
-            </div>
-            {asset.code !== 'XLM' && asset.issuer && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-[var(--text-muted)]">Issuer:</span>
-                <Link
-                  href={`/account/${asset.issuer}`}
-                  className="flex items-center gap-1 text-xs text-[var(--text-tertiary)] font-mono hover:text-[var(--text-secondary)] transition-colors"
-                >
-                  {shortenAddress(asset.issuer, 4)}
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </Link>
+            {asset.image ? (
+              <img src={asset.image} alt={asset.code} className="w-7 h-7 rounded-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-[#0F4C81]/10 flex items-center justify-center">
+                <span className="text-xs font-bold text-[#0F4C81]">{asset.code[0]}</span>
               </div>
             )}
+            <span className="font-bold text-lg text-[var(--text-primary)]">{asset.code}</span>
+            <span className="text-[var(--text-muted)] text-sm">/ USD</span>
           </div>
         </div>
+
+        {/* Price Row */}
+        <div className="mt-3">
+          <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Price</div>
+          <div className="flex items-center justify-between">
+            <div className="text-3xl font-bold text-[#0F4C81]">{formatPrice(asset.price_usd)}</div>
+            <div className={`px-3 py-1.5 rounded-lg ${isPositive ? 'bg-[var(--success)]' : 'bg-[var(--error)]'} flex items-center gap-0.5`}>
+              <span className="text-white text-xs">{isPositive ? '▲' : '▼'}</span>
+              <span className="text-white text-sm font-bold">{Math.abs(change24h).toFixed(2)}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Row */}
+        <div className="flex items-start justify-between mt-4 pt-4 border-t border-[var(--border-subtle)]">
+          <div>
+            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">MCap</div>
+            <div className="text-sm font-bold text-[#0F4C81] mt-0.5">${formatNumber(asset.market_cap)}</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">Volume 24h</div>
+            <div className="text-sm font-bold text-[#0F4C81] mt-0.5">${formatNumber(asset.volume_24h)}</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">Holders</div>
+            <div className="text-sm font-bold text-[#0F4C81] mt-0.5">{formatNumber(asset.holders || 0)}</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">Rank</div>
+            <div className="text-sm font-bold text-[#0F4C81] mt-0.5">#{rank > 0 ? rank : '-'}</div>
+          </div>
+        </div>
+        {asset.code !== 'XLM' && asset.issuer && (
+          <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-[var(--border-subtle)]">
+            <span className="text-xs text-[var(--text-muted)]">Issuer:</span>
+            <Link href={`/account/${asset.issuer}`} className="text-xs font-mono text-[var(--text-tertiary)] hover:text-[#0F4C81]">
+              {shortenAddress(asset.issuer, 6)}
+            </Link>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
