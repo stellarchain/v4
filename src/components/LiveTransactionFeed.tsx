@@ -11,9 +11,53 @@ interface LiveTransactionFeedProps {
   filter?: 'all' | 'payments' | 'contracts';
 }
 
+// Session storage key for caching transactions
+const CACHE_KEY = 'stellarchain_live_txs';
+
+// Load cached transactions from sessionStorage
+const loadCachedTransactions = (): Transaction[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      // Only use cache if it's less than 2 minutes old
+      if (parsed.timestamp && Date.now() - parsed.timestamp < 120000) {
+        return parsed.transactions || [];
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return [];
+};
+
+// Save transactions to sessionStorage
+const saveCachedTransactions = (transactions: Transaction[]) => {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+      transactions: transactions.slice(0, 50),
+      timestamp: Date.now()
+    }));
+  } catch {
+    // Ignore storage errors
+  }
+};
+
 export default function LiveTransactionFeed({ initialTransactions, limit = 10, filter = 'all' }: LiveTransactionFeedProps) {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  // Initialize with cached data, initial props, or empty array
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    const cached = loadCachedTransactions();
+    if (cached.length > 0) return cached;
+    if (initialTransactions && initialTransactions.length > 0) return initialTransactions;
+    return [];
+  });
+  const [isInitialLoading, setIsInitialLoading] = useState(() => {
+    const cached = loadCachedTransactions();
+    // Skip loading state if we have cached data
+    return cached.length === 0 && (!initialTransactions || initialTransactions.length === 0);
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
   const previousIdsRef = useRef<Set<string>>(new Set());
@@ -95,9 +139,17 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
       const newPaymentTxs = allTransactions.filter(tx => tx.displayInfo?.type === 'payment');
 
       if (isInitial) {
-        // Initial load - just set the data, no animation
-        setTransactions(newPaymentTxs.slice(0, 50));
-        previousIdsRef.current = new Set(newPaymentTxs.map(t => t.id));
+        // Initial load - merge with any existing cached data
+        setTransactions(prev => {
+          const existingMap = new Map(prev.map(t => [t.hash, t]));
+          newPaymentTxs.forEach(tx => existingMap.set(tx.hash, tx));
+          const merged = Array.from(existingMap.values())
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .slice(0, 50);
+          previousIdsRef.current = new Set(merged.map(t => t.id));
+          saveCachedTransactions(merged);
+          return merged;
+        });
         isInitialLoadRef.current = false;
         setIsInitialLoading(false);
         return;
@@ -136,8 +188,9 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
           }, 10);
         }
 
-        // Update seen IDs
+        // Update seen IDs and cache
         previousIdsRef.current = new Set(merged.map(t => t.id));
+        saveCachedTransactions(merged);
         return merged;
       });
     } catch (error) {
@@ -157,9 +210,17 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
       const newTransactions = await enrichTransactions(rawTransactions);
 
       if (isInitial) {
-        // Initial load - just set the data, no animation
-        setTransactions(newTransactions.slice(0, 50));
-        previousIdsRef.current = new Set(newTransactions.map(t => t.id));
+        // Initial load - merge with any existing cached data
+        setTransactions(prev => {
+          const existingMap = new Map(prev.map(t => [t.hash, t]));
+          newTransactions.forEach(tx => existingMap.set(tx.hash, tx));
+          const merged = Array.from(existingMap.values())
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .slice(0, 50);
+          previousIdsRef.current = new Set(merged.map(t => t.id));
+          saveCachedTransactions(merged);
+          return merged;
+        });
         isInitialLoadRef.current = false;
         setIsInitialLoading(false);
         return;
@@ -197,7 +258,9 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
           }, 10);
         }
 
+        // Update seen IDs and cache
         previousIdsRef.current = new Set(merged.map(t => t.id));
+        saveCachedTransactions(merged);
         return merged;
       });
     } catch (error) {
