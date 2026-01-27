@@ -22,12 +22,13 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
       const response = await fetch(
         `https://api.stellarchain.io/v1/accounts?page=${page}&labels[]=undefined&paginate=25`
       );
-      const data: LabeledAccountsAPIResponse = await response.json();
+      const json = await response.json();
 
-      setAccounts(data.data || []);
-      setCurrentPage(data.current_page || 1);
-      setTotalPages(data.last_page || 1);
-      setTotal(data.total || 0);
+      // API returns pagination in meta object
+      setAccounts(json.data || []);
+      setCurrentPage(json.meta?.current_page || 1);
+      setTotalPages(json.meta?.last_page || 1);
+      setTotal(json.meta?.total || 0);
     } catch (error) {
       console.error('Error fetching accounts:', error);
     } finally {
@@ -45,14 +46,14 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-20 pt-1 md:pt-6">
       <div className="max-w-[1600px] mx-auto px-3 md:px-6">
-        {/* Mobile Header - Matching transactions/ledgers style */}
+        {/* Mobile Header */}
         <div className="md:hidden">
           <div className="flex items-center justify-between py-3">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-primary)]">
                 Known Accounts
               </span>
-              <span className="bg-[var(--success)]/10 text-[var(--success)] text-[10px] px-1.5 py-0.5 rounded font-bold">
+              <span className="bg-[var(--primary-blue)]/10 text-[var(--primary-blue)] text-[10px] px-1.5 py-0.5 rounded font-bold">
                 {(total || 0).toLocaleString()}
               </span>
             </div>
@@ -92,59 +93,45 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
           </div>
         )}
 
-        {/* Accounts List - Matching transactions/ledgers card style */}
-        <div className="space-y-2">
+        {/* Accounts Table */}
+        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] overflow-hidden">
           {accounts.length === 0 ? (
-            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
+            <div className="px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
               No accounts found
             </div>
           ) : (
-            accounts.map((account) => (
+            accounts.map((account, index) => (
               <Link
                 key={account.account}
                 href={`/account/${account.account}`}
-                className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
+                className={`flex items-center px-3 py-3 active:bg-[var(--bg-tertiary)] transition-colors ${
+                  index % 2 === 1 ? 'bg-[var(--bg-primary)]/30' : ''
+                } ${index !== accounts.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}
               >
-                <div className="px-3 py-3 flex items-center justify-between">
-                  <div className="flex items-start space-x-3">
-                    <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                      account.label?.verified
-                        ? 'bg-[var(--success)]/10 text-[var(--success)]'
-                        : 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]'
-                    }`}>
-                      {account.label?.verified ? (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold leading-tight text-[var(--primary-blue)]">
-                          {account.label?.name || 'Unknown'}
-                        </span>
-                        {account.label?.verified === 1 && (
-                          <svg className="w-3.5 h-3.5 text-[var(--success)]" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        )}
-                      </div>
-                      <span className="text-xs text-[var(--text-muted)] font-medium font-mono mt-0.5">
-                        {shortenAddress(account.account, 4)}
-                      </span>
-                    </div>
+                {/* Name & Address */}
+                <div className="flex-1 min-w-0 pr-3">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold text-[var(--primary-blue)] truncate">
+                      {account.label?.name || account.org_name || 'Unknown'}
+                    </span>
+                    {account.label?.verified === 1 && (
+                      <svg className="w-3.5 h-3.5 flex-shrink-0 text-[var(--success)]" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <div className="text-xs font-bold text-[var(--text-primary)]">
-                      {formatBalance(account.balance || 0)} <span className="text-[var(--text-muted)] font-medium">XLM</span>
-                    </div>
-                    <div className="text-[11px] text-[var(--text-muted)]">
-                      {parseInt(account.transactions || '0').toLocaleString()} txs
-                    </div>
+                  <div className="text-[11px] text-[var(--text-muted)] font-mono mt-0.5">
+                    {shortenAddress(account.account, 4)}
+                  </div>
+                </div>
+
+                {/* Balance & Transactions */}
+                <div className="text-right flex-shrink-0">
+                  <div className="text-sm font-bold text-[var(--text-primary)]">
+                    {formatBalance(account.balance || 0)} <span className="text-[var(--text-muted)] font-normal text-xs">XLM</span>
+                  </div>
+                  <div className="text-[11px] text-[var(--text-muted)]">
+                    {parseInt(account.transactions || '0').toLocaleString()} txs
                   </div>
                 </div>
               </Link>
@@ -154,25 +141,25 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-center gap-2">
+          <div className="mt-4 flex items-center justify-center gap-3">
             <button
               onClick={() => fetchPage(currentPage - 1)}
               disabled={currentPage === 1 || isLoading}
-              className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
 
-            <span className="px-4 py-2 text-sm text-[var(--text-muted)]">
+            <span className="text-sm text-[var(--text-muted)] min-w-[100px] text-center">
               Page {currentPage} of {totalPages}
             </span>
 
             <button
               onClick={() => fetchPage(currentPage + 1)}
               disabled={currentPage === totalPages || isLoading}
-              className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

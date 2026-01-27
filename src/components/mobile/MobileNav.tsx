@@ -56,7 +56,7 @@ const menuCategories: MenuCategory[] = [
 export default function MobileNav() {
   const pathname = usePathname();
   const [showMore, setShowMore] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(['Blockchain']);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(['Blockchain', 'Accounts']);
   const { theme, toggleTheme } = useTheme();
 
   // Close menu when route changes
