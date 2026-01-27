@@ -2037,7 +2037,15 @@ export async function fetchLabeledAccounts(
       throw new Error(`Failed to fetch labeled accounts: ${response.status}`);
     }
 
-    return await response.json();
+    const json = await response.json();
+    // API returns pagination in meta object
+    return {
+      current_page: json.meta?.current_page || 1,
+      total: json.meta?.total || 0,
+      per_page: json.meta?.per_page || perPage,
+      last_page: json.meta?.last_page || 1,
+      data: json.data || [],
+    };
   } catch (error) {
     console.error('Error fetching labeled accounts:', error);
     return {
