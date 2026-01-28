@@ -237,17 +237,6 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
     <div className={`${containers.page}`}>
       {/* Header - Sticky */}
       <header className="pt-3 pb-3 sticky top-0 z-20 bg-[var(--bg-primary)]/90 backdrop-blur-md">
-        {/* Title Section */}
-        <div className="flex items-center gap-2 mb-3 px-3">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--primary-blue)' }}>
-            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
-          </div>
-          <h1 className="text-base font-bold text-[var(--text-primary)]">Assets</h1>
-          <span className="text-[11px] text-[var(--text-muted)]">by market cap</span>
-        </div>
-
         {/* Market Stats Summary */}
         <div className="mx-3 mb-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm overflow-visible">
           <div className="flex divide-x divide-[var(--border-subtle)]">

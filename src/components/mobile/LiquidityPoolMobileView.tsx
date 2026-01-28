@@ -207,29 +207,49 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                     </div>
                 </div>
 
-                {/* Tabs Navigation */}
-                <div className="flex gap-4 overflow-x-auto no-scrollbar border-b border-[var(--border-default)] pb-3 mb-4 -mx-4 px-4">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className="text-xs font-semibold relative transition-colors whitespace-nowrap pb-1"
-                            style={{
-                                color: activeTab === tab.id ? primaryColor : 'var(--text-tertiary)',
-                            }}
-                        >
-                            {tab.label}
-                            {tab.count > 0 && (
-                                <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[10px] bg-[var(--bg-tertiary)] ${activeTab === tab.id ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]'}`}>
-                                    {tab.count}
-                                </span>
-                            )}
-                            {activeTab === tab.id && (
-                                <span className="absolute -bottom-3 left-0 right-0 h-0.5 rounded-full" style={{ backgroundColor: primaryColor }} />
-                            )}
-                        </button>
-                    ))}
-                </div>
+                {/* Tabs - Glider Style */}
+                {(() => {
+                    const gliderTabs = [
+                        { id: 'trades', label: 'Trades' },
+                        { id: 'effects', label: 'Effects' },
+                        { id: 'transactions', label: 'Transactions' },
+                        { id: 'operations', label: 'Operations' },
+                    ];
+                    const activeTabIndex = gliderTabs.findIndex(tab => tab.id === activeTab);
+                    const tabCount = gliderTabs.length;
+
+                    return (
+                        <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)] mt-3 mb-1">
+                            {/* Glider Background */}
+                            <div
+                                className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
+                                style={{
+                                    left: '4px',
+                                    width: `calc((100% - 8px) / ${tabCount})`,
+                                    transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
+                                    opacity: activeTabIndex >= 0 ? 1 : 0
+                                }}
+                            />
+
+                            {gliderTabs.map((tab) => {
+                                const isActive = activeTab === tab.id;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id as any)}
+                                        className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center ${
+                                            isActive
+                                                ? 'text-[var(--primary-blue)] font-bold'
+                                                : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
+                                        }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    );
+                })()}
 
                 {activeTab === 'transactions' && (
                     <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)]">
