@@ -64,13 +64,35 @@ export default function TransactionMobileView({ transaction, operations, effects
   const contractOp = operations.find(op => op.type === 'invoke_host_function');
   const isContractCall = !!contractOp;
 
-  const [activeTab, setActiveTab] = useState<'operations' | 'effects' | 'details' | 'trace' | 'resources' | 'raw' | null>('operations');
+  const [activeTab, setActiveTab] = useState<'operations' | 'effects' | 'details' | 'trace' | 'resources' | null>('operations');
   const [showRecipients, setShowRecipients] = useState(false);
   const [isTraceExpanded, setIsTraceExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [operationFilter, setOperationFilter] = useState<string>('all');
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  // Get unique operation types for filter
+  const operationTypes = useMemo(() => {
+    const types = new Map<string, number>();
+    operations.forEach(op => {
+      const label = getOperationTypeLabel(op.type).replace(/_/g, ' ');
+      types.set(label, (types.get(label) || 0) + 1);
+    });
+    return Array.from(types.entries()).sort((a, b) => b[1] - a[1]);
+  }, [operations]);
+
+  // Filter operations based on selected filter
+  const filteredOperations = useMemo(() => {
+    if (operationFilter === 'all') return operations;
+    return operations.filter(op => {
+      const label = getOperationTypeLabel(op.type).replace(/_/g, ' ');
+      return label === operationFilter;
+    });
+  }, [operations, operationFilter]);
 
   // Buffer decoded metrics
   const envelopeMetrics = useMemo(() => {
@@ -179,17 +201,35 @@ export default function TransactionMobileView({ transaction, operations, effects
     }
   }, [activeTab]);
 
+  // Reset visible operations count when filter changes
+  useEffect(() => {
+    setVisibleOpsCount(OPS_PER_PAGE);
+  }, [operationFilter]);
+
+  // Close filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilterDropdown(false);
+      }
+    };
+    if (showFilterDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showFilterDropdown]);
+
   // Load more operations
   const loadMoreOps = useCallback(() => {
-    if (isLoadingOps || visibleOpsCount >= operations.length) return;
+    if (isLoadingOps || visibleOpsCount >= filteredOperations.length) return;
 
     setIsLoadingOps(true);
     // Simulate async loading for smooth UX
     setTimeout(() => {
-      setVisibleOpsCount(prev => Math.min(prev + OPS_PER_PAGE, operations.length));
+      setVisibleOpsCount(prev => Math.min(prev + OPS_PER_PAGE, filteredOperations.length));
       setIsLoadingOps(false);
     }, 300);
-  }, [isLoadingOps, visibleOpsCount, operations.length]);
+  }, [isLoadingOps, visibleOpsCount, filteredOperations.length]);
 
   // Load more effects
   const loadMoreEffects = useCallback(() => {
@@ -212,7 +252,7 @@ export default function TransactionMobileView({ transaction, operations, effects
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && visibleOpsCount < operations.length) {
+        if (entries[0].isIntersecting && visibleOpsCount < filteredOperations.length) {
           loadMoreOps();
         }
       },
@@ -222,7 +262,7 @@ export default function TransactionMobileView({ transaction, operations, effects
     observer.observe(sentinel);
 
     return () => observer.disconnect();
-  }, [activeTab, visibleOpsCount, operations.length, loadMoreOps]);
+  }, [activeTab, visibleOpsCount, filteredOperations.length, loadMoreOps]);
 
   // Intersection Observer for effects infinite scroll
   useEffect(() => {
@@ -763,7 +803,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                 </div>
                 <div className="text-right">
                   <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Account</div>
-                  <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold hover:opacity-80 block mt-1" style={{ color: primaryColor }}>
+                  <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold font-mono hover:opacity-80 block mt-1" style={{ color: primaryColor }}>
                     {shortenAddress(transaction.source_account, 4)}
                   </Link>
                 </div>
@@ -994,7 +1034,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                 {/* Order By */}
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-[var(--text-muted)]">Order by</span>
-                  <Link href={`/account/${transaction.source_account}`} className="font-semibold hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
+                  <Link href={`/account/${transaction.source_account}`} className="font-semibold font-mono hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
                     {shortenAddress(transaction.source_account, 4)}
                   </Link>
                 </div>
@@ -1021,7 +1061,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                 <div className="bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Account</span>
-                    <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
+                    <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold font-mono hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
                       {shortenAddress(transaction.source_account, 4)}
                     </Link>
                   </div>
@@ -1065,7 +1105,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       </div>
                       <div className="text-right">
                         <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Account</div>
-                        <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold hover:opacity-80 block mt-1" style={{ color: primaryColor }}>
+                        <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold font-mono hover:opacity-80 block mt-1" style={{ color: primaryColor }}>
                           {shortenAddress(transaction.source_account, 4)}
                         </Link>
                       </div>
@@ -1173,7 +1213,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                             <span className="w-4 h-4 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center text-[9px] font-bold text-[var(--text-tertiary)]">
                               {idx + 1}
                             </span>
-                            <Link href={`/account/${to}`} className="text-[11px] font-semibold hover:opacity-80" style={{ color: primaryColor }}>
+                            <Link href={`/account/${to}`} className="text-[11px] font-semibold font-mono hover:opacity-80" style={{ color: primaryColor }}>
                               {shortenAddress(to, 4)}
                             </Link>
                           </div>
@@ -1201,46 +1241,45 @@ export default function TransactionMobileView({ transaction, operations, effects
           </>
         )}
 
-        {/* Tabs Navigation - Compact Scrollable */}
-        <div className="flex gap-4 overflow-x-auto no-scrollbar border-b border-[var(--border-default)] pb-3 mb-4 mt-6 -mx-4 px-4">
-          {[
-            { id: 'operations', label: 'Operations', count: transaction.operation_count },
-            { id: 'effects', label: 'Effects', count: effects.length > 0 ? effects.length : undefined },
-            { id: 'details', label: 'Details' },
-            ...(isContractCall ? [{ id: 'trace', label: 'Trace' }] : []),
-            ...(isContractCall ? [{ id: 'resources', label: 'Resources' }] : []),
-            { id: 'raw', label: 'Raw' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(activeTab === tab.id ? null : tab.id as any)}
-              className="text-xs font-semibold relative transition-colors whitespace-nowrap pb-1"
-              style={{
-                color: activeTab === tab.id ? 'var(--primary-blue)' : 'var(--text-tertiary)',
-              }}
-            >
-              {tab.label}
-              {tab.count !== undefined && (
-                <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[10px] bg-[var(--bg-tertiary)] ${activeTab === tab.id ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]'
-                  }`}>
-                  {tab.count}
-                </span>
-              )}
-              {activeTab === tab.id && (
-                <span className="absolute -bottom-3 left-0 right-0 h-0.5 rounded-full" style={{ backgroundColor: 'var(--primary-blue)' }} />
-              )}
-            </button>
-          ))}
+        {/* Tabs Navigation - Bubble Style */}
+        <div className="mt-3">
+          <div className="flex bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-1 shadow-sm">
+            {[
+              { id: 'operations', label: 'Operations', count: operationFilter === 'all' ? transaction.operation_count : filteredOperations.length },
+              { id: 'effects', label: 'Effects', count: effects.length > 0 ? effects.length : undefined },
+              ...(isContractCall ? [{ id: 'trace', label: 'Trace' }] : []),
+              ...(isContractCall ? [{ id: 'resources', label: 'Resources' }] : []),
+              { id: 'details', label: 'Details' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(activeTab === tab.id ? null : tab.id as any)}
+                className={`flex-1 py-2 text-[11px] rounded-lg transition-all text-center ${
+                  activeTab === tab.id
+                    ? 'font-bold text-white bg-[var(--primary-blue)] shadow-md'
+                    : 'font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {tab.label}
+                {tab.count !== undefined && (
+                  <span className={`ml-0.5 text-[10px] ${activeTab === tab.id ? 'text-white/80' : 'text-[var(--text-muted)]'}`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Tab Content */}
-        <div className="min-h-[200px]">
+        <div className="min-h-[200px] pt-3">
 
           {/* OPERATIONS TAB */}
           {activeTab === 'operations' && (
-            <div className="space-y-3" ref={opsContainerRef}>
-              {operations.slice(0, visibleOpsCount).map((op, idx) => {
-                const opNum = idx + 1;
+            <div ref={opsContainerRef}>
+              <div className="space-y-3">
+              {filteredOperations.slice(0, visibleOpsCount).map((op, idx) => {
+                const opNum = operations.indexOf(op) + 1;
                 const isPathPayment = op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
                 const isPaymentOp = op.type === 'payment';
                 const isCreateAccount = op.type === 'create_account';
@@ -1337,6 +1376,39 @@ export default function TransactionMobileView({ transaction, operations, effects
                         </div>
                         <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{opDescription}</p>
                       </div>
+                      {/* Filter - only on first operation */}
+                      {idx === 0 && (
+                        <div ref={filterRef} className="relative" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                            className="flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-secondary)]"
+                          >
+                            <span>{operationFilter === 'all' ? `All (${operations.length})` : `${operationFilter} (${filteredOperations.length})`}</span>
+                            <svg className={`w-3 h-3 transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          {showFilterDropdown && (
+                            <div className="absolute right-0 top-full mt-1 min-w-[140px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
+                              <button
+                                onClick={() => { setOperationFilter('all'); setShowFilterDropdown(false); }}
+                                className={`w-full text-left px-3 py-2 text-[11px] font-medium ${operationFilter === 'all' ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+                              >
+                                All ({operations.length})
+                              </button>
+                              {operationTypes.map(([type, count]) => (
+                                <button
+                                  key={type}
+                                  onClick={() => { setOperationFilter(type); setShowFilterDropdown(false); }}
+                                  className={`w-full text-left px-3 py-2 text-[11px] font-medium ${operationFilter === type ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+                                >
+                                  {type} ({count})
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Operation Details */}
@@ -1475,9 +1547,10 @@ export default function TransactionMobileView({ transaction, operations, effects
                   </div>
                 );
               })}
+              </div>
 
               {/* Infinite scroll sentinel and loading state */}
-              {operations.length > OPS_PER_PAGE && (
+              {filteredOperations.length > OPS_PER_PAGE && (
                 <div className="mt-4 pt-3">
                   {/* Loading spinner */}
                   {isLoadingOps && (
@@ -1487,7 +1560,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                   )}
 
                   {/* Show status or load more button */}
-                  {visibleOpsCount >= operations.length ? (
+                  {visibleOpsCount >= filteredOperations.length ? (
                     <div className="text-center py-4 text-[var(--text-muted)] text-sm font-medium">
                       No more operations
                     </div>
@@ -1503,7 +1576,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                           className="w-full py-3 text-sm font-semibold rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
                           style={{ color: primaryColor }}
                         >
-                          Load more ({operations.length - visibleOpsCount} remaining)
+                          Load more ({filteredOperations.length - visibleOpsCount} remaining)
                         </button>
                       )}
                     </>
@@ -1538,7 +1611,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                           {account === 'unknown' ? (
                             <span className="text-xs text-[var(--text-muted)]">Unknown account</span>
                           ) : (
-                            <Link href={`/account/${account}`} className="text-xs font-bold hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
+                            <Link href={`/account/${account}`} className="text-xs font-bold font-mono hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
                               {shortenAddress(account, 4)}
                             </Link>
                           )}
@@ -1632,7 +1705,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                   <div key={i} className="flex justify-between items-center px-4 py-3 border-b border-[var(--border-subtle)] last:border-0">
                     <span className="text-xs text-[var(--text-tertiary)] font-medium">{item.label}</span>
                     {item.isLink ? (
-                      <Link href={`/account/${item.value}`} className="text-xs font-bold hover:opacity-80" style={{ color: primaryColor }}>
+                      <Link href={`/account/${item.value}`} className="text-xs font-bold font-mono hover:opacity-80" style={{ color: primaryColor }}>
                         {shortenAddress(item.value!, 4)}
                       </Link>
                     ) : item.linkUrl ? (
@@ -1655,6 +1728,53 @@ export default function TransactionMobileView({ transaction, operations, effects
                       <p className="text-[11px] font-mono text-[var(--text-secondary)] break-all">{sig}</p>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Raw XDR Data */}
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold" style={{ color: primaryColor }}>Envelope XDR</h3>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(transaction.envelope_xdr);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1500);
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-white rounded-lg hover:opacity-90 transition-colors"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy
+                  </button>
+                </div>
+                <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)] max-h-32 overflow-y-auto">
+                  <p className="font-mono text-[10px] text-[var(--text-secondary)] break-all leading-relaxed">{transaction.envelope_xdr}</p>
+                </div>
+              </div>
+
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold" style={{ color: primaryColor }}>Result XDR</h3>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(transaction.result_xdr);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1500);
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-white rounded-lg hover:opacity-90 transition-colors"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy
+                  </button>
+                </div>
+                <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)] max-h-32 overflow-y-auto">
+                  <p className="font-mono text-[10px] text-[var(--text-secondary)] break-all leading-relaxed">{transaction.result_xdr}</p>
                 </div>
               </div>
             </div>
@@ -2314,56 +2434,6 @@ export default function TransactionMobileView({ transaction, operations, effects
                       )}
                     </>
                   )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* RAW DATA TAB */}
-          {activeTab === 'raw' && (
-            <div className="space-y-3">
-              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-xs font-bold uppercase tracking-wide" style={{ color: primaryColor }}>Envelope XDR</div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(transaction.envelope_xdr);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 1500);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-white rounded-lg hover:opacity-90 transition-colors"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Copy
-                  </button>
-                </div>
-                <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)]">
-                  <p className="font-mono text-[11px] text-[var(--text-secondary)] break-all leading-relaxed">{transaction.envelope_xdr}</p>
-                </div>
-              </div>
-              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-xs font-bold uppercase tracking-wide" style={{ color: primaryColor }}>Result XDR</div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(transaction.result_xdr);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 1500);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-white rounded-lg hover:opacity-90 transition-colors"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Copy
-                  </button>
-                </div>
-                <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)]">
-                  <p className="font-mono text-[11px] text-[var(--text-secondary)] break-all leading-relaxed">{transaction.result_xdr}</p>
                 </div>
               </div>
             </div>

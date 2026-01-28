@@ -92,46 +92,54 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
           </div>
         )}
 
-        {/* Mobile List View */}
-        <div className="md:hidden bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] overflow-hidden">
+        {/* Mobile List View - Compact Cards */}
+        <div className="md:hidden">
           {accounts.length === 0 ? (
-            <div className="px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
+            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
               No accounts found
             </div>
           ) : (
-            accounts.map((account, index) => (
-              <Link
-                key={account.account}
-                href={`/account/${account.account}`}
-                className={`flex items-center px-3 py-3 active:bg-[var(--bg-tertiary)] transition-colors ${
-                  index % 2 === 1 ? 'bg-[var(--bg-primary)]/30' : ''
-                } ${index !== accounts.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}
-              >
-                <div className="flex-1 min-w-0 pr-3">
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-semibold text-[var(--primary-blue)] truncate">
-                      {account.label?.name || account.org_name || 'Unknown'}
-                    </span>
-                    {account.label?.verified === 1 && (
-                      <svg className="w-3.5 h-3.5 flex-shrink-0 text-[var(--success)]" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    )}
+            <div className="space-y-1.5">
+              {accounts.map((account) => (
+                <Link
+                  key={account.account}
+                  href={`/account/${account.account}`}
+                  className="block bg-[var(--bg-secondary)] rounded-lg shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
+                >
+                  <div className="px-3 py-2">
+                    {/* Single Row Layout */}
+                    <div className="flex items-center">
+                      {/* Name & Address */}
+                      <div className="flex-1 min-w-0 mr-2">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[13px] font-semibold text-[var(--primary-blue)] truncate">
+                            {account.label?.name || account.org_name || 'Unknown'}
+                          </span>
+                          {account.label?.verified === 1 && (
+                            <svg className="w-3 h-3 flex-shrink-0 text-[var(--success)]" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                          {shortenAddress(account.account, 4)}
+                        </span>
+                      </div>
+
+                      {/* Balance & Transactions */}
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-[13px] font-bold text-[var(--text-primary)]">
+                          {formatBalance(account.balance || 0)} <span className="text-[var(--text-muted)] font-normal text-[10px]">XLM</span>
+                        </div>
+                        <div className="text-[10px] text-[var(--text-muted)]">
+                          {parseInt(account.transactions || '0').toLocaleString()} txs
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-[var(--text-muted)] font-mono mt-0.5">
-                    {shortenAddress(account.account, 4)}
-                  </div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="text-sm font-bold text-[var(--text-primary)]">
-                    {formatBalance(account.balance || 0)} <span className="text-[var(--text-muted)] font-normal text-xs">XLM</span>
-                  </div>
-                  <div className="text-[11px] text-[var(--text-muted)]">
-                    {parseInt(account.transactions || '0').toLocaleString()} txs
-                  </div>
-                </div>
-              </Link>
-            ))
+                </Link>
+              ))}
+            </div>
           )}
         </div>
 

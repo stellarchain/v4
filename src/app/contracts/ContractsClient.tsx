@@ -390,53 +390,82 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
           </div>
         )}
 
-        {/* Mobile List View */}
-        <div className="md:hidden bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] overflow-hidden">
+        {/* Mobile List View - Individual Cards */}
+        <div className="md:hidden">
           {filteredContracts.length === 0 ? (
-            <div className="px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
+            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
               No contracts found
             </div>
           ) : (
-            filteredContracts.map((contract, index) => (
-              <Link
-                key={contract.id}
-                href={`/contract/${contract.id}`}
-                className={`flex items-center px-3 py-3 active:bg-[var(--bg-tertiary)] transition-colors ${
-                  index % 2 === 1 ? 'bg-[var(--bg-primary)]/30' : ''
-                } ${index !== filteredContracts.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}
-              >
-                <div className="flex-1 min-w-0 pr-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-semibold text-[var(--primary-blue)] truncate">
-                      {contract.name}
-                    </span>
-                    {contract.verified && (
-                      <svg className="w-3.5 h-3.5 flex-shrink-0 text-[var(--success)]" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                    <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                      contract.type === 'token' ? 'bg-indigo-500/10 text-indigo-500' :
-                      contract.type === 'dex' ? 'bg-purple-500/10 text-purple-500' :
-                      'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
-                    }`}>
-                      {contract.type}
-                    </span>
+            <div className="space-y-2">
+              {filteredContracts.map((contract) => (
+                <Link
+                  key={contract.id}
+                  href={`/contract/${contract.id}`}
+                  className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
+                >
+                  <div className="px-3 py-3 flex items-center justify-between">
+                    {/* Left Side: Icon & Contract Info */}
+                    <div className="flex items-start space-x-3">
+                      <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                        contract.type === 'token' ? 'bg-indigo-500/10 text-indigo-500' :
+                        contract.type === 'dex' ? 'bg-purple-500/10 text-purple-500' :
+                        contract.type === 'lending' ? 'bg-emerald-500/10 text-emerald-500' :
+                        'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
+                      }`}>
+                        {contract.type === 'token' ? (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                        ) : contract.type === 'dex' ? (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                          </svg>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-bold leading-tight text-[var(--primary-blue)] truncate">
+                            {contract.name}
+                          </span>
+                          {contract.verified && (
+                            <svg className="w-3.5 h-3.5 flex-shrink-0 text-[var(--success)]" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-xs text-[var(--text-muted)] font-medium font-mono mt-0.5 flex items-center">
+                          {shortenAddress(contract.id, 4)}
+                          <span className="mx-1 text-[var(--text-muted)]">•</span>
+                          <span className={`text-[9px] font-bold uppercase ${
+                            contract.type === 'token' ? 'text-indigo-500' :
+                            contract.type === 'dex' ? 'text-purple-500' :
+                            'text-[var(--text-muted)]'
+                          }`}>
+                            {contract.type}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right Side: Stats */}
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
+                        {contract.operationCount.toLocaleString()} <span className="text-[var(--text-muted)] font-normal">txs</span>
+                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)]">
+                        {contract.createdAt ? timeAgo(contract.createdAt) : '—'}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-[var(--text-muted)] font-mono mt-0.5">
-                    {shortenAddress(contract.id, 4)}
-                  </div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="text-sm font-bold text-[var(--text-primary)]">
-                    {contract.operationCount.toLocaleString()} <span className="text-[var(--text-muted)] font-normal text-xs">txs</span>
-                  </div>
-                  <div className="text-[11px] text-[var(--text-muted)]">
-                    {contract.createdAt ? timeAgo(contract.createdAt) : '—'}
-                  </div>
-                </div>
-              </Link>
-            ))
+                </Link>
+              ))}
+            </div>
           )}
         </div>
 
