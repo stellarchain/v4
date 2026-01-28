@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { MarketAsset } from '@/lib/stellar';
 import { containers } from '@/lib/design-system';
 
@@ -354,8 +355,8 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
       <main className="px-3">
         {/* Column Headers */}
         <div className="flex items-center px-3 py-2">
-          <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold w-9">Rank</span>
-          <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold flex-1">Market Cap</span>
+          <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold w-7">#</span>
+          <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold flex-1 pl-9">Asset</span>
           <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold w-20 text-center">Price</span>
           <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold w-16 text-right">Change</span>
         </div>
@@ -376,10 +377,34 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
                 onClick={() => handleRowClick(asset)}
               >
                 {/* Rank */}
-                <div className="w-8 flex-shrink-0">
-                  <span className="text-sm font-medium text-[var(--text-muted)]">
+                <div className="w-6 flex-shrink-0">
+                  <span className="text-xs font-medium text-[var(--text-muted)]">
                     {hasData ? asset.rank : '--'}
                   </span>
+                </div>
+
+                {/* Logo */}
+                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2 bg-[var(--bg-tertiary)] flex items-center justify-center">
+                  {asset.code === 'XLM' && !asset.issuer ? (
+                    <div className="w-full h-full bg-[var(--text-primary)] flex items-center justify-center">
+                      <svg className="w-5 h-5 text-[var(--bg-primary)]" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  ) : asset.image ? (
+                    <Image
+                      src={asset.image}
+                      alt={asset.code}
+                      width={32}
+                      height={32}
+                      className="w-full h-full object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="text-xs font-bold text-[var(--text-muted)]">
+                      {asset.code.slice(0, 2)}
+                    </span>
+                  )}
                 </div>
 
                 {/* Asset Name/MCap */}
