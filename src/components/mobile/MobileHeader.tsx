@@ -11,11 +11,8 @@ export default function MobileHeader() {
   const [xlmPrice, setXlmPrice] = useState(0);
   const pathname = usePathname();
 
-  const isHomePage = pathname === '/';
-
-  // Fetch base fee & XLM Price
+  // Fetch base fee & XLM Price for all pages with header
   useEffect(() => {
-    if (!isHomePage) return; // Only fetch stats for homepage
     const fetchStats = async () => {
       try {
         // Fetch Base Fee
@@ -34,7 +31,7 @@ export default function MobileHeader() {
       }
     };
     fetchStats();
-  }, [isHomePage]);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,45 +71,7 @@ export default function MobileHeader() {
   if (pathname?.startsWith('/contract/')) return null;
   if (pathname?.startsWith('/liquidity-pool/')) return null;
 
-  // Simplified Header for non-homepage
-  if (!isHomePage) {
-    return (
-      <header className="bg-[var(--header-bg)] text-white pt-6 pb-6 px-4 rounded-b-3xl shadow-lg relative z-10 md:hidden">
-        {/* Top: Logo */}
-        <div className="flex items-center justify-between mb-4">
-          <Link href="/">
-            <Image
-              src="/logostellar.png"
-              alt="StellarChain Explorer"
-              width={180}
-              height={32}
-              className="h-7 w-auto"
-            />
-          </Link>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-          <form onSubmit={handleSearch}>
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </span>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-400 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-              placeholder="Search hash, ledger, account..."
-            />
-          </form>
-        </div>
-      </header>
-    );
-  }
-
-  // Full Header for Homepage
+  // Same header for all pages (with stats)
   return (
     <header className="bg-[var(--header-bg)] text-white pt-6 pb-6 px-4 rounded-b-3xl shadow-lg relative z-10 md:hidden">
       {/* Top Bar: Logo */}
