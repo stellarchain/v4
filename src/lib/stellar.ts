@@ -231,6 +231,7 @@ export interface MarketAsset {
   code: string;
   issuer: string;
   name: string;
+  image?: string;
   price_usd: number;
   price_xlm: number;
   change_1h: number;
@@ -1664,6 +1665,7 @@ export async function getMarketAssets(): Promise<MarketAsset[]> {
         code: String(asset.asset || 'Unknown').split('-')[0],
         issuer: String(asset.asset || '').split('-')[1] || '',
         name: String(toml?.name || String(asset.asset || 'Unknown').split('-')[0]),
+        image: toml?.image ? String(toml.image) : undefined,
         price_usd: currentPrice,
         price_xlm: priceInXlm,
         change_1h: change1h,

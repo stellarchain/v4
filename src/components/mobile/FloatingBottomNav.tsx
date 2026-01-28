@@ -2,16 +2,19 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { shortenAddress } from '@/lib/stellar';
 
-const mainNavItems = [
+const navItemsLeft = [
   { name: 'Home', href: '/', icon: 'home' },
-  { name: 'Txns', href: '/transactions', icon: 'txns' },
+  { name: 'News', href: '/news', icon: 'news' },
+];
+
+const navItemsRight = [
   { name: 'Markets', href: '/markets', icon: 'markets' },
 ];
 
@@ -64,6 +67,11 @@ const icons: Record<string, React.ReactNode> = {
   txns: (
     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+    </svg>
+  ),
+  news: (
+    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
     </svg>
   ),
   markets: (
@@ -146,6 +154,7 @@ const itemIcons: Record<string, React.ReactNode> = {
 
 export default function FloatingBottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['Blockchain', 'Accounts']);
   const [mounted, setMounted] = useState(false);
@@ -232,11 +241,10 @@ export default function FloatingBottomNav() {
                       <Link
                         href={category.href}
                         onClick={() => setIsMoreOpen(false)}
-                        className={`flex items-center gap-3 py-3 px-2 rounded-lg transition-colors ${
-                          isActive(category.href)
-                            ? 'text-[var(--primary-blue)]'
-                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                        }`}
+                        className={`flex items-center gap-3 py-3 px-2 rounded-lg transition-colors ${isActive(category.href)
+                          ? 'text-[var(--primary-blue)]'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                          }`}
                       >
                         <span className="text-[var(--primary-blue)]">{categoryIcons[category.icon]}</span>
                         <span className="font-medium">{category.name}</span>
@@ -250,9 +258,8 @@ export default function FloatingBottomNav() {
                           <span className="text-[var(--primary-blue)]">{categoryIcons[category.icon]}</span>
                           <span className="font-medium">{category.name}</span>
                           <svg
-                            className={`w-4 h-4 ml-auto transition-transform ${
-                              expandedCategories.includes(category.name) ? 'rotate-180' : ''
-                            }`}
+                            className={`w-4 h-4 ml-auto transition-transform ${expandedCategories.includes(category.name) ? 'rotate-180' : ''
+                              }`}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -273,19 +280,16 @@ export default function FloatingBottomNav() {
                                 key={item.name}
                                 href={item.href}
                                 onClick={() => setIsMoreOpen(false)}
-                                className={`flex items-center gap-3 px-4 py-3 transition-colors ${
-                                  index !== category.items!.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''
-                                } ${
-                                  isActive(item.href)
+                                className={`flex items-center gap-3 px-4 py-3 transition-colors ${index !== category.items!.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''
+                                  } ${isActive(item.href)
                                     ? 'bg-[var(--bg-tertiary)]'
                                     : 'hover:bg-[var(--bg-tertiary)]'
-                                }`}
+                                  }`}
                               >
                                 <span className="text-[var(--primary-blue)]">{itemIcons[item.icon]}</span>
                                 <div className="flex-1">
-                                  <span className={`font-medium ${
-                                    isActive(item.href) ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
-                                  }`}>
+                                  <span className={`font-medium ${isActive(item.href) ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
+                                    }`}>
                                     {item.name}
                                   </span>
                                   <p className="text-xs text-[var(--text-muted)]">{item.description}</p>
@@ -312,16 +316,14 @@ export default function FloatingBottomNav() {
                   <span className="font-medium text-[var(--text-secondary)]">Dark Mode</span>
                   <div className="ml-auto">
                     <div
-                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
-                        theme === 'dark' ? 'bg-[var(--primary-blue)]' : 'bg-[var(--bg-tertiary)]'
-                      }`}
+                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${theme === 'dark' ? 'bg-[var(--primary-blue)]' : 'bg-[var(--bg-tertiary)]'
+                        }`}
                     >
                       <motion.div
                         layout
                         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                        className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-md ${
-                          theme === 'dark' ? 'left-6' : 'left-1'
-                        }`}
+                        className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-md ${theme === 'dark' ? 'left-6' : 'left-1'
+                          }`}
                       />
                     </div>
                   </div>
@@ -336,88 +338,6 @@ export default function FloatingBottomNav() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Floating Favorites Button - overlaps navbar top */}
-      {favorites.length > 0 && (
-        <div className="fixed bottom-[52px] left-1/2 -translate-x-1/2 z-[51] md:hidden">
-          <div className="relative">
-            <motion.button
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', damping: 20, stiffness: 300, delay: 0.2 }}
-              onClick={() => setShowFavoritesList(!showFavoritesList)}
-              className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-              style={{
-                background: theme === 'dark'
-                  ? 'rgba(22, 30, 41, 0.95)'
-                  : 'rgba(255, 255, 255, 0.95)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                border: theme === 'dark'
-                  ? '1px solid rgba(255, 255, 255, 0.1)'
-                  : '1px solid rgba(0, 0, 0, 0.08)',
-              }}
-            >
-              <svg className="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-              </svg>
-            </motion.button>
-
-            {/* Favorites Dropdown */}
-            <AnimatePresence>
-              {showFavoritesList && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 min-w-[200px] rounded-xl shadow-xl overflow-hidden"
-                  style={{
-                    background: theme === 'dark'
-                      ? 'rgba(22, 30, 41, 0.98)'
-                      : 'rgba(255, 255, 255, 0.98)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    border: theme === 'dark'
-                      ? '1px solid rgba(255, 255, 255, 0.1)'
-                      : '1px solid rgba(0, 0, 0, 0.08)',
-                  }}
-                >
-                  <div className="px-3 py-2 border-b border-[var(--border-subtle)]">
-                    <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-muted)]">Favorites</span>
-                  </div>
-                  <div className="max-h-[200px] overflow-y-auto">
-                    {favorites.map((fav) => (
-                      <Link
-                        key={fav.address}
-                        href={`/account/${fav.address}`}
-                        onClick={() => setShowFavoritesList(false)}
-                        className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
-                          pathname === `/account/${fav.address}`
-                            ? 'bg-amber-500/10'
-                            : 'hover:bg-[var(--bg-tertiary)]'
-                        }`}
-                      >
-                        <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                        </svg>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-[var(--text-primary)] truncate">
-                            {fav.label || 'Unnamed'}
-                          </div>
-                          <div className="text-[10px] font-mono text-[var(--text-muted)]">
-                            {shortenAddress(fav.address, 4)}
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      )}
 
       {/* Main Floating Nav Bar */}
       <motion.nav
@@ -442,7 +362,8 @@ export default function FloatingBottomNav() {
               : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
           }}
         >
-          {mainNavItems.map((item) => (
+          {/* Left nav items: Home, Txns */}
+          {navItemsLeft.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -454,20 +375,129 @@ export default function FloatingBottomNav() {
                 className="flex flex-col items-center gap-1"
               >
                 <span
-                  className={`transition-colors duration-200 ${
-                    isActive(item.href)
-                      ? 'text-[var(--primary-blue)]'
-                      : 'text-[var(--text-muted)]'
-                  }`}
+                  className={`transition-colors duration-200 ${isActive(item.href)
+                    ? 'text-[var(--primary-blue)]'
+                    : 'text-[var(--text-muted)]'
+                    }`}
                 >
                   {icons[item.icon]}
                 </span>
                 <span
-                  className={`text-[10px] font-medium transition-colors duration-200 ${
-                    isActive(item.href)
-                      ? 'text-[var(--primary-blue)]'
-                      : 'text-[var(--text-muted)]'
-                  }`}
+                  className={`text-[10px] font-medium transition-colors duration-200 ${isActive(item.href)
+                    ? 'text-[var(--primary-blue)]'
+                    : 'text-[var(--text-muted)]'
+                    }`}
+                >
+                  {item.name}
+                </span>
+              </motion.div>
+            </Link>
+          ))}
+
+          {/* Favorites Button - CENTER - only show if there are favorites */}
+          {favorites.length > 0 && (
+            <div className="relative flex flex-col items-center justify-center flex-1 h-full">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                onClick={() => {
+                  if (favorites.length === 1) {
+                    router.push(`/account/${favorites[0].address}`);
+                  } else {
+                    setShowFavoritesList(!showFavoritesList);
+                  }
+                }}
+                className="flex flex-col items-center gap-1"
+              >
+                <span className="text-amber-500">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
+                </span>
+                <span className="text-[10px] font-medium text-amber-500">
+                  Watchlist
+                </span>
+              </motion.button>
+
+              {/* Favorites Dropdown - only for multiple favorites */}
+              <AnimatePresence>
+                {showFavoritesList && favorites.length > 1 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 min-w-[200px] rounded-xl shadow-xl overflow-hidden"
+                    style={{
+                      background: theme === 'dark'
+                        ? 'rgba(22, 30, 41, 0.98)'
+                        : 'rgba(255, 255, 255, 0.98)',
+                      backdropFilter: 'blur(20px)',
+                      WebkitBackdropFilter: 'blur(20px)',
+                      border: theme === 'dark'
+                        ? '1px solid rgba(255, 255, 255, 0.1)'
+                        : '1px solid rgba(0, 0, 0, 0.08)',
+                    }}
+                  >
+                    <div className="px-3 py-2 border-b border-[var(--border-subtle)]">
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-muted)]">Favorites</span>
+                    </div>
+                    <div className="max-h-[200px] overflow-y-auto">
+                      {favorites.map((fav) => (
+                        <Link
+                          key={fav.address}
+                          href={`/account/${fav.address}`}
+                          onClick={() => setShowFavoritesList(false)}
+                          className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${pathname === `/account/${fav.address}`
+                            ? 'bg-amber-500/10'
+                            : 'hover:bg-[var(--bg-tertiary)]'
+                            }`}
+                        >
+                          <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                          </svg>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-[var(--text-primary)] truncate">
+                              {fav.label || 'Unnamed'}
+                            </div>
+                            <div className="text-[10px] font-mono text-[var(--text-muted)]">
+                              {shortenAddress(fav.address, 4)}
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Right nav items: Markets */}
+          {navItemsRight.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex flex-col items-center justify-center flex-1 h-full"
+            >
+              <motion.div
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                className="flex flex-col items-center gap-1"
+              >
+                <span
+                  className={`transition-colors duration-200 ${isActive(item.href)
+                    ? 'text-[var(--primary-blue)]'
+                    : 'text-[var(--text-muted)]'
+                    }`}
+                >
+                  {icons[item.icon]}
+                </span>
+                <span
+                  className={`text-[10px] font-medium transition-colors duration-200 ${isActive(item.href)
+                    ? 'text-[var(--primary-blue)]'
+                    : 'text-[var(--text-muted)]'
+                    }`}
                 >
                   {item.name}
                 </span>
@@ -488,20 +518,18 @@ export default function FloatingBottomNav() {
               <motion.span
                 animate={{ rotate: isMoreOpen ? 90 : 0 }}
                 transition={{ duration: 0.2 }}
-                className={`transition-colors duration-200 ${
-                  isMoreOpen
-                    ? 'text-[var(--primary-blue)]'
-                    : 'text-[var(--text-muted)]'
-                }`}
+                className={`transition-colors duration-200 ${isMoreOpen
+                  ? 'text-[var(--primary-blue)]'
+                  : 'text-[var(--text-muted)]'
+                  }`}
               >
                 {isMoreOpen ? icons.close : icons.more}
               </motion.span>
               <span
-                className={`text-[10px] font-medium transition-colors duration-200 ${
-                  isMoreOpen
-                    ? 'text-[var(--primary-blue)]'
-                    : 'text-[var(--text-muted)]'
-                }`}
+                className={`text-[10px] font-medium transition-colors duration-200 ${isMoreOpen
+                  ? 'text-[var(--primary-blue)]'
+                  : 'text-[var(--text-muted)]'
+                  }`}
               >
                 More
               </span>
