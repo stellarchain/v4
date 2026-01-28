@@ -1,0 +1,427 @@
+'use client';
+
+import Link from 'next/link';
+import Image from 'next/image';
+import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '@/contexts/ThemeContext';
+
+const mainNavItems = [
+  { name: 'Home', href: '/', icon: 'home' },
+  { name: 'Txns', href: '/transactions', icon: 'txns' },
+  { name: 'Markets', href: '/markets', icon: 'markets' },
+];
+
+interface MenuItem {
+  name: string;
+  href: string;
+  icon: string;
+  description: string;
+}
+
+interface MenuCategory {
+  name: string;
+  icon: string;
+  items?: MenuItem[];
+  href?: string;
+}
+
+const menuCategories: MenuCategory[] = [
+  {
+    name: 'Blockchain',
+    icon: 'blockchain',
+    items: [
+      { name: 'Ledgers', href: '/ledgers', icon: 'ledger', description: 'Data structures' },
+      { name: 'Transactions', href: '/transactions', icon: 'transaction', description: 'Modifies the ledger state' },
+      { name: 'Smart Contracts', href: '/contracts', icon: 'contract', description: 'Deployed contracts' },
+      { name: 'Liquidity Pools', href: '/liquidity-pools', icon: 'pool', description: 'Assets reserves' },
+    ],
+  },
+  {
+    name: 'Accounts',
+    icon: 'accounts',
+    items: [
+      { name: 'Top Accounts', href: '/accounts', icon: 'users', description: 'Ranked by XLM holdings' },
+      { name: 'Known Accounts', href: '/known-accounts', icon: 'verified', description: 'Labeled accounts directory' },
+    ],
+  },
+  {
+    name: 'Market',
+    icon: 'market',
+    href: '/markets',
+  },
+];
+
+const icons: Record<string, React.ReactNode> = {
+  home: (
+    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  ),
+  txns: (
+    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+    </svg>
+  ),
+  markets: (
+    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+    </svg>
+  ),
+  more: (
+    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  ),
+  close: (
+    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  ),
+  sun: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  ),
+  moon: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    </svg>
+  ),
+};
+
+const categoryIcons: Record<string, React.ReactNode> = {
+  blockchain: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+    </svg>
+  ),
+  accounts: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+  ),
+  market: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+    </svg>
+  ),
+};
+
+const itemIcons: Record<string, React.ReactNode> = {
+  ledger: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+    </svg>
+  ),
+  transaction: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+    </svg>
+  ),
+  contract: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  ),
+  pool: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+    </svg>
+  ),
+  users: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  ),
+  verified: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+    </svg>
+  ),
+};
+
+export default function FloatingBottomNav() {
+  const pathname = usePathname();
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(['Blockchain', 'Accounts']);
+  const [mounted, setMounted] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+
+  // Only render after mounting to avoid SSR issues with Framer Motion
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close menu when route changes
+  useEffect(() => {
+    setIsMoreOpen(false);
+  }, [pathname]);
+
+  // Prevent body scroll when menu is open
+  useEffect(() => {
+    if (isMoreOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMoreOpen]);
+
+  const toggleCategory = (categoryName: string) => {
+    setExpandedCategories(prev =>
+      prev.includes(categoryName)
+        ? prev.filter(c => c !== categoryName)
+        : [...prev, categoryName]
+    );
+  };
+
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/';
+    return pathname.startsWith(href);
+  };
+
+  const isMoreActive = menuCategories.some(cat =>
+    cat.href ? isActive(cat.href) : cat.items?.some(item => isActive(item.href))
+  );
+
+  // Don't render until mounted to avoid SSR issues with Framer Motion
+  if (!mounted) return null;
+
+  return (
+    <>
+      {/* Full Screen Menu */}
+      <AnimatePresence>
+        {isMoreOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bottom-[76px] z-40 md:hidden bg-[var(--bg-primary)] flex flex-col"
+          >
+            {/* Header */}
+            <header className="bg-[var(--header-bg)] text-white pt-6 pb-4 px-4 rounded-b-3xl shadow-lg flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <Link href="/" onClick={() => setIsMoreOpen(false)}>
+                  <Image
+                    src="/logostellar.png"
+                    alt="StellarChain Explorer"
+                    width={180}
+                    height={32}
+                    className="h-7 w-auto"
+                  />
+                </Link>
+              </div>
+            </header>
+
+            {/* Menu Content */}
+            <div className="flex-1 overflow-y-auto">
+              <nav className="px-4 py-4 space-y-2">
+                {menuCategories.map((category) => (
+                  <div key={category.name}>
+                    {category.href ? (
+                      <Link
+                        href={category.href}
+                        onClick={() => setIsMoreOpen(false)}
+                        className={`flex items-center gap-3 py-3 px-2 rounded-lg transition-colors ${
+                          isActive(category.href)
+                            ? 'text-[var(--primary-blue)]'
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        <span className="text-[var(--primary-blue)]">{categoryIcons[category.icon]}</span>
+                        <span className="font-medium">{category.name}</span>
+                      </Link>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => toggleCategory(category.name)}
+                          className="flex items-center gap-3 py-3 px-2 w-full text-left rounded-lg transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                        >
+                          <span className="text-[var(--primary-blue)]">{categoryIcons[category.icon]}</span>
+                          <span className="font-medium">{category.name}</span>
+                          <svg
+                            className={`w-4 h-4 ml-auto transition-transform ${
+                              expandedCategories.includes(category.name) ? 'rotate-180' : ''
+                            }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+
+                        {expandedCategories.includes(category.name) && category.items && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="ml-2 bg-[var(--bg-secondary)] rounded-xl overflow-hidden"
+                          >
+                            {category.items.map((item, index) => (
+                              <Link
+                                key={item.name}
+                                href={item.href}
+                                onClick={() => setIsMoreOpen(false)}
+                                className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                                  index !== category.items!.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''
+                                } ${
+                                  isActive(item.href)
+                                    ? 'bg-[var(--bg-tertiary)]'
+                                    : 'hover:bg-[var(--bg-tertiary)]'
+                                }`}
+                              >
+                                <span className="text-[var(--primary-blue)]">{itemIcons[item.icon]}</span>
+                                <div className="flex-1">
+                                  <span className={`font-medium ${
+                                    isActive(item.href) ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
+                                  }`}>
+                                    {item.name}
+                                  </span>
+                                  <p className="text-xs text-[var(--text-muted)]">{item.description}</p>
+                                </div>
+                              </Link>
+                            ))}
+                          </motion.div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ))}
+              </nav>
+
+              {/* Dark Mode Toggle */}
+              <div className="px-4 mt-4">
+                <button
+                  onClick={toggleTheme}
+                  className="flex items-center gap-3 py-3 px-4 w-full bg-[var(--bg-secondary)] rounded-xl transition-colors"
+                >
+                  <span className="text-[var(--primary-blue)]">
+                    {theme === 'dark' ? icons.moon : icons.sun}
+                  </span>
+                  <span className="font-medium text-[var(--text-secondary)]">Dark Mode</span>
+                  <div className="ml-auto">
+                    <div
+                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+                        theme === 'dark' ? 'bg-[var(--primary-blue)]' : 'bg-[var(--bg-tertiary)]'
+                      }`}
+                    >
+                      <motion.div
+                        layout
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-md ${
+                          theme === 'dark' ? 'left-6' : 'left-1'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              {/* Footer */}
+              <div className="px-4 mt-8 pb-8 text-center">
+                <span className="text-2xl">❤️</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Floating Nav Bar */}
+      <motion.nav
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', damping: 20, stiffness: 300, delay: 0.1 }}
+        className="fixed bottom-4 left-4 right-4 z-50 md:hidden safe-area-bottom"
+      >
+        <div
+          className="flex items-center justify-around h-16 rounded-3xl"
+          style={{
+            background: theme === 'dark'
+              ? 'rgba(22, 30, 41, 0.85)'
+              : 'rgba(255, 255, 255, 0.85)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: theme === 'dark'
+              ? '1px solid rgba(255, 255, 255, 0.08)'
+              : '1px solid rgba(0, 0, 0, 0.08)',
+            boxShadow: theme === 'dark'
+              ? '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+              : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+          }}
+        >
+          {mainNavItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex flex-col items-center justify-center flex-1 h-full"
+            >
+              <motion.div
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                className="flex flex-col items-center gap-1"
+              >
+                <span
+                  className={`transition-colors duration-200 ${
+                    isActive(item.href)
+                      ? 'text-[var(--primary-blue)]'
+                      : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  {icons[item.icon]}
+                </span>
+                <span
+                  className={`text-[10px] font-medium transition-colors duration-200 ${
+                    isActive(item.href)
+                      ? 'text-[var(--primary-blue)]'
+                      : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  {item.name}
+                </span>
+              </motion.div>
+            </Link>
+          ))}
+
+          {/* More Button */}
+          <button
+            onClick={() => setIsMoreOpen(!isMoreOpen)}
+            className="flex flex-col items-center justify-center flex-1 h-full"
+          >
+            <motion.div
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+              className="flex flex-col items-center gap-1"
+            >
+              <motion.span
+                animate={{ rotate: isMoreOpen ? 90 : 0 }}
+                transition={{ duration: 0.2 }}
+                className={`transition-colors duration-200 ${
+                  isMoreOpen
+                    ? 'text-[var(--primary-blue)]'
+                    : 'text-[var(--text-muted)]'
+                }`}
+              >
+                {isMoreOpen ? icons.close : icons.more}
+              </motion.span>
+              <span
+                className={`text-[10px] font-medium transition-colors duration-200 ${
+                  isMoreOpen
+                    ? 'text-[var(--primary-blue)]'
+                    : 'text-[var(--text-muted)]'
+                }`}
+              >
+                More
+              </span>
+            </motion.div>
+          </button>
+        </div>
+      </motion.nav>
+    </>
+  );
+}

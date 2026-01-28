@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
-import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, getAssetTrades, getAssetTradeTransactionHash, getAssetHolders, getAssetTradingPairs, USDC_ISSUER, shortenAddress, OrderBook as OrderBookType, AssetTrade, AssetHolder, TradingPair } from '@/lib/stellar';
+import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, getAssetTrades, getAssetTradeTransactionHash, getAssetHolders, getAssetTradingPairs, getLiquidityPoolByAssets, USDC_ISSUER, shortenAddress, OrderBook as OrderBookType, AssetTrade, AssetHolder, TradingPair } from '@/lib/stellar';
 import { getXLMHoldersAction } from '@/app/actions/stellar';
 import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/design-system';
 
@@ -100,8 +100,8 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   const [navigatingTradeId, setNavigatingTradeId] = useState<string | null>(null);
   const tradesEndRef = useRef<HTMLDivElement>(null);
 
-  // Tab state for trade history / asset holders / markets
-  const [activeTab, setActiveTab] = useState<'trades' | 'holders' | 'markets'>('trades');
+  // Main page tab state
+  const [activeTab, setActiveTab] = useState<'overview' | 'trades' | 'markets' | 'holders'>('overview');
 
   // Asset holders state - pre-fetched on page load
   const [allHolders, setAllHolders] = useState<AssetHolder[]>([]); // Full sorted list
@@ -113,6 +113,30 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   // Markets/trading pairs state - pre-fetched on page load
   const [tradingPairs, setTradingPairs] = useState<TradingPair[]>([]);
   const [marketsLoading, setMarketsLoading] = useState(true);
+  const [navigatingPairKey, setNavigatingPairKey] = useState<string | null>(null);
+
+  // Navigate to liquidity pool for a trading pair
+  const handleMarketClick = async (pair: TradingPair) => {
+    const key = `${pair.counterAsset.code}-${pair.counterAsset.issuer || 'native'}`;
+    setNavigatingPairKey(key);
+    try {
+      const baseAsset = { code: asset.code, issuer: asset.issuer };
+      const counterAsset = { code: pair.counterAsset.code, issuer: pair.counterAsset.issuer };
+      const pool = await getLiquidityPoolByAssets(baseAsset, counterAsset);
+      if (pool) {
+        router.push(`/liquidity-pool/${pool.id}`);
+      } else {
+        // Try reversed order
+        const poolReversed = await getLiquidityPoolByAssets(counterAsset, baseAsset);
+        if (poolReversed) {
+          router.push(`/liquidity-pool/${poolReversed.id}`);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to find liquidity pool', e);
+    }
+    setNavigatingPairKey(null);
+  };
 
   // Fetch chart data
   useEffect(() => {
@@ -326,7 +350,8 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
   // Infinite scroll observer for trades
   useEffect(() => {
-    if (!tradesEndRef.current || !hasMoreTrades) return;
+    // Only observe when trades tab is active
+    if (activeTab !== 'trades' || !tradesEndRef.current || !hasMoreTrades) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -339,7 +364,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
     observer.observe(tradesEndRef.current);
     return () => observer.disconnect();
-  }, [hasMoreTrades, loadingMoreTrades, tradesCursor]);
+  }, [activeTab, hasMoreTrades, loadingMoreTrades, tradesCursor]);
 
   // Handle trade click - navigate to transaction
   const handleTradeClick = async (trade: AssetTrade) => {
@@ -578,72 +603,121 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
   return (
     <div className="w-full bg-[var(--bg-primary)] min-h-screen pb-24 font-sans relative">
-      {/* Header */}
-      <header className="sticky top-0 z-20 bg-[var(--bg-secondary)] border-b border-[var(--border-default)] px-4 py-3">
-        {/* Top Row: Back, Asset Info */}
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="text-[var(--text-muted)]">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <div className="flex items-center gap-2">
-            {asset.image ? (
-              <img src={asset.image} alt={asset.code} className="w-7 h-7 rounded-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-[#0F4C81]/10 flex items-center justify-center">
-                <span className="text-xs font-bold text-[#0F4C81]">{asset.code[0]}</span>
-              </div>
-            )}
-            <span className="font-bold text-lg text-[var(--text-primary)]">{asset.code}</span>
-            <span className="text-[var(--text-muted)] text-sm">/ USD</span>
+      {/* Header - CoinGecko Style */}
+      <header className="sticky top-0 z-20 bg-[var(--header-bg)] text-white px-4 pt-4 pb-5 rounded-b-3xl shadow-lg relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Subtle gradient orb */}
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full blur-3xl" />
+          {/* Diagonal accent lines */}
+          <div className="absolute top-0 right-0 w-full h-full opacity-[0.03]">
+            <div className="absolute top-8 right-12 w-32 h-[1px] bg-gradient-to-r from-transparent via-white to-transparent rotate-[-20deg]" />
+            <div className="absolute top-16 right-8 w-24 h-[1px] bg-gradient-to-r from-transparent via-white to-transparent rotate-[-20deg]" />
           </div>
+          {/* Bottom edge glow */}
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        </div>
+
+        {/* Top Row: Back, Asset Info, Rank */}
+        <div className="flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()} className="text-white/70 hover:text-white">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div className="flex items-center gap-2">
+              {asset.image ? (
+                <img src={asset.image} alt={asset.code} className="w-8 h-8 rounded-full object-cover bg-white/10 ring-2 ring-white/10"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center ring-2 ring-white/10">
+                  <span className="text-sm font-bold text-white">{asset.code[0]}</span>
+                </div>
+              )}
+              <div>
+                <div className="text-white/60 text-[11px] uppercase tracking-wide">Asset price</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-white">{asset.code}</span>
+                  {asset.code !== 'XLM' && (
+                    <span className="text-white/50 text-xs">/ USD</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          {rank > 0 && (
+            <div className="bg-white/10 px-2.5 py-1 rounded-lg backdrop-blur-sm border border-white/5">
+              <span className="text-white/60 text-[10px] uppercase">Rank</span>
+              <span className="text-white font-bold text-sm ml-1">#{rank}</span>
+            </div>
+          )}
         </div>
 
         {/* Price Row */}
-        <div className="mt-3">
-          <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Price</div>
-          <div className="flex items-center justify-between">
-            <div className="text-3xl font-bold text-[#0F4C81]">{formatPrice(asset.price_usd)}</div>
-            <div className={`px-3 py-1.5 rounded-lg ${isPositive ? 'bg-[var(--success)]' : 'bg-[var(--error)]'} flex items-center gap-0.5`}>
-              <span className="text-white text-xs">{isPositive ? '▲' : '▼'}</span>
-              <span className="text-white text-sm font-bold">{Math.abs(change24h).toFixed(2)}%</span>
-            </div>
+        <div className="mt-4 flex items-baseline gap-3 relative z-10">
+          <div className="text-3xl font-bold text-white">{formatPrice(asset.price_usd)}</div>
+          <div className={`flex items-center gap-1 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+            <span className="text-sm">{isPositive ? '▲' : '▼'}</span>
+            <span className="text-sm font-semibold">{Math.abs(change24h).toFixed(2)}%</span>
+            <span className="text-white/40 text-xs">(24h)</span>
           </div>
         </div>
 
-        {/* Stats Row */}
-        <div className="flex items-start justify-between mt-4 pt-4 border-t border-[var(--border-subtle)]">
-          <div>
-            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">MCap</div>
-            <div className="text-sm font-bold text-[#0F4C81] mt-0.5">${formatNumber(asset.market_cap)}</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">Volume 24h</div>
-            <div className="text-sm font-bold text-[#0F4C81] mt-0.5">${formatNumber(asset.volume_24h)}</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">Holders</div>
-            <div className="text-sm font-bold text-[#0F4C81] mt-0.5">{formatNumber(asset.holders || 0)}</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">Rank</div>
-            <div className="text-sm font-bold text-[#0F4C81] mt-0.5">#{rank > 0 ? rank : '-'}</div>
-          </div>
-        </div>
         {asset.code !== 'XLM' && asset.issuer && (
-          <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-[var(--border-subtle)]">
-            <span className="text-xs text-[var(--text-muted)]">Issuer:</span>
-            <Link href={`/account/${asset.issuer}`} className="text-xs font-mono text-[var(--text-tertiary)] hover:text-[#0F4C81]">
+          <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-white/10 relative z-10">
+            <span className="text-xs text-white/50">Issuer:</span>
+            <Link href={`/account/${asset.issuer}`} className="text-xs font-mono text-white/70 hover:text-white">
               {shortenAddress(asset.issuer, 6)}
             </Link>
           </div>
         )}
       </header>
 
+      {/* Main Tab Navigation */}
+      <div className="sticky top-0 z-10 bg-[var(--bg-primary)] border-b border-[var(--border-default)]">
+        <div className="max-w-2xl mx-auto px-3">
+          <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
+            {(['overview', 'trades', 'markets', 'holders'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`py-3 text-sm font-semibold capitalize whitespace-nowrap transition-colors border-b-2 ${
+                  activeTab === tab
+                    ? 'text-[var(--primary-blue)] border-[var(--primary-blue)]'
+                    : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-secondary)]'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-3 py-3 space-y-3">
+
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <>
+            {/* Stats Card */}
+        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+          <div className="grid grid-cols-3 divide-x divide-[var(--border-default)]">
+            <div className="p-3 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1">Market Cap</div>
+              <div className="text-sm font-bold text-[var(--primary-blue)]">${formatNumber(asset.market_cap)}</div>
+            </div>
+            <div className="p-3 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1">Volume 24H</div>
+              <div className="text-sm font-bold text-[var(--primary-blue)]">${formatNumber(asset.volume_24h)}</div>
+            </div>
+            <div className="p-3 text-center">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-1">Holders</div>
+              <div className="text-sm font-bold text-[var(--primary-blue)]">{formatNumber(asset.holders || 0)}</div>
+            </div>
+          </div>
+        </div>
 
         {/* Chart Section */}
         <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-2">
@@ -739,49 +813,6 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 <PriceChangeItem label="YTD" value={asset.change_1y} />
               </>
             )}
-          </div>
-        </div>
-
-        {/* Statistics Section */}
-        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
-          <div className="px-4 py-3 border-b border-[var(--border-default)]">
-            <h3 className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>Statistics</h3>
-          </div>
-
-          {/* 24h Range */}
-          {asset.price_high_24h > 0 && asset.price_low_24h > 0 && (
-            <div className="p-4 border-b border-[var(--border-default)]">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider">24h Range</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px] mb-1.5">
-                <span className="font-mono text-[var(--text-secondary)]">{formatPrice(asset.price_low_24h)}</span>
-                <span className="font-mono text-[var(--text-secondary)]">{formatPrice(asset.price_high_24h)}</span>
-              </div>
-              <div className="relative h-2 bg-[var(--bg-primary)] rounded-full overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-[var(--error)] via-[var(--text-muted)] to-[var(--success)] rounded-full" />
-                {asset.price_high_24h > asset.price_low_24h && (
-                  <div
-                    className="absolute w-2.5 h-2.5 bg-[var(--bg-secondary)] rounded-full top-1/2 -translate-y-1/2 shadow-md border border-[var(--border-default)]"
-                    style={{
-                      left: `${Math.min(100, Math.max(0, ((asset.price_usd - asset.price_low_24h) / (asset.price_high_24h - asset.price_low_24h)) * 100))}%`,
-                      transform: 'translate(-50%, -50%)'
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Market Stats */}
-          <div className="divide-y divide-[var(--border-subtle)]">
-            <StatRow label="Market Cap" value={`$${formatNumber(asset.market_cap)}`} />
-            <StatRow label="24h Volume" value={`$${formatNumber(asset.volume_24h)}`} />
-            <StatRow label="Circulating Supply" value={`${formatNumber(asset.circulating_supply)} ${asset.code}`} />
-            <StatRow label="Total Supply" value={`${formatNumber(asset.total_supply)} ${asset.code}`} />
-            {asset.holders > 0 && <StatRow label="Holders" value={formatNumber(asset.holders)} />}
-            {asset.trades_24h > 0 && <StatRow label="24h Trades" value={formatNumber(asset.trades_24h)} />}
-            {asset.payments_24h > 0 && <StatRow label="24h Payments" value={formatNumber(asset.payments_24h)} />}
           </div>
         </div>
 
@@ -944,6 +975,49 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
           )}
         </div>
 
+        {/* Statistics Section */}
+        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+          <div className="px-4 py-3 border-b border-[var(--border-default)]">
+            <h3 className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>Statistics</h3>
+          </div>
+
+          {/* 24h Range */}
+          {asset.price_high_24h > 0 && asset.price_low_24h > 0 && (
+            <div className="p-4 border-b border-[var(--border-default)]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider">24h Range</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] mb-1.5">
+                <span className="font-mono text-[var(--text-secondary)]">{formatPrice(asset.price_low_24h)}</span>
+                <span className="font-mono text-[var(--text-secondary)]">{formatPrice(asset.price_high_24h)}</span>
+              </div>
+              <div className="relative h-2 bg-[var(--bg-primary)] rounded-full overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-[var(--error)] via-[var(--text-muted)] to-[var(--success)] rounded-full" />
+                {asset.price_high_24h > asset.price_low_24h && (
+                  <div
+                    className="absolute w-2.5 h-2.5 bg-[var(--bg-secondary)] rounded-full top-1/2 -translate-y-1/2 shadow-md border border-[var(--border-default)]"
+                    style={{
+                      left: `${Math.min(100, Math.max(0, ((asset.price_usd - asset.price_low_24h) / (asset.price_high_24h - asset.price_low_24h)) * 100))}%`,
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Market Stats */}
+          <div className="divide-y divide-[var(--border-subtle)]">
+            <StatRow label="Market Cap" value={`$${formatNumber(asset.market_cap)}`} />
+            <StatRow label="24h Volume" value={`$${formatNumber(asset.volume_24h)}`} />
+            <StatRow label="Circulating Supply" value={`${formatNumber(asset.circulating_supply)} ${asset.code}`} />
+            <StatRow label="Total Supply" value={`${formatNumber(asset.total_supply)} ${asset.code}`} />
+            {asset.holders > 0 && <StatRow label="Holders" value={formatNumber(asset.holders)} />}
+            {asset.trades_24h > 0 && <StatRow label="24h Trades" value={formatNumber(asset.trades_24h)} />}
+            {asset.payments_24h > 0 && <StatRow label="24h Payments" value={formatNumber(asset.payments_24h)} />}
+          </div>
+        </div>
+
         {/* Converter Section */}
         <AssetConverterMobile asset={asset} />
 
@@ -995,353 +1069,316 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
             </div>
           </div>
         )}
+          </>
+        )}
 
-        {/* Trade History & Asset Holders Section */}
-        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
-          {/* Tab Header */}
-          <div className="px-4 py-3 border-b border-[var(--border-default)]">
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setActiveTab('trades')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'trades'
-                  ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
-                  : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'
-                  }`}
-              >
-                Trades
-              </button>
-              <button
-                onClick={() => setActiveTab('markets')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'markets'
-                  ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
-                  : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'
-                  }`}
-              >
-                Markets
-              </button>
-              <button
-                onClick={() => setActiveTab('holders')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'holders'
-                  ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
-                  : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'
-                  }`}
-              >
-                Holders
-              </button>
-            </div>
-          </div>
-
-          {/* Trade History Tab */}
-          {activeTab === 'trades' && (
-            <>
-              {tradesLoading && initialTradesLoad ? (
-                /* Trade History Skeleton */
-                <div className="divide-y divide-[var(--border-subtle)] animate-pulse">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="h-3 w-20 bg-[var(--border-default)] rounded" />
-                        <div className="h-3 w-16 bg-[var(--border-default)] rounded" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="h-4 w-40 bg-[var(--border-default)] rounded" />
-                        <div className="h-3 w-12 bg-[var(--border-default)] rounded" />
-                      </div>
+        {/* Trades Tab */}
+        {activeTab === 'trades' && (
+          <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+            {tradesLoading && initialTradesLoad ? (
+              /* Trade History Skeleton */
+              <div className="divide-y divide-[var(--border-subtle)] animate-pulse">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <div key={i} className="px-4 py-3 flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="h-3.5 w-32 bg-[var(--border-default)] rounded mb-1.5" />
+                      <div className="h-3 w-24 bg-[var(--border-default)] rounded" />
                     </div>
-                  ))}
-                </div>
-              ) : trades.length > 0 ? (
-                <div className="divide-y divide-[var(--border-subtle)]">
-                  {trades.map((trade) => {
-                    const baseCode = trade.base_asset_type === 'native' ? 'XLM' : (trade.base_asset_code || 'Unknown');
-                    const counterCode = trade.counter_asset_type === 'native' ? 'XLM' : (trade.counter_asset_code || 'Unknown');
-                    const baseAmount = parseFloat(trade.base_amount);
-                    const counterAmount = parseFloat(trade.counter_amount);
-                    const priceValue = trade.price.d > 0 ? (trade.price.n / trade.price.d) : 0;
-                    const account = trade.base_account || trade.counter_account || '';
-                    const tradeTime = new Date(trade.ledger_close_time);
+                    <div className="text-right ml-3">
+                      <div className="h-3.5 w-20 bg-[var(--border-default)] rounded mb-1.5" />
+                      <div className="h-3 w-16 bg-[var(--border-default)] rounded ml-auto" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : trades.length > 0 ? (
+              <div className="divide-y divide-[var(--border-subtle)]">
+                {trades.map((trade) => {
+                  const baseCode = trade.base_asset_type === 'native' ? 'XLM' : (trade.base_asset_code || 'Unknown');
+                  const counterCode = trade.counter_asset_type === 'native' ? 'XLM' : (trade.counter_asset_code || 'Unknown');
+                  const baseAmount = parseFloat(trade.base_amount);
+                  const counterAmount = parseFloat(trade.counter_amount);
+                  const priceValue = trade.price.d > 0 ? (trade.price.n / trade.price.d) : 0;
+                  const account = trade.base_account || trade.counter_account || '';
+                  const tradeTime = new Date(trade.ledger_close_time);
 
-                    // Determine if this trade involved our asset as base or counter
-                    const isBaseAsset = (baseCode === asset.code);
-                    const displayBaseCode = isBaseAsset ? baseCode : counterCode;
-                    const displayCounterCode = isBaseAsset ? counterCode : baseCode;
-                    const displayBaseAmount = isBaseAsset ? baseAmount : counterAmount;
-                    const displayCounterAmount = isBaseAsset ? counterAmount : baseAmount;
+                  const isBaseAsset = (baseCode === asset.code);
+                  const displayBaseAmount = isBaseAsset ? baseAmount : counterAmount;
+                  const displayCounterAmount = isBaseAsset ? counterAmount : baseAmount;
+                  const displayBaseCode = isBaseAsset ? baseCode : counterCode;
+                  const displayCounterCode = isBaseAsset ? counterCode : baseCode;
 
-                    const isNavigating = navigatingTradeId === trade.id;
+                  const isNavigating = navigatingTradeId === trade.id;
 
-                    return (
-                      <button
-                        key={trade.id}
-                        onClick={() => handleTradeClick(trade)}
-                        disabled={isNavigating}
-                        className="w-full p-3 text-left hover:bg-[var(--bg-tertiary)] transition-colors active:bg-[var(--bg-primary)] disabled:opacity-50"
-                      >
-                        <div className="flex items-center justify-between mb-1.5">
+                  return (
+                    <button
+                      key={trade.id}
+                      onClick={() => handleTradeClick(trade)}
+                      disabled={isNavigating}
+                      className="w-full px-4 py-3 flex items-center justify-between hover:bg-[var(--bg-tertiary)] transition-colors active:bg-[var(--bg-primary)] disabled:opacity-50"
+                    >
+                      <div className="flex-1 min-w-0 text-left">
+                        <div className="flex items-center gap-1.5 text-[13px] mb-0.5">
+                          <span className="font-medium text-[var(--primary-blue)]">
+                            {displayBaseAmount >= 1000 ? displayBaseAmount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : displayBaseAmount.toFixed(4)}
+                          </span>
+                          <span className="text-[var(--text-muted)]">{displayBaseCode}</span>
+                          <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                          </svg>
+                          <span className="font-medium text-[var(--primary-blue)]">
+                            {displayCounterAmount >= 1000 ? displayCounterAmount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : displayCounterAmount.toFixed(4)}
+                          </span>
+                          <span className="text-[var(--text-muted)]">{displayCounterCode}</span>
+                        </div>
+                        <div className="text-[11px] text-[var(--text-muted)]">
+                          {tradeTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} {tradeTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                          <span className="mx-1.5">•</span>
                           <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/account/${account}`);
-                            }}
-                            className="text-[11px] font-mono text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                            onClick={(e) => { e.stopPropagation(); router.push(`/account/${account}`); }}
+                            className="font-mono hover:text-[var(--primary-blue)]"
                           >
                             {shortenAddress(account, 4)}
                           </span>
-                          <div className="flex items-center gap-2">
-                            {isNavigating && (
-                              <svg className="w-3 h-3 animate-spin text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                              </svg>
-                            )}
-                            <span className="text-[10px] text-[var(--text-muted)]">
-                              {tradeTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                              {' '}
-                              {tradeTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                            </span>
-                            <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </div>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 text-xs">
-                            <span className="font-mono font-medium text-[var(--text-primary)]">
-                              {displayBaseAmount >= 1000 ? displayBaseAmount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : displayBaseAmount.toFixed(4)}
-                            </span>
-                            <span className="text-[var(--text-muted)]">{displayBaseCode}</span>
-                            <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                            </svg>
-                            <span className="font-mono font-medium text-[var(--text-primary)]">
-                              {displayCounterAmount >= 1000 ? displayCounterAmount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : displayCounterAmount.toFixed(4)}
-                            </span>
-                            <span className="text-[var(--text-muted)]">{displayCounterCode}</span>
-                          </div>
-                          <span className="text-[11px] font-mono text-[var(--text-secondary)]">
+                      </div>
+                      <div className="flex items-center gap-2 ml-3">
+                        <div className="text-right">
+                          <div className="text-[13px] font-medium text-[var(--primary-blue)]">
                             @{priceValue >= 1 ? priceValue.toFixed(4) : priceValue.toFixed(7)}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-
-                  {/* Infinite scroll trigger */}
-                  <div ref={tradesEndRef} className="h-1" />
-
-                  {/* Loading more indicator */}
-                  {loadingMoreTrades && (
-                    <div className="p-4 flex items-center justify-center gap-2">
-                      <svg className="w-4 h-4 animate-spin text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      <span className="text-xs text-[var(--text-muted)]">Loading more trades...</span>
-                    </div>
-                  )}
-
-                  {/* End of trades indicator */}
-                  {!hasMoreTrades && trades.length >= 20 && (
-                    <div className="p-3 text-center text-[11px] text-[var(--text-muted)]">
-                      All trades loaded
-                    </div>
-                  )}
-                </div>
-              ) : (
-                /* No trades state */
-                <div className="py-8 text-center text-[var(--text-muted)] text-xs">
-                  No recent trades
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Markets Tab */}
-          {activeTab === 'markets' && (
-            <>
-              {marketsLoading ? (
-                /* Markets Skeleton */
-                <div className="divide-y divide-[var(--border-subtle)] animate-pulse">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="p-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="h-4 w-24 bg-[var(--border-default)] rounded" />
-                      </div>
-                      <div className="text-right">
-                        <div className="h-3 w-16 bg-[var(--border-default)] rounded mb-1" />
-                        <div className="h-2 w-20 bg-[var(--border-default)] rounded ml-auto" />
-                      </div>
-                    </div>
-                  ))}
-                  <div className="p-3 text-center text-[11px] text-[var(--text-muted)]">
-                    Loading trading pairs...
-                  </div>
-                </div>
-              ) : tradingPairs.length > 0 ? (
-                <div className="divide-y divide-[var(--border-subtle)]">
-                  {/* Header */}
-                  <div className="px-3 py-2 bg-[var(--bg-tertiary)] grid grid-cols-[1fr_auto] text-[10px] text-[var(--text-muted)] font-bold uppercase">
-                    <span>Trading Pair</span>
-                    <span className="text-right">Exchange Rate</span>
-                  </div>
-
-                  {tradingPairs.map((pair) => {
-                    // Format price - shows how much of counter asset you get for 1 base asset
-                    const formatRate = (price: number) => {
-                      if (price >= 1000000) return (price / 1000000).toFixed(2) + 'M';
-                      if (price >= 1000) return price.toLocaleString(undefined, { maximumFractionDigits: 2 });
-                      if (price >= 1) return price.toFixed(4);
-                      if (price >= 0.0001) return price.toFixed(6);
-                      return price.toFixed(8);
-                    };
-
-                    // Skip pairs where both assets have the same code (different issuers)
-                    // but show them with clearer labeling
-                    const isSameCode = asset.code === pair.counterAsset.code;
-                    const counterLabel = isSameCode && pair.counterAsset.issuer
-                      ? `${pair.counterAsset.code} (${shortenAddress(pair.counterAsset.issuer, 4)})`
-                      : pair.counterAsset.code;
-
-                    return (
-                      <div
-                        key={`${pair.counterAsset.code}-${pair.counterAsset.issuer || 'native'}`}
-                        className="p-3 hover:bg-[var(--bg-tertiary)] transition-colors"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold text-[var(--text-primary)]">
-                              {asset.code} → {pair.counterAsset.code}
-                            </div>
-                            {pair.counterAsset.issuer && pair.counterAsset.type !== 'native' && (
-                              <Link href={`/account/${pair.counterAsset.issuer}`} className="text-[10px] font-mono text-[var(--text-muted)] truncate hover:text-[var(--primary-blue)] block">
-                                {shortenAddress(pair.counterAsset.issuer, 6)}
-                              </Link>
-                            )}
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <div className="text-xs text-[var(--text-primary)]">
-                              <span className="text-[var(--text-muted)]">1 {asset.code} = </span>
-                              <span className="font-mono font-bold">{formatRate(pair.price)}</span>
-                              <span className="text-[var(--text-muted)]"> {pair.counterAsset.code}</span>
-                            </div>
-                            <div className="text-[10px] text-[var(--text-muted)]">
-                              {pair.totalTradeCount} trade{pair.totalTradeCount !== 1 ? 's' : ''} recently
-                            </div>
                           </div>
                         </div>
+                        {isNavigating ? (
+                          <svg className="w-4 h-4 animate-spin text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        )}
                       </div>
-                    );
-                  })}
+                    </button>
+                  );
+                })}
 
-                  {/* Footer with explanation */}
-                  <div className="p-3 text-center text-[11px] text-[var(--text-muted)]">
-                    {tradingPairs.length} trading pair{tradingPairs.length !== 1 ? 's' : ''} with recent activity
+                {/* Infinite scroll trigger */}
+                <div ref={tradesEndRef} className="h-1" />
+
+                {/* Loading more indicator */}
+                {loadingMoreTrades && (
+                  <div className="px-4 py-3 flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4 animate-spin text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span className="text-[13px] text-[var(--text-muted)]">Loading more...</span>
                   </div>
-                </div>
-              ) : (
-                /* No markets state */
-                <div className="py-8 text-center text-[var(--text-muted)] text-xs">
-                  No active trading pairs found
-                </div>
-              )}
-            </>
-          )}
+                )}
 
-          {/* Asset Holders Tab */}
-          {activeTab === 'holders' && (
-            <>
-              {/* XLM native asset - can't query holders */}
-              {holdersLoading ? (
-                /* Holders Skeleton - loading in background */
-                <div className="divide-y divide-[var(--border-subtle)] animate-pulse">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="p-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 bg-[var(--border-default)] rounded-full" />
-                        <div className="h-3 w-24 bg-[var(--border-default)] rounded" />
-                      </div>
-                      <div className="text-right">
-                        <div className="h-3 w-20 bg-[var(--border-default)] rounded mb-1" />
-                        <div className="h-2 w-12 bg-[var(--border-default)] rounded ml-auto" />
-                      </div>
+                {/* End of trades indicator */}
+                {!hasMoreTrades && trades.length >= 20 && (
+                  <div className="px-4 py-3 text-center text-[11px] text-[var(--text-muted)]">
+                    All {trades.length} trades loaded
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="py-12 text-center text-[var(--text-muted)] text-[13px]">
+                No recent trades
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Markets Tab */}
+        {activeTab === 'markets' && (
+          <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+            {marketsLoading ? (
+              /* Markets Skeleton */
+              <div className="divide-y divide-[var(--border-subtle)] animate-pulse">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <div key={i} className="px-4 py-3 flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="h-3.5 w-28 bg-[var(--border-default)] rounded mb-1.5" />
+                      <div className="h-3 w-20 bg-[var(--border-default)] rounded" />
                     </div>
-                  ))}
-                  <div className="p-3 text-center text-[11px] text-[var(--text-muted)]">
-                    Loading all holders...
+                    <div className="text-right ml-3">
+                      <div className="h-3.5 w-24 bg-[var(--border-default)] rounded mb-1.5" />
+                      <div className="h-3 w-16 bg-[var(--border-default)] rounded ml-auto" />
+                    </div>
                   </div>
+                ))}
+              </div>
+            ) : tradingPairs.length > 0 ? (
+              <div className="divide-y divide-[var(--border-subtle)]">
+                {tradingPairs.map((pair) => {
+                  const formatRate = (price: number) => {
+                    if (price >= 1000000) return (price / 1000000).toFixed(2) + 'M';
+                    if (price >= 1000) return price.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                    if (price >= 1) return price.toFixed(4);
+                    if (price >= 0.0001) return price.toFixed(6);
+                    return price.toFixed(8);
+                  };
+
+                  const pairKey = `${pair.counterAsset.code}-${pair.counterAsset.issuer || 'native'}`;
+                  const isNavigating = navigatingPairKey === pairKey;
+
+                  return (
+                    <button
+                      key={pairKey}
+                      onClick={() => handleMarketClick(pair)}
+                      disabled={isNavigating}
+                      className="w-full px-4 py-3 flex items-center justify-between hover:bg-[var(--bg-tertiary)] transition-colors active:bg-[var(--bg-primary)] disabled:opacity-50"
+                    >
+                      <div className="flex-1 min-w-0 text-left">
+                        <div className="text-[13px] font-medium text-[var(--primary-blue)] mb-0.5">
+                          {asset.code} / {pair.counterAsset.code}
+                        </div>
+                        <div className="text-[11px] text-[var(--text-muted)]">
+                          {pair.totalTradeCount} trade{pair.totalTradeCount !== 1 ? 's' : ''} recently
+                          {pair.counterAsset.issuer && pair.counterAsset.type !== 'native' && (
+                            <>
+                              <span className="mx-1.5">•</span>
+                              <span className="font-mono">
+                                {shortenAddress(pair.counterAsset.issuer, 4)}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-3">
+                        <div className="text-right">
+                          <div className="text-[13px] font-medium text-[var(--primary-blue)]">
+                            {formatRate(pair.price)} <span className="text-[var(--text-muted)]">{pair.counterAsset.code}</span>
+                          </div>
+                          <div className="text-[11px] text-[var(--text-muted)]">
+                            per 1 {asset.code}
+                          </div>
+                        </div>
+                        {isNavigating ? (
+                          <svg className="w-4 h-4 animate-spin text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {/* Footer */}
+                <div className="px-4 py-3 text-center text-[11px] text-[var(--text-muted)]">
+                  {tradingPairs.length} trading pair{tradingPairs.length !== 1 ? 's' : ''} available
                 </div>
-              ) : allHolders.length > 0 ? (
-                <div className="divide-y divide-[var(--border-subtle)]">
-                  {/* Header showing total count */}
-                  <div className="px-3 py-2 bg-[var(--bg-tertiary)] text-[11px] text-[var(--text-muted)]">
-                    {allHolders.length} holders sorted by balance
+              </div>
+            ) : (
+              <div className="py-12 text-center text-[var(--text-muted)] text-[13px]">
+                No active trading pairs found
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Holders Tab */}
+        {activeTab === 'holders' && (
+          <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+            {holdersLoading ? (
+              /* Holders Skeleton */
+              <div className="divide-y divide-[var(--border-subtle)] animate-pulse">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <div key={i} className="px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-6 h-6 bg-[var(--border-default)] rounded-full" />
+                      <div className="h-3.5 w-28 bg-[var(--border-default)] rounded" />
+                    </div>
+                    <div className="text-right ml-3">
+                      <div className="h-3.5 w-20 bg-[var(--border-default)] rounded mb-1.5" />
+                      <div className="h-3 w-14 bg-[var(--border-default)] rounded ml-auto" />
+                    </div>
                   </div>
+                ))}
+              </div>
+            ) : allHolders.length > 0 ? (
+              <div className="divide-y divide-[var(--border-subtle)]">
+                {allHolders.slice(0, displayedHoldersCount).map((holder, index) => {
+                  const balance = parseFloat(holder.balance);
+                  const percentage = holdersTotalSupply > 0 ? (balance / holdersTotalSupply) * 100 : 0;
 
-                  {allHolders.slice(0, displayedHoldersCount).map((holder, index) => {
-                    const balance = parseFloat(holder.balance);
-                    const percentage = holdersTotalSupply > 0 ? (balance / holdersTotalSupply) * 100 : 0;
+                  const formatPercentage = (pct: number) => {
+                    if (pct >= 1) return pct.toFixed(2) + '%';
+                    if (pct >= 0.01) return pct.toFixed(2) + '%';
+                    if (pct >= 0.0001) return pct.toFixed(4) + '%';
+                    if (pct > 0) return '< 0.0001%';
+                    return '0%';
+                  };
 
-                    // Format percentage based on size
-                    const formatPercentage = (pct: number) => {
-                      if (pct >= 1) return pct.toFixed(2) + '%';
-                      if (pct >= 0.01) return pct.toFixed(2) + '%';
-                      if (pct >= 0.0001) return pct.toFixed(4) + '%';
-                      if (pct > 0) return '< 0.0001%';
-                      return '0%';
-                    };
+                  const formatBalance = (bal: number) => {
+                    if (bal >= 1000000) return (bal / 1000000).toFixed(2) + 'M';
+                    if (bal >= 1000) return (bal / 1000).toFixed(2) + 'K';
+                    return bal.toLocaleString(undefined, { maximumFractionDigits: 2 });
+                  };
 
-                    return (
-                      <Link
-                        key={holder.account_id}
-                        href={`/account/${holder.account_id}`}
-                        className="flex items-center justify-between p-3 hover:bg-[var(--bg-tertiary)] transition-colors active:bg-[var(--bg-primary)]"
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="text-[10px] font-bold text-[var(--text-muted)] w-5 text-center">
+                  return (
+                    <Link
+                      key={holder.account_id}
+                      href={`/account/${holder.account_id}`}
+                      className="px-4 py-3 flex items-center justify-between hover:bg-[var(--bg-tertiary)] transition-colors active:bg-[var(--bg-primary)]"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-6 h-6 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px] font-bold text-[var(--text-muted)]">
                             {index + 1}
                           </span>
-                          <span className="text-xs font-mono text-[var(--text-secondary)] truncate">
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-mono text-[var(--primary-blue)] truncate">
                             {shortenAddress(holder.account_id, 6)}
-                          </span>
-                        </div>
-                        <div className="text-right flex-shrink-0 ml-2">
-                          <div className="text-xs font-mono font-medium text-[var(--text-primary)]">
-                            {balance >= 1000000
-                              ? (balance / 1000000).toFixed(2) + 'M'
-                              : balance >= 1000
-                                ? (balance / 1000).toFixed(2) + 'K'
-                                : balance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                            <span className="text-[var(--text-muted)] ml-1">{asset.code}</span>
                           </div>
-                          <div className="text-[10px] text-[var(--text-muted)]">
-                            ({formatPercentage(percentage)})
+                          <div className="text-[11px] text-[var(--text-muted)]">
+                            {formatPercentage(percentage)} of supply
                           </div>
                         </div>
-                      </Link>
-                    );
-                  })}
+                      </div>
+                      <div className="flex items-center gap-2 ml-3">
+                        <div className="text-right">
+                          <div className="text-[13px] font-medium text-[var(--primary-blue)]">
+                            {formatBalance(balance)} <span className="text-[var(--text-muted)]">{asset.code}</span>
+                          </div>
+                        </div>
+                        <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </Link>
+                  );
+                })}
 
-                  {/* Infinite scroll trigger */}
-                  {displayedHoldersCount < allHolders.length && (
-                    <div ref={holdersEndRef} className="h-1" />
-                  )}
+                {/* Infinite scroll trigger */}
+                {displayedHoldersCount < allHolders.length && (
+                  <div ref={holdersEndRef} className="h-1" />
+                )}
 
-                  {/* End of holders indicator */}
-                  {displayedHoldersCount >= allHolders.length && (
-                    <div className="p-3 text-center text-[11px] text-[var(--text-muted)]">
-                      Showing all {allHolders.length} holders
-                    </div>
-                  )}
+                {/* Footer */}
+                <div className="px-4 py-3 text-center text-[11px] text-[var(--text-muted)]">
+                  {displayedHoldersCount >= allHolders.length
+                    ? `All ${allHolders.length} holders loaded`
+                    : `Showing ${displayedHoldersCount} of ${allHolders.length} holders`
+                  }
                 </div>
-              ) : (
-                /* No holders state */
-                <div className="py-8 text-center text-[var(--text-muted)] text-xs">
-                  No holders found
-                </div>
-              )}
-            </>
-          )}
-        </div>
+              </div>
+            ) : (
+              <div className="py-12 text-center text-[var(--text-muted)] text-[13px]">
+                No holders found
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
