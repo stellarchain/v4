@@ -1241,34 +1241,56 @@ export default function TransactionMobileView({ transaction, operations, effects
           </>
         )}
 
-        {/* Tabs Navigation - Bubble Style */}
-        <div className="mt-3">
-          <div className="flex bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-1 shadow-sm">
-            {[
+        {/* Tabs Navigation - Glider Style */}
+        <div className="mt-3 mb-1">
+          {(() => {
+            const tabs = [
               { id: 'operations', label: 'Operations', count: operationFilter === 'all' ? transaction.operation_count : filteredOperations.length },
               { id: 'effects', label: 'Effects', count: effects.length > 0 ? effects.length : undefined },
               ...(isContractCall ? [{ id: 'trace', label: 'Trace' }] : []),
               ...(isContractCall ? [{ id: 'resources', label: 'Resources' }] : []),
               { id: 'details', label: 'Details' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(activeTab === tab.id ? null : tab.id as any)}
-                className={`flex-1 py-2 text-[11px] rounded-lg transition-all text-center ${
-                  activeTab === tab.id
-                    ? 'font-bold text-white bg-[var(--primary-blue)] shadow-md'
-                    : 'font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                {tab.label}
-                {tab.count !== undefined && (
-                  <span className={`ml-0.5 text-[10px] ${activeTab === tab.id ? 'text-white/80' : 'text-[var(--text-muted)]'}`}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+            ];
+
+            const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab);
+            const tabCount = tabs.length;
+
+            return (
+              <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)]">
+                {/* Glider Background */}
+                <div
+                  className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
+                  style={{
+                    left: '4px',
+                    width: `calc((100% - 8px) / ${tabCount})`,
+                    transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
+                    opacity: activeTabIndex >= 0 ? 1 : 0
+                  }}
+                />
+
+                {tabs.map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center flex items-center justify-center gap-1 ${isActive
+                          ? 'text-[var(--primary-blue)] font-bold'
+                          : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
+                        }`}
+                    >
+                      {tab.label}
+                      {tab.count !== undefined && (
+                        <span className="text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center bg-[var(--primary-blue)] text-white">
+                          {tab.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Tab Content */}
@@ -1278,275 +1300,275 @@ export default function TransactionMobileView({ transaction, operations, effects
           {activeTab === 'operations' && (
             <div ref={opsContainerRef}>
               <div className="space-y-3">
-              {filteredOperations.slice(0, visibleOpsCount).map((op, idx) => {
-                const opNum = operations.indexOf(op) + 1;
-                const isPathPayment = op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
-                const isPaymentOp = op.type === 'payment';
-                const isCreateAccount = op.type === 'create_account';
-                const isOffer = ['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type);
-                const isContract = op.type === 'invoke_host_function';
+                {filteredOperations.slice(0, visibleOpsCount).map((op, idx) => {
+                  const opNum = operations.indexOf(op) + 1;
+                  const isPathPayment = op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
+                  const isPaymentOp = op.type === 'payment';
+                  const isCreateAccount = op.type === 'create_account';
+                  const isOffer = ['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type);
+                  const isContract = op.type === 'invoke_host_function';
 
-                // Determine icon and colors
-                let iconBg = 'bg-[var(--bg-tertiary)]';
-                let iconColor = 'text-[var(--text-tertiary)]';
-                let iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />;
+                  // Determine icon and colors
+                  let iconBg = 'bg-[var(--bg-tertiary)]';
+                  let iconColor = 'text-[var(--text-tertiary)]';
+                  let iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />;
 
-                if (isPathPayment) {
-                  iconBg = 'bg-[var(--info)]/10';
-                  iconColor = 'text-[var(--info)]';
-                  iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />;
-                } else if (isPaymentOp || isCreateAccount) {
-                  iconBg = 'bg-[var(--success)]/10';
-                  iconColor = 'text-[var(--success)]';
-                  iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
-                } else if (isOffer) {
-                  iconBg = 'bg-[var(--accent)]/10';
-                  iconColor = 'text-[var(--accent)]';
-                  iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />;
-                } else if (isContract) {
-                  iconBg = 'bg-[var(--warning)]/10';
-                  iconColor = 'text-[var(--warning)]';
-                  iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />;
-                }
+                  if (isPathPayment) {
+                    iconBg = 'bg-[var(--info)]/10';
+                    iconColor = 'text-[var(--info)]';
+                    iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />;
+                  } else if (isPaymentOp || isCreateAccount) {
+                    iconBg = 'bg-[var(--success)]/10';
+                    iconColor = 'text-[var(--success)]';
+                    iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
+                  } else if (isOffer) {
+                    iconBg = 'bg-[var(--accent)]/10';
+                    iconColor = 'text-[var(--accent)]';
+                    iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />;
+                  } else if (isContract) {
+                    iconBg = 'bg-[var(--warning)]/10';
+                    iconColor = 'text-[var(--warning)]';
+                    iconPath = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />;
+                  }
 
-                // Get operation description
-                let opTitle = getOperationTypeLabel(op.type).replace(/_/g, ' ');
-                let opDescription = '';
+                  // Get operation description
+                  let opTitle = getOperationTypeLabel(op.type).replace(/_/g, ' ');
+                  let opDescription = '';
 
-                // For path payments, get actual amounts from effects (not operation request params)
-                let pathPaymentSent = { amount: '0', asset: '' };
-                let pathPaymentReceived = { amount: '0', asset: '' };
-                if (isPathPayment) {
-                  const userAccount = op.source_account || transaction.source_account;
-                  const debitEffect = effects.find(e =>
-                    e.type === 'account_debited' && e.account === userAccount
-                  );
-                  const creditEffect = effects.find(e =>
-                    e.type === 'account_credited' && e.account === userAccount
-                  );
-                  pathPaymentSent = {
-                    amount: debitEffect?.amount || (op as any).source_amount || op.amount || '0',
-                    asset: debitEffect
-                      ? (debitEffect.asset_type === 'native' ? 'XLM' : (debitEffect.asset_code || ''))
-                      : ((op as any).source_asset_type === 'native' ? 'XLM' : ((op as any).source_asset_code || ''))
-                  };
-                  pathPaymentReceived = {
-                    amount: creditEffect?.amount || (op as any).destination_amount || op.amount || '0',
-                    asset: creditEffect
-                      ? (creditEffect.asset_type === 'native' ? 'XLM' : (creditEffect.asset_code || ''))
-                      : (op.asset_type === 'native' ? 'XLM' : (op.asset_code || ''))
-                  };
-                }
+                  // For path payments, get actual amounts from effects (not operation request params)
+                  let pathPaymentSent = { amount: '0', asset: '' };
+                  let pathPaymentReceived = { amount: '0', asset: '' };
+                  if (isPathPayment) {
+                    const userAccount = op.source_account || transaction.source_account;
+                    const debitEffect = effects.find(e =>
+                      e.type === 'account_debited' && e.account === userAccount
+                    );
+                    const creditEffect = effects.find(e =>
+                      e.type === 'account_credited' && e.account === userAccount
+                    );
+                    pathPaymentSent = {
+                      amount: debitEffect?.amount || (op as any).source_amount || op.amount || '0',
+                      asset: debitEffect
+                        ? (debitEffect.asset_type === 'native' ? 'XLM' : (debitEffect.asset_code || ''))
+                        : ((op as any).source_asset_type === 'native' ? 'XLM' : ((op as any).source_asset_code || ''))
+                    };
+                    pathPaymentReceived = {
+                      amount: creditEffect?.amount || (op as any).destination_amount || op.amount || '0',
+                      asset: creditEffect
+                        ? (creditEffect.asset_type === 'native' ? 'XLM' : (creditEffect.asset_code || ''))
+                        : (op.asset_type === 'native' ? 'XLM' : (op.asset_code || ''))
+                    };
+                  }
 
-                if (isPathPayment) {
-                  opTitle = 'Swap';
-                  const sourceAsset = (op as any).source_asset_type === 'native' ? 'XLM' : (op as any).source_asset_code || '';
-                  const destAsset = op.asset_type === 'native' ? 'XLM' : op.asset_code || '';
-                  opDescription = `Swapped ${sourceAsset} for ${destAsset}`;
-                } else if (isPaymentOp) {
-                  opTitle = 'Payment';
-                  const asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || '';
-                  opDescription = `Sent ${asset} to recipient`;
-                } else if (isCreateAccount) {
-                  opTitle = 'Create Account';
-                  opDescription = 'Created new account with starting balance';
-                } else if (isOffer) {
-                  const sellAsset = (op as any).selling_asset_type === 'native' ? 'XLM' : (op as any).selling_asset_code || '';
-                  const buyAsset = (op as any).buying_asset_type === 'native' ? 'XLM' : (op as any).buying_asset_code || '';
-                  opTitle = op.type === 'manage_sell_offer' ? 'Sell Order' : op.type === 'manage_buy_offer' ? 'Buy Order' : 'Passive Order';
-                  opDescription = `Trading ${sellAsset} for ${buyAsset}`;
-                } else if (isContract) {
-                  opTitle = decodeContractFunctionName(op);
-                  opDescription = 'Smart contract invocation';
-                }
+                  if (isPathPayment) {
+                    opTitle = 'Swap';
+                    const sourceAsset = (op as any).source_asset_type === 'native' ? 'XLM' : (op as any).source_asset_code || '';
+                    const destAsset = op.asset_type === 'native' ? 'XLM' : op.asset_code || '';
+                    opDescription = `Swapped ${sourceAsset} for ${destAsset}`;
+                  } else if (isPaymentOp) {
+                    opTitle = 'Payment';
+                    const asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || '';
+                    opDescription = `Sent ${asset} to recipient`;
+                  } else if (isCreateAccount) {
+                    opTitle = 'Create Account';
+                    opDescription = 'Created new account with starting balance';
+                  } else if (isOffer) {
+                    const sellAsset = (op as any).selling_asset_type === 'native' ? 'XLM' : (op as any).selling_asset_code || '';
+                    const buyAsset = (op as any).buying_asset_type === 'native' ? 'XLM' : (op as any).buying_asset_code || '';
+                    opTitle = op.type === 'manage_sell_offer' ? 'Sell Order' : op.type === 'manage_buy_offer' ? 'Buy Order' : 'Passive Order';
+                    opDescription = `Trading ${sellAsset} for ${buyAsset}`;
+                  } else if (isContract) {
+                    opTitle = decodeContractFunctionName(op);
+                    opDescription = 'Smart contract invocation';
+                  }
 
-                return (
-                  <div key={op.id} className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden p-4">
-                    {/* Operation Header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center ${iconColor}`}>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          {iconPath}
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-bold text-white px-1.5 py-0.5 rounded" style={{ backgroundColor: primaryColor }}>OP {opNum}</span>
-                          <span className="text-sm font-bold capitalize" style={{ color: primaryColor }}>{opTitle}</span>
+                  return (
+                    <div key={op.id} className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden p-4">
+                      {/* Operation Header */}
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center ${iconColor}`}>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {iconPath}
+                          </svg>
                         </div>
-                        <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{opDescription}</p>
-                      </div>
-                      {/* Filter - only on first operation */}
-                      {idx === 0 && (
-                        <div ref={filterRef} className="relative" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                            className="flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-secondary)]"
-                          >
-                            <span>{operationFilter === 'all' ? `All (${operations.length})` : `${operationFilter} (${filteredOperations.length})`}</span>
-                            <svg className={`w-3 h-3 transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </button>
-                          {showFilterDropdown && (
-                            <div className="absolute right-0 top-full mt-1 min-w-[140px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
-                              <button
-                                onClick={() => { setOperationFilter('all'); setShowFilterDropdown(false); }}
-                                className={`w-full text-left px-3 py-2 text-[11px] font-medium ${operationFilter === 'all' ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
-                              >
-                                All ({operations.length})
-                              </button>
-                              {operationTypes.map(([type, count]) => (
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-white px-1.5 py-0.5 rounded" style={{ backgroundColor: primaryColor }}>OP {opNum}</span>
+                            <span className="text-sm font-bold capitalize" style={{ color: primaryColor }}>{opTitle}</span>
+                          </div>
+                          <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{opDescription}</p>
+                        </div>
+                        {/* Filter - only on first operation */}
+                        {idx === 0 && (
+                          <div ref={filterRef} className="relative" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                              className="flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-secondary)]"
+                            >
+                              <span>{operationFilter === 'all' ? `All (${operations.length})` : `${operationFilter} (${filteredOperations.length})`}</span>
+                              <svg className={`w-3 h-3 transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                            {showFilterDropdown && (
+                              <div className="absolute right-0 top-full mt-1 min-w-[140px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
                                 <button
-                                  key={type}
-                                  onClick={() => { setOperationFilter(type); setShowFilterDropdown(false); }}
-                                  className={`w-full text-left px-3 py-2 text-[11px] font-medium ${operationFilter === type ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+                                  onClick={() => { setOperationFilter('all'); setShowFilterDropdown(false); }}
+                                  className={`w-full text-left px-3 py-2 text-[11px] font-medium ${operationFilter === 'all' ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
                                 >
-                                  {type} ({count})
+                                  All ({operations.length})
                                 </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                                {operationTypes.map(([type, count]) => (
+                                  <button
+                                    key={type}
+                                    onClick={() => { setOperationFilter(type); setShowFilterDropdown(false); }}
+                                    className={`w-full text-left px-3 py-2 text-[11px] font-medium ${operationFilter === type ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+                                  >
+                                    {type} ({count})
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Operation Details */}
-                    <div className="space-y-2 bg-[var(--bg-tertiary)] rounded-xl p-3">
-                      {/* From/To for payments */}
-                      {(isPaymentOp || isCreateAccount) && (
-                        <>
+                      {/* Operation Details */}
+                      <div className="space-y-2 bg-[var(--bg-tertiary)] rounded-xl p-3">
+                        {/* From/To for payments */}
+                        {(isPaymentOp || isCreateAccount) && (
+                          <>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[var(--text-muted)] font-medium text-xs">From</span>
+                              <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
+                                {shortenAddress(op.from || op.source_account, 6)}
+                              </Link>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[var(--text-muted)] font-medium text-xs">To</span>
+                              <Link href={`/account/${op.to || (op as any).account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
+                                {shortenAddress(op.to || (op as any).account, 6)}
+                              </Link>
+                            </div>
+                            <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-default)]">
+                              <span className="text-[var(--text-muted)] font-medium text-xs">Amount</span>
+                              <span className="font-bold text-sm" style={{ color: primaryColor }}>
+                                {formatCompactNumber(op.amount || (op as any).starting_balance)} {op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM'}
+                              </span>
+                            </div>
+                          </>
+                        )}
+
+                        {/* Swap details */}
+                        {isPathPayment && (
+                          <>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[var(--text-muted)] font-medium text-xs">From</span>
+                              <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
+                                {shortenAddress(op.from || op.source_account, 6)}
+                              </Link>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[var(--text-muted)] font-medium text-xs">To</span>
+                              <Link href={`/account/${op.to}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
+                                {shortenAddress(op.to || '', 6)}
+                              </Link>
+                            </div>
+                            <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-default)]">
+                              <span className="text-[var(--error)] font-medium text-xs">Sent</span>
+                              <span className="font-bold text-sm text-[var(--error)]">
+                                -{formatCompactNumber(pathPaymentSent.amount)} {pathPaymentSent.asset}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[var(--success)] font-medium text-xs">Received</span>
+                              <span className="font-bold text-sm text-[var(--success)]">
+                                +{formatCompactNumber(pathPaymentReceived.amount)} {pathPaymentReceived.asset}
+                              </span>
+                            </div>
+                          </>
+                        )}
+
+                        {/* Offer details */}
+                        {isOffer && (
+                          <>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[var(--text-muted)] font-medium text-xs">Selling</span>
+                              <span className="font-bold text-sm" style={{ color: primaryColor }}>
+                                {formatCompactNumber(op.amount || '0')} {(op as any).selling_asset_type === 'native' ? 'XLM' : (op as any).selling_asset_code || ''}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[var(--text-muted)] font-medium text-xs">Buying</span>
+                              <span className="font-bold text-sm" style={{ color: primaryColor }}>
+                                {(op as any).buying_asset_type === 'native' ? 'XLM' : (op as any).buying_asset_code || ''}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-default)]">
+                              <span className="text-[var(--text-muted)] font-medium text-xs">Price</span>
+                              <span className="font-bold text-sm" style={{ color: primaryColor }}>{(op as any).price}</span>
+                            </div>
+                          </>
+                        )}
+
+                        {/* Contract details */}
+                        {isContract && (
+                          <>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[var(--text-muted)] font-medium text-xs">Contract</span>
+                              <Link href={`/contract/${extractContractAddress(op as any) || ''}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
+                                {extractContractAddress(op as any) ? shortenAddress(extractContractAddress(op as any) || '', 6) : 'Unknown'}
+                              </Link>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[var(--text-muted)] font-medium text-xs">Function</span>
+                              <span className="font-bold text-sm capitalize" style={{ color: primaryColor }}>
+                                {contractFunctionName || 'Unknown'}
+                              </span>
+                            </div>
+                            {/* Show contract effects summary */}
+                            {effects.filter(e => e.account === transaction.source_account && (e.type === 'account_credited' || e.type === 'account_debited')).length > 0 && (
+                              <div className="mt-2 pt-2 border-t border-[var(--border-default)] space-y-1">
+                                {effects
+                                  .filter(e => e.account === transaction.source_account && e.type === 'account_debited')
+                                  .slice(0, 2)
+                                  .map((e, i) => (
+                                    <div key={`debit-${i}`} className="flex items-center justify-between">
+                                      <span className="text-[var(--error)] font-medium text-xs">Sent</span>
+                                      <span className="font-bold text-sm text-[var(--error)]">
+                                        -{parseFloat(e.amount || '0').toLocaleString(undefined, { maximumFractionDigits: 7 })} {e.asset_type === 'native' ? 'XLM' : e.asset_code || ''}
+                                      </span>
+                                    </div>
+                                  ))}
+                                {effects
+                                  .filter(e => e.account === transaction.source_account && e.type === 'account_credited')
+                                  .slice(0, 2)
+                                  .map((e, i) => (
+                                    <div key={`credit-${i}`} className="flex items-center justify-between">
+                                      <span className="text-[var(--success)] font-medium text-xs">Received</span>
+                                      <span className="font-bold text-sm text-[var(--success)]">
+                                        +{parseFloat(e.amount || '0').toLocaleString(undefined, { maximumFractionDigits: 7 })} {e.asset_type === 'native' ? 'XLM' : e.asset_code || ''}
+                                      </span>
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Fallback for other operations */}
+                        {!isPaymentOp && !isCreateAccount && !isPathPayment && !isOffer && !isContract && op.amount && (
                           <div className="flex items-center justify-between">
-                            <span className="text-[var(--text-muted)] font-medium text-xs">From</span>
-                            <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
-                              {shortenAddress(op.from || op.source_account, 6)}
-                            </Link>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[var(--text-muted)] font-medium text-xs">To</span>
-                            <Link href={`/account/${op.to || (op as any).account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
-                              {shortenAddress(op.to || (op as any).account, 6)}
-                            </Link>
-                          </div>
-                          <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-default)]">
                             <span className="text-[var(--text-muted)] font-medium text-xs">Amount</span>
                             <span className="font-bold text-sm" style={{ color: primaryColor }}>
-                              {formatCompactNumber(op.amount || (op as any).starting_balance)} {op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM'}
+                              {formatCompactNumber(op.amount)} {op.asset_type === 'native' ? 'XLM' : op.asset_code || ''}
                             </span>
                           </div>
-                        </>
-                      )}
-
-                      {/* Swap details */}
-                      {isPathPayment && (
-                        <>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[var(--text-muted)] font-medium text-xs">From</span>
-                            <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
-                              {shortenAddress(op.from || op.source_account, 6)}
-                            </Link>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[var(--text-muted)] font-medium text-xs">To</span>
-                            <Link href={`/account/${op.to}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
-                              {shortenAddress(op.to || '', 6)}
-                            </Link>
-                          </div>
-                          <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-default)]">
-                            <span className="text-[var(--error)] font-medium text-xs">Sent</span>
-                            <span className="font-bold text-sm text-[var(--error)]">
-                              -{formatCompactNumber(pathPaymentSent.amount)} {pathPaymentSent.asset}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[var(--success)] font-medium text-xs">Received</span>
-                            <span className="font-bold text-sm text-[var(--success)]">
-                              +{formatCompactNumber(pathPaymentReceived.amount)} {pathPaymentReceived.asset}
-                            </span>
-                          </div>
-                        </>
-                      )}
-
-                      {/* Offer details */}
-                      {isOffer && (
-                        <>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[var(--text-muted)] font-medium text-xs">Selling</span>
-                            <span className="font-bold text-sm" style={{ color: primaryColor }}>
-                              {formatCompactNumber(op.amount || '0')} {(op as any).selling_asset_type === 'native' ? 'XLM' : (op as any).selling_asset_code || ''}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[var(--text-muted)] font-medium text-xs">Buying</span>
-                            <span className="font-bold text-sm" style={{ color: primaryColor }}>
-                              {(op as any).buying_asset_type === 'native' ? 'XLM' : (op as any).buying_asset_code || ''}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-default)]">
-                            <span className="text-[var(--text-muted)] font-medium text-xs">Price</span>
-                            <span className="font-bold text-sm" style={{ color: primaryColor }}>{(op as any).price}</span>
-                          </div>
-                        </>
-                      )}
-
-                      {/* Contract details */}
-                      {isContract && (
-                        <>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[var(--text-muted)] font-medium text-xs">Contract</span>
-                            <Link href={`/contract/${extractContractAddress(op as any) || ''}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
-                              {extractContractAddress(op as any) ? shortenAddress(extractContractAddress(op as any) || '', 6) : 'Unknown'}
-                            </Link>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[var(--text-muted)] font-medium text-xs">Function</span>
-                            <span className="font-bold text-sm capitalize" style={{ color: primaryColor }}>
-                              {contractFunctionName || 'Unknown'}
-                            </span>
-                          </div>
-                          {/* Show contract effects summary */}
-                          {effects.filter(e => e.account === transaction.source_account && (e.type === 'account_credited' || e.type === 'account_debited')).length > 0 && (
-                            <div className="mt-2 pt-2 border-t border-[var(--border-default)] space-y-1">
-                              {effects
-                                .filter(e => e.account === transaction.source_account && e.type === 'account_debited')
-                                .slice(0, 2)
-                                .map((e, i) => (
-                                  <div key={`debit-${i}`} className="flex items-center justify-between">
-                                    <span className="text-[var(--error)] font-medium text-xs">Sent</span>
-                                    <span className="font-bold text-sm text-[var(--error)]">
-                                      -{parseFloat(e.amount || '0').toLocaleString(undefined, { maximumFractionDigits: 7 })} {e.asset_type === 'native' ? 'XLM' : e.asset_code || ''}
-                                    </span>
-                                  </div>
-                                ))}
-                              {effects
-                                .filter(e => e.account === transaction.source_account && e.type === 'account_credited')
-                                .slice(0, 2)
-                                .map((e, i) => (
-                                  <div key={`credit-${i}`} className="flex items-center justify-between">
-                                    <span className="text-[var(--success)] font-medium text-xs">Received</span>
-                                    <span className="font-bold text-sm text-[var(--success)]">
-                                      +{parseFloat(e.amount || '0').toLocaleString(undefined, { maximumFractionDigits: 7 })} {e.asset_type === 'native' ? 'XLM' : e.asset_code || ''}
-                                    </span>
-                                  </div>
-                                ))}
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {/* Fallback for other operations */}
-                      {!isPaymentOp && !isCreateAccount && !isPathPayment && !isOffer && !isContract && op.amount && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-[var(--text-muted)] font-medium text-xs">Amount</span>
-                          <span className="font-bold text-sm" style={{ color: primaryColor }}>
-                            {formatCompactNumber(op.amount)} {op.asset_type === 'native' ? 'XLM' : op.asset_code || ''}
-                          </span>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
               </div>
 
               {/* Infinite scroll sentinel and loading state */}

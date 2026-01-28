@@ -658,26 +658,48 @@ export default function AccountMobileView({ account, transactions, operations: i
           </button>
         </div>
 
-        {/* Tabs - Bubble Style */}
-        <div className="flex bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-1 shadow-sm">
-          {[
+        {/* Tabs - Glider Style */}
+        {(() => {
+          const tabs = [
             { id: 'assets', label: 'Assets' },
             { id: 'activity', label: 'Activity' },
             { id: 'details', label: 'Details' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id as 'assets' | 'activity' | 'details')}
-              className={`flex-1 py-2 text-[11px] rounded-lg transition-all text-center ${
-                activeTab === tab.id
-                  ? 'font-bold text-white bg-[var(--primary-blue)] shadow-md'
-                  : 'font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+          ];
+          const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab);
+          const tabCount = tabs.length;
+
+          return (
+            <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)]">
+              {/* Glider Background */}
+              <div
+                className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
+                style={{
+                  left: '4px',
+                  width: `calc((100% - 8px) / ${tabCount})`,
+                  transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
+                  opacity: activeTabIndex >= 0 ? 1 : 0
+                }}
+              />
+
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id as 'assets' | 'activity' | 'details')}
+                    className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center ${
+                      isActive
+                        ? 'text-[var(--primary-blue)] font-bold'
+                        : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
       </header>
 
       {/* Main Content */}
