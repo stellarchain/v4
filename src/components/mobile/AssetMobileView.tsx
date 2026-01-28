@@ -647,9 +647,9 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
             </div>
           </div>
           {rank > 0 && (
-            <div className="bg-white/10 px-2.5 py-1 rounded-lg backdrop-blur-sm border border-white/5">
-              <span className="text-white/60 text-[10px] uppercase">Rank</span>
-              <span className="text-white font-bold text-sm ml-1">#{rank}</span>
+            <div className="bg-white/10 px-2.5 py-1.5 rounded-lg backdrop-blur-sm border border-white/5 flex items-center gap-1.5">
+              <span className="text-white/60 text-[10px] uppercase leading-none">Rank</span>
+              <span className="text-white font-bold text-[13px] leading-none">#{rank}</span>
             </div>
           )}
         </div>
