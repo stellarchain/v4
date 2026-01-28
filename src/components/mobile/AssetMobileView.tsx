@@ -674,25 +674,50 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
         )}
       </header>
 
-      {/* Main Tab Navigation */}
-      <div className="sticky top-0 z-10 bg-[var(--bg-primary)] border-b border-[var(--border-default)]">
-        <div className="max-w-2xl mx-auto px-3">
-          <div className="flex items-center gap-6 overflow-x-auto scrollbar-hide">
-            {(['overview', 'trades', 'markets', 'holders'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-3 text-sm font-semibold capitalize whitespace-nowrap transition-colors border-b-2 ${
-                  activeTab === tab
-                    ? 'text-[var(--primary-blue)] border-[var(--primary-blue)]'
-                    : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-secondary)]'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Main Tab Navigation - Glider Style */}
+      <div className="max-w-2xl mx-auto px-3 mt-3 mb-1">
+        {(() => {
+          const tabs = [
+            { id: 'overview', label: 'Overview' },
+            { id: 'trades', label: 'Trades' },
+            { id: 'markets', label: 'Markets' },
+            { id: 'holders', label: 'Holders' },
+          ];
+          const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab);
+          const tabCount = tabs.length;
+
+          return (
+            <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)]">
+              {/* Glider Background */}
+              <div
+                className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
+                style={{
+                  left: '4px',
+                  width: `calc((100% - 8px) / ${tabCount})`,
+                  transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
+                  opacity: activeTabIndex >= 0 ? 1 : 0
+                }}
+              />
+
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center ${
+                      isActive
+                        ? 'text-[var(--primary-blue)] font-bold'
+                        : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Main Content */}

@@ -260,34 +260,48 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                     </div>
                 </div>
 
-                {/* Tabs Navigation */}
-                <div className="flex gap-6 border-b border-[var(--border-default)] pb-4 mb-4">
-                    {[
-                        { id: 'overview', label: 'Overview' },
-                        { id: 'transactions', label: 'Transactions', count: ledger.successful_transaction_count + ledger.failed_transaction_count },
-                        { id: 'operations', label: 'Operations', count: ledger.operation_count }
-                    ].map((tab) => (
-                        <button
+                {/* Tabs - Glider Style */}
+                {(() => {
+                  const tabs = [
+                    { id: 'overview', label: 'Overview' },
+                    { id: 'transactions', label: 'Transactions' },
+                    { id: 'operations', label: 'Operations' },
+                  ];
+                  const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab);
+                  const tabCount = tabs.length;
+
+                  return (
+                    <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)] mt-3 mb-1">
+                      {/* Glider Background */}
+                      <div
+                        className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
+                        style={{
+                          left: '4px',
+                          width: `calc((100% - 8px) / ${tabCount})`,
+                          transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
+                          opacity: activeTabIndex >= 0 ? 1 : 0
+                        }}
+                      />
+
+                      {tabs.map((tab) => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                          <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
-                            className={`text-sm font-semibold relative ${
-                                activeTab === tab.id
-                                    ? 'text-[var(--primary-blue)] after:absolute after:-bottom-4 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--primary-blue)]'
-                                    : 'text-[var(--text-tertiary)] hover:text-[var(--primary-blue)]'
-                            } transition-colors`}
-                        >
+                            className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center ${
+                              isActive
+                                ? 'text-[var(--primary-blue)] font-bold'
+                                : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
+                            }`}
+                          >
                             {tab.label}
-                            {tab.count !== undefined && (
-                                <span className={`ml-1 py-0.5 px-1.5 rounded-full text-[11px] ${activeTab === tab.id
-                                    ? 'bg-[var(--bg-primary)] text-[var(--text-secondary)]'
-                                    : 'bg-[var(--bg-primary)] text-[var(--text-tertiary)]'
-                                    }`}>
-                                    {tab.count}
-                                </span>
-                            )}
-                        </button>
-                    ))}
-                </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
 
                 {/* Tab Content */}
                 <div className="min-h-[200px]">
