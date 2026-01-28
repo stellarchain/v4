@@ -5,6 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import FloatingBottomNav from "@/components/mobile/FloatingBottomNav";
 import MobileHeader from "@/components/mobile/MobileHeader";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { FavoritesProvider } from "@/contexts/FavoritesContext";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -51,6 +52,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning data-theme="light">
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen transition-colors duration-300 overflow-x-hidden`}>
         <ThemeProvider>
+          <FavoritesProvider>
           {/* Mobile Header */}
           <MobileHeader />
 
@@ -70,6 +72,7 @@ export default function RootLayout({
 
           {/* Mobile Bottom Navigation - iOS 26 Style */}
           <FloatingBottomNav />
+          </FavoritesProvider>
         </ThemeProvider>
       </body>
     </html>

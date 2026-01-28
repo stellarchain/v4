@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Transaction, Operation, Effect, shortenAddress, formatXLM } from '@/lib/stellar';
 import { containers, colors, coreColors, tabs, badges } from '@/lib/design-system';
 import { QRCodeSVG } from 'qrcode.react';
+import { useFavorites } from '@/contexts/FavoritesContext';
 
 function formatCompactNumber(value: number): string {
   if (value === 0) return '0';
@@ -83,6 +84,15 @@ export default function AccountMobileView({ account, transactions, operations: i
   const [activeTab, setActiveTab] = useState<'assets' | 'activity' | 'details'>(initialTab);
   const [activityType, setActivityType] = useState<'all' | 'payments' | 'swaps' | 'contracts'>('all');
   const [showUsdValue, setShowUsdValue] = useState(false);
+  const [showActivityFilterDropdown, setShowActivityFilterDropdown] = useState(false);
+  const activityFilterRef = useRef<HTMLDivElement>(null);
+  const [showAddressDropdown, setShowAddressDropdown] = useState(false);
+  const addressDropdownRef = useRef<HTMLDivElement>(null);
+  const [showFavoriteModal, setShowFavoriteModal] = useState(false);
+  const [favoriteLabel, setFavoriteLabel] = useState('');
+  const { favorites, addFavorite, removeFavorite, updateFavoriteLabel, isFavorite, getFavorite } = useFavorites();
+  const isCurrentFavorite = isFavorite(account.id);
+  const currentFavorite = getFavorite(account.id);
 
   // Update URL when tab changes
   const handleTabChange = (tab: 'assets' | 'activity' | 'details') => {
@@ -121,6 +131,32 @@ export default function AccountMobileView({ account, transactions, operations: i
       initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
     );
   }, [initialOperations]);
+
+  // Close activity filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (activityFilterRef.current && !activityFilterRef.current.contains(e.target as Node)) {
+        setShowActivityFilterDropdown(false);
+      }
+    };
+    if (showActivityFilterDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showActivityFilterDropdown]);
+
+  // Close address dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addressDropdownRef.current && !addressDropdownRef.current.contains(e.target as Node)) {
+        setShowAddressDropdown(false);
+      }
+    };
+    if (showAddressDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showAddressDropdown]);
 
   // Refs for infinite scroll
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -546,22 +582,52 @@ export default function AccountMobileView({ account, transactions, operations: i
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--primary-blue)' }}>Account</h1>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-[var(--text-tertiary)] font-mono">
-              {shortenAddress(account.id, 4)}
-            </span>
-            <button
-              onClick={handleCopy}
-              className="w-9 h-9 flex items-center justify-center rounded-xl bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] transition-colors shadow-sm border border-[var(--border-default)]"
-            >
-              {copied ? (
-                <svg className="w-4 h-4 text-[var(--success)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            {/* Address Dropdown */}
+            <div ref={addressDropdownRef} className="relative">
+              <button
+                onClick={() => setShowAddressDropdown(!showAddressDropdown)}
+                className="flex items-center gap-1 text-sm font-semibold text-[var(--text-secondary)] font-mono hover:text-[var(--text-primary)] transition-colors"
+              >
+                {shortenAddress(account.id, 6)}
+                <svg className={`w-3 h-3 transition-transform ${showAddressDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
-              ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
+              </button>
+              {showAddressDropdown && (
+                <div className="absolute right-0 top-full mt-2 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl shadow-lg overflow-hidden z-50 p-3 min-w-[280px]">
+                  <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold mb-2">Full Address</div>
+                  <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                    <p className="font-mono text-[11px] text-[var(--text-primary)] break-all leading-relaxed select-all">{account.id}</p>
+                  </div>
+                  <button
+                    onClick={() => { handleCopy(); setShowAddressDropdown(false); }}
+                    className="mt-2 w-full py-2 rounded-lg bg-[var(--text-primary)] text-[var(--bg-primary)] font-semibold text-xs flex items-center justify-center gap-1.5"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy Address
+                  </button>
+                </div>
               )}
+            </div>
+            {/* Favorite Button */}
+            <button
+              onClick={() => {
+                if (isCurrentFavorite) {
+                  setFavoriteLabel(currentFavorite?.label || '');
+                }
+                setShowFavoriteModal(true);
+              }}
+              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors shadow-sm border ${
+                isCurrentFavorite
+                  ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                  : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-amber-500 border-[var(--border-default)]'
+              }`}
+            >
+              <svg className="w-4 h-4" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
             </button>
           </div>
         </div>
@@ -584,7 +650,7 @@ export default function AccountMobileView({ account, transactions, operations: i
           {/* QR Code Button */}
           <button
             onClick={() => setShowQrModal(true)}
-            className="w-11 h-11 flex items-center justify-center rounded-xl bg-[#0F4C81]/10 text-[#0F4C81] hover:bg-[#0F4C81]/20 transition-colors border border-[#0F4C81]/20"
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors border border-[var(--border-default)]"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
@@ -592,31 +658,25 @@ export default function AccountMobileView({ account, transactions, operations: i
           </button>
         </div>
 
-        {/* Divider line before tabs */}
-        <div className="border-t border-[var(--border-default)] mb-3"></div>
-
-        {/* Tabs */}
-        <div className="flex items-center justify-between pb-3">
-          <div className="flex gap-6">
+        {/* Tabs - Bubble Style */}
+        <div className="flex bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-1 shadow-sm">
+          {[
+            { id: 'assets', label: 'Assets' },
+            { id: 'activity', label: 'Activity' },
+            { id: 'details', label: 'Details' },
+          ].map((tab) => (
             <button
-              onClick={() => handleTabChange('assets')}
-              className={`text-sm font-semibold relative ${activeTab === 'assets' ? 'text-[var(--primary-blue)] after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--primary-blue)]' : 'text-[var(--text-tertiary)] hover:text-[var(--primary-blue)]'} transition-colors`}
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id as 'assets' | 'activity' | 'details')}
+              className={`flex-1 py-2 text-[11px] rounded-lg transition-all text-center ${
+                activeTab === tab.id
+                  ? 'font-bold text-white bg-[var(--primary-blue)] shadow-md'
+                  : 'font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
             >
-              Assets
+              {tab.label}
             </button>
-            <button
-              onClick={() => handleTabChange('activity')}
-              className={`text-sm font-semibold relative ${activeTab === 'activity' ? 'text-[var(--primary-blue)] after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--primary-blue)]' : 'text-[var(--text-tertiary)] hover:text-[var(--primary-blue)]'} transition-colors`}
-            >
-              Activity
-            </button>
-            <button
-              onClick={() => handleTabChange('details')}
-              className={`text-sm font-semibold relative ${activeTab === 'details' ? 'text-[var(--primary-blue)] after:absolute after:-bottom-3 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--primary-blue)]' : 'text-[var(--text-tertiary)] hover:text-[var(--primary-blue)]'} transition-colors`}
-            >
-              Details
-            </button>
-          </div>
+          ))}
         </div>
       </header>
 
@@ -739,20 +799,34 @@ export default function AccountMobileView({ account, transactions, operations: i
         {activeTab === 'activity' && (
           <div ref={activityContainerRef}>
             {/* Activity Filters */}
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-2 mb-3 mt-3">
-              <div className="flex gap-5">
-                {['all', 'payments', 'swaps', 'contracts'].map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setActivityType(type as any)}
-                    className={`text-xs font-semibold relative ${activityType === type
-                        ? 'text-[var(--primary-blue)] after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-0.5 after:bg-[var(--primary-blue)]'
-                        : 'text-[var(--text-tertiary)] hover:text-[var(--primary-blue)]'
-                      } transition-colors`}
-                  >
-                    {type === 'all' ? 'All' : type === 'payments' ? 'Payments' : type === 'swaps' ? 'Swaps' : 'Contracts'}
-                  </button>
-                ))}
+            <div className="flex items-center justify-between mb-3 mt-3">
+              {/* Filter Dropdown */}
+              <div ref={activityFilterRef} className="relative">
+                <button
+                  onClick={() => setShowActivityFilterDropdown(!showActivityFilterDropdown)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[11px] font-semibold text-[var(--text-secondary)]"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                  <span>{activityType === 'all' ? 'All' : activityType === 'payments' ? 'Payments' : activityType === 'swaps' ? 'Swaps' : 'Contracts'}</span>
+                  <svg className={`w-3 h-3 transition-transform ${showActivityFilterDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showActivityFilterDropdown && (
+                  <div className="absolute left-0 top-full mt-1 min-w-[120px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
+                    {(['all', 'payments', 'swaps', 'contracts'] as const).map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => { setActivityType(type); setShowActivityFilterDropdown(false); }}
+                        className={`w-full text-left px-3 py-2 text-[11px] font-medium ${activityType === type ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+                      >
+                        {type === 'all' ? 'All' : type === 'payments' ? 'Payments' : type === 'swaps' ? 'Swaps' : 'Contracts'}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               {/* USD Toggle */}
               <button
@@ -940,9 +1014,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                                     </>
                                   );
                                 })()
-                              ) : (
-                                <div className="text-sm font-medium text-[var(--text-muted)]">--</div>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                         </div>
@@ -1150,7 +1222,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                   size={200}
                   level="H"
                   bgColor="#ffffff"
-                  fgColor="#0F4C81"
+                  fgColor="#1a1a2e"
                 />
               </div>
             </div>
@@ -1167,7 +1239,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
                 }}
-                className="flex-1 py-3 rounded-xl bg-[#0F4C81] text-white font-semibold text-sm flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-semibold text-sm flex items-center justify-center gap-2"
               >
                 {copied ? (
                   <>
@@ -1190,6 +1262,90 @@ export default function AccountMobileView({ account, transactions, operations: i
                 className="py-3 px-4 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-secondary)] font-semibold text-sm border border-[var(--border-default)]"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Favorite Modal */}
+      {showFavoriteModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowFavoriteModal(false)}
+        >
+          <div
+            className="bg-[var(--bg-primary)] rounded-3xl p-6 mx-4 max-w-sm w-full shadow-2xl border border-[var(--border-default)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-amber-500" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-[var(--text-primary)]">
+                {isCurrentFavorite ? 'Edit Favorite' : 'Add to Favorites'}
+              </h3>
+              <p className="text-xs text-[var(--text-muted)] mt-1 font-mono">{shortenAddress(account.id, 8)}</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold mb-2 block">
+                Label (optional)
+              </label>
+              <input
+                type="text"
+                value={favoriteLabel}
+                onChange={(e) => setFavoriteLabel(e.target.value)}
+                placeholder="e.g. My Wallet, Exchange..."
+                className="w-full px-3 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-blue)]"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              {isCurrentFavorite ? (
+                <>
+                  <button
+                    onClick={() => {
+                      updateFavoriteLabel(account.id, favoriteLabel);
+                      setShowFavoriteModal(false);
+                    }}
+                    className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-semibold text-sm"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => {
+                      removeFavorite(account.id);
+                      setFavoriteLabel('');
+                      setShowFavoriteModal(false);
+                    }}
+                    className="py-3 px-4 rounded-xl bg-[var(--error)]/10 text-[var(--error)] font-semibold text-sm border border-[var(--error)]/20"
+                  >
+                    Remove
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    addFavorite(account.id, favoriteLabel || undefined);
+                    setFavoriteLabel('');
+                    setShowFavoriteModal(false);
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-semibold text-sm flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
+                  Add Favorite
+                </button>
+              )}
+              <button
+                onClick={() => setShowFavoriteModal(false)}
+                className="py-3 px-4 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-secondary)] font-semibold text-sm border border-[var(--border-default)]"
+              >
+                Cancel
               </button>
             </div>
           </div>
