@@ -1,0 +1,15 @@
+{
+  "short_name": "Stellarchain",
+  "name": "Stellarchain",
+  "id": "/",
+  "start_url": "/",
+  "background_color": "#000000",
+  "display_override": [
+    "window-control-overlay",
+    "minimal-ui"
+  ],
+  "display": "fullscreen",
+  "scope": "/",
+  "theme_color": "#000000",
+  "description": "Explore the Stellar blockchain - transactions, accounts, ledgers, and operations"
+}
