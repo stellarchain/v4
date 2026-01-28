@@ -335,6 +335,23 @@ export async function getLiquidityPool(poolId: string): Promise<LiquidityPool> {
   return fetchJSON<LiquidityPool>(`${getBaseUrl()}/liquidity_pools/${poolId}`);
 }
 
+export async function getLiquidityPoolByAssets(
+  assetA: { code: string; issuer?: string },
+  assetB: { code: string; issuer?: string }
+): Promise<LiquidityPool | null> {
+  const formatAsset = (a: { code: string; issuer?: string }) =>
+    a.code === 'XLM' && !a.issuer ? 'native' : `${a.code}:${a.issuer}`;
+  const reserves = `${formatAsset(assetA)},${formatAsset(assetB)}`;
+  try {
+    const data = await fetchJSON<PaginatedResponse<LiquidityPool>>(
+      `${getBaseUrl()}/liquidity_pools?reserves=${encodeURIComponent(reserves)}&limit=1`
+    );
+    return data._embedded.records.length > 0 ? data._embedded.records[0] : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getLiquidityPoolOperations(
   poolId: string,
   limit: number = 20,

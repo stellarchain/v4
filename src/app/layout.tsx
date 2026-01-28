@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
-import MobileNav from "@/components/mobile/MobileNav";
+import FloatingBottomNav from "@/components/mobile/FloatingBottomNav";
 import MobileHeader from "@/components/mobile/MobileHeader";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
@@ -48,8 +48,8 @@ export default function RootLayout({
             </main>
           </div>
 
-          {/* Mobile Bottom Navigation */}
-          <MobileNav />
+          {/* Mobile Bottom Navigation - iOS 26 Style */}
+          <FloatingBottomNav />
         </ThemeProvider>
       </body>
     </html>

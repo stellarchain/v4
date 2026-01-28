@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 export default function MobileHeader() {
@@ -79,13 +80,14 @@ export default function MobileHeader() {
       <header className="bg-[var(--header-bg)] text-white pt-6 pb-6 px-4 rounded-b-3xl shadow-lg relative z-10 md:hidden">
         {/* Top: Logo */}
         <div className="flex items-center justify-between mb-4">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <span className="text-xl font-bold tracking-tight">StellarChain</span>
+          <Link href="/">
+            <Image
+              src="/logostellar.png"
+              alt="StellarChain Explorer"
+              width={180}
+              height={32}
+              className="h-7 w-auto"
+            />
           </Link>
         </div>
 
@@ -115,13 +117,14 @@ export default function MobileHeader() {
     <header className="bg-[var(--header-bg)] text-white pt-6 pb-6 px-4 rounded-b-3xl shadow-lg relative z-10 md:hidden">
       {/* Top Bar: Logo */}
       <div className="flex items-center justify-between mb-6">
-        <Link href="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <span className="text-xl font-bold tracking-tight">StellarChain</span>
+        <Link href="/">
+          <Image
+            src="/logostellar.png"
+            alt="StellarChain Explorer"
+            width={180}
+            height={32}
+            className="h-7 w-auto"
+          />
         </Link>
       </div>
 
