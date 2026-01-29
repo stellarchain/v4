@@ -101,7 +101,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   const tradesEndRef = useRef<HTMLDivElement>(null);
 
   // Main page tab state
-  const [activeTab, setActiveTab] = useState<'overview' | 'trades' | 'markets' | 'holders'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'trades' | 'markets' | 'holders' | 'convert'>('overview');
 
   // Asset holders state - pre-fetched on page load
   const [allHolders, setAllHolders] = useState<AssetHolder[]>([]); // Full sorted list
@@ -655,33 +655,51 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
         </div>
 
         {/* Price Row */}
-        <div className="mt-4 flex items-baseline gap-3 relative z-10">
+        <div className="mt-4 flex items-center justify-between relative z-10">
           <div className="text-3xl font-bold text-white">{formatPrice(asset.price_usd)}</div>
-          <div className={`flex items-center gap-1 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${isPositive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
             <span className="text-sm">{isPositive ? '▲' : '▼'}</span>
             <span className="text-sm font-semibold">{Math.abs(change24h).toFixed(2)}%</span>
-            <span className="text-white/40 text-xs">(24h)</span>
+            <span className="text-white/50 text-xs">(24h)</span>
           </div>
         </div>
 
-        {asset.code !== 'XLM' && asset.issuer && (
-          <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-white/10 relative z-10">
-            <span className="text-xs text-white/50">Issuer:</span>
-            <Link href={`/account/${asset.issuer}`} className="text-xs font-mono text-white/70 hover:text-white">
-              {shortenAddress(asset.issuer, 6)}
-            </Link>
+        {asset.code !== 'XLM' && (asset.issuer || asset.domain) && (
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10 relative z-10">
+            {asset.issuer && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-white/50">Issuer:</span>
+                <Link href={`/account/${asset.issuer}`} className="text-xs font-mono text-white/70 hover:text-white">
+                  {shortenAddress(asset.issuer, 6)}
+                </Link>
+              </div>
+            )}
+            {asset.domain && (
+              <a
+                href={`https://${asset.domain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-white/70 hover:text-white"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+                {asset.domain}
+              </a>
+            )}
           </div>
         )}
       </header>
 
       {/* Main Tab Navigation - Glider Style */}
-      <div className="max-w-2xl mx-auto px-3 mt-3 mb-1">
+      <div className="max-w-2xl mx-auto px-3 mt-2 mb-1">
         {(() => {
           const tabs = [
             { id: 'overview', label: 'Overview' },
             { id: 'trades', label: 'Trades' },
             { id: 'markets', label: 'Markets' },
             { id: 'holders', label: 'Holders' },
+            { id: 'convert', label: 'Convert' },
           ];
           const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab);
           const tabCount = tabs.length;
@@ -721,7 +739,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-2xl mx-auto px-3 py-3 space-y-3">
+      <div className="max-w-2xl mx-auto px-3 py-2 space-y-2">
 
         {/* Overview Tab */}
         {activeTab === 'overview' && (
@@ -1043,9 +1061,6 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
           </div>
         </div>
 
-        {/* Converter Section */}
-        <AssetConverterMobile asset={asset} />
-
         {/* About Section */}
         {(asset.description || asset.domain || asset.issuer) && (
           <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
@@ -1099,12 +1114,12 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
         {/* Trades Tab */}
         {activeTab === 'trades' && (
-          <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+          <div className="space-y-2">
             {tradesLoading && initialTradesLoad ? (
               /* Trade History Skeleton */
-              <div className="divide-y divide-[var(--border-subtle)] animate-pulse">
+              <div className="space-y-2 animate-pulse">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <div key={i} className="px-4 py-3 flex items-center justify-between">
+                  <div key={i} className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="h-3.5 w-32 bg-[var(--border-default)] rounded mb-1.5" />
                       <div className="h-3 w-24 bg-[var(--border-default)] rounded" />
@@ -1117,7 +1132,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 ))}
               </div>
             ) : trades.length > 0 ? (
-              <div className="divide-y divide-[var(--border-subtle)]">
+              <>
                 {trades.map((trade) => {
                   const baseCode = trade.base_asset_type === 'native' ? 'XLM' : (trade.base_asset_code || 'Unknown');
                   const counterCode = trade.counter_asset_type === 'native' ? 'XLM' : (trade.counter_asset_code || 'Unknown');
@@ -1140,18 +1155,18 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                       key={trade.id}
                       onClick={() => handleTradeClick(trade)}
                       disabled={isNavigating}
-                      className="w-full px-4 py-3 flex items-center justify-between hover:bg-[var(--bg-tertiary)] transition-colors active:bg-[var(--bg-primary)] disabled:opacity-50"
+                      className="w-full bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between hover:bg-[var(--bg-tertiary)] transition-colors active:bg-[var(--bg-primary)] disabled:opacity-50"
                     >
                       <div className="flex-1 min-w-0 text-left">
                         <div className="flex items-center gap-1.5 text-[13px] mb-0.5">
-                          <span className="font-medium text-[var(--primary-blue)]">
+                          <span className="font-semibold text-[var(--text-primary)]">
                             {displayBaseAmount >= 1000 ? displayBaseAmount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : displayBaseAmount.toFixed(4)}
                           </span>
                           <span className="text-[var(--text-muted)]">{displayBaseCode}</span>
                           <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                           </svg>
-                          <span className="font-medium text-[var(--primary-blue)]">
+                          <span className="font-semibold text-[var(--text-primary)]">
                             {displayCounterAmount >= 1000 ? displayCounterAmount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : displayCounterAmount.toFixed(4)}
                           </span>
                           <span className="text-[var(--text-muted)]">{displayCounterCode}</span>
@@ -1169,7 +1184,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                       </div>
                       <div className="flex items-center gap-2 ml-3">
                         <div className="text-right">
-                          <div className="text-[13px] font-medium text-[var(--primary-blue)]">
+                          <div className="text-sm font-semibold text-[var(--text-primary)]">
                             @{priceValue >= 1 ? priceValue.toFixed(4) : priceValue.toFixed(7)}
                           </div>
                         </div>
@@ -1193,7 +1208,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
                 {/* Loading more indicator */}
                 {loadingMoreTrades && (
-                  <div className="px-4 py-3 flex items-center justify-center gap-2">
+                  <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-center gap-2">
                     <svg className="w-4 h-4 animate-spin text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -1204,13 +1219,13 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
                 {/* End of trades indicator */}
                 {!hasMoreTrades && trades.length >= 20 && (
-                  <div className="px-4 py-3 text-center text-[11px] text-[var(--text-muted)]">
+                  <div className="text-center text-[11px] text-[var(--text-muted)] py-2">
                     All {trades.length} trades loaded
                   </div>
                 )}
-              </div>
+              </>
             ) : (
-              <div className="py-12 text-center text-[var(--text-muted)] text-[13px]">
+              <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-[13px]">
                 No recent trades
               </div>
             )}
@@ -1219,12 +1234,12 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
         {/* Markets Tab */}
         {activeTab === 'markets' && (
-          <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+          <div className="space-y-2">
             {marketsLoading ? (
               /* Markets Skeleton */
-              <div className="divide-y divide-[var(--border-subtle)] animate-pulse">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <div key={i} className="px-4 py-3 flex items-center justify-between">
+              <div className="space-y-2 animate-pulse">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="h-3.5 w-28 bg-[var(--border-default)] rounded mb-1.5" />
                       <div className="h-3 w-20 bg-[var(--border-default)] rounded" />
@@ -1237,7 +1252,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 ))}
               </div>
             ) : tradingPairs.length > 0 ? (
-              <div className="divide-y divide-[var(--border-subtle)]">
+              <>
                 {tradingPairs.map((pair) => {
                   const formatRate = (price: number) => {
                     if (price >= 1000000) return (price / 1000000).toFixed(2) + 'M';
@@ -1255,17 +1270,17 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                       key={pairKey}
                       onClick={() => handleMarketClick(pair)}
                       disabled={isNavigating}
-                      className="w-full px-4 py-3 flex items-center justify-between hover:bg-[var(--bg-tertiary)] transition-colors active:bg-[var(--bg-primary)] disabled:opacity-50"
+                      className="w-full bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between active:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-50"
                     >
                       <div className="flex-1 min-w-0 text-left">
-                        <div className="text-[13px] font-medium text-[var(--primary-blue)] mb-0.5">
+                        <div className="text-sm font-semibold text-[var(--text-primary)] mb-0.5">
                           {asset.code} / {pair.counterAsset.code}
                         </div>
                         <div className="text-[11px] text-[var(--text-muted)]">
                           {pair.totalTradeCount} trade{pair.totalTradeCount !== 1 ? 's' : ''} recently
                           {pair.counterAsset.issuer && pair.counterAsset.type !== 'native' && (
                             <>
-                              <span className="mx-1.5">•</span>
+                              <span className="mx-1.5">·</span>
                               <span className="font-mono">
                                 {shortenAddress(pair.counterAsset.issuer, 4)}
                               </span>
@@ -1275,8 +1290,8 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                       </div>
                       <div className="flex items-center gap-2 ml-3">
                         <div className="text-right">
-                          <div className="text-[13px] font-medium text-[var(--primary-blue)]">
-                            {formatRate(pair.price)} <span className="text-[var(--text-muted)]">{pair.counterAsset.code}</span>
+                          <div className="text-sm font-semibold text-[var(--text-primary)]">
+                            {formatRate(pair.price)} <span className="text-[var(--text-muted)] font-normal">{pair.counterAsset.code}</span>
                           </div>
                           <div className="text-[11px] text-[var(--text-muted)]">
                             per 1 {asset.code}
@@ -1296,14 +1311,9 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                     </button>
                   );
                 })}
-
-                {/* Footer */}
-                <div className="px-4 py-3 text-center text-[11px] text-[var(--text-muted)]">
-                  {tradingPairs.length} trading pair{tradingPairs.length !== 1 ? 's' : ''} available
-                </div>
-              </div>
+              </>
             ) : (
-              <div className="py-12 text-center text-[var(--text-muted)] text-[13px]">
+              <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-[13px]">
                 No active trading pairs found
               </div>
             )}
@@ -1312,14 +1322,14 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
         {/* Holders Tab */}
         {activeTab === 'holders' && (
-          <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+          <div className="space-y-2">
             {holdersLoading ? (
               /* Holders Skeleton */
-              <div className="divide-y divide-[var(--border-subtle)] animate-pulse">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <div key={i} className="px-4 py-3 flex items-center justify-between">
+              <div className="space-y-2 animate-pulse">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-6 h-6 bg-[var(--border-default)] rounded-full" />
+                      <div className="w-8 h-8 bg-[var(--border-default)] rounded-full" />
                       <div className="h-3.5 w-28 bg-[var(--border-default)] rounded" />
                     </div>
                     <div className="text-right ml-3">
@@ -1330,7 +1340,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 ))}
               </div>
             ) : allHolders.length > 0 ? (
-              <div className="divide-y divide-[var(--border-subtle)]">
+              <>
                 {allHolders.slice(0, displayedHoldersCount).map((holder, index) => {
                   const balance = parseFloat(holder.balance);
                   const percentage = holdersTotalSupply > 0 ? (balance / holdersTotalSupply) * 100 : 0;
@@ -1353,32 +1363,34 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                     <Link
                       key={holder.account_id}
                       href={`/account/${holder.account_id}`}
-                      className="px-4 py-3 flex items-center justify-between hover:bg-[var(--bg-tertiary)] transition-colors active:bg-[var(--bg-primary)]"
+                      className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors"
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-6 h-6 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center flex-shrink-0">
-                          <span className="text-[10px] font-bold text-[var(--text-muted)]">
-                            {index + 1}
-                          </span>
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-[13px] font-mono text-[var(--primary-blue)] truncate">
-                            {shortenAddress(holder.account_id, 6)}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center flex-shrink-0">
+                            <span className="text-[11px] font-bold text-[var(--text-muted)]">
+                              #{index + 1}
+                            </span>
                           </div>
-                          <div className="text-[11px] text-[var(--text-muted)]">
-                            {formatPercentage(percentage)} of supply
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 ml-3">
-                        <div className="text-right">
-                          <div className="text-[13px] font-medium text-[var(--primary-blue)]">
-                            {formatBalance(balance)} <span className="text-[var(--text-muted)]">{asset.code}</span>
+                          <div className="min-w-0">
+                            <div className="text-sm font-mono text-[var(--text-primary)] truncate">
+                              {shortenAddress(holder.account_id, 6)}
+                            </div>
+                            <div className="text-[11px] text-[var(--text-muted)]">
+                              {formatPercentage(percentage)} of supply
+                            </div>
                           </div>
                         </div>
-                        <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                        <div className="flex items-center gap-2 ml-3">
+                          <div className="text-right">
+                            <div className="text-sm font-semibold text-[var(--text-primary)]">
+                              {formatBalance(balance)} <span className="text-[var(--text-muted)] font-normal">{asset.code}</span>
+                            </div>
+                          </div>
+                          <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       </div>
                     </Link>
                   );
@@ -1388,21 +1400,18 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 {displayedHoldersCount < allHolders.length && (
                   <div ref={holdersEndRef} className="h-1" />
                 )}
-
-                {/* Footer */}
-                <div className="px-4 py-3 text-center text-[11px] text-[var(--text-muted)]">
-                  {displayedHoldersCount >= allHolders.length
-                    ? `All ${allHolders.length} holders loaded`
-                    : `Showing ${displayedHoldersCount} of ${allHolders.length} holders`
-                  }
-                </div>
-              </div>
+              </>
             ) : (
-              <div className="py-12 text-center text-[var(--text-muted)] text-[13px]">
+              <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-[13px]">
                 No holders found
               </div>
             )}
           </div>
+        )}
+
+        {/* Convert Tab */}
+        {activeTab === 'convert' && (
+          <AssetConverterMobile asset={asset} />
         )}
       </div>
     </div>

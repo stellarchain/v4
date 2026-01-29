@@ -85,7 +85,7 @@ export default function StatsCards({ stats, xlmVolume, xlmPrice }: StatsCardsPro
       <div className="bg-[var(--bg-secondary)]/90 backdrop-blur-xl rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border-t border-white/10 border-x border-b border-white/5 ring-1 ring-white/5">
         <div className="grid grid-cols-2 gap-3">
           {/* Market Cap */}
-          <div className="bg-[var(--bg-tertiary)] p-3 rounded-xl">
+          <Link href="/markets" className="bg-[var(--bg-tertiary)] p-3 rounded-xl hover:bg-[var(--bg-hover)] transition-colors">
             <div className="flex justify-between items-start mb-2">
               <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Market Cap</span>
               <span className="text-[11px] font-bold text-[var(--success)]">+2.4%</span>
@@ -101,10 +101,10 @@ export default function StatsCards({ stats, xlmVolume, xlmPrice }: StatsCardsPro
                 />
               </svg>
             </div>
-          </div>
+          </Link>
 
           {/* Volume 24h */}
-          <div className="bg-[var(--bg-tertiary)] p-3 rounded-xl">
+          <Link href="/markets" className="bg-[var(--bg-tertiary)] p-3 rounded-xl hover:bg-[var(--bg-hover)] transition-colors">
             <div className="flex justify-between items-start mb-2">
               <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Vol (24h)</span>
               <span className="text-[11px] font-bold text-[var(--error)]">-0.8%</span>
@@ -120,10 +120,10 @@ export default function StatsCards({ stats, xlmVolume, xlmPrice }: StatsCardsPro
                 />
               </svg>
             </div>
-          </div>
+          </Link>
 
           {/* TX Count */}
-          <div className="bg-[var(--bg-tertiary)] p-3 rounded-xl">
+          <Link href="/transactions" className="bg-[var(--bg-tertiary)] p-3 rounded-xl hover:bg-[var(--bg-hover)] transition-colors">
             <div className="flex justify-between items-start mb-2">
               <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">TX Count</span>
               <span className="text-[11px] font-bold text-[var(--success)]">{tps} TPS</span>
@@ -141,7 +141,7 @@ export default function StatsCards({ stats, xlmVolume, xlmPrice }: StatsCardsPro
                 />
               </svg>
             </div>
-          </div>
+          </Link>
 
           {/* Ledger */}
           <Link href={`/ledger/${liveStats.ledger_count}`} className="bg-[var(--bg-tertiary)] p-3 rounded-xl flex flex-col justify-between hover:bg-[var(--bg-hover)] transition-colors">
