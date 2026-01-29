@@ -78,11 +78,11 @@ export default function MobileHeader() {
       <div className="flex items-center justify-between mb-6">
         <Link href="/">
           <Image
-            src="/logostellar.png"
+            src="/bunn.png"
             alt="StellarChain Explorer"
-            width={180}
-            height={32}
-            className="h-7 w-auto"
+            width={200}
+            height={42}
+            className="h-10 w-auto"
           />
         </Link>
       </div>

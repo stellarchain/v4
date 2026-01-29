@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { shortenAddress } from '@/lib/stellar';
+import DonationModal from '@/components/DonationModal';
 
 const navItemsLeft = [
   { name: 'Home', href: '/', icon: 'home' },
@@ -161,6 +162,7 @@ export default function FloatingBottomNav() {
   const { theme, toggleTheme } = useTheme();
   const { favorites } = useFavorites();
   const [showFavoritesList, setShowFavoritesList] = useState(false);
+  const [showDonationModal, setShowDonationModal] = useState(false);
 
   // Only render after mounting to avoid SSR issues with Framer Motion
   useEffect(() => {
@@ -222,11 +224,11 @@ export default function FloatingBottomNav() {
               <div className="flex items-center justify-between">
                 <Link href="/" onClick={() => setIsMoreOpen(false)}>
                   <Image
-                    src="/logostellar.png"
+                    src="/bunn.png"
                     alt="StellarChain Explorer"
-                    width={180}
-                    height={32}
-                    className="h-7 w-auto"
+                    width={200}
+                    height={42}
+                    className="h-10 w-auto"
                   />
                 </Link>
               </div>
@@ -330,6 +332,24 @@ export default function FloatingBottomNav() {
                 </button>
               </div>
 
+              {/* Donate Button */}
+              <div className="px-4 mt-4">
+                <button
+                  onClick={() => {
+                    setIsMoreOpen(false);
+                    setShowDonationModal(true);
+                  }}
+                  className="flex items-center gap-3 py-3 px-4 w-full bg-[var(--bg-secondary)] rounded-xl transition-colors hover:bg-[var(--bg-tertiary)]"
+                >
+                  <span className="text-[var(--primary-blue)]">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </span>
+                  <span className="font-medium text-[var(--text-secondary)]">Support the Project</span>
+                </button>
+              </div>
+
               {/* Footer */}
               <div className="px-4 mt-8 pb-8 text-center">
                 <span className="text-2xl">❤️</span>
@@ -362,11 +382,12 @@ export default function FloatingBottomNav() {
               : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
           }}
         >
-          {/* Left nav items: Home, Txns */}
+          {/* Left nav items: Home, News */}
           {navItemsLeft.map((item) => (
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setIsMoreOpen(false)}
               className="flex flex-col items-center justify-center flex-1 h-full"
             >
               <motion.div
@@ -401,6 +422,7 @@ export default function FloatingBottomNav() {
                 whileTap={{ scale: 0.9 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                 onClick={() => {
+                  setIsMoreOpen(false);
                   if (favorites.length === 1) {
                     router.push(`/account/${favorites[0].address}`);
                   } else {
@@ -478,6 +500,7 @@ export default function FloatingBottomNav() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setIsMoreOpen(false)}
               className="flex flex-col items-center justify-center flex-1 h-full"
             >
               <motion.div
@@ -537,6 +560,9 @@ export default function FloatingBottomNav() {
           </button>
         </div>
       </motion.nav>
+
+      {/* Donation Modal */}
+      <DonationModal isOpen={showDonationModal} onClose={() => setShowDonationModal(false)} />
     </>
   );
 }
