@@ -3,7 +3,9 @@
 import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { shortenAddress, timeAgo, getOperationTypeLabel, formatDate, formatStroopsToXLM, extractContractAddress, detectContractFunctionType } from '@/lib/stellar';
+import type { AccountLabel } from '@/lib/stellar';
 import type { ContractFunctionType } from '@/lib/types/token';
+import AccountBadges from '@/components/AccountBadges';
 import { decodeTransactionMeta, decodeTransactionResources, type DecodedTransactionMeta, type SorobanMetrics } from '@/lib/xdrDecoder';
 
 interface Operation {
@@ -55,6 +57,7 @@ interface TransactionDesktopViewProps {
   transaction: TransactionData;
   operations: Operation[];
   effects: Effect[];
+  accountLabels?: Record<string, AccountLabel>;
 }
 
 const decodeContractFunctionName = (op: Operation): string => {
@@ -80,7 +83,7 @@ const formatTokenAmount = (value?: string, digits = 7) => {
   return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: digits });
 };
 
-export default function TransactionDesktopView({ transaction, operations, effects }: TransactionDesktopViewProps) {
+export default function TransactionDesktopView({ transaction, operations, effects, accountLabels = {} }: TransactionDesktopViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'effects' | 'resources' | 'raw' | null>(null);
   const [copied, setCopied] = useState(false);
   const [isTraceExpanded, setIsTraceExpanded] = useState(false);
@@ -446,9 +449,12 @@ export default function TransactionDesktopView({ transaction, operations, effect
                     </div>
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <span className="text-[11px] text-slate-500">Initiator:</span>
-                      <Link href={`/account/${transaction.source_account}`} className="text-[11px] font-mono font-bold text-slate-700 hover:text-sky-600">
-                        {shortenAddress(transaction.source_account, 6)}
-                      </Link>
+                      <span className="flex items-center">
+                        <Link href={`/account/${transaction.source_account}`} className="text-[11px] font-mono font-bold text-slate-700 hover:text-sky-600">
+                          {shortenAddress(transaction.source_account, 6)}
+                        </Link>
+                        <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                      </span>
                       {contractAddress && (
                         <>
                           <span className="text-slate-300 mx-1">→</span>
@@ -527,9 +533,12 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   {/* Initiator Footer */}
                   <div className="flex items-center justify-between text-xs px-2">
                     <span className="text-slate-400">Order by</span>
-                    <Link href={`/account/${transaction.source_account}`} className="font-mono font-bold text-slate-700 hover:text-sky-600">
-                      {shortenAddress(transaction.source_account, 12)}
-                    </Link>
+                    <span className="flex items-center">
+                      <Link href={`/account/${transaction.source_account}`} className="font-mono font-bold text-slate-700 hover:text-sky-600">
+                        {shortenAddress(transaction.source_account, 12)}
+                      </Link>
+                      <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                    </span>
                   </div>
                 </div>
               ) : (
@@ -549,9 +558,12 @@ export default function TransactionDesktopView({ transaction, operations, effect
                                 : `${swapSold?.amount ? formatTokenAmount(swapSold.amount, 2) : '0'} ${swapSold?.code || ''}`}
                             </div>
                           ) : (
-                            <Link href={`/account/${transaction.source_account}`} className="font-mono text-[14px] font-medium text-slate-800 hover:text-sky-600 transition-colors">
-                              {shortenAddress(transaction.source_account, 8)}
-                            </Link>
+                            <span className="flex items-center">
+                              <Link href={`/account/${transaction.source_account}`} className="font-mono text-[14px] font-medium text-slate-800 hover:text-sky-600 transition-colors">
+                                {shortenAddress(transaction.source_account, 8)}
+                              </Link>
+                              <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                            </span>
                           )}
                           <div className="text-[11px] text-slate-500 mt-0.5">Source account</div>
                         </div>
@@ -597,9 +609,12 @@ export default function TransactionDesktopView({ transaction, operations, effect
                                 </span>
                               </div>
                             ) : (
-                              <Link href={`/account/${destination}`} className="font-mono text-[14px] font-medium text-slate-800 hover:text-sky-600 transition-colors">
-                                {shortenAddress(destination, 8)}
-                              </Link>
+                              <span className="flex items-center">
+                                <Link href={`/account/${destination}`} className="font-mono text-[14px] font-medium text-slate-800 hover:text-sky-600 transition-colors">
+                                  {shortenAddress(destination, 8)}
+                                </Link>
+                                <AccountBadges address={destination} labels={accountLabels} />
+                              </span>
                             )}
                             {isMultiSend && (
                               <div className="mt-1 flex -space-x-1">
@@ -675,15 +690,21 @@ export default function TransactionDesktopView({ transaction, operations, effect
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400">
-                                  <Link href={`/account/${op.source_account || transaction.source_account}`} className="truncate max-w-[80px] hover:text-sky-600 hover:underline">
-                                    {shortenAddress(op.source_account || transaction.source_account, 4)}
-                                  </Link>
+                                  <span className="flex items-center">
+                                    <Link href={`/account/${op.source_account || transaction.source_account}`} className="truncate max-w-[80px] hover:text-sky-600 hover:underline">
+                                      {shortenAddress(op.source_account || transaction.source_account, 4)}
+                                    </Link>
+                                    <AccountBadges address={op.source_account || transaction.source_account} labels={accountLabels} />
+                                  </span>
                                   <svg className="h-3 w-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                                   </svg>
-                                  <Link href={`/account/${op.to || (op as any).into || transaction.source_account}`} className="truncate max-w-[80px] text-sky-600 hover:text-sky-700 hover:underline">
-                                    {shortenAddress(op.to || (op as any).into || transaction.source_account, 4)}
-                                  </Link>
+                                  <span className="flex items-center">
+                                    <Link href={`/account/${op.to || (op as any).into || transaction.source_account}`} className="truncate max-w-[80px] text-sky-600 hover:text-sky-700 hover:underline">
+                                      {shortenAddress(op.to || (op as any).into || transaction.source_account, 4)}
+                                    </Link>
+                                    <AccountBadges address={op.to || (op as any).into || transaction.source_account} labels={accountLabels} />
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -715,9 +736,12 @@ export default function TransactionDesktopView({ transaction, operations, effect
                                 {account === 'unknown' ? (
                                   <span className="text-[10px] font-mono font-semibold text-slate-400 truncate w-32">Unknown</span>
                                 ) : (
-                                  <Link href={`/account/${account}`} className="text-[10px] font-mono font-bold text-sky-600 truncate w-32 hover:underline">
-                                    {shortenAddress(account, 6)}
-                                  </Link>
+                                  <span className="flex items-center">
+                                    <Link href={`/account/${account}`} className="text-[10px] font-mono font-bold text-sky-600 truncate w-32 hover:underline">
+                                      {shortenAddress(account, 6)}
+                                    </Link>
+                                    <AccountBadges address={account} labels={accountLabels} />
+                                  </span>
                                 )}
                                 <span className="text-[9px] font-bold uppercase text-slate-300 tracking-wider">{accountEffects.length} EFFECTS</span>
                               </div>
@@ -790,15 +814,21 @@ export default function TransactionDesktopView({ transaction, operations, effect
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400">
-                              <Link href={`/account/${op.source_account || transaction.source_account}`} className="truncate max-w-[80px] hover:text-sky-600 hover:underline">
-                                {shortenAddress(op.source_account || transaction.source_account, 4)}
-                              </Link>
+                              <span className="flex items-center">
+                                <Link href={`/account/${op.source_account || transaction.source_account}`} className="truncate max-w-[80px] hover:text-sky-600 hover:underline">
+                                  {shortenAddress(op.source_account || transaction.source_account, 4)}
+                                </Link>
+                                <AccountBadges address={op.source_account || transaction.source_account} labels={accountLabels} />
+                              </span>
                               <svg className="h-3 w-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                               </svg>
-                              <Link href={`/account/${op.to || (op as any).into || transaction.source_account}`} className="truncate max-w-[80px] text-sky-600 hover:text-sky-700 hover:underline">
-                                {shortenAddress(op.to || (op as any).into || transaction.source_account, 4)}
-                              </Link>
+                              <span className="flex items-center">
+                                <Link href={`/account/${op.to || (op as any).into || transaction.source_account}`} className="truncate max-w-[80px] text-sky-600 hover:text-sky-700 hover:underline">
+                                  {shortenAddress(op.to || (op as any).into || transaction.source_account, 4)}
+                                </Link>
+                                <AccountBadges address={op.to || (op as any).into || transaction.source_account} labels={accountLabels} />
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -824,9 +854,12 @@ export default function TransactionDesktopView({ transaction, operations, effect
                             {account === 'unknown' ? (
                               <span className="text-[10px] font-mono font-semibold text-slate-400 truncate w-32">Unknown</span>
                             ) : (
-                              <Link href={`/account/${account}`} className="text-[10px] font-mono font-bold text-sky-600 truncate w-32 hover:underline">
-                                {shortenAddress(account, 6)}
-                              </Link>
+                              <span className="flex items-center">
+                                <Link href={`/account/${account}`} className="text-[10px] font-mono font-bold text-sky-600 truncate w-32 hover:underline">
+                                  {shortenAddress(account, 6)}
+                                </Link>
+                                <AccountBadges address={account} labels={accountLabels} />
+                              </span>
                             )}
                             <span className="text-[9px] font-bold uppercase text-slate-300 tracking-wider">{accountEffects.length} EFFECTS</span>
                           </div>
@@ -943,10 +976,11 @@ export default function TransactionDesktopView({ transaction, operations, effect
                                 </svg>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="text-xs text-slate-500 mb-1">
+                                <div className="text-xs text-slate-500 mb-1 flex items-center flex-wrap">
                                   <Link href={`/account/${transaction.source_account}`} className="font-mono text-sky-600 hover:text-sky-700">
                                     {shortenAddress(transaction.source_account, 6)}
                                   </Link>
+                                  <AccountBadges address={transaction.source_account} labels={accountLabels} />
                                   <span className="mx-1">invoked</span>
                                   <Link href={`/contract/${contractAddress}`} className="font-mono text-indigo-600 hover:text-indigo-700">
                                     {contractAddress ? shortenAddress(contractAddress, 6) : 'contract'}
@@ -1244,10 +1278,11 @@ export default function TransactionDesktopView({ transaction, operations, effect
                                 </svg>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="text-xs text-slate-500 mb-1">
+                                <div className="text-xs text-slate-500 mb-1 flex items-center flex-wrap">
                                   <Link href={`/account/${transaction.source_account}`} className="font-mono text-sky-600 hover:text-sky-700">
                                     {shortenAddress(transaction.source_account, 6)}
                                   </Link>
+                                  <AccountBadges address={transaction.source_account} labels={accountLabels} />
                                   <span className="mx-1">invoked</span>
                                   <Link href={`/contract/${contractAddress}`} className="font-mono text-indigo-600 hover:text-indigo-700">
                                     {contractAddress ? shortenAddress(contractAddress, 6) : 'contract'}
@@ -1292,6 +1327,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                                     <Link href={`/account/${effect.account}`} className="font-mono text-sky-600 hover:text-sky-700">
                                       {shortenAddress(effect.account, 4)}
                                     </Link>
+                                    <AccountBadges address={effect.account} labels={accountLabels} />
                                   </div>
                                 </div>
                               </div>
@@ -1533,9 +1569,12 @@ export default function TransactionDesktopView({ transaction, operations, effect
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-slate-100">
                   <span className="text-[11px] text-slate-500">Fee Account</span>
-                  <Link href={`/account/${transaction.source_account}`} className="text-[10px] font-mono font-medium text-sky-600 truncate w-24 text-right">
-                    {shortenAddress(transaction.source_account, 6)}
-                  </Link>
+                  <span className="flex items-center">
+                    <Link href={`/account/${transaction.source_account}`} className="text-[10px] font-mono font-medium text-sky-600 truncate w-24 text-right">
+                      {shortenAddress(transaction.source_account, 6)}
+                    </Link>
+                    <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-slate-100">
                   <span className="text-[11px] text-slate-500">Sequence</span>

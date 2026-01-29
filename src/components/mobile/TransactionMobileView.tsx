@@ -4,7 +4,9 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { shortenAddress, timeAgo, getOperationTypeLabel, formatDate, formatXLM, extractContractAddress, detectContractFunctionType } from '@/lib/stellar';
+import type { AccountLabel } from '@/lib/stellar';
 import type { ContractFunctionType } from '@/lib/types/token';
+import AccountBadges from '@/components/AccountBadges';
 import { containers, spacing } from '@/lib/design-system';
 import { decodeTransactionMeta, decodeTransactionResources, type DecodedTransactionMeta, type SorobanMetrics } from '@/lib/xdrDecoder';
 
@@ -57,9 +59,10 @@ interface TransactionMobileViewProps {
   transaction: TransactionData;
   operations: Operation[];
   effects: Effect[];
+  accountLabels?: Record<string, AccountLabel>;
 }
 
-export default function TransactionMobileView({ transaction, operations, effects }: TransactionMobileViewProps) {
+export default function TransactionMobileView({ transaction, operations, effects, accountLabels = {} }: TransactionMobileViewProps) {
   // Determine Transaction Type first to set default tab
   const contractOp = operations.find(op => op.type === 'invoke_host_function');
   const isContractCall = !!contractOp;
@@ -803,9 +806,12 @@ export default function TransactionMobileView({ transaction, operations, effects
                 </div>
                 <div className="text-right">
                   <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Account</div>
-                  <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold font-mono hover:opacity-80 block mt-1" style={{ color: primaryColor }}>
-                    {shortenAddress(transaction.source_account, 4)}
-                  </Link>
+                  <div className="flex items-center justify-end mt-1">
+                    <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold font-mono hover:opacity-80" style={{ color: primaryColor }}>
+                      {shortenAddress(transaction.source_account, 4)}
+                    </Link>
+                    <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                  </div>
                 </div>
               </div>
 
@@ -1034,9 +1040,12 @@ export default function TransactionMobileView({ transaction, operations, effects
                 {/* Order By */}
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-[var(--text-muted)]">Order by</span>
-                  <Link href={`/account/${transaction.source_account}`} className="font-semibold font-mono hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
-                    {shortenAddress(transaction.source_account, 4)}
-                  </Link>
+                  <span className="flex items-center">
+                    <Link href={`/account/${transaction.source_account}`} className="font-semibold font-mono hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
+                      {shortenAddress(transaction.source_account, 4)}
+                    </Link>
+                    <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                  </span>
                 </div>
               </div>
             ) : isAccountOperation ? (
@@ -1061,9 +1070,12 @@ export default function TransactionMobileView({ transaction, operations, effects
                 <div className="bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Account</span>
-                    <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold font-mono hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
-                      {shortenAddress(transaction.source_account, 4)}
-                    </Link>
+                    <span className="flex items-center">
+                      <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold font-mono hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
+                        {shortenAddress(transaction.source_account, 4)}
+                      </Link>
+                      <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                    </span>
                   </div>
 
                   {/* Show asset info for trustline operations */}
@@ -1105,9 +1117,12 @@ export default function TransactionMobileView({ transaction, operations, effects
                       </div>
                       <div className="text-right">
                         <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Account</div>
-                        <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold font-mono hover:opacity-80 block mt-1" style={{ color: primaryColor }}>
-                          {shortenAddress(transaction.source_account, 4)}
-                        </Link>
+                        <div className="flex items-center justify-end mt-1">
+                          <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold font-mono hover:opacity-80" style={{ color: primaryColor }}>
+                            {shortenAddress(transaction.source_account, 4)}
+                          </Link>
+                          <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1128,9 +1143,12 @@ export default function TransactionMobileView({ transaction, operations, effects
                             {formatTokenAmount(swapSold?.amount)} <span className="text-xs font-medium text-[var(--text-muted)]">{swapSold?.code}</span>
                           </p>
                         ) : (
-                          <Link href={`/account/${transaction.source_account}`} className="text-base font-bold font-mono tracking-tight hover:opacity-80 transition-opacity" style={{ color: primaryColor }}>
-                            {shortenAddress(transaction.source_account, 4)}
-                          </Link>
+                          <span className="flex items-center">
+                            <Link href={`/account/${transaction.source_account}`} className="text-base font-bold font-mono tracking-tight hover:opacity-80 transition-opacity" style={{ color: primaryColor }}>
+                              {shortenAddress(transaction.source_account, 4)}
+                            </Link>
+                            <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                          </span>
                         )}
                       </div>
                     </div>
@@ -1181,9 +1199,12 @@ export default function TransactionMobileView({ transaction, operations, effects
                             </svg>
                           </button>
                         ) : (
-                          <Link href={`/account/${destination}`} className="text-base font-bold font-mono tracking-tight hover:opacity-80 transition-opacity" style={{ color: primaryColor }}>
-                            {shortenAddress(destination, 4)}
-                          </Link>
+                          <span className="flex items-center">
+                            <Link href={`/account/${destination}`} className="text-base font-bold font-mono tracking-tight hover:opacity-80 transition-opacity" style={{ color: primaryColor }}>
+                              {shortenAddress(destination, 4)}
+                            </Link>
+                            <AccountBadges address={destination} labels={accountLabels} />
+                          </span>
                         )}
                       </div>
                     </div>
@@ -1213,9 +1234,12 @@ export default function TransactionMobileView({ transaction, operations, effects
                             <span className="w-4 h-4 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center text-[9px] font-bold text-[var(--text-tertiary)]">
                               {idx + 1}
                             </span>
-                            <Link href={`/account/${to}`} className="text-[11px] font-semibold font-mono hover:opacity-80" style={{ color: primaryColor }}>
-                              {shortenAddress(to, 4)}
-                            </Link>
+                            <span className="flex items-center">
+                              <Link href={`/account/${to}`} className="text-[11px] font-semibold font-mono hover:opacity-80" style={{ color: primaryColor }}>
+                                {shortenAddress(to, 4)}
+                              </Link>
+                              <AccountBadges address={to} labels={accountLabels} />
+                            </span>
                           </div>
                           <div className="text-right">
                             {ops.map((op, opIdx) => (
@@ -1440,15 +1464,21 @@ export default function TransactionMobileView({ transaction, operations, effects
                           <>
                             <div className="flex items-center justify-between">
                               <span className="text-[var(--text-muted)] font-medium text-xs">From</span>
-                              <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
-                                {shortenAddress(op.from || op.source_account, 6)}
-                              </Link>
+                              <span className="flex items-center">
+                                <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
+                                  {shortenAddress(op.from || op.source_account, 6)}
+                                </Link>
+                                <AccountBadges address={op.from || op.source_account} labels={accountLabels} />
+                              </span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-[var(--text-muted)] font-medium text-xs">To</span>
-                              <Link href={`/account/${op.to || (op as any).account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
-                                {shortenAddress(op.to || (op as any).account, 6)}
-                              </Link>
+                              <span className="flex items-center">
+                                <Link href={`/account/${op.to || (op as any).account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
+                                  {shortenAddress(op.to || (op as any).account, 6)}
+                                </Link>
+                                <AccountBadges address={op.to || (op as any).account} labels={accountLabels} />
+                              </span>
                             </div>
                             <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-default)]">
                               <span className="text-[var(--text-muted)] font-medium text-xs">Amount</span>
@@ -1464,15 +1494,21 @@ export default function TransactionMobileView({ transaction, operations, effects
                           <>
                             <div className="flex items-center justify-between">
                               <span className="text-[var(--text-muted)] font-medium text-xs">From</span>
-                              <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
-                                {shortenAddress(op.from || op.source_account, 6)}
-                              </Link>
+                              <span className="flex items-center">
+                                <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
+                                  {shortenAddress(op.from || op.source_account, 6)}
+                                </Link>
+                                <AccountBadges address={op.from || op.source_account} labels={accountLabels} />
+                              </span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-[var(--text-muted)] font-medium text-xs">To</span>
-                              <Link href={`/account/${op.to}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
-                                {shortenAddress(op.to || '', 6)}
-                              </Link>
+                              <span className="flex items-center">
+                                <Link href={`/account/${op.to}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
+                                  {shortenAddress(op.to || '', 6)}
+                                </Link>
+                                {op.to && <AccountBadges address={op.to} labels={accountLabels} />}
+                              </span>
                             </div>
                             <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-default)]">
                               <span className="text-[var(--error)] font-medium text-xs">Sent</span>
@@ -1633,9 +1669,12 @@ export default function TransactionMobileView({ transaction, operations, effects
                           {account === 'unknown' ? (
                             <span className="text-xs text-[var(--text-muted)]">Unknown account</span>
                           ) : (
-                            <Link href={`/account/${account}`} className="text-xs font-bold font-mono hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
-                              {shortenAddress(account, 4)}
-                            </Link>
+                            <span className="flex items-center">
+                              <Link href={`/account/${account}`} className="text-xs font-bold font-mono hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
+                                {shortenAddress(account, 4)}
+                              </Link>
+                              <AccountBadges address={account} labels={accountLabels} />
+                            </span>
                           )}
                           <span className="text-[11px] font-bold text-white px-2 py-0.5 rounded" style={{ backgroundColor: primaryColor }}>
                             {accountEffects.length} effects
@@ -2036,10 +2075,11 @@ export default function TransactionMobileView({ transaction, operations, effects
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs text-[var(--text-tertiary)] mb-1">
+                          <div className="text-xs text-[var(--text-tertiary)] mb-1 flex items-center flex-wrap">
                             <Link href={`/account/${transaction.source_account}`} className="font-mono hover:opacity-80" style={{ color: primaryColor }}>
                               {shortenAddress(transaction.source_account, 4)}
                             </Link>
+                            <AccountBadges address={transaction.source_account} labels={accountLabels} />
                             <span className="mx-1">invoked</span>
                             <Link href={`/contract/${contractAddress}`} className="font-mono hover:opacity-80" style={{ color: primaryColor }}>
                               {contractAddress ? shortenAddress(contractAddress, 4) : 'contract'}
@@ -2366,10 +2406,11 @@ export default function TransactionMobileView({ transaction, operations, effects
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs text-[var(--text-tertiary)] mb-1">
+                          <div className="text-xs text-[var(--text-tertiary)] mb-1 flex items-center flex-wrap">
                             <Link href={`/account/${transaction.source_account}`} className="font-mono hover:opacity-80" style={{ color: primaryColor }}>
                               {shortenAddress(transaction.source_account, 4)}
                             </Link>
+                            <AccountBadges address={transaction.source_account} labels={accountLabels} />
                             <span className="mx-1">invoked</span>
                             <Link href={`/contract/${contractAddress}`} className="font-mono hover:opacity-80" style={{ color: primaryColor }}>
                               {contractAddress ? shortenAddress(contractAddress, 4) : 'contract'}
@@ -2414,6 +2455,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                               <Link href={`/account/${effect.account}`} className="font-mono hover:opacity-80" style={{ color: primaryColor }}>
                                 {shortenAddress(effect.account, 4)}
                               </Link>
+                              <AccountBadges address={effect.account} labels={accountLabels} />
                             </div>
                           </div>
                         </div>
