@@ -353,7 +353,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
 
                     {/* TRANSACTIONS TAB */}
                     {activeTab === 'transactions' && (
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                             {transactions.map((tx) => {
                                 const info = tx.displayInfo || { type: 'other' };
                                 let description = 'Transaction';
@@ -402,50 +402,39 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                     <Link
                                         href={`/transaction/${tx.hash}`}
                                         key={tx.id}
-                                        className="block bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-3 mb-2.5 active:scale-[0.99] transition-transform hover:shadow-md"
+                                        className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors"
                                     >
-                                        <div className="flex justify-between items-center mb-1.5">
-                                            <span className={`text-[11px] font-bold uppercase tracking-widest pl-1 ${typeColorClass}`}>
-                                                {typeDisplay}
-                                                {!tx.successful && <span className="ml-1 text-[var(--error)] font-extrabold">(FAILED)</span>}
-                                            </span>
-                                            <span className="text-[11px] font-medium text-[var(--text-muted)]">
-                                                {timeAgo(tx.created_at)}
-                                            </span>
-                                        </div>
-
-                                        <div className="flex items-start gap-3">
-                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${iconBgClass}`}>
+                                        {/* Row 1: Icon + Description + Time/Ops */}
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBgClass}`}>
                                                 {info.type === 'payment' && info.isSwap ? (
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
                                                 ) : info.type === 'contract' ? (
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
                                                 ) : !tx.successful ? (
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                                 ) : (
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                                 )}
                                             </div>
-
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-start justify-between">
-                                                    <div>
-                                                        <div className="font-bold text-[var(--text-primary)] text-sm leading-tight">{description}</div>
-                                                        <div className="flex items-center gap-1.5 mt-1">
-                                                            <div className="bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded-[0.4rem] border border-[var(--border-subtle)] flex items-center">
-                                                                <span className="text-[10px] font-mono font-bold text-[var(--text-tertiary)]">
-                                                                    #{shortenAddress(tx.hash, 4)}
-                                                                </span>
-                                                            </div>
-                                                            <span className="text-[11px] font-medium text-[var(--text-muted)] truncate max-w-[100px]">
-                                                                From <span className="font-mono">{shortenAddress(tx.source_account, 4)}</span>
-                                                            </span>
-                                                        </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-semibold text-sm text-[var(--text-primary)] truncate">
+                                                        {description}
+                                                        {!tx.successful && <span className="ml-1 text-[var(--error)] text-xs">(Failed)</span>}
+                                                    </span>
+                                                    <span className="text-xs font-medium text-[var(--text-muted)] ml-2 shrink-0">{timeAgo(tx.created_at)}</span>
+                                                </div>
+                                                {/* Row 2: Hash + From + Ops */}
+                                                <div className="flex items-center justify-between mt-1">
+                                                    <div className="flex items-center gap-1.5 text-[11px]">
+                                                        <span className="font-mono text-[var(--text-muted)]">#{shortenAddress(tx.hash, 4)}</span>
+                                                        <span className="text-[var(--text-muted)]">·</span>
+                                                        <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(tx.source_account, 4)}</span></span>
                                                     </div>
-
-                                                    <div className="text-right pl-2">
-                                                        {valueDisplay}
-                                                        <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase mt-0.5">{tx.operation_count} Ops</div>
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        {valueDisplay && <span className="text-xs font-semibold text-[var(--text-primary)]">{info.amount} {info.asset}</span>}
+                                                        <span className="text-[11px] font-medium text-[var(--text-muted)]">{tx.operation_count} ops</span>
                                                     </div>
                                                 </div>
                                             </div>
