@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Transaction, Operation, Effect, shortenAddress, formatXLM } from '@/lib/stellar';
+import { Transaction, Operation, Effect, shortenAddress, formatXLM, AccountLabel } from '@/lib/stellar';
 import { containers, colors, coreColors, tabs, badges } from '@/lib/design-system';
 import { QRCodeSVG } from 'qrcode.react';
 import { useFavorites } from '@/contexts/FavoritesContext';
@@ -65,6 +65,7 @@ interface AccountMobileViewProps {
   transactions: Transaction[];
   operations: Operation[];
   xlmPrice: number;
+  accountLabels?: Record<string, AccountLabel>;
 }
 
 function getAssetUrl(code: string | undefined, issuer: string | undefined): string {
@@ -73,7 +74,7 @@ function getAssetUrl(code: string | undefined, issuer: string | undefined): stri
   return `/asset/${encodeURIComponent(code)}${issuer ? `?issuer=${encodeURIComponent(issuer)}` : ''}`;
 }
 
-export default function AccountMobileView({ account, transactions, operations: initialOperations, xlmPrice }: AccountMobileViewProps) {
+export default function AccountMobileView({ account, transactions, operations: initialOperations, xlmPrice, accountLabels = {} }: AccountMobileViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -926,7 +927,10 @@ export default function AccountMobileView({ account, transactions, operations: i
                       }
                     } else if (isPayment) {
                       const isReceive = op.to === account.id;
-                      typeDisplay = isReceive ? 'Received' : 'Sent';
+                      // Get counterparty address and label
+                      const counterpartyAddress = isReceive ? op.from : op.to;
+                      const counterpartyLabel = counterpartyAddress ? accountLabels[counterpartyAddress]?.name : null;
+                      typeDisplay = counterpartyLabel || (counterpartyAddress ? shortenAddress(counterpartyAddress, 4) : (isReceive ? 'Received' : 'Sent'));
                       amount = formatXLM(op.amount || (op as any).starting_balance || '0');
                       asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
                       assetIssuer = op.asset_issuer || null;
@@ -947,7 +951,11 @@ export default function AccountMobileView({ account, transactions, operations: i
                       amount = formatXLM(effectInfo.amount || '0');
                       asset = effectInfo.asset;
                       assetIssuer = effectInfo.asset_issuer || null;
-                      typeDisplay = effectInfo.type === 'received' ? 'Received' : 'Sent';
+                      // Get counterparty from operation if available
+                      const isReceive = effectInfo.type === 'received';
+                      const counterpartyAddress = isReceive ? op.from : op.to;
+                      const counterpartyLabel = counterpartyAddress ? accountLabels[counterpartyAddress]?.name : null;
+                      typeDisplay = counterpartyLabel || (counterpartyAddress ? shortenAddress(counterpartyAddress, 4) : (isReceive ? 'Received' : 'Sent'));
                     }
 
                     const isReceive = effectInfo?.type === 'received' || op.to === account.id;
