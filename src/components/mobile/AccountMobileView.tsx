@@ -709,10 +709,10 @@ export default function AccountMobileView({ account, transactions, operations: i
           <div className="space-y-2 pt-2">
             {/* XLM Card */}
             <div
-              className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4 active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+              className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
               onClick={() => router.push('/asset/XLM')}
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-[var(--text-primary)] flex items-center justify-center text-[var(--bg-secondary)]">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -721,29 +721,21 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                   <div>
                     <div className="text-sm font-bold text-[var(--text-primary)]">XLM</div>
-                    <div className="text-xs text-[var(--text-muted)]">Stellar Lumens</div>
+                    <div className="flex items-center gap-1.5 text-[11px]">
+                      <span className="text-[var(--text-muted)]">${(xlmAmount * xlmPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                      <span className={`font-medium ${xlmChange24h >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
+                        {xlmChange24h >= 0 ? '+' : ''}{xlmChange24h.toFixed(2)}%
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-base font-bold text-[var(--text-primary)]" title={formatExactNumber(xlmAmount)}>
                     {formatCompactNumber(xlmAmount)}
                   </div>
-                  <div className="text-xs text-[var(--text-muted)]">
-                    ${(xlmAmount * xlmPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  <div className="text-[11px] text-[var(--text-muted)]">
+                    @${xlmPrice.toFixed(4)}
                   </div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between pl-[52px]">
-                <div className="text-xs">
-                  <span className="text-[var(--text-muted)]">PNL </span>
-                  <span className={`font-medium ${xlmChange24h >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-                    {xlmChange24h >= 0 ? '+' : ''}${((xlmAmount * xlmPrice) * (xlmChange24h / 100)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                    {' '}({xlmChange24h >= 0 ? '+' : ''}{xlmChange24h.toFixed(2)}%)
-                  </span>
-                </div>
-                <div className="text-xs">
-                  <span className="text-[var(--text-muted)]">Price </span>
-                  <span className="font-medium text-[var(--text-secondary)]">${xlmPrice.toFixed(4)}</span>
                 </div>
               </div>
             </div>
@@ -754,7 +746,6 @@ export default function AccountMobileView({ account, transactions, operations: i
               const key = `${balance.asset_code}:${balance.asset_issuer}`;
               const priceData = assetPrices[key];
               const valueUSD = priceData ? amount * priceData.price : 0;
-              const pnl = priceData ? valueUSD * (priceData.change24h / 100) : 0;
               const pnlPercent = priceData?.change24h || 0;
 
               const bgColors = ['bg-blue-500/10', 'bg-purple-500/10', 'bg-[var(--success)]/10', 'bg-orange-500/10', 'bg-pink-500/10', 'bg-indigo-500/10', 'bg-violet-500/10'];
@@ -764,22 +755,25 @@ export default function AccountMobileView({ account, transactions, operations: i
               return (
                 <div
                   key={idx}
-                  className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4 active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                  className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
                   onClick={() => router.push(getAssetUrl(balance.asset_code, balance.asset_issuer))}
                 >
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-full ${bgColors[colorIdx]} flex items-center justify-center ${textColors[colorIdx]}`}>
                         <span className="font-bold text-base">{(balance.asset_code || 'LP')[0]}</span>
                       </div>
                       <div>
                         <div className="text-sm font-bold text-[var(--text-primary)]">{balance.asset_code || 'LP'}</div>
-                        <div className="text-xs text-[var(--text-muted)] truncate max-w-[120px]">
-                          {balance.asset_issuer ? (
-                            <Link href={`/account/${balance.asset_issuer}`} onClick={(e) => e.stopPropagation()} className="hover:text-[var(--primary-blue)]">
-                              {shortenAddress(balance.asset_issuer, 6)}
-                            </Link>
-                          ) : 'Liquidity Pool'}
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <span className="text-[var(--text-muted)]">
+                            {valueUSD > 0 ? `$${valueUSD.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '--'}
+                          </span>
+                          {priceData ? (
+                            <span className={`font-medium ${pnlPercent >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
+                              {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
+                            </span>
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -787,30 +781,15 @@ export default function AccountMobileView({ account, transactions, operations: i
                       <div className="text-base font-bold text-[var(--text-primary)]" title={formatExactNumber(amount)}>
                         {formatCompactNumber(amount)}
                       </div>
-                      <div className="text-xs text-[var(--text-muted)]">
-                        {valueUSD > 0 ? `$${valueUSD.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '--'}
+                      <div className="text-[11px] text-[var(--text-muted)]">
+                        {priceData ? `@$${priceData.price.toFixed(priceData.price >= 1 ? 2 : 6)}` : (
+                          balance.asset_issuer ? (
+                            <Link href={`/account/${balance.asset_issuer}`} onClick={(e) => e.stopPropagation()} className="hover:text-[var(--primary-blue)]">
+                              {shortenAddress(balance.asset_issuer, 4)}
+                            </Link>
+                          ) : 'LP'
+                        )}
                       </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between pl-[52px]">
-                    <div className="text-xs">
-                      <span className="text-[var(--text-muted)]">PNL </span>
-                      {priceData ? (
-                        <span className={`font-medium ${pnl >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-                          {pnl >= 0 ? '+' : ''}${Math.abs(pnl).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                          {' '}({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
-                        </span>
-                      ) : (
-                        <span className="text-[var(--text-muted)]">--</span>
-                      )}
-                    </div>
-                    <div className="text-xs">
-                      <span className="text-[var(--text-muted)]">Price </span>
-                      {priceData ? (
-                        <span className="font-medium text-[var(--text-secondary)]">${priceData.price.toFixed(priceData.price >= 1 ? 2 : 6)}</span>
-                      ) : (
-                        <span className="text-[var(--text-muted)]">--</span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -917,6 +896,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     let amount = '';
                     let asset = '';
                     let assetIssuer: string | null = null;
+                    let counterpartyLink: string | null = null;
 
                     if (isContract) {
                       typeDisplay = decodeContractFunctionName(op);
@@ -931,6 +911,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                       const counterpartyAddress = isReceive ? op.from : op.to;
                       const counterpartyLabel = counterpartyAddress ? accountLabels[counterpartyAddress]?.name : null;
                       typeDisplay = counterpartyLabel || (counterpartyAddress ? shortenAddress(counterpartyAddress, 4) : (isReceive ? 'Received' : 'Sent'));
+                      counterpartyLink = counterpartyAddress || null;
                       amount = formatXLM(op.amount || (op as any).starting_balance || '0');
                       asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
                       assetIssuer = op.asset_issuer || null;
@@ -956,6 +937,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                       const counterpartyAddress = isReceive ? op.from : op.to;
                       const counterpartyLabel = counterpartyAddress ? accountLabels[counterpartyAddress]?.name : null;
                       typeDisplay = counterpartyLabel || (counterpartyAddress ? shortenAddress(counterpartyAddress, 4) : (isReceive ? 'Received' : 'Sent'));
+                      counterpartyLink = counterpartyAddress || null;
                     }
 
                     const isReceive = effectInfo?.type === 'received' || op.to === account.id;
@@ -995,7 +977,17 @@ export default function AccountMobileView({ account, transactions, operations: i
                                 </svg>
                               </div>
                               <div>
-                                <div className="text-sm font-semibold capitalize text-[var(--text-primary)]">{typeDisplay}</div>
+                                {counterpartyLink ? (
+                                  <Link
+                                    href={`/account/${counterpartyLink}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-sm font-semibold capitalize text-[var(--primary-blue)] hover:underline"
+                                  >
+                                    {typeDisplay}
+                                  </Link>
+                                ) : (
+                                  <div className="text-sm font-semibold capitalize text-[var(--text-primary)]">{typeDisplay}</div>
+                                )}
                                 <div className="text-xs text-[var(--text-muted)] font-medium">{timeStr}</div>
                               </div>
                             </div>
