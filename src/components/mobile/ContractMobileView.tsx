@@ -54,6 +54,12 @@ interface ContractData {
   storage?: ContractStorageResult | null;
   invocations?: ContractInvocation[];
   spec?: ContractSpecResult | null;
+  _loading?: {
+    events?: boolean;
+    invocations?: boolean;
+    storage?: boolean;
+    spec?: boolean;
+  };
 }
 
 interface ContractMobileViewProps {
@@ -458,9 +464,24 @@ export default function ContractMobileView({ contract, operations }: ContractMob
               <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Recent Activity</div>
-                  <span className="text-[11px] font-semibold" style={{ color: primaryColor }}>{contract.events?.length || 0} events</span>
+                  {!contract._loading?.events && (
+                    <span className="text-[11px] font-semibold" style={{ color: primaryColor }}>{contract.events?.length || 0} events</span>
+                  )}
                 </div>
-                {!contract.events || contract.events.length === 0 ? (
+                {contract._loading?.events ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center gap-3 py-2">
+                        <div className="w-9 h-9 bg-[var(--bg-tertiary)] animate-pulse rounded-lg" />
+                        <div className="flex-1">
+                          <div className="h-4 w-20 bg-[var(--bg-tertiary)] animate-pulse rounded mb-1" />
+                          <div className="h-3 w-16 bg-[var(--bg-tertiary)] animate-pulse rounded" />
+                        </div>
+                        <div className="h-4 w-12 bg-[var(--bg-tertiary)] animate-pulse rounded" />
+                      </div>
+                    ))}
+                  </div>
+                ) : !contract.events || contract.events.length === 0 ? (
                   <div className="text-center py-6 text-[var(--text-muted)] text-sm">No recent activity found</div>
                 ) : (
                   <div className="divide-y divide-[var(--border-subtle)]">
@@ -537,11 +558,23 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     </svg>
                     <span className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Storage</span>
                   </div>
-                  {contract.storage && (
+                  {!contract._loading?.storage && contract.storage && (
                     <span className="text-[11px] font-semibold" style={{ color: primaryColor }}>{contract.storage.totalEntries} entries</span>
                   )}
                 </div>
-                {!contract.storage || contract.storage.entries.length === 0 ? (
+                {contract._loading?.storage ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center justify-between py-2">
+                        <div className="flex items-center gap-2">
+                          <div className="h-5 w-16 bg-[var(--bg-tertiary)] animate-pulse rounded-full" />
+                          <div className="h-4 w-24 bg-[var(--bg-tertiary)] animate-pulse rounded" />
+                        </div>
+                        <div className="h-4 w-16 bg-[var(--bg-tertiary)] animate-pulse rounded" />
+                      </div>
+                    ))}
+                  </div>
+                ) : !contract.storage || contract.storage.entries.length === 0 ? (
                   <div className="text-center py-6 text-[var(--text-muted)] text-sm">No storage data found</div>
                 ) : (
                   <div className="divide-y divide-[var(--border-subtle)]">
