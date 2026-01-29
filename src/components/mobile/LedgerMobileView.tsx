@@ -522,7 +522,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                         key={op.id}
                                         className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors"
                                     >
-                                        {/* Row 1: Icon + Description + Value */}
+                                        {/* Row 1: Icon + Description + Time */}
                                         <div className="flex items-center gap-3">
                                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBgClass}`}>
                                                 {isContract ? (
@@ -538,12 +538,16 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between">
                                                     <span className="font-semibold text-sm text-[var(--text-primary)] truncate capitalize">{typeDisplay}</span>
-                                                    {summary && <span className="text-sm font-semibold text-[var(--text-primary)] ml-2 shrink-0">{summary}</span>}
+                                                    <span className="text-xs font-medium text-[var(--text-muted)] ml-2 shrink-0">{timeAgo(op.created_at)}</span>
                                                 </div>
-                                                {/* Row 2: From address */}
-                                                <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[var(--text-muted)]">
-                                                    <span>From</span>
-                                                    <span className="font-mono">{shortenAddress(op.source_account, 4)}</span>
+                                                {/* Row 2: Hash + From + Value */}
+                                                <div className="flex items-center justify-between mt-1">
+                                                    <div className="flex items-center gap-1.5 text-[11px]">
+                                                        <span className="font-mono text-[var(--text-muted)]">#{shortenAddress(op.transaction_hash, 4)}</span>
+                                                        <span className="text-[var(--text-muted)]">·</span>
+                                                        <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(op.source_account, 4)}</span></span>
+                                                    </div>
+                                                    {summary && <span className="text-[11px] font-medium text-[var(--text-muted)] shrink-0">{summary}</span>}
                                                 </div>
                                             </div>
                                         </div>
