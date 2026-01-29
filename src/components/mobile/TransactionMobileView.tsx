@@ -1464,20 +1464,20 @@ export default function TransactionMobileView({ transaction, operations, effects
                           <>
                             <div className="flex items-center justify-between">
                               <span className="text-[var(--text-muted)] font-medium text-xs">From</span>
-                              <span className="text-right">
+                              <span className="flex items-center">
+                                <AccountBadges address={op.from || op.source_account} labels={accountLabels} />
                                 <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
                                   {shortenAddress(op.from || op.source_account, 6)}
                                 </Link>
-                                <AccountBadges address={op.from || op.source_account} labels={accountLabels} />
                               </span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-[var(--text-muted)] font-medium text-xs">To</span>
-                              <span className="text-right">
+                              <span className="flex items-center">
+                                <AccountBadges address={op.to || (op as any).account} labels={accountLabels} />
                                 <Link href={`/account/${op.to || (op as any).account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
                                   {shortenAddress(op.to || (op as any).account, 6)}
                                 </Link>
-                                <AccountBadges address={op.to || (op as any).account} labels={accountLabels} />
                               </span>
                             </div>
                             <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-default)]">
@@ -1494,20 +1494,20 @@ export default function TransactionMobileView({ transaction, operations, effects
                           <>
                             <div className="flex items-center justify-between">
                               <span className="text-[var(--text-muted)] font-medium text-xs">From</span>
-                              <span className="text-right">
+                              <span className="flex items-center">
+                                <AccountBadges address={op.from || op.source_account} labels={accountLabels} />
                                 <Link href={`/account/${op.from || op.source_account}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
                                   {shortenAddress(op.from || op.source_account, 6)}
                                 </Link>
-                                <AccountBadges address={op.from || op.source_account} labels={accountLabels} />
                               </span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-[var(--text-muted)] font-medium text-xs">To</span>
-                              <span className="text-right">
+                              <span className="flex items-center">
+                                {op.to && <AccountBadges address={op.to} labels={accountLabels} />}
                                 <Link href={`/account/${op.to}`} className="font-mono text-xs hover:opacity-80" style={{ color: primaryColor }}>
                                   {shortenAddress(op.to || '', 6)}
                                 </Link>
-                                {op.to && <AccountBadges address={op.to} labels={accountLabels} />}
                               </span>
                             </div>
                             <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-default)]">
