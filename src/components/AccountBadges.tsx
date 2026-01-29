@@ -70,10 +70,10 @@ export default function AccountBadges({ address, labels, size = 'sm' }: AccountB
     return null;
   }
 
-  const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
+  const iconSize = size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5';
 
   return (
-    <span className="inline-flex items-center gap-0.5 ml-1">
+    <span className="inline-flex items-center gap-0.5 ml-0.5 shrink-0">
       {/* Verified badge */}
       {label.verified && label.name && (
         <BadgeTooltip content={`Verified: ${label.name}`}>
