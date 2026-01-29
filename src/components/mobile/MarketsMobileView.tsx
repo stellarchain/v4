@@ -352,7 +352,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
         {/* Asset Cards */}
         <div className="space-y-1.5">
-          {visibleAssets.map((asset) => {
+          {visibleAssets.map((asset, index) => {
             const hasData = asset.price_usd > 0 && asset.market_cap > 0;
             const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
             const change = asset.change_24h || 0;
@@ -368,7 +368,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
                 {/* Rank */}
                 <div className="w-6 flex-shrink-0">
                   <span className="text-xs font-medium text-[var(--text-muted)]">
-                    {hasData ? asset.rank : '--'}
+                    {index + 1}
                   </span>
                 </div>
 
