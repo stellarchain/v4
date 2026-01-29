@@ -2116,6 +2116,80 @@ export async function fetchLabeledAccounts(
   }
 }
 
+// Account Label type for badge display
+export interface AccountLabel {
+  name: string;
+  verified: boolean;
+  org_name: string | null;
+  description: string | null;
+}
+
+// Fetch label for a single account from Stellarchain API
+export async function getAccountLabel(
+  address: string
+): Promise<AccountLabel | null> {
+  try {
+    const response = await fetch(
+      `https://api.stellarchain.io/v1/accounts/${address}`,
+      {
+        headers: { 'Accept': 'application/json' },
+        next: { revalidate: 300 }, // Cache for 5 minutes
+      }
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+
+    // Check if account has a label
+    if (!data.label && !data.org_name) {
+      return null;
+    }
+
+    return {
+      name: data.label?.name || '',
+      verified: data.label?.verified === 1,
+      org_name: data.org_name || null,
+      description: data.label?.description || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Batch fetch labels for multiple accounts
+export async function getAccountLabels(
+  addresses: string[]
+): Promise<Map<string, AccountLabel>> {
+  const labels = new Map<string, AccountLabel>();
+
+  if (addresses.length === 0) {
+    return labels;
+  }
+
+  // Dedupe addresses
+  const uniqueAddresses = [...new Set(addresses)];
+
+  // Fetch in parallel with error handling for each
+  const results = await Promise.all(
+    uniqueAddresses.map(async (address) => {
+      const label = await getAccountLabel(address);
+      return { address, label };
+    })
+  );
+
+  // Build map from results
+  for (const { address, label } of results) {
+    if (label) {
+      labels.set(address, label);
+    }
+  }
+
+  return labels;
+}
+
 // Contracts API types
 export interface APIContract {
   id: number;
