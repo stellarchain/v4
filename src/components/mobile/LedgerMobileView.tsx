@@ -473,13 +473,18 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 let typeDisplay = getOperationTypeLabel(op.type).replace(/_/g, ' ');
                                 let summary = '';
                                 let isContract = false;
+                                let isSwap = false;
+                                let isPayment = false;
 
                                 if (op.type === 'payment') {
+                                    isPayment = true;
                                     const rawAmt = (op as any).amount || '0';
                                     const asset = (op as any).asset_code || ((op as any).asset_type === 'native' ? 'XLM' : '');
                                     summary = `${rawAmt} ${asset}`;
                                 } else if (op.type === 'create_account') {
+                                    isPayment = true;
                                     summary = `${(op as any).starting_balance} XLM`;
+                                    typeDisplay = 'Create Account';
                                 } else if (op.type === 'invoke_host_function') {
                                     isContract = true;
                                     let functionName = 'Contract Call';
@@ -498,9 +503,18 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                     }
                                     typeDisplay = functionName;
                                 } else if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') {
+                                    isSwap = true;
                                     typeDisplay = 'Swap';
                                     summary = `${(op as any).amount || '0'} ${(op as any).asset_code || 'XLM'}`;
                                 }
+
+                                const iconBgClass = isContract
+                                    ? 'bg-[var(--warning)]/10 text-[var(--warning)]'
+                                    : isSwap
+                                        ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]'
+                                        : isPayment
+                                            ? 'bg-[var(--success)]/10 text-[var(--success)]'
+                                            : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]';
 
                                 return (
                                     <Link
@@ -508,22 +522,30 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                         key={op.id}
                                         className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors"
                                     >
-                                        {/* Row 1: Number + Type/Function + Value */}
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold border ${isContract ? 'bg-[var(--warning)]/10 text-[var(--warning)] border-[var(--warning)]/20' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border-[var(--border-subtle)]'}`}>
-                                                    {isContract ? (
-                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-                                                    ) : idx + 1}
-                                                </div>
-                                                <span className="text-sm font-semibold text-[var(--text-primary)] capitalize">{typeDisplay}</span>
+                                        {/* Row 1: Icon + Description + Value */}
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBgClass}`}>
+                                                {isContract ? (
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                                                ) : isSwap ? (
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                                                ) : isPayment ? (
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                                ) : (
+                                                    <span className="text-xs font-bold">{idx + 1}</span>
+                                                )}
                                             </div>
-                                            {summary && <span className="text-sm font-semibold text-[var(--text-primary)]">{summary}</span>}
-                                        </div>
-                                        {/* Row 2: Source address */}
-                                        <div className="flex items-center gap-1.5 mt-1.5 ml-10 text-[11px] text-[var(--text-muted)]">
-                                            <span>From</span>
-                                            <span className="font-mono">{shortenAddress(op.source_account, 6)}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-semibold text-sm text-[var(--text-primary)] truncate capitalize">{typeDisplay}</span>
+                                                    {summary && <span className="text-sm font-semibold text-[var(--text-primary)] ml-2 shrink-0">{summary}</span>}
+                                                </div>
+                                                {/* Row 2: From address */}
+                                                <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[var(--text-muted)]">
+                                                    <span>From</span>
+                                                    <span className="font-mono">{shortenAddress(op.source_account, 4)}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </Link>
                                 );
