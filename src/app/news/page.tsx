@@ -148,31 +148,26 @@ export default function NewsPage() {
             href={news.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] p-4 active:bg-[var(--bg-tertiary)] transition-colors"
+            className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors"
           >
-            {/* Category & Date */}
-            <div className="flex items-center justify-between mb-2">
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${categoryColors[news.category]}`}>
-                {categoryLabels[news.category]}
-              </span>
-              <span className="text-[11px] text-[var(--text-muted)]">
-                {formatDate(news.date)}
-              </span>
-            </div>
-
-            {/* Title */}
-            <h2 className="text-sm font-semibold text-[var(--text-primary)] leading-snug mb-2">
-              {news.title}
-            </h2>
-
-            {/* Source & Link */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--text-muted)]">
-                {news.source}
-              </span>
-              <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {/* Row 1: Title with link icon */}
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <h2 className="text-sm font-semibold text-[var(--text-primary)] leading-snug line-clamp-2 flex-1">
+                {news.title}
+              </h2>
+              <svg className="w-4 h-4 text-[var(--text-muted)] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
+            </div>
+
+            {/* Row 2: Category, Source & Date */}
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${categoryColors[news.category]}`}>
+                {categoryLabels[news.category]}
+              </span>
+              <span className="text-[var(--text-muted)]">{news.source}</span>
+              <span className="text-[var(--text-muted)]">·</span>
+              <span className="text-[var(--text-muted)]">{formatDate(news.date)}</span>
             </div>
           </a>
         ))}
