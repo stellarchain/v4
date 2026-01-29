@@ -95,8 +95,18 @@ async function StorageSection({ id }: { id: string }) {
 
 // Spec & verification section
 async function SpecData({ id }: { id: string }) {
+  // Wrap each call in try-catch to handle XDR parsing errors
+  const safeGetContractSpec = async () => {
+    try {
+      return await getContractSpec(id);
+    } catch (e) {
+      console.error('Failed to get contract spec:', e);
+      return null;
+    }
+  };
+
   const [specRes, verificationRes, nftInfoRes, vaultInfoRes, contractMetaRes] = await Promise.allSettled([
-    getContractSpec(id),
+    safeGetContractSpec(),
     verifyContract(id),
     getNFTInfo(id),
     getVaultInfo(id),
