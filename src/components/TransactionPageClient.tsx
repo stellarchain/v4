@@ -555,7 +555,7 @@ export default function TransactionPageClient({
               </h3>
             </div>
             {/* Mobile Glider Tabs */}
-            <div className="md:hidden mb-4">
+            <div className="md:hidden mb-2">
               {(() => {
                 const filterTabs = [
                   { id: 'all', label: 'All Activity' },
