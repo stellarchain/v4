@@ -280,45 +280,44 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
 
                 {/* Tabs - Glider Style */}
                 {(() => {
-                  const tabs = [
-                    { id: 'overview', label: 'Overview' },
-                    { id: 'transactions', label: 'Transactions' },
-                    { id: 'operations', label: 'Operations' },
-                  ];
-                  const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab);
-                  const tabCount = tabs.length;
+                    const tabs = [
+                        { id: 'overview', label: 'Overview' },
+                        { id: 'transactions', label: 'Transactions' },
+                        { id: 'operations', label: 'Operations' },
+                    ];
+                    const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab);
+                    const tabCount = tabs.length;
 
-                  return (
-                    <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)] mb-2">
-                      {/* Glider Background */}
-                      <div
-                        className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
-                        style={{
-                          left: '4px',
-                          width: `calc((100% - 8px) / ${tabCount})`,
-                          transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
-                          opacity: activeTabIndex >= 0 ? 1 : 0
-                        }}
-                      />
+                    return (
+                        <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)] mb-2">
+                            {/* Glider Background */}
+                            <div
+                                className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
+                                style={{
+                                    left: '4px',
+                                    width: `calc((100% - 8px) / ${tabCount})`,
+                                    transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
+                                    opacity: activeTabIndex >= 0 ? 1 : 0
+                                }}
+                            />
 
-                      {tabs.map((tab) => {
-                        const isActive = activeTab === tab.id;
-                        return (
-                          <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center ${
-                              isActive
-                                ? 'text-[var(--primary-blue)] font-bold'
-                                : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
-                            }`}
-                          >
-                            {tab.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
+                            {tabs.map((tab) => {
+                                const isActive = activeTab === tab.id;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id as any)}
+                                        className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center ${isActive
+                                            ? 'text-[var(--primary-blue)] font-bold'
+                                            : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
+                                            }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    );
                 })()}
 
                 {/* Tab Content */}
@@ -555,7 +554,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                                     </div>
                                                     <div className="flex items-center gap-2 shrink-0">
                                                         {summary && <span className="text-xs font-semibold text-[var(--text-primary)]">{summary}</span>}
-                                                        <span className="text-[11px] font-medium text-[var(--text-muted)]">1 op</span>
+                                                        <span className="text-[11px] font-medium text-[var(--text-muted)]">1 ops</span>
                                                     </div>
                                                 </div>
                                             </div>
