@@ -2124,70 +2124,92 @@ export interface AccountLabel {
   description: string | null;
 }
 
-// Fetch label for a single account from Stellarchain API
-export async function getAccountLabel(
-  address: string
-): Promise<AccountLabel | null> {
+// Cache for all labeled accounts (fetched once and reused)
+let labeledAccountsCache: Map<string, AccountLabel> | null = null;
+let labelsCacheTimestamp: number = 0;
+const LABELS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Fetch all labeled accounts and build a lookup map
+async function fetchAllLabeledAccounts(): Promise<Map<string, AccountLabel>> {
+  const labels = new Map<string, AccountLabel>();
+
   try {
-    const response = await fetch(
-      `https://api.stellarchain.io/v1/accounts/${address}`,
-      {
+    // Fetch all pages (676 accounts total, 100 per page = 7 pages)
+    const allAccounts: LabeledAccount[] = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore && page <= 10) { // Safety limit of 10 pages
+      const url = `https://api.stellarchain.io/v1/accounts?page=${page}&labels[]=undefined&paginate=100`;
+      const response = await fetch(url, {
         headers: { 'Accept': 'application/json' },
         next: { revalidate: 300 }, // Cache for 5 minutes
+      });
+
+      if (!response.ok) break;
+
+      const json = await response.json();
+      const data = json.data || [];
+      allAccounts.push(...data);
+
+      hasMore = data.length === 100;
+      page++;
+    }
+
+    // Build lookup map
+    for (const account of allAccounts) {
+      if (account.label || account.org_name) {
+        labels.set(account.account, {
+          name: account.label?.name || '',
+          verified: account.label?.verified === 1,
+          org_name: account.org_name || null,
+          description: account.label?.description || null,
+        });
       }
-    );
-
-    if (!response.ok) {
-      return null;
     }
-
-    const data = await response.json();
-
-    // Check if account has a label
-    if (!data.label && !data.org_name) {
-      return null;
-    }
-
-    return {
-      name: data.label?.name || '',
-      verified: data.label?.verified === 1,
-      org_name: data.org_name || null,
-      description: data.label?.description || null,
-    };
-  } catch {
-    return null;
+  } catch (error) {
+    console.error('Error fetching labeled accounts for badges:', error);
   }
+
+  return labels;
+}
+
+// Get cached labels or fetch if stale
+async function getCachedLabels(): Promise<Map<string, AccountLabel>> {
+  const now = Date.now();
+
+  if (labeledAccountsCache && (now - labelsCacheTimestamp) < LABELS_CACHE_TTL) {
+    return labeledAccountsCache;
+  }
+
+  labeledAccountsCache = await fetchAllLabeledAccounts();
+  labelsCacheTimestamp = now;
+
+  return labeledAccountsCache;
 }
 
 // Batch fetch labels for multiple accounts
 export async function getAccountLabels(
   addresses: string[]
 ): Promise<Map<string, AccountLabel>> {
-  const labels = new Map<string, AccountLabel>();
+  const result = new Map<string, AccountLabel>();
 
   if (addresses.length === 0) {
-    return labels;
+    return result;
   }
 
-  // Dedupe addresses
-  const uniqueAddresses = [...new Set(addresses)];
+  // Get all labeled accounts from cache
+  const allLabels = await getCachedLabels();
 
-  // Fetch in parallel with error handling for each
-  const results = await Promise.all(
-    uniqueAddresses.map(async (address) => {
-      const label = await getAccountLabel(address);
-      return { address, label };
-    })
-  );
-
-  // Build map from results
-  for (const { address, label } of results) {
+  // Look up requested addresses
+  for (const address of addresses) {
+    const label = allLabels.get(address);
     if (label) {
-      labels.set(address, label);
+      result.set(address, label);
     }
   }
 
-  return labels;
+  return result;
 }
 
 // Contracts API types
