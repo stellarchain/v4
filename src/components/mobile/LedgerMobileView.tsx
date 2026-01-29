@@ -554,7 +554,8 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                                         <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(op.source_account, 4)}</span></span>
                                                     </div>
                                                     <div className="flex items-center gap-2 shrink-0">
-                                                        {summary && <span className="text-[11px] font-medium text-[var(--text-muted)]">{summary}</span>}
+                                                        {summary && <span className="text-xs font-semibold text-[var(--text-primary)]">{summary}</span>}
+                                                        <span className="text-[11px] font-medium text-[var(--text-muted)]">1 op</span>
                                                     </div>
                                                 </div>
                                             </div>
