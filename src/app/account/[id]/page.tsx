@@ -90,18 +90,23 @@ export default async function AccountPage({ params }: AccountPageProps) {
     console.error(e);
   }
 
-  // Fetch labels for counterparty addresses
+  // Fetch labels for counterparty addresses AND the current account
   let accountLabels: Record<string, AccountLabel> = {};
-  if (operations.length > 0) {
-    try {
-      const counterpartyAddresses = extractCounterpartyAddresses(operations, id);
-      const labelsMap = await getAccountLabels(counterpartyAddresses);
-      labelsMap.forEach((label, address) => {
+  let currentAccountLabel: AccountLabel | null = null;
+  try {
+    const counterpartyAddresses = operations.length > 0 ? extractCounterpartyAddresses(operations, id) : [];
+    // Include the current account ID to get its label too
+    const allAddresses = [id, ...counterpartyAddresses];
+    const labelsMap = await getAccountLabels(allAddresses);
+    labelsMap.forEach((label, address) => {
+      if (address === id) {
+        currentAccountLabel = label;
+      } else {
         accountLabels[address] = label;
-      });
-    } catch (e) {
-      console.error('Failed to fetch account labels:', e);
-    }
+      }
+    });
+  } catch (e) {
+    console.error('Failed to fetch account labels:', e);
   }
 
   if (error || !account) {
@@ -149,6 +154,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
           operations={operations}
           xlmPrice={xlmPrice}
           accountLabels={accountLabels}
+          currentAccountLabel={currentAccountLabel}
         />
       </div>
       <div className="block lg:hidden">
@@ -158,6 +164,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
           operations={operations}
           xlmPrice={xlmPrice}
           accountLabels={accountLabels}
+          currentAccountLabel={currentAccountLabel}
         />
       </div>
     </>

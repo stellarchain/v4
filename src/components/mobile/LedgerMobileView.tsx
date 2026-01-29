@@ -182,7 +182,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
     }, [activeTab, hasMoreOps, loadingOps, fetchMoreOperations]);
 
     return (
-        <div className="bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen flex flex-col font-sans pb-24">
+        <div className="bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-[calc(100vh+1px)] flex flex-col font-sans pb-24">
             {/* Main Content Area */}
             <main className="flex-1 px-3 pt-2 pb-8 max-w-lg mx-auto w-full">
 

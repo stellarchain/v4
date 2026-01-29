@@ -52,11 +52,6 @@ const menuCategories: MenuCategory[] = [
       { name: 'Known Accounts', href: '/known-accounts', icon: 'verified', description: 'Labeled accounts directory' },
     ],
   },
-  {
-    name: 'Market',
-    icon: 'market',
-    href: '/markets',
-  },
 ];
 
 const icons: Record<string, React.ReactNode> = {
@@ -111,11 +106,6 @@ const categoryIcons: Record<string, React.ReactNode> = {
   accounts: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-    </svg>
-  ),
-  market: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
     </svg>
   ),
 };
@@ -199,10 +189,6 @@ export default function FloatingBottomNav() {
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };
-
-  const isMoreActive = menuCategories.some(cat =>
-    cat.href ? isActive(cat.href) : cat.items?.some(item => isActive(item.href))
-  );
 
   // Don't render until mounted to avoid SSR issues with Framer Motion
   if (!mounted) return null;
@@ -306,11 +292,12 @@ export default function FloatingBottomNav() {
                 ))}
               </nav>
 
-              {/* Dark Mode Toggle */}
-              <div className="px-4 mt-4">
+              {/* Settings Section */}
+              <div className="px-4 mt-6 space-y-2">
+                {/* Dark Mode Toggle */}
                 <button
                   onClick={toggleTheme}
-                  className="flex items-center gap-3 py-3 px-4 w-full bg-[var(--bg-secondary)] rounded-xl transition-colors"
+                  className="flex items-center gap-3 py-3 px-4 w-full bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)]"
                 >
                   <span className="text-[var(--primary-blue)]">
                     {theme === 'dark' ? icons.moon : icons.sun}
@@ -318,28 +305,24 @@ export default function FloatingBottomNav() {
                   <span className="font-medium text-[var(--text-secondary)]">Dark Mode</span>
                   <div className="ml-auto">
                     <div
-                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${theme === 'dark' ? 'bg-[var(--primary-blue)]' : 'bg-[var(--bg-tertiary)]'
-                        }`}
+                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${theme === 'dark' ? 'bg-[var(--primary-blue)]' : 'bg-[var(--bg-tertiary)]'}`}
                     >
                       <motion.div
                         layout
                         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                        className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-md ${theme === 'dark' ? 'left-6' : 'left-1'
-                          }`}
+                        className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-md ${theme === 'dark' ? 'left-6' : 'left-1'}`}
                       />
                     </div>
                   </div>
                 </button>
-              </div>
 
-              {/* Donate Button */}
-              <div className="px-4 mt-4">
+                {/* Donate Button */}
                 <button
                   onClick={() => {
                     setIsMoreOpen(false);
                     setShowDonationModal(true);
                   }}
-                  className="flex items-center gap-3 py-3 px-4 w-full bg-[var(--bg-secondary)] rounded-xl transition-colors hover:bg-[var(--bg-tertiary)]"
+                  className="flex items-center gap-3 py-3 px-4 w-full bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)]"
                 >
                   <span className="text-[var(--primary-blue)]">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -441,9 +424,9 @@ export default function FloatingBottomNav() {
                 </span>
               </motion.button>
 
-              {/* Favorites Dropdown - only for multiple favorites */}
+              {/* Favorites Dropdown - for 2-3 favorites */}
               <AnimatePresence>
-                {showFavoritesList && favorites.length > 1 && (
+                {showFavoritesList && favorites.length > 1 && favorites.length <= 3 && (
                   <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -494,6 +477,89 @@ export default function FloatingBottomNav() {
               </AnimatePresence>
             </div>
           )}
+
+          {/* Favorites Modal - for 4+ favorites */}
+          <AnimatePresence>
+            {showFavoritesList && favorites.length > 3 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bottom-20 z-40 flex items-end justify-center"
+                onClick={() => setShowFavoritesList(false)}
+              >
+                {/* Backdrop */}
+                <div className="absolute inset-0 bg-black/40" />
+
+                {/* Modal */}
+                <motion.div
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{ y: '100%' }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                  className="relative w-full max-w-lg mx-4 mb-4 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--border-default)]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                      </svg>
+                      <span className="font-semibold text-[var(--text-primary)]">Watchlist</span>
+                      <span className="text-xs text-[var(--text-muted)]">({favorites.length})</span>
+                    </div>
+                    <button
+                      onClick={() => setShowFavoritesList(false)}
+                      className="p-1.5 rounded-full hover:bg-[var(--bg-tertiary)] transition-colors"
+                    >
+                      <svg className="w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* List */}
+                  <div className="max-h-[60vh] overflow-y-auto p-2 space-y-2">
+                    {(() => {
+                      const bgColors = ['bg-blue-500/10', 'bg-purple-500/10', 'bg-emerald-500/10', 'bg-orange-500/10', 'bg-pink-500/10', 'bg-indigo-500/10'];
+                      const textColors = ['text-blue-500', 'text-purple-500', 'text-emerald-500', 'text-orange-500', 'text-pink-500', 'text-indigo-500'];
+
+                      return favorites.map((fav) => {
+                        const colorIdx = (fav.label || fav.address).length % bgColors.length;
+                        const initials = (fav.label || 'UN').substring(0, 2).toUpperCase();
+
+                        return (
+                          <Link
+                            key={fav.address}
+                            href={`/account/${fav.address}`}
+                            onClick={() => setShowFavoritesList(false)}
+                            className="flex items-center gap-3 px-3 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
+                          >
+                            <div className={`w-10 h-10 rounded-full ${bgColors[colorIdx]} flex items-center justify-center`}>
+                              <span className={`text-sm font-bold ${textColors[colorIdx]}`}>{initials}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                                {fav.label || 'Unnamed'}
+                              </div>
+                              <div className="text-xs font-mono text-[var(--text-muted)]">
+                                {shortenAddress(fav.address, 6)}
+                              </div>
+                            </div>
+                            <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </Link>
+                        );
+                      });
+                    })()}
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Right nav items: Markets */}
           {navItemsRight.map((item) => (

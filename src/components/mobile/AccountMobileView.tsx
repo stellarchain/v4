@@ -66,6 +66,7 @@ interface AccountMobileViewProps {
   operations: Operation[];
   xlmPrice: number;
   accountLabels?: Record<string, AccountLabel>;
+  currentAccountLabel?: AccountLabel | null;
 }
 
 function getAssetUrl(code: string | undefined, issuer: string | undefined): string {
@@ -74,7 +75,7 @@ function getAssetUrl(code: string | undefined, issuer: string | undefined): stri
   return `/asset/${encodeURIComponent(code)}${issuer ? `?issuer=${encodeURIComponent(issuer)}` : ''}`;
 }
 
-export default function AccountMobileView({ account, transactions, operations: initialOperations, xlmPrice, accountLabels = {} }: AccountMobileViewProps) {
+export default function AccountMobileView({ account, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel }: AccountMobileViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -579,84 +580,91 @@ export default function AccountMobileView({ account, transactions, operations: i
     <div className={containers.page}>
       {/* Header */}
       <header className="pt-8 px-3 pb-2 sticky top-0 z-20 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-default)]">
-        {/* Title Row */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--primary-blue)' }}>Account</h1>
-          <div className="flex items-center gap-2">
-            {/* Address Dropdown */}
-            <div ref={addressDropdownRef} className="relative">
-              <button
-                onClick={() => setShowAddressDropdown(!showAddressDropdown)}
-                className="flex items-center gap-1 text-sm font-semibold text-[var(--text-secondary)] font-mono hover:text-[var(--text-primary)] transition-colors"
-              >
-                {shortenAddress(account.id, 6)}
-                <svg className={`w-3 h-3 transition-transform ${showAddressDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {showAddressDropdown && (
-                <div className="absolute right-0 top-full mt-2 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl shadow-lg overflow-hidden z-50 p-3 min-w-[280px]">
-                  <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold mb-2">Full Address</div>
-                  <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
-                    <p className="font-mono text-[11px] text-[var(--text-primary)] break-all leading-relaxed select-all">{account.id}</p>
-                  </div>
-                  <button
-                    onClick={() => { handleCopy(); setShowAddressDropdown(false); }}
-                    className="mt-2 w-full py-2 rounded-lg bg-[var(--text-primary)] text-[var(--bg-primary)] font-semibold text-xs flex items-center justify-center gap-1.5"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Copy Address
-                  </button>
-                </div>
-              )}
-            </div>
-            {/* Favorite Button */}
-            <button
-              onClick={() => {
-                if (isCurrentFavorite) {
-                  setFavoriteLabel(currentFavorite?.label || '');
-                }
-                setShowFavoriteModal(true);
-              }}
-              className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors shadow-sm border ${
-                isCurrentFavorite
-                  ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                  : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-amber-500 border-[var(--border-default)]'
-              }`}
-            >
-              <svg className="w-4 h-4" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Est. Total Value Section */}
-        <div className="mb-6 flex items-start justify-between">
-          <div>
-            <div className="text-sm text-[var(--text-tertiary)] mb-2">
-              Est. Total Value
-            </div>
-            <div className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">
-              ~${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div className="mt-1">
-              <span className={`text-sm font-semibold ${isPositivePnl ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-                {isPositivePnl ? '+' : ''}${Math.abs(pnlData.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isPositivePnl ? '+' : ''}{pnlData.percent.toFixed(2)}%) 24h Change
-              </span>
-            </div>
-          </div>
-          {/* QR Code Button */}
+        {/* Title Row with symmetric buttons */}
+        <div className="flex items-center justify-between mb-2">
+          {/* QR Code Button - Left */}
           <button
             onClick={() => setShowQrModal(true)}
-            className="w-11 h-11 flex items-center justify-center rounded-xl bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors border border-[var(--border-default)]"
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors border border-[var(--border-default)]"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
             </svg>
           </button>
+
+          {/* Title - Center */}
+          <div className="text-center">
+            <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
+              {currentAccountLabel?.name || 'Account'}
+            </h1>
+          </div>
+
+          {/* Favorite Button - Right */}
+          <button
+            onClick={() => {
+              if (isCurrentFavorite) {
+                setFavoriteLabel(currentFavorite?.label || '');
+              }
+              setShowFavoriteModal(true);
+            }}
+            className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors border ${
+              isCurrentFavorite
+                ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-amber-500 border-[var(--border-default)]'
+            }`}
+          >
+            <svg className="w-5 h-5" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Address Dropdown - Centered */}
+        <div className="flex justify-center mb-3">
+          <div ref={addressDropdownRef} className="relative">
+            <button
+              onClick={() => setShowAddressDropdown(!showAddressDropdown)}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-sm font-semibold text-[var(--text-secondary)] font-mono hover:text-[var(--text-primary)] transition-colors"
+            >
+              {shortenAddress(account.id, 6)}
+              <svg className={`w-3.5 h-3.5 transition-transform ${showAddressDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showAddressDropdown && (
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl shadow-lg overflow-hidden z-50 p-3 min-w-[280px]">
+                <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold mb-2">Full Address</div>
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                  <p className="font-mono text-[11px] text-[var(--text-primary)] break-all leading-relaxed select-all">{account.id}</p>
+                </div>
+                <button
+                  onClick={() => { handleCopy(); setShowAddressDropdown(false); }}
+                  className="mt-2 w-full py-2 rounded-lg bg-[var(--text-primary)] text-[var(--bg-primary)] font-semibold text-xs flex items-center justify-center gap-1.5"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copy Address
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Total Balance Section - Centered */}
+        <div className="text-center mb-5">
+          <div className="text-sm text-[var(--text-tertiary)] mb-1">
+            Total Balance
+          </div>
+          <div className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">
+            ${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+            <span className={`text-sm font-semibold ${isPositivePnl ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
+              {isPositivePnl ? '+' : '-'}${Math.abs(pnlData.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isPositivePnl ? '+' : ''}{pnlData.percent.toFixed(2)}%)
+            </span>
+            <span className="text-sm text-[var(--text-muted)]">24H</span>
+          </div>
         </div>
 
         {/* Tabs - Glider Style */}

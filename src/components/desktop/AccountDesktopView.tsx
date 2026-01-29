@@ -33,6 +33,7 @@ interface AccountDesktopViewProps {
   operations: Operation[];
   xlmPrice: number;
   accountLabels?: Record<string, { name: string; verified: boolean; org_name: string | null; description: string | null }>;
+  currentAccountLabel?: { name: string; verified: boolean; org_name: string | null; description: string | null } | null;
 }
 
 function getAssetUrl(code: string | undefined, issuer: string | undefined): string {
@@ -41,7 +42,7 @@ function getAssetUrl(code: string | undefined, issuer: string | undefined): stri
   return `/asset/${encodeURIComponent(code)}${issuer ? `?issuer=${encodeURIComponent(issuer)}` : ''}`;
 }
 
-export default function AccountDesktopView({ account, transactions, operations, xlmPrice, accountLabels = {} }: AccountDesktopViewProps) {
+export default function AccountDesktopView({ account, transactions, operations, xlmPrice, accountLabels = {}, currentAccountLabel }: AccountDesktopViewProps) {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'operations' | 'details'>('operations');
   const [assetPrices, setAssetPrices] = useState<Record<string, number>>({});
