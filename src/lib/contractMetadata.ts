@@ -870,7 +870,12 @@ function extractWasmSpec(wasmCode: Buffer): ContractSpecResult | null {
 
           if (name === 'contractspecv0') {
             const data = wasmCode.slice(offset, sectionEnd);
-            parseSpecData(data, functions, udts);
+            try {
+              parseSpecData(data, functions, udts);
+            } catch (parseError) {
+              console.error('Error parsing contract spec data:', parseError);
+              // Continue without spec data rather than crashing
+            }
           }
         }
         offset = sectionEnd;
