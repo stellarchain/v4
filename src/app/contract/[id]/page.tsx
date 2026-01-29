@@ -15,6 +15,13 @@ import { ContractHeaderSkeleton, ContractEventsSkeleton, ContractInvocationsSkel
 
 export const revalidate = 60;
 
+// Custom JSON serializer that handles BigInt
+function safeStringify(data: unknown): string {
+  return JSON.stringify(data, (_, value) =>
+    typeof value === 'bigint' ? value.toString() : value
+  );
+}
+
 interface ContractPageProps {
   params: Promise<{ id: string }>;
 }
@@ -54,7 +61,7 @@ async function EventsSection({ id }: { id: string }) {
     <script
       id="events-data"
       type="application/json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: safeStringify(data) }}
     />
   );
 }
@@ -71,7 +78,7 @@ async function InvocationsSection({ id }: { id: string }) {
     <script
       id="invocations-data"
       type="application/json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: safeStringify(data) }}
     />
   );
 }
@@ -88,7 +95,7 @@ async function StorageSection({ id }: { id: string }) {
     <script
       id="storage-data"
       type="application/json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: safeStringify(data) }}
     />
   );
 }
@@ -128,7 +135,7 @@ async function SpecSection({ id }: { id: string }) {
     <script
       id="spec-data"
       type="application/json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: safeStringify(data) }}
     />
   );
 }
