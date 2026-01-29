@@ -1,7 +1,37 @@
-import { getAccount, getAccountTransactions, getAccountOperations, getTransactionOperations, getXLMUSDPriceFromHorizon } from '@/lib/stellar';
+import { getAccount, getAccountTransactions, getAccountOperations, getTransactionOperations, getXLMUSDPriceFromHorizon, getAccountLabels } from '@/lib/stellar';
+import type { AccountLabel } from '@/lib/stellar';
 import Link from 'next/link';
 import AccountMobileView from '@/components/mobile/AccountMobileView';
 import AccountDesktopView from '@/components/desktop/AccountDesktopView';
+
+// Extract counterparty addresses from operations
+function extractCounterpartyAddresses(operations: any[], accountId: string): string[] {
+  const addresses = new Set<string>();
+
+  for (const op of operations) {
+    // Payment operations
+    if (op.from && op.from !== accountId && op.from.startsWith('G')) {
+      addresses.add(op.from);
+    }
+    if (op.to && op.to !== accountId && op.to.startsWith('G')) {
+      addresses.add(op.to);
+    }
+    // Source account
+    if (op.source_account && op.source_account !== accountId && op.source_account.startsWith('G')) {
+      addresses.add(op.source_account);
+    }
+    // Funder for create_account
+    if (op.funder && op.funder !== accountId && op.funder.startsWith('G')) {
+      addresses.add(op.funder);
+    }
+    // Account for other operations
+    if (op.account && op.account !== accountId && op.account.startsWith('G')) {
+      addresses.add(op.account);
+    }
+  }
+
+  return Array.from(addresses);
+}
 
 export const revalidate = 30;
 
@@ -60,6 +90,20 @@ export default async function AccountPage({ params }: AccountPageProps) {
     console.error(e);
   }
 
+  // Fetch labels for counterparty addresses
+  let accountLabels: Record<string, AccountLabel> = {};
+  if (operations.length > 0) {
+    try {
+      const counterpartyAddresses = extractCounterpartyAddresses(operations, id);
+      const labelsMap = await getAccountLabels(counterpartyAddresses);
+      labelsMap.forEach((label, address) => {
+        accountLabels[address] = label;
+      });
+    } catch (e) {
+      console.error('Failed to fetch account labels:', e);
+    }
+  }
+
   if (error || !account) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -104,6 +148,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
           transactions={transactions}
           operations={operations}
           xlmPrice={xlmPrice}
+          accountLabels={accountLabels}
         />
       </div>
       <div className="block lg:hidden">
@@ -112,6 +157,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
           transactions={transactions}
           operations={operations}
           xlmPrice={xlmPrice}
+          accountLabels={accountLabels}
         />
       </div>
     </>
