@@ -7,27 +7,33 @@ import { usePathname } from 'next/navigation';
 
 export default function MobileHeader() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [baseFee, setBaseFee] = useState(100);
   const [xlmPrice, setXlmPrice] = useState(0);
+  const [xlmChange24h, setXlmChange24h] = useState<number | null>(null);
   const pathname = usePathname();
 
-  // Fetch base fee & XLM Price for all pages with header
+  // Fetch XLM Price and 24h change
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch Base Fee
-        const feeRes = await fetch('https://horizon.stellar.org/');
-        const feeData = await feeRes.json();
-        setBaseFee(feeData.core_latest_ledger.base_fee || 100);
-
-        // Fetch XLM Price (XLM/USDC)
-        const priceRes = await fetch('https://horizon.stellar.org/trade_aggregations?base_asset_type=native&counter_asset_type=credit_alphanum4&counter_asset_code=USDC&counter_asset_issuer=GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN&resolution=900000&limit=1&order=desc');
-        const priceData = await priceRes.json();
-        if (priceData._embedded.records.length > 0) {
-          setXlmPrice(parseFloat(priceData._embedded.records[0].close));
+        // Fetch XLM Price and 24h change from CoinGecko
+        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd&include_24hr_change=true');
+        const data = await res.json();
+        if (data.stellar) {
+          setXlmPrice(data.stellar.usd || 0);
+          setXlmChange24h(data.stellar.usd_24h_change || 0);
         }
       } catch (e) {
         console.error('Failed to fetch header stats', e);
+        // Fallback to Horizon for price only
+        try {
+          const priceRes = await fetch('https://horizon.stellar.org/trade_aggregations?base_asset_type=native&counter_asset_type=credit_alphanum4&counter_asset_code=USDC&counter_asset_issuer=GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN&resolution=900000&limit=1&order=desc');
+          const priceData = await priceRes.json();
+          if (priceData._embedded.records.length > 0) {
+            setXlmPrice(parseFloat(priceData._embedded.records[0].close));
+          }
+        } catch (e2) {
+          console.error('Fallback price fetch failed', e2);
+        }
       }
     };
     fetchStats();
@@ -112,7 +118,9 @@ export default function MobileHeader() {
           <span>XLM: <span className="text-white ml-0.5">${xlmPrice > 0 ? xlmPrice.toFixed(4) : '0.0000'}</span></span>
         </div>
         <div>
-          <span>Network Fee: <span className="text-white ml-0.5">{(baseFee / 10000000).toFixed(5)} XLM</span></span>
+          <span>24h: <span className={`ml-0.5 ${xlmChange24h !== null && xlmChange24h >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {xlmChange24h !== null ? `${xlmChange24h >= 0 ? '+' : ''}${xlmChange24h.toFixed(2)}%` : '--'}
+          </span></span>
         </div>
       </div>
     </header>
