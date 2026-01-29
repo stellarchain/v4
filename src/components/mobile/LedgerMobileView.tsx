@@ -184,7 +184,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
     return (
         <div className="bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen flex flex-col font-sans pb-24">
             {/* Main Content Area */}
-            <main className="flex-1 px-6 pt-2 pb-8 max-w-lg mx-auto w-full">
+            <main className="flex-1 px-3 pt-2 pb-8 max-w-lg mx-auto w-full">
 
                 {/* Header / Back Link */}
                 <div className="flex items-center justify-between mb-4 mt-1">
@@ -209,13 +209,31 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                 </div>
 
                 {/* Ledger Main Card */}
-                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-5 relative overflow-hidden">
-                    <div className="relative z-10 flex flex-col gap-4">
+                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] px-4 py-3 mb-3 relative overflow-hidden">
+                    <div className="relative z-10 flex flex-col gap-3">
                         <div className="flex items-start justify-between relative z-20">
                             <div>
                                 <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Ledger Sequence</div>
-                                <div className="text-2xl font-bold mt-1" style={{ color: 'var(--primary-blue)' }}>#{ledger.sequence.toLocaleString()}</div>
-                                <div className="flex items-center gap-2 mt-2 text-xs text-[var(--text-tertiary)] font-mono">
+                                <div className="flex items-center gap-2 mt-1">
+                                    <Link
+                                        href={`/ledger/${ledger.sequence - 1}`}
+                                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:text-[var(--primary-blue)] hover:border-[var(--primary-blue)]/30 transition-colors"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                    </Link>
+                                    <span className="text-2xl font-bold" style={{ color: 'var(--primary-blue)' }}>#{ledger.sequence.toLocaleString()}</span>
+                                    <Link
+                                        href={`/ledger/${ledger.sequence + 1}`}
+                                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:text-[var(--primary-blue)] hover:border-[var(--primary-blue)]/30 transition-colors"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </Link>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1.5 text-xs text-[var(--text-tertiary)] font-mono">
                                     <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
@@ -243,7 +261,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 mt-2">
+                        <div className="grid grid-cols-3 gap-2">
                             <div className="bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl p-2 text-center">
                                 <div className="text-[10px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Ops</div>
                                 <div className="text-sm font-bold text-[var(--text-primary)] mt-0.5">{ledger.operation_count}</div>
@@ -271,7 +289,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                   const tabCount = tabs.length;
 
                   return (
-                    <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)] mt-3 mb-1">
+                    <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)] mb-2">
                       {/* Glider Background */}
                       <div
                         className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
@@ -307,8 +325,8 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                 <div className="min-h-[200px]">
                     {/* OVERVIEW TAB */}
                     {activeTab === 'overview' && (
-                        <div className="space-y-4">
-                            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
+                        <div className="space-y-2">
+                            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3">
                                 <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">Ledger Details</h2>
                                 <div className="space-y-3">
                                     <div className="flex flex-col gap-1 border-b border-[var(--border-subtle)] pb-2.5">
@@ -330,32 +348,6 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 </div>
                             </div>
 
-                            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-3 flex flex-col gap-2.5">
-                                <Link
-                                    href={`/ledger/${ledger.sequence - 1}`}
-                                    className="flex items-center justify-between px-3 py-2.5 bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--primary-blue)] hover:border-[var(--primary-blue)]/30 hover:bg-[var(--primary-blue)]/5 transition-all group"
-                                >
-                                    <span className="flex items-center gap-2 text-xs font-medium">
-                                        <svg className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                        </svg>
-                                        Previous Ledger
-                                    </span>
-                                    <span className="text-[11px] font-mono text-[var(--text-muted)] group-hover:text-[var(--primary-blue)]">#{(ledger.sequence - 1).toLocaleString()}</span>
-                                </Link>
-                                <Link
-                                    href={`/ledger/${ledger.sequence + 1}`}
-                                    className="flex items-center justify-between px-3 py-2.5 bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--primary-blue)] hover:border-[var(--primary-blue)]/30 hover:bg-[var(--primary-blue)]/5 transition-all group"
-                                >
-                                    <span className="flex items-center gap-2 text-xs font-medium">
-                                        Next Ledger
-                                        <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </span>
-                                    <span className="text-[11px] font-mono text-[var(--text-muted)] group-hover:text-[var(--primary-blue)]">#{(ledger.sequence + 1).toLocaleString()}</span>
-                                </Link>
-                            </div>
                         </div>
                     )}
 
