@@ -476,18 +476,25 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 let isSwap = false;
                                 let isPayment = false;
 
+                                // Helper to format amount (remove trailing zeros)
+                                const formatAmount = (amt: string) => {
+                                    const num = parseFloat(amt);
+                                    if (isNaN(num)) return amt;
+                                    return num % 1 === 0 ? num.toString() : num.toFixed(7).replace(/\.?0+$/, '');
+                                };
+
                                 if (op.type === 'payment') {
                                     isPayment = true;
                                     const rawAmt = (op as any).amount || '0';
                                     const asset = (op as any).asset_code || ((op as any).asset_type === 'native' ? 'XLM' : '');
-                                    summary = `${rawAmt} ${asset}`;
+                                    summary = `${formatAmount(rawAmt)} ${asset}`;
                                 } else if (op.type === 'create_account') {
                                     isPayment = true;
-                                    summary = `${(op as any).starting_balance} XLM`;
+                                    summary = `${formatAmount((op as any).starting_balance)} XLM`;
                                     typeDisplay = 'Create Account';
                                 } else if (op.type === 'invoke_host_function') {
                                     isContract = true;
-                                    let functionName = 'Contract Call';
+                                    let functionName = 'contract call';
                                     try {
                                         const parameters = (op as any).parameters;
                                         if (parameters && Array.isArray(parameters)) {
@@ -505,7 +512,8 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 } else if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') {
                                     isSwap = true;
                                     typeDisplay = 'Swap';
-                                    summary = `${(op as any).amount || '0'} ${(op as any).asset_code || 'XLM'}`;
+                                    const rawAmt = (op as any).amount || '0';
+                                    summary = `${formatAmount(rawAmt)} ${(op as any).asset_code || 'XLM'}`;
                                 }
 
                                 const iconBgClass = isContract
@@ -537,7 +545,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between">
-                                                    <span className="font-semibold text-sm text-[var(--text-primary)] truncate capitalize">{typeDisplay}</span>
+                                                    <span className="font-semibold text-sm text-[var(--text-primary)] truncate">{typeDisplay}</span>
                                                     <span className="text-xs font-medium text-[var(--text-muted)] ml-2 shrink-0">{timeAgo(op.created_at)}</span>
                                                 </div>
                                                 {/* Row 2: Hash + From + Value */}
