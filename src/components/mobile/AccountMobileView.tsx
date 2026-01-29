@@ -86,6 +86,14 @@ export default function AccountMobileView({ account, transactions, operations: i
   const [activeTab, setActiveTab] = useState<'assets' | 'activity' | 'details'>(initialTab);
   const [activityType, setActivityType] = useState<'all' | 'payments' | 'swaps' | 'contracts'>('all');
   const [showUsdValue, setShowUsdValue] = useState(false);
+  const [hideSmallAssets, setHideSmallAssets] = useState(false);
+  const [hidePnl, setHidePnl] = useState(false);
+  const [showAssetsFilterDropdown, setShowAssetsFilterDropdown] = useState(false);
+  const assetsFilterRef = useRef<HTMLDivElement>(null);
+  const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'EUR' | 'GBP'>('USD');
+  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+  const currencyDropdownRef = useRef<HTMLDivElement>(null);
+  const [currencyRates, setCurrencyRates] = useState<{ EUR: number; GBP: number }>({ EUR: 0.92, GBP: 0.79 });
   const [showActivityFilterDropdown, setShowActivityFilterDropdown] = useState(false);
   const activityFilterRef = useRef<HTMLDivElement>(null);
   const [showAddressDropdown, setShowAddressDropdown] = useState(false);
@@ -159,6 +167,59 @@ export default function AccountMobileView({ account, transactions, operations: i
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showAddressDropdown]);
+
+  // Close assets filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (assetsFilterRef.current && !assetsFilterRef.current.contains(e.target as Node)) {
+        setShowAssetsFilterDropdown(false);
+      }
+    };
+    if (showAssetsFilterDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showAssetsFilterDropdown]);
+
+  // Close currency dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (currencyDropdownRef.current && !currencyDropdownRef.current.contains(e.target as Node)) {
+        setShowCurrencyDropdown(false);
+      }
+    };
+    if (showCurrencyDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCurrencyDropdown]);
+
+  // Fetch currency conversion rates
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        const data = await res.json();
+        if (data.rates) {
+          setCurrencyRates({
+            EUR: data.rates.EUR || 0.92,
+            GBP: data.rates.GBP || 0.79,
+          });
+        }
+      } catch (e) {
+        console.error('Failed to fetch currency rates', e);
+      }
+    };
+    fetchRates();
+  }, []);
+
+  // Currency conversion helper
+  const convertCurrency = (usdAmount: number): number => {
+    if (selectedCurrency === 'USD') return usdAmount;
+    return usdAmount * currencyRates[selectedCurrency];
+  };
+
+  const currencySymbol = selectedCurrency === 'USD' ? '$' : selectedCurrency === 'EUR' ? '€' : '£';
 
   // Refs for infinite scroll
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -657,11 +718,11 @@ export default function AccountMobileView({ account, transactions, operations: i
             Total Balance
           </div>
           <div className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">
-            ${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {currencySymbol}{convertCurrency(totalValueUSD).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
             <span className={`text-sm font-semibold ${isPositivePnl ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-              {isPositivePnl ? '+' : '-'}${Math.abs(pnlData.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isPositivePnl ? '+' : ''}{pnlData.percent.toFixed(2)}%)
+              {isPositivePnl ? '+' : '-'}{currencySymbol}{Math.abs(convertCurrency(pnlData.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isPositivePnl ? '+' : ''}{pnlData.percent.toFixed(2)}%)
             </span>
             <span className="text-sm text-[var(--text-muted)]">24H</span>
           </div>
@@ -715,94 +776,160 @@ export default function AccountMobileView({ account, transactions, operations: i
       <main className="px-3">
         {activeTab === 'assets' && (
           <div className="space-y-2 pt-2">
-            {/* XLM Card */}
-            <div
-              className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
-              onClick={() => router.push('/asset/XLM')}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[var(--text-primary)] flex items-center justify-center text-[var(--bg-secondary)]">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
+            {/* Filter Row */}
+            <div className="flex items-center justify-between mb-1 mt-1">
+              {/* Filter Dropdown */}
+              <div ref={assetsFilterRef} className="relative">
+                <button
+                  onClick={() => setShowAssetsFilterDropdown(!showAssetsFilterDropdown)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold ${
+                    (hideSmallAssets || hidePnl)
+                      ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)] border-[var(--primary-blue)]/20'
+                      : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-subtle)]'
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                  <svg className={`w-3 h-3 transition-transform ${showAssetsFilterDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showAssetsFilterDropdown && (
+                  <div className="absolute left-0 top-full mt-1 min-w-[140px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
+                    <button
+                      onClick={() => setHidePnl(!hidePnl)}
+                      className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${
+                        hidePnl ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+                      }`}
+                    >
+                      <span>Hide PNL</span>
+                      {hidePnl && (
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setHideSmallAssets(!hideSmallAssets)}
+                      className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${
+                        hideSmallAssets ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+                      }`}
+                    >
+                      <span>Hide &lt;$1</span>
+                      {hideSmallAssets && (
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
-                  <div>
-                    <div className="text-sm font-bold text-[var(--text-primary)]">XLM</div>
-                    <div className="flex items-center gap-1.5 text-[11px]">
-                      <span className="text-[var(--text-muted)]">${(xlmAmount * xlmPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                      <span className={`font-medium ${xlmChange24h >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-                        {xlmChange24h >= 0 ? '+' : ''}{xlmChange24h.toFixed(2)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-base font-bold text-[var(--text-primary)]" title={formatExactNumber(xlmAmount)}>
-                    {formatCompactNumber(xlmAmount)}
-                  </div>
-                  <div className="text-[11px] text-[var(--text-muted)]">
-                    @${xlmPrice.toFixed(4)}
-                  </div>
-                </div>
+                )}
               </div>
+              <div></div>
             </div>
 
-            {/* Other Assets */}
-            {otherBalances.map((balance, idx) => {
-              const amount = parseFloat(balance.balance);
-              const key = `${balance.asset_code}:${balance.asset_issuer}`;
-              const priceData = assetPrices[key];
-              const valueUSD = priceData ? amount * priceData.price : 0;
-              const pnlPercent = priceData?.change24h || 0;
-
-              const bgColors = ['bg-blue-500/10', 'bg-purple-500/10', 'bg-[var(--success)]/10', 'bg-orange-500/10', 'bg-pink-500/10', 'bg-indigo-500/10', 'bg-violet-500/10'];
-              const textColors = ['text-blue-400', 'text-purple-400', 'text-[var(--success)]', 'text-orange-400', 'text-pink-400', 'text-indigo-400', 'text-violet-400'];
-              const colorIdx = (balance.asset_code || '').length % bgColors.length;
-
-              return (
-                <div
-                  key={idx}
-                  className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
-                  onClick={() => router.push(getAssetUrl(balance.asset_code, balance.asset_issuer))}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full ${bgColors[colorIdx]} flex items-center justify-center ${textColors[colorIdx]}`}>
-                        <span className="font-bold text-base">{(balance.asset_code || 'LP')[0]}</span>
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-[var(--text-primary)]">{balance.asset_code || 'LP'}</div>
-                        <div className="flex items-center gap-1.5 text-[11px]">
-                          <span className="text-[var(--text-muted)]">
-                            {valueUSD > 0 ? `$${valueUSD.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '--'}
-                          </span>
-                          {priceData ? (
-                            <span className={`font-medium ${pnlPercent >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-                              {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
+            {/* XLM Card */}
+            {(!hideSmallAssets || (xlmAmount * xlmPrice) >= 1) && (
+              <div
+                className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                onClick={() => router.push('/asset/XLM')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[var(--text-primary)] flex items-center justify-center text-[var(--bg-secondary)]">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
                     </div>
-                    <div className="text-right">
-                      <div className="text-base font-bold text-[var(--text-primary)]" title={formatExactNumber(amount)}>
-                        {formatCompactNumber(amount)}
-                      </div>
-                      <div className="text-[11px] text-[var(--text-muted)]">
-                        {priceData ? `@$${priceData.price.toFixed(priceData.price >= 1 ? 2 : 6)}` : (
-                          balance.asset_issuer ? (
-                            <Link href={`/account/${balance.asset_issuer}`} onClick={(e) => e.stopPropagation()} className="hover:text-[var(--primary-blue)]">
-                              {shortenAddress(balance.asset_issuer, 4)}
-                            </Link>
-                          ) : 'LP'
+                    <div>
+                      <div className="text-sm font-bold text-[var(--text-primary)]">XLM</div>
+                      <div className="flex items-center gap-1.5 text-[11px]">
+                        <span className="text-[var(--text-muted)]">{currencySymbol}{convertCurrency(xlmAmount * xlmPrice).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                        {!hidePnl && (
+                          <span className={`font-medium ${xlmChange24h >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
+                            {xlmChange24h >= 0 ? '+' : ''}{xlmChange24h.toFixed(2)}%
+                          </span>
                         )}
                       </div>
                     </div>
                   </div>
+                  <div className="text-right">
+                    <div className="text-base font-bold text-[var(--text-primary)]" title={formatExactNumber(xlmAmount)}>
+                      {formatCompactNumber(xlmAmount)}
+                    </div>
+                    <div className="text-[11px] text-[var(--text-muted)]">
+                      @{currencySymbol}{convertCurrency(xlmPrice).toFixed(4)}
+                    </div>
+                  </div>
                 </div>
-              );
-            })}
+              </div>
+            )}
+
+            {/* Other Assets */}
+            {otherBalances
+              .filter((balance) => {
+                if (!hideSmallAssets) return true;
+                const amount = parseFloat(balance.balance);
+                const key = `${balance.asset_code}:${balance.asset_issuer}`;
+                const priceData = assetPrices[key];
+                const valueUSD = priceData ? amount * priceData.price : 0;
+                return valueUSD >= 1;
+              })
+              .map((balance, idx) => {
+                const amount = parseFloat(balance.balance);
+                const key = `${balance.asset_code}:${balance.asset_issuer}`;
+                const priceData = assetPrices[key];
+                const valueUSD = priceData ? amount * priceData.price : 0;
+                const pnlPercent = priceData?.change24h || 0;
+
+                const bgColors = ['bg-blue-500/10', 'bg-purple-500/10', 'bg-[var(--success)]/10', 'bg-orange-500/10', 'bg-pink-500/10', 'bg-indigo-500/10', 'bg-violet-500/10'];
+                const textColors = ['text-blue-400', 'text-purple-400', 'text-[var(--success)]', 'text-orange-400', 'text-pink-400', 'text-indigo-400', 'text-violet-400'];
+                const colorIdx = (balance.asset_code || '').length % bgColors.length;
+
+                return (
+                  <div
+                    key={idx}
+                    className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                    onClick={() => router.push(getAssetUrl(balance.asset_code, balance.asset_issuer))}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full ${bgColors[colorIdx]} flex items-center justify-center ${textColors[colorIdx]}`}>
+                          <span className="font-bold text-base">{(balance.asset_code || 'LP')[0]}</span>
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-[var(--text-primary)]">{balance.asset_code || 'LP'}</div>
+                          <div className="flex items-center gap-1.5 text-[11px]">
+                            <span className="text-[var(--text-muted)]">
+                              {valueUSD > 0 ? `${currencySymbol}${convertCurrency(valueUSD).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '--'}
+                            </span>
+                            {!hidePnl && priceData ? (
+                              <span className={`font-medium ${pnlPercent >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
+                                {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-base font-bold text-[var(--text-primary)]" title={formatExactNumber(amount)}>
+                          {formatCompactNumber(amount)}
+                        </div>
+                        <div className="text-[11px] text-[var(--text-muted)]">
+                          {priceData ? `@${currencySymbol}${convertCurrency(priceData.price).toFixed(priceData.price >= 1 ? 2 : 6)}` : (
+                            balance.asset_issuer ? (
+                              <Link href={`/account/${balance.asset_issuer}`} onClick={(e) => e.stopPropagation()} className="hover:text-[var(--primary-blue)]">
+                                {shortenAddress(balance.asset_issuer, 4)}
+                              </Link>
+                            ) : 'LP'
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         )}
 
@@ -838,18 +965,58 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                 )}
               </div>
-              {/* USD Toggle */}
-              <button
-                onClick={() => setShowUsdValue(!showUsdValue)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors ${
-                  showUsdValue
-                    ? 'bg-[var(--primary-blue)]/15 text-[var(--primary-blue)]'
-                    : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
-                }`}
-              >
-                <span>$</span>
-                <span>USD</span>
-              </button>
+              {/* Currency Dropdown */}
+              <div ref={currencyDropdownRef} className="relative">
+                <button
+                  onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold ${
+                    showUsdValue
+                      ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)] border-[var(--primary-blue)]/20'
+                      : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-subtle)]'
+                  }`}
+                >
+                  <span>{currencySymbol}</span>
+                  <span>{selectedCurrency}</span>
+                  <svg className={`w-3 h-3 transition-transform ${showCurrencyDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showCurrencyDropdown && (
+                  <div className="absolute right-0 top-full mt-1 min-w-[100px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
+                    <button
+                      onClick={() => { setShowUsdValue(!showUsdValue); setShowCurrencyDropdown(false); }}
+                      className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${
+                        showUsdValue ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+                      }`}
+                    >
+                      <span>Show Value</span>
+                      {showUsdValue && (
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
+                    <div className="border-t border-[var(--border-subtle)]">
+                      {(['USD', 'EUR', 'GBP'] as const).map((currency) => (
+                        <button
+                          key={currency}
+                          onClick={() => { setSelectedCurrency(currency); setShowCurrencyDropdown(false); }}
+                          className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${
+                            selectedCurrency === currency ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+                          }`}
+                        >
+                          <span>{currency === 'USD' ? '$ USD' : currency === 'EUR' ? '€ EUR' : '£ GBP'}</span>
+                          {selectedCurrency === currency && (
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {currentDataSource.length === 0 ? (

@@ -554,7 +554,53 @@ export default function TransactionPageClient({
                 Transactions
               </h3>
             </div>
-            <div className="px-3 md:px-4 py-2 bg-[var(--bg-primary)] md:bg-[var(--bg-secondary)] md:border-b md:border-[var(--border-subtle)] flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            {/* Mobile Glider Tabs */}
+            <div className="md:hidden mb-4">
+              {(() => {
+                const filterTabs = [
+                  { id: 'all', label: 'All Activity' },
+                  { id: 'transfers', label: 'Payments' },
+                  { id: 'contracts', label: 'Contracts' },
+                ];
+                const activeTabIndex = filterTabs.findIndex(tab => tab.id === filter);
+                const tabCount = filterTabs.length;
+
+                return (
+                  <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)]">
+                    {/* Glider Background */}
+                    <div
+                      className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
+                      style={{
+                        left: '4px',
+                        width: `calc((100% - 8px) / ${tabCount})`,
+                        transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
+                        opacity: activeTabIndex >= 0 ? 1 : 0
+                      }}
+                    />
+
+                    {filterTabs.map((tab) => {
+                      const isActive = filter === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setFilter(tab.id as FilterType)}
+                          className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center ${
+                            isActive
+                              ? 'text-[var(--primary-blue)] font-bold'
+                              : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Desktop Tabs */}
+            <div className="hidden md:flex px-4 py-2 bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)] items-center gap-2 overflow-x-auto scrollbar-hide">
               {['all', 'transfers', 'contracts'].map(tab => (
                 <button
                   key={tab}
