@@ -209,7 +209,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                 </div>
 
                 {/* Ledger Main Card */}
-                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] px-4 py-3 mb-3 relative overflow-hidden">
+                <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 mb-2 relative overflow-hidden">
                     <div className="relative z-10 flex flex-col gap-3">
                         <div className="flex items-start justify-between relative z-20">
                             <div>
