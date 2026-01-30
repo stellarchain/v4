@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { gsap } from 'gsap';
-import { Ledger } from '@/lib/stellar';
+import { Ledger, getBaseUrl } from '@/lib/stellar';
 import LiveTransactionFeed from '../LiveTransactionFeed';
 interface MobileHomePageProps {
   stats: {
@@ -28,7 +28,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
   useEffect(() => {
     const fetchLatestStats = async () => {
       try {
-        const res = await fetch('https://horizon.stellar.org/ledgers?limit=1&order=desc');
+        const res = await fetch(`${getBaseUrl()}/ledgers?limit=1&order=desc`);
         const data = await res.json();
         const latest: Ledger = data._embedded.records[0];
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import gsap from 'gsap';
-import { Ledger, NetworkStats, Transaction, formatXLM, shortenAddress, timeAgo, Operation } from '@/lib/stellar';
+import { Ledger, NetworkStats, Transaction, formatXLM, shortenAddress, timeAgo, Operation, getBaseUrl } from '@/lib/stellar';
 import InfoTooltip from '../InfoTooltip';
 
 interface DesktopHomePageProps {
@@ -59,13 +59,13 @@ export default function DesktopHomePage({
     useEffect(() => {
         const getUrl = () => {
             // For "Payments" tab, specifically fetch payment operations to ensure density
-            if (activeTab === 'Payments') return 'https://horizon.stellar.org/payments';
-            return 'https://horizon.stellar.org/operations';
+            if (activeTab === 'Payments') return `${getBaseUrl()}/payments`;
+            return `${getBaseUrl()}/operations`;
         };
 
         const fetchStats = async () => {
             try {
-                const ledgersRes = await fetch('https://horizon.stellar.org/ledgers?limit=1&order=desc');
+                const ledgersRes = await fetch(`${getBaseUrl()}/ledgers?limit=1&order=desc`);
                 const ledgersData = await ledgersRes.json();
                 const latest: Ledger = ledgersData._embedded.records[0];
 

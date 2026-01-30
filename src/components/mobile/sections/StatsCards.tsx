@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { gsap } from 'gsap';
-import { Ledger } from '@/lib/stellar';
+import { Ledger, getBaseUrl } from '@/lib/stellar';
 
 interface StatsCardsProps {
   stats: {
@@ -27,7 +27,7 @@ export default function StatsCards({ stats, xlmVolume, xlmPrice }: StatsCardsPro
   useEffect(() => {
     const fetchLatestStats = async () => {
       try {
-        const res = await fetch('https://horizon.stellar.org/ledgers?limit=1&order=desc');
+        const res = await fetch(`${getBaseUrl()}/ledgers?limit=1&order=desc`);
         const data = await res.json();
         const latest: Ledger = data._embedded.records[0];
 

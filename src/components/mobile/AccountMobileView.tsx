@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Transaction, Operation, Effect, shortenAddress, formatXLM, AccountLabel } from '@/lib/stellar';
+import { Transaction, Operation, Effect, shortenAddress, formatXLM, AccountLabel, getBaseUrl } from '@/lib/stellar';
 import { containers, colors, coreColors, tabs, badges } from '@/lib/design-system';
 import { QRCodeSVG } from 'qrcode.react';
 import { useFavorites } from '@/contexts/FavoritesContext';
@@ -316,7 +316,7 @@ export default function AccountMobileView({ account, transactions, operations: i
         try {
           // Get current price in XLM
           const res = await fetch(
-            `https://horizon.stellar.org/order_book?selling_asset_type=${b.asset_type}&selling_asset_code=${b.asset_code}&selling_asset_issuer=${b.asset_issuer}&buying_asset_type=native&limit=1`
+            `${getBaseUrl()}/order_book?selling_asset_type=${b.asset_type}&selling_asset_code=${b.asset_code}&selling_asset_issuer=${b.asset_issuer}&buying_asset_type=native&limit=1`
           );
           const data = await res.json();
 
@@ -328,7 +328,7 @@ export default function AccountMobileView({ account, transactions, operations: i
             const endTime = Date.now();
             const startTime = endTime - 86400000;
             const aggRes = await fetch(
-              `https://horizon.stellar.org/trade_aggregations?base_asset_type=${b.asset_type}&base_asset_code=${b.asset_code}&base_asset_issuer=${b.asset_issuer}&counter_asset_type=native&resolution=3600000&start_time=${startTime}&end_time=${endTime}&limit=24&order=asc`
+              `${getBaseUrl()}/trade_aggregations?base_asset_type=${b.asset_type}&base_asset_code=${b.asset_code}&base_asset_issuer=${b.asset_issuer}&counter_asset_type=native&resolution=3600000&start_time=${startTime}&end_time=${endTime}&limit=24&order=asc`
             );
             const aggData = await aggRes.json();
 
@@ -369,7 +369,7 @@ export default function AccountMobileView({ account, transactions, operations: i
     setLoadingMore(true);
     try {
       const res = await fetch(
-        `https://horizon.stellar.org/accounts/${account.id}/operations?limit=100&order=desc&cursor=${lastCursor}`
+        `${getBaseUrl()}/accounts/${account.id}/operations?limit=100&order=desc&cursor=${lastCursor}`
       );
       const data = await res.json();
       const newOps = data._embedded?.records || [];
@@ -436,7 +436,7 @@ export default function AccountMobileView({ account, transactions, operations: i
       const newEffects: Record<string, Effect[]> = {};
       await Promise.all(opsNeedingEffects.map(async (op) => {
         try {
-          const res = await fetch(`https://horizon.stellar.org/operations/${op.id}/effects`);
+          const res = await fetch(`${getBaseUrl()}/operations/${op.id}/effects`);
           const data = await res.json();
           if (data._embedded?.records) {
             newEffects[op.id] = data._embedded.records;
@@ -498,7 +498,7 @@ export default function AccountMobileView({ account, transactions, operations: i
 
         try {
           const res = await fetch(
-            `https://horizon.stellar.org/order_book?selling_asset_type=${asset.type}&selling_asset_code=${asset.code}&selling_asset_issuer=${asset.issuer}&buying_asset_type=native&limit=1`
+            `${getBaseUrl()}/order_book?selling_asset_type=${asset.type}&selling_asset_code=${asset.code}&selling_asset_issuer=${asset.issuer}&buying_asset_type=native&limit=1`
           );
           const data = await res.json();
 

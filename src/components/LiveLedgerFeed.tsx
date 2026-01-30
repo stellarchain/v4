@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
 import CompactLedgerRow from './CompactLedgerRow';
-import { Ledger } from '@/lib/stellar';
+import { Ledger, getBaseUrl } from '@/lib/stellar';
 
 interface LiveLedgerFeedProps {
   initialLedgers: Ledger[];
@@ -18,7 +18,7 @@ export default function LiveLedgerFeed({ initialLedgers, limit = 10 }: LiveLedge
 
   const fetchLedgers = useCallback(async () => {
     try {
-      const res = await fetch(`https://horizon.stellar.org/ledgers?limit=${limit}&order=desc`);
+      const res = await fetch(`${getBaseUrl()}/ledgers?limit=${limit}&order=desc`);
       const data = await res.json();
       const newLedgers: Ledger[] = data._embedded.records;
 

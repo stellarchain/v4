@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { gsap } from 'gsap';
 import Link from 'next/link';
-import { Ledger, timeAgo } from '@/lib/stellar';
+import { Ledger, timeAgo, getBaseUrl } from '@/lib/stellar';
 
 // Custom hook to detect mobile viewport
 function useIsMobile(breakpoint: number = 768) {
@@ -48,7 +48,7 @@ export default function LedgersPageClient({
   // Fetch latest ledgers for live updates
   const fetchLedgers = useCallback(async (isInitial = false) => {
     try {
-      const res = await fetch(`https://horizon.stellar.org/ledgers?limit=${limit}&order=desc`);
+      const res = await fetch(`${getBaseUrl()}/ledgers?limit=${limit}&order=desc`);
       const data = await res.json();
       const newLedgers: Ledger[] = data._embedded.records;
 
@@ -129,7 +129,7 @@ export default function LedgersPageClient({
       }
 
       const res = await fetch(
-        `https://horizon.stellar.org/ledgers?limit=${PAGE_SIZE}&order=desc&cursor=${oldestLedger.paging_token}`
+        `${getBaseUrl()}/ledgers?limit=${PAGE_SIZE}&order=desc&cursor=${oldestLedger.paging_token}`
       );
       const data = await res.json();
       const olderLedgers: Ledger[] = data._embedded.records;

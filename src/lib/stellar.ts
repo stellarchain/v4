@@ -1,12 +1,25 @@
 // Stellar Horizon API Service Layer
 import { xdr, Address, StrKey } from '@stellar/stellar-sdk';
 
-const HORIZON_MAINNET = 'https://horizon.stellar.org';
-const HORIZON_TESTNET = 'https://horizon-testnet.stellar.org';
+const HORIZON_URLS = {
+  mainnet: 'https://horizon.stellar.org',
+  testnet: 'https://horizon-testnet.stellar.org',
+  futurenet: 'https://horizon-futurenet.stellar.org',
+};
 
-export type NetworkType = 'mainnet' | 'testnet';
+export const NETWORK_COOKIE_NAME = 'stellarchain-network';
+
+export type NetworkType = 'mainnet' | 'testnet' | 'futurenet';
 
 let currentNetwork: NetworkType = 'mainnet';
+
+// Initialize from localStorage if available (client-side)
+if (typeof window !== 'undefined') {
+  const stored = localStorage.getItem(NETWORK_COOKIE_NAME) as NetworkType | null;
+  if (stored && HORIZON_URLS[stored]) {
+    currentNetwork = stored;
+  }
+}
 
 export function setNetwork(network: NetworkType) {
   currentNetwork = network;
@@ -16,8 +29,39 @@ export function getNetwork(): NetworkType {
   return currentNetwork;
 }
 
-function getBaseUrl(): string {
-  return currentNetwork === 'mainnet' ? HORIZON_MAINNET : HORIZON_TESTNET;
+// Get network from cookie (for server-side) - returns network or null if not set
+async function getNetworkFromCookie(): Promise<NetworkType | null> {
+  // Only try to read cookies on server-side
+  if (typeof window !== 'undefined') {
+    return null;
+  }
+
+  try {
+    // Dynamic import to avoid bundling next/headers in client code
+    const { cookies } = await import('next/headers');
+    const cookieStore = await cookies();
+    const networkCookie = cookieStore.get(NETWORK_COOKIE_NAME);
+    if (networkCookie && HORIZON_URLS[networkCookie.value as NetworkType]) {
+      return networkCookie.value as NetworkType;
+    }
+  } catch {
+    // cookies() throws when called outside of server context
+  }
+  return null;
+}
+
+// Get base URL - checks cookie first (server), then module state (client)
+export function getBaseUrl(): string {
+  return HORIZON_URLS[currentNetwork];
+}
+
+// Async version for server components - reads from cookie
+export async function getBaseUrlAsync(): Promise<string> {
+  const cookieNetwork = await getNetworkFromCookie();
+  if (cookieNetwork) {
+    return HORIZON_URLS[cookieNetwork];
+  }
+  return HORIZON_URLS[currentNetwork];
 }
 
 // Types
@@ -571,7 +615,8 @@ export async function getLedgers(
 }
 
 export async function getLedger(sequence: number): Promise<Ledger> {
-  return fetchJSON<Ledger>(`${getBaseUrl()}/ledgers/${sequence}`);
+  const baseUrl = await getBaseUrlAsync();
+  return fetchJSON<Ledger>(`${baseUrl}/ledgers/${sequence}`);
 }
 
 export async function getLedgerTransactions(
@@ -580,7 +625,8 @@ export async function getLedgerTransactions(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<Transaction>> {
-  let url = `${getBaseUrl()}/ledgers/${sequence}/transactions?limit=${limit}&order=${order}`;
+  const baseUrl = await getBaseUrlAsync();
+  let url = `${baseUrl}/ledgers/${sequence}/transactions?limit=${limit}&order=${order}`;
   if (cursor) {
     url += `&cursor=${cursor}`;
   }
@@ -625,7 +671,8 @@ export async function getLedgerOperations(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<Operation>> {
-  let url = `${getBaseUrl()}/ledgers/${sequence}/operations?limit=${limit}&order=${order}`;
+  const baseUrl = await getBaseUrlAsync();
+  let url = `${baseUrl}/ledgers/${sequence}/operations?limit=${limit}&order=${order}`;
   if (cursor) {
     url += `&cursor=${cursor}`;
   }
@@ -644,15 +691,17 @@ export async function getTransactions(
 }
 
 export async function getTransaction(hash: string): Promise<Transaction> {
-  return fetchJSON<Transaction>(`${getBaseUrl()}/transactions/${hash}`);
+  const baseUrl = await getBaseUrlAsync();
+  return fetchJSON<Transaction>(`${baseUrl}/transactions/${hash}`);
 }
 
 export async function getTransactionOperations(
   hash: string,
   limit: number = 10
 ): Promise<PaginatedResponse<Operation>> {
+  const baseUrl = await getBaseUrlAsync();
   return fetchJSON<PaginatedResponse<Operation>>(
-    `${getBaseUrl()}/transactions/${hash}/operations?limit=${limit}`
+    `${baseUrl}/transactions/${hash}/operations?limit=${limit}`
   );
 }
 
@@ -660,8 +709,9 @@ export async function getTransactionEffects(
   hash: string,
   limit: number = 10
 ): Promise<PaginatedResponse<Effect>> {
+  const baseUrl = await getBaseUrlAsync();
   return fetchJSON<PaginatedResponse<Effect>>(
-    `${getBaseUrl()}/transactions/${hash}/effects?limit=${limit}`
+    `${baseUrl}/transactions/${hash}/effects?limit=${limit}`
   );
 }
 
@@ -847,7 +897,8 @@ export async function getTransactionsWithDisplayInfo(
 
 // Account endpoints
 export async function getAccount(accountId: string): Promise<StellarAccount> {
-  return fetchJSON<StellarAccount>(`${getBaseUrl()}/accounts/${accountId}`);
+  const baseUrl = await getBaseUrlAsync();
+  return fetchJSON<StellarAccount>(`${baseUrl}/accounts/${accountId}`);
 }
 
 export async function getAccountTransactions(
@@ -856,7 +907,8 @@ export async function getAccountTransactions(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<Transaction>> {
-  let url = `${getBaseUrl()}/accounts/${accountId}/transactions?limit=${limit}&order=${order}`;
+  const baseUrl = await getBaseUrlAsync();
+  let url = `${baseUrl}/accounts/${accountId}/transactions?limit=${limit}&order=${order}`;
   if (cursor) url += `&cursor=${cursor}`;
   return fetchJSON<PaginatedResponse<Transaction>>(url);
 }
@@ -867,7 +919,8 @@ export async function getAccountOperations(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<Operation>> {
-  let url = `${getBaseUrl()}/accounts/${accountId}/operations?limit=${limit}&order=${order}`;
+  const baseUrl = await getBaseUrlAsync();
+  let url = `${baseUrl}/accounts/${accountId}/operations?limit=${limit}&order=${order}`;
   if (cursor) url += `&cursor=${cursor}`;
   return fetchJSON<PaginatedResponse<Operation>>(url);
 }
@@ -877,8 +930,9 @@ export async function getAccountPayments(
   limit: number = 10,
   order: 'asc' | 'desc' = 'desc'
 ): Promise<PaginatedResponse<Operation>> {
+  const baseUrl = await getBaseUrlAsync();
   return fetchJSON<PaginatedResponse<Operation>>(
-    `${getBaseUrl()}/accounts/${accountId}/payments?limit=${limit}&order=${order}`
+    `${baseUrl}/accounts/${accountId}/payments?limit=${limit}&order=${order}`
   );
 }
 
@@ -887,8 +941,9 @@ export async function getAccountEffects(
   limit: number = 10,
   order: 'asc' | 'desc' = 'desc'
 ): Promise<PaginatedResponse<Effect>> {
+  const baseUrl = await getBaseUrlAsync();
   return fetchJSON<PaginatedResponse<Effect>>(
-    `${getBaseUrl()}/accounts/${accountId}/effects?limit=${limit}&order=${order}`
+    `${baseUrl}/accounts/${accountId}/effects?limit=${limit}&order=${order}`
   );
 }
 

@@ -7,14 +7,29 @@ import type { SEP41TokenMetadata, SACDetectionResult } from './types/token';
 // RPC Configuration
 const SOROBAN_RPC_URLS = {
   mainnet: 'https://soroban-rpc.mainnet.stellar.gateway.fm',
-  testnet: 'https://soroban-rpc.testnet.stellar.gateway.fm',
+  testnet: 'https://soroban-testnet.stellar.org',
+  futurenet: 'https://rpc-futurenet.stellar.org',
+};
+
+const NETWORK_PASSPHRASES = {
+  mainnet: 'Public Global Stellar Network ; September 2015',
+  testnet: 'Test SDF Network ; September 2015',
+  futurenet: 'Test SDF Future Network ; October 2022',
 };
 
 const RPC_TIMEOUT_MS = 10000;
 
-type NetworkType = 'mainnet' | 'testnet';
+export type NetworkType = 'mainnet' | 'testnet' | 'futurenet';
 
 let currentNetwork: NetworkType = 'mainnet';
+
+// Initialize from localStorage if available (client-side)
+if (typeof window !== 'undefined') {
+  const stored = localStorage.getItem('stellarchain-network') as NetworkType | null;
+  if (stored && SOROBAN_RPC_URLS[stored]) {
+    currentNetwork = stored;
+  }
+}
 
 // Get the current network
 export function getNetwork(): NetworkType {
@@ -37,7 +52,7 @@ export function getSorobanServer(network?: NetworkType): rpc.Server {
 // Get network passphrase
 function getNetworkPassphrase(network?: NetworkType): string {
   const net = network || currentNetwork;
-  return net === 'mainnet' ? Networks.PUBLIC : Networks.TESTNET;
+  return NETWORK_PASSPHRASES[net];
 }
 
 // Check if RPC is healthy
@@ -317,5 +332,3 @@ export async function getTransactionResultMetaXdr(
   }
 }
 
-// Export types for use elsewhere
-export type { NetworkType };
