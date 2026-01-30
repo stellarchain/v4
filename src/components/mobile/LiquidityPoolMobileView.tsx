@@ -252,145 +252,143 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                 })()}
 
                 {activeTab === 'transactions' && (
-                    <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)]">
+                    <div className="space-y-2 mt-2">
                         {transactions.length === 0 ? (
-                            <div className="p-8 text-center text-[var(--text-muted)]">
-                                <svg className="w-10 h-10 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                </svg>
-                                <p className="text-sm">No transactions found</p>
+                            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
+                                No transactions found
                             </div>
                         ) : (
-                            <div className="divide-y divide-[var(--border-subtle)]">
-                                {transactions.map((tx) => (
-                                    <Link
-                                        key={tx.id}
-                                        href={`/transaction/${tx.hash}`}
-                                        className="flex items-center gap-3 p-3 active:bg-[var(--bg-tertiary)] transition-colors"
-                                    >
-                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${tx.successful ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'bg-[var(--error)]/10 text-[var(--error)]'
-                                            }`}>
-                                            {tx.successful ? (
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            ) : (
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-mono text-sm font-semibold text-[var(--text-primary)] truncate">
-                                                {shortenAddress(tx.hash, 8)}
+                            transactions.map((tx) => (
+                                <Link
+                                    key={tx.id}
+                                    href={`/transaction/${tx.hash}`}
+                                    className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${tx.successful ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'bg-[var(--error)]/10 text-[var(--error)]'}`}>
+                                                {tx.successful ? (
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                )}
                                             </div>
-                                            <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
-                                                {tx.operation_count} operation{tx.operation_count !== 1 ? 's' : ''}
-                                            </div>
-                                        </div>
-                                        <div className="text-right flex-shrink-0">
-                                            <div className="text-[11px] text-[var(--text-tertiary)]">
-                                                {timeAgo(tx.created_at)}
+                                            <div className="min-w-0">
+                                                <div className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                                                    {shortenAddress(tx.hash, 8)}
+                                                </div>
+                                                <div className="text-[11px] text-[var(--text-muted)]">
+                                                    {tx.operation_count} operation{tx.operation_count !== 1 ? 's' : ''}
+                                                </div>
                                             </div>
                                         </div>
-                                        <svg className="w-4 h-4 text-[var(--text-tertiary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </Link>
-                                ))}
-                            </div>
+                                        <div className="flex items-center gap-2 ml-3">
+                                            <span className="text-[11px] text-[var(--text-muted)]">{timeAgo(tx.created_at)}</span>
+                                            <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))
                         )}
                     </div>
                 )}
 
                 {activeTab === 'trades' && (
-                    <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)]">
+                    <div className="space-y-2 mt-2">
                         {trades.length === 0 ? (
-                            <div className="p-8 text-center text-[var(--text-muted)]">
-                                <svg className="w-10 h-10 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                </svg>
-                                <p className="text-sm">No trades found</p>
+                            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
+                                No trades found
                             </div>
                         ) : (
-                            <div className="divide-y divide-[var(--border-subtle)]">
-                                {trades.map((trade) => {
-                                    const baseAsset = trade.base_asset_type === 'native' ? 'XLM' : trade.base_asset_code || 'UNK';
-                                    const counterAsset = trade.counter_asset_type === 'native' ? 'XLM' : trade.counter_asset_code || 'UNK';
-                                    const tradeContent = (
-                                        <>
-                                            <div
-                                                className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                                                style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}
-                                            >
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                                </svg>
-                                            </div>
+                            trades.map((trade) => {
+                                const baseAsset = trade.base_asset_type === 'native' ? 'XLM' : trade.base_asset_code || 'UNK';
+                                const counterAsset = trade.counter_asset_type === 'native' ? 'XLM' : trade.counter_asset_code || 'UNK';
+                                const baseAmount = parseFloat(trade.base_amount);
+                                const counterAmount = parseFloat(trade.counter_amount);
+                                const priceValue = baseAmount > 0 ? counterAmount / baseAmount : 0;
+                                const account = trade.base_account || '';
+                                const tradeTime = new Date(trade.ledger_close_time);
+
+                                const TradeRow = trade.transaction_hash ? Link : 'div';
+                                const rowProps = trade.transaction_hash
+                                    ? { href: `/transaction/${trade.transaction_hash}` }
+                                    : {};
+
+                                return (
+                                    <TradeRow
+                                        key={trade.id}
+                                        {...rowProps as any}
+                                        className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors"
+                                    >
+                                        <div className="flex items-center justify-between">
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-1.5 flex-wrap">
-                                                    <span className="font-mono text-sm font-bold text-[var(--error)]">-{formatAmount(trade.base_amount)}</span>
-                                                    <span className="text-xs font-medium text-[var(--text-muted)]">{baseAsset}</span>
-                                                    <svg className="w-3.5 h-3.5 text-[var(--text-tertiary)] mx-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                <div className="flex items-center gap-1.5 text-sm mb-0.5">
+                                                    <span className="font-semibold text-[var(--text-primary)]">
+                                                        {baseAmount >= 1000 ? baseAmount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : baseAmount.toFixed(4)}
+                                                    </span>
+                                                    <span className="text-[var(--text-muted)] font-normal">{baseAsset}</span>
+                                                    <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                                                     </svg>
-                                                    <span className="font-mono text-sm font-bold text-[var(--success)]">+{formatAmount(trade.counter_amount)}</span>
-                                                    <span className="text-xs font-medium text-[var(--text-muted)]">{counterAsset}</span>
+                                                    <span className="font-semibold text-[var(--text-primary)]">
+                                                        {counterAmount >= 1000 ? counterAmount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : counterAmount.toFixed(4)}
+                                                    </span>
+                                                    <span className="text-[var(--text-muted)] font-normal">{counterAsset}</span>
+                                                </div>
+                                                <div className="text-[11px] text-[var(--text-muted)]">
+                                                    {tradeTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} {tradeTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                                    {account && (
+                                                        <>
+                                                            <span className="mx-1.5">·</span>
+                                                            <span className="font-mono">{shortenAddress(account, 4)}</span>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="text-right flex-shrink-0 flex items-center gap-2">
-                                                <div className="text-[11px] text-[var(--text-tertiary)]">
-                                                    {timeAgo(trade.ledger_close_time)}
+                                            <div className="flex items-center gap-2 ml-3">
+                                                <div className="text-right">
+                                                    <div className="text-sm font-semibold text-[var(--text-primary)]">
+                                                        @{priceValue >= 1 ? priceValue.toFixed(4) : priceValue.toFixed(7)}
+                                                    </div>
                                                 </div>
                                                 {trade.transaction_hash && (
-                                                    <svg className="w-4 h-4 text-[var(--text-tertiary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                                     </svg>
                                                 )}
                                             </div>
-                                        </>
-                                    );
-                                    return trade.transaction_hash ? (
-                                        <Link
-                                            key={trade.id}
-                                            href={`/transaction/${trade.transaction_hash}`}
-                                            className="p-3 flex items-center gap-3 active:bg-[var(--bg-tertiary)] cursor-pointer"
-                                        >
-                                            {tradeContent}
-                                        </Link>
-                                    ) : (
-                                        <div key={trade.id} className="p-3 flex items-center gap-3">
-                                            {tradeContent}
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                    </TradeRow>
+                                );
+                            })
                         )}
                     </div>
                 )}
 
                 {activeTab === 'effects' && (
-                    <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)]">
+                    <div className="space-y-2 mt-2">
                         {effects.length === 0 ? (
-                            <div className="p-8 text-center text-[var(--text-muted)]">
-                                <svg className="w-10 h-10 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                                <p className="text-sm">No effects found</p>
+                            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
+                                No effects found
                             </div>
                         ) : (
-                            <div className="divide-y divide-[var(--border-subtle)]">
-                                {effects.map((effect) => {
-                                    const isDeposit = effect.type.includes('deposit');
-                                    const isWithdraw = effect.type.includes('withdraw');
-                                    return (
-                                        <div
-                                            key={effect.id}
-                                            className="p-3"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isDeposit ? 'bg-[var(--success)]/10 text-[var(--success)]' : isWithdraw ? 'bg-[var(--error)]/10 text-[var(--error)]' : 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]'
-                                                    }`}>
+                            effects.map((effect) => {
+                                const isDeposit = effect.type.includes('deposit');
+                                const isWithdraw = effect.type.includes('withdraw');
+                                return (
+                                    <div
+                                        key={effect.id}
+                                        className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isDeposit ? 'bg-[var(--success)]/10 text-[var(--success)]' : isWithdraw ? 'bg-[var(--error)]/10 text-[var(--error)]' : 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]'}`}>
                                                     {isDeposit ? (
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -405,79 +403,73 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                                         </svg>
                                                     )}
                                                 </div>
-                                                <div className="flex-1 min-w-0">
+                                                <div className="min-w-0">
                                                     <div className="text-sm font-semibold text-[var(--text-primary)] capitalize">
                                                         {effect.type.replace(/_/g, ' ')}
+                                                        {effect.shares_received && (
+                                                            <span className="text-[var(--success)] ml-2">+{formatAmount(effect.shares_received)} shares</span>
+                                                        )}
+                                                        {effect.shares_redeemed && (
+                                                            <span className="text-[var(--error)] ml-2">-{formatAmount(effect.shares_redeemed)} shares</span>
+                                                        )}
                                                     </div>
-                                                    <Link
-                                                        href={`/account/${effect.account}`}
-                                                        className="font-mono text-[11px] text-[var(--text-tertiary)] hover:text-[var(--primary-blue)] mt-0.5 block"
-                                                    >
-                                                        {shortenAddress(effect.account, 6)}
-                                                    </Link>
-                                                    {effect.shares_received && (
-                                                        <div className="text-xs font-bold text-[var(--success)] mt-1">+{formatAmount(effect.shares_received)} shares</div>
-                                                    )}
-                                                    {effect.shares_redeemed && (
-                                                        <div className="text-xs font-bold text-[var(--error)] mt-1">-{formatAmount(effect.shares_redeemed)} shares</div>
-                                                    )}
-                                                </div>
-                                                <div className="text-right flex-shrink-0">
-                                                    <div className="text-[11px] text-[var(--text-tertiary)]">
+                                                    <div className="text-[11px] text-[var(--text-muted)]">
                                                         {timeAgo(effect.created_at)}
+                                                        <span className="mx-1.5">·</span>
+                                                        <Link
+                                                            href={`/account/${effect.account}`}
+                                                            className="font-mono hover:text-[var(--primary-blue)]"
+                                                        >
+                                                            {shortenAddress(effect.account, 4)}
+                                                        </Link>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                    </div>
+                                );
+                            })
                         )}
                     </div>
                 )}
 
                 {activeTab === 'operations' && (
-                    <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)]">
+                    <div className="space-y-2 mt-2">
                         {operations.length === 0 ? (
-                            <div className="p-8 text-center text-[var(--text-muted)]">
-                                <svg className="w-10 h-10 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                                <p className="text-sm">No operations found</p>
+                            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
+                                No operations found
                             </div>
                         ) : (
-                            <div className="divide-y divide-[var(--border-subtle)]">
-                                {operations.map((op) => (
-                                    <Link
-                                        key={op.id}
-                                        href={`/transaction/${op.transaction_hash}`}
-                                        className="flex items-center gap-3 p-3 active:bg-[var(--bg-tertiary)] transition-colors"
-                                    >
-                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${op.transaction_successful ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'bg-[var(--error)]/10 text-[var(--error)]'
-                                            }`}>
-                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                            </svg>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-sm font-semibold text-[var(--text-primary)] capitalize">
-                                                {op.type.replace(/_/g, ' ')}
+                            operations.map((op) => (
+                                <Link
+                                    key={op.id}
+                                    href={`/transaction/${op.transaction_hash}`}
+                                    className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${op.transaction_successful ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'bg-[var(--error)]/10 text-[var(--error)]'}`}>
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                </svg>
                                             </div>
-                                            <div className="font-mono text-[11px] text-[var(--text-tertiary)] truncate mt-0.5">
-                                                {shortenAddress(op.source_account, 6)}
-                                            </div>
-                                        </div>
-                                        <div className="text-right flex-shrink-0">
-                                            <div className="text-[11px] text-[var(--text-tertiary)]">
-                                                {timeAgo(op.created_at)}
+                                            <div className="min-w-0">
+                                                <div className="text-sm font-semibold text-[var(--text-primary)] capitalize">
+                                                    {op.type.replace(/_/g, ' ')}
+                                                </div>
+                                                <div className="text-[11px] text-[var(--text-muted)]">
+                                                    {timeAgo(op.created_at)}
+                                                    <span className="mx-1.5">·</span>
+                                                    <span className="font-mono">{shortenAddress(op.source_account, 4)}</span>
+                                                </div>
                                             </div>
                                         </div>
-                                        <svg className="w-4 h-4 text-[var(--text-tertiary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="w-4 h-4 text-[var(--text-muted)] ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                         </svg>
-                                    </Link>
-                                ))}
-                            </div>
+                                    </div>
+                                </Link>
+                            ))
                         )}
                     </div>
                 )}
