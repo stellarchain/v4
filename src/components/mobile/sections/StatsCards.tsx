@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { gsap } from 'gsap';
 import { Ledger, getBaseUrl } from '@/lib/stellar';
+import { useNetwork } from '@/contexts/NetworkContext';
 
 interface StatsCardsProps {
   stats: {
@@ -23,6 +24,8 @@ export default function StatsCards({ stats, xlmVolume, xlmPrice }: StatsCardsPro
   const [liveStats, setLiveStats] = useState(stats);
   const ledgerCountRef = useRef<HTMLDivElement>(null);
   const tpsRef = useRef<HTMLDivElement>(null);
+  const { network } = useNetwork();
+  const isMainnet = network === 'mainnet';
 
   useEffect(() => {
     const fetchLatestStats = async () => {
@@ -84,74 +87,111 @@ export default function StatsCards({ stats, xlmVolume, xlmPrice }: StatsCardsPro
     <div className="px-3 mt-2 relative z-20">
       <div className="bg-[var(--bg-secondary)]/90 backdrop-blur-xl rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border-t border-white/10 border-x border-b border-white/5 ring-1 ring-white/5">
         <div className="grid grid-cols-2 gap-3">
-          {/* Market Cap */}
-          <Link href="/markets" className="bg-[var(--bg-tertiary)] p-3 rounded-xl hover:bg-[var(--bg-hover)] transition-colors">
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Market Cap</span>
-              <span className="text-[11px] font-bold text-[var(--success)]">+2.4%</span>
-            </div>
-            <div className="flex items-end justify-between">
-              <span className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{formattedMarketCap}</span>
-              <svg className="w-16 h-8" viewBox="0 0 100 40">
-                <path
-                  d="M0,35 L10,32 L20,38 L30,25 L40,30 L50,15 L60,20 L70,10 L80,18 L90,5 L100,12"
-                  fill="none"
-                  stroke="var(--success)"
-                  strokeWidth="2"
-                />
-              </svg>
-            </div>
-          </Link>
+          {/* Market Cap - Mainnet only */}
+          {isMainnet ? (
+            <Link href="/markets" className="bg-[var(--bg-tertiary)] p-3 rounded-xl hover:bg-[var(--bg-hover)] transition-colors">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Market Cap</span>
+                <span className="text-[11px] font-bold text-[var(--success)]">+2.4%</span>
+              </div>
+              <div className="flex items-end justify-between">
+                <span className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{formattedMarketCap}</span>
+                <svg className="w-16 h-8" viewBox="0 0 100 40">
+                  <path
+                    d="M0,35 L10,32 L20,38 L30,25 L40,30 L50,15 L60,20 L70,10 L80,18 L90,5 L100,12"
+                    fill="none"
+                    stroke="var(--success)"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </div>
+            </Link>
+          ) : (
+            <Link href="/transactions" className="bg-[var(--bg-tertiary)] p-3 rounded-xl hover:bg-[var(--bg-hover)] transition-colors">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">TX Count</span>
+                <span className="text-[11px] font-bold text-[var(--success)]">{tps} TPS</span>
+              </div>
+              <div className="flex items-end justify-between">
+                <span ref={tpsRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>
+                  {liveStats.latest_ledger.successful_transaction_count.toLocaleString()}
+                </span>
+                <svg className="w-16 h-8" viewBox="0 0 100 40">
+                  <path
+                    d="M0,30 L20,28 L40,32 L60,15 L80,12 L100,5"
+                    fill="none"
+                    stroke="var(--success)"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </div>
+            </Link>
+          )}
 
-          {/* Volume 24h */}
-          <Link href="/markets" className="bg-[var(--bg-tertiary)] p-3 rounded-xl hover:bg-[var(--bg-hover)] transition-colors">
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Vol (24h)</span>
-              <span className="text-[11px] font-bold text-[var(--error)]">-0.8%</span>
-            </div>
-            <div className="flex items-end justify-between">
-              <span className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{formattedVolume}</span>
-              <svg className="w-16 h-8" viewBox="0 0 100 40">
-                <path
-                  d="M0,10 L10,15 L20,12 L30,25 L40,20 L50,35 L60,30 L70,38 L80,32 L90,36 L100,34"
-                  fill="none"
-                  stroke="var(--error)"
-                  strokeWidth="2"
-                />
-              </svg>
-            </div>
-          </Link>
+          {/* Volume 24h - Mainnet only */}
+          {isMainnet ? (
+            <Link href="/markets" className="bg-[var(--bg-tertiary)] p-3 rounded-xl hover:bg-[var(--bg-hover)] transition-colors">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Vol (24h)</span>
+                <span className="text-[11px] font-bold text-[var(--error)]">-0.8%</span>
+              </div>
+              <div className="flex items-end justify-between">
+                <span className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{formattedVolume}</span>
+                <svg className="w-16 h-8" viewBox="0 0 100 40">
+                  <path
+                    d="M0,10 L10,15 L20,12 L30,25 L40,20 L50,35 L60,30 L70,38 L80,32 L90,36 L100,34"
+                    fill="none"
+                    stroke="var(--error)"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </div>
+            </Link>
+          ) : (
+            <Link href={`/ledger/${liveStats.ledger_count}`} className="bg-[var(--bg-tertiary)] p-3 rounded-xl flex flex-col justify-between hover:bg-[var(--bg-hover)] transition-colors">
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Ledger</span>
+              </div>
+              <div className="flex items-baseline space-x-1 mt-2">
+                <span ref={ledgerCountRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{liveStats.ledger_count.toLocaleString()}</span>
+              </div>
+            </Link>
+          )}
 
-          {/* TX Count */}
-          <Link href="/transactions" className="bg-[var(--bg-tertiary)] p-3 rounded-xl hover:bg-[var(--bg-hover)] transition-colors">
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">TX Count</span>
-              <span className="text-[11px] font-bold text-[var(--success)]">{tps} TPS</span>
-            </div>
-            <div className="flex items-end justify-between">
-              <span ref={tpsRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>
-                {liveStats.latest_ledger.successful_transaction_count.toLocaleString()}
-              </span>
-              <svg className="w-16 h-8" viewBox="0 0 100 40">
-                <path
-                  d="M0,30 L20,28 L40,32 L60,15 L80,12 L100,5"
-                  fill="none"
-                  stroke="var(--success)"
-                  strokeWidth="2"
-                />
-              </svg>
-            </div>
-          </Link>
+          {/* TX Count - Mainnet only (testnet shows these in first row) */}
+          {isMainnet && (
+            <Link href="/transactions" className="bg-[var(--bg-tertiary)] p-3 rounded-xl hover:bg-[var(--bg-hover)] transition-colors">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">TX Count</span>
+                <span className="text-[11px] font-bold text-[var(--success)]">{tps} TPS</span>
+              </div>
+              <div className="flex items-end justify-between">
+                <span ref={tpsRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>
+                  {liveStats.latest_ledger.successful_transaction_count.toLocaleString()}
+                </span>
+                <svg className="w-16 h-8" viewBox="0 0 100 40">
+                  <path
+                    d="M0,30 L20,28 L40,32 L60,15 L80,12 L100,5"
+                    fill="none"
+                    stroke="var(--success)"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </div>
+            </Link>
+          )}
 
-          {/* Ledger */}
-          <Link href={`/ledger/${liveStats.ledger_count}`} className="bg-[var(--bg-tertiary)] p-3 rounded-xl flex flex-col justify-between hover:bg-[var(--bg-hover)] transition-colors">
-            <div className="flex justify-between items-center">
-              <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Ledger</span>
-            </div>
-            <div className="flex items-baseline space-x-1 mt-2">
-              <span ref={ledgerCountRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{liveStats.ledger_count.toLocaleString()}</span>
-            </div>
-          </Link>
+          {/* Ledger - Mainnet only (testnet shows this in first row) */}
+          {isMainnet && (
+            <Link href={`/ledger/${liveStats.ledger_count}`} className="bg-[var(--bg-tertiary)] p-3 rounded-xl flex flex-col justify-between hover:bg-[var(--bg-hover)] transition-colors">
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Ledger</span>
+              </div>
+              <div className="flex items-baseline space-x-1 mt-2">
+                <span ref={ledgerCountRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{liveStats.ledger_count.toLocaleString()}</span>
+              </div>
+            </Link>
+          )}
         </div>
       </div>
     </div>
