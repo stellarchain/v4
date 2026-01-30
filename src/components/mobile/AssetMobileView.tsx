@@ -1119,14 +1119,13 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
               /* Trade History Skeleton */
               <div className="space-y-2 animate-pulse">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <div key={i} className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between">
+                  <div key={i} className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="h-3.5 w-32 bg-[var(--border-default)] rounded mb-1.5" />
                       <div className="h-3 w-24 bg-[var(--border-default)] rounded" />
                     </div>
                     <div className="text-right ml-3">
-                      <div className="h-3.5 w-20 bg-[var(--border-default)] rounded mb-1.5" />
-                      <div className="h-3 w-16 bg-[var(--border-default)] rounded ml-auto" />
+                      <div className="h-3.5 w-20 bg-[var(--border-default)] rounded" />
                     </div>
                   </div>
                 ))}
@@ -1155,25 +1154,25 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                       key={trade.id}
                       onClick={() => handleTradeClick(trade)}
                       disabled={isNavigating}
-                      className="w-full bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between hover:bg-[var(--bg-tertiary)] transition-colors active:bg-[var(--bg-primary)] disabled:opacity-50"
+                      className="w-full bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between hover:bg-[var(--bg-tertiary)] transition-colors active:bg-[var(--bg-primary)] disabled:opacity-50"
                     >
                       <div className="flex-1 min-w-0 text-left">
-                        <div className="flex items-center gap-1.5 text-[13px] mb-0.5">
+                        <div className="flex items-center gap-1.5 text-sm mb-0.5">
                           <span className="font-semibold text-[var(--text-primary)]">
                             {displayBaseAmount >= 1000 ? displayBaseAmount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : displayBaseAmount.toFixed(4)}
                           </span>
-                          <span className="text-[var(--text-muted)]">{displayBaseCode}</span>
+                          <span className="text-[var(--text-muted)] font-normal">{displayBaseCode}</span>
                           <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                           </svg>
                           <span className="font-semibold text-[var(--text-primary)]">
                             {displayCounterAmount >= 1000 ? displayCounterAmount.toLocaleString(undefined, { maximumFractionDigits: 2 }) : displayCounterAmount.toFixed(4)}
                           </span>
-                          <span className="text-[var(--text-muted)]">{displayCounterCode}</span>
+                          <span className="text-[var(--text-muted)] font-normal">{displayCounterCode}</span>
                         </div>
                         <div className="text-[11px] text-[var(--text-muted)]">
                           {tradeTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} {tradeTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                          <span className="mx-1.5">•</span>
+                          <span className="mx-1.5">·</span>
                           <span
                             onClick={(e) => { e.stopPropagation(); router.push(`/account/${account}`); }}
                             className="font-mono hover:text-[var(--primary-blue)]"
@@ -1208,12 +1207,12 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
                 {/* Loading more indicator */}
                 {loadingMoreTrades && (
-                  <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-center gap-2">
+                  <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-center gap-2">
                     <svg className="w-4 h-4 animate-spin text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    <span className="text-[13px] text-[var(--text-muted)]">Loading more...</span>
+                    <span className="text-sm text-[var(--text-muted)]">Loading more...</span>
                   </div>
                 )}
 
@@ -1225,7 +1224,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 )}
               </>
             ) : (
-              <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-[13px]">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
                 No recent trades
               </div>
             )}
@@ -1239,7 +1238,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
               /* Markets Skeleton */
               <div className="space-y-2 animate-pulse">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between">
+                  <div key={i} className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="h-3.5 w-28 bg-[var(--border-default)] rounded mb-1.5" />
                       <div className="h-3 w-20 bg-[var(--border-default)] rounded" />
@@ -1313,7 +1312,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 })}
               </>
             ) : (
-              <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-[13px]">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
                 No active trading pairs found
               </div>
             )}
@@ -1327,7 +1326,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
               /* Holders Skeleton */
               <div className="space-y-2 animate-pulse">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between">
+                  <div key={i} className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="w-8 h-8 bg-[var(--border-default)] rounded-full" />
                       <div className="h-3.5 w-28 bg-[var(--border-default)] rounded" />
@@ -1402,7 +1401,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 )}
               </>
             ) : (
-              <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-[13px]">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
                 No holders found
               </div>
             )}
