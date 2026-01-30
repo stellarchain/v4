@@ -21,8 +21,11 @@ interface MobileHomePageProps {
   xlmPrice: number;
 }
 
+type FilterType = 'payments' | 'contracts' | 'all';
+
 export default function MobileHomePage({ stats, initialTransactions, xlmVolume, xlmPrice }: MobileHomePageProps) {
   const [liveStats, setLiveStats] = useState(stats);
+  const [txFilter, setTxFilter] = useState<FilterType>('payments');
   const ledgerCountRef = useRef<HTMLDivElement>(null);
   const tpsRef = useRef<HTMLDivElement>(null);
   const { network } = useNetwork();
@@ -210,21 +213,29 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
         {/* Section Header */}
         <div className="flex items-center justify-between px-1 mb-3">
           <div className="flex items-center space-x-2">
-            <h2 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">Live Transactions</h2>
+            <h2 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">Live</h2>
             <span className="bg-[var(--success)]/10 text-[var(--success)] text-[11px] px-1.5 py-0.5 rounded font-bold">REALTIME</span>
           </div>
-          <Link
-            href="/transactions"
-            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-          </Link>
+          {/* Filter Pills */}
+          <div className="flex items-center gap-1 bg-[var(--bg-secondary)] rounded-lg p-0.5 border border-[var(--border-subtle)]">
+            {(['payments', 'contracts', 'all'] as FilterType[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setTxFilter(f)}
+                className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wide rounded-md transition-colors ${
+                  txFilter === f
+                    ? 'bg-[var(--primary-blue)] text-white'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {f === 'payments' ? 'Pay' : f === 'contracts' ? 'SC' : 'All'}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Transaction Cards */}
-        <LiveTransactionFeed initialTransactions={initialTransactions} limit={30} filter="payments" />
+        <LiveTransactionFeed initialTransactions={initialTransactions} limit={30} filter={txFilter} />
 
         {/* Load More */}
         <div className="mt-3 text-center">
