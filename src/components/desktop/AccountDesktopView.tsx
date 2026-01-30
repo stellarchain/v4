@@ -139,7 +139,8 @@ export default function AccountDesktopView({ account, transactions, operations, 
       const symParam = parameters.find(p => p.type === 'Sym');
       if (!symParam) return 'Contract Call';
       const decoded = atob(symParam.value);
-      return decoded.slice(5).replace(/\0/g, '') || 'Contract Call';
+      // Filter out non-printable characters and extract clean function name
+      return decoded.replace(/[^\x20-\x7E]/g, '').trim() || 'Contract Call';
     } catch {
       return 'Contract Call';
     }

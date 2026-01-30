@@ -69,7 +69,8 @@ const decodeContractFunctionName = (op: Operation): string => {
     if (!symParam) return 'Contract Call';
 
     const decoded = atob(symParam.value);
-    const functionName = decoded.slice(5).replace(/\0/g, '');
+    // Filter out non-printable characters and extract clean function name
+    const functionName = decoded.replace(/[^\x20-\x7E]/g, '').trim();
     return functionName || 'Contract Call';
   } catch {
     return 'Contract Call';

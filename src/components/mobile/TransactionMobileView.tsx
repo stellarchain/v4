@@ -67,7 +67,7 @@ export default function TransactionMobileView({ transaction, operations, effects
   const contractOp = operations.find(op => op.type === 'invoke_host_function');
   const isContractCall = !!contractOp;
 
-  const [activeTab, setActiveTab] = useState<'operations' | 'effects' | 'details' | 'trace' | 'resources' | null>('operations');
+  const [activeTab, setActiveTab] = useState<'operations' | 'effects' | 'details' | 'trace' | null>('operations');
   const [showRecipients, setShowRecipients] = useState(false);
   const [isTraceExpanded, setIsTraceExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -112,7 +112,7 @@ export default function TransactionMobileView({ transaction, operations, effects
 
   // Decode XDR when on Resources tab for contract transactions
   useEffect(() => {
-    if (!isContractCall || activeTab !== 'resources' || isDecodingXdr) {
+    if (!isContractCall || activeTab !== 'details' || isDecodingXdr) {
       return;
     }
 
@@ -132,7 +132,7 @@ export default function TransactionMobileView({ transaction, operations, effects
 
   // Fetch Soroban RPC XDR if Horizon data is missing trace details
   useEffect(() => {
-    if (!isContractCall || activeTab !== 'resources' || isDecodingXdr || xdrFetchAttempted || fetchedXdr) {
+    if (!isContractCall || activeTab !== 'details' || isDecodingXdr || xdrFetchAttempted || fetchedXdr) {
       return;
     }
 
@@ -1272,7 +1272,6 @@ export default function TransactionMobileView({ transaction, operations, effects
               { id: 'operations', label: 'Operations', count: operationFilter === 'all' ? transaction.operation_count : filteredOperations.length },
               { id: 'effects', label: 'Effects', count: effects.length > 0 ? effects.length : undefined },
               ...(isContractCall ? [{ id: 'trace', label: 'Trace' }] : []),
-              ...(isContractCall ? [{ id: 'resources', label: 'Resources' }] : []),
               { id: 'details', label: 'Details' },
             ];
 
@@ -1305,7 +1304,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                     >
                       {tab.label}
                       {tab.count !== undefined && (
-                        <span className="text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center bg-[var(--primary-blue)] text-white">
+                        <span className="text-[10px] px-1.5 h-[18px] rounded-full flex items-center justify-center bg-[var(--primary-blue)] text-white font-bold min-w-[18px]">
                           {tab.count}
                         </span>
                       )}
@@ -1753,6 +1752,202 @@ export default function TransactionMobileView({ transaction, operations, effects
           {/* DETAILS TAB */}
           {activeTab === 'details' && (
             <div className="space-y-3">
+              {/* Contract Resources (for contract transactions only) */}
+              {isContractCall && (
+                <>
+                  {/* Contract Execution */}
+                  <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+                    <div className="px-4 py-3 bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)]">
+                      <h3 className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">Contract Execution</h3>
+                    </div>
+                    <div className="divide-y divide-[var(--border-subtle)]">
+                      {[
+                        { label: 'Contract Address', value: contractAddress || 'N/A', isContract: true },
+                        { label: 'Function Called', value: contractFunctionName || 'Unknown' },
+                        { label: 'Function Type', value: contractFunctionType !== 'unknown' ? contractFunctionType : 'N/A' },
+                      ].map((item, i) => (
+                        <div key={i} className="flex justify-between items-center px-4 py-3">
+                          <span className="text-xs text-[var(--text-tertiary)] font-medium">{item.label}</span>
+                          {item.isContract && contractAddress ? (
+                            <Link href={`/contract/${contractAddress}`} className="text-xs font-mono font-bold hover:opacity-80" style={{ color: primaryColor }}>
+                              {shortenAddress(contractAddress, 6)}
+                            </Link>
+                          ) : (
+                            <span className="text-xs font-mono font-bold text-[var(--text-secondary)] capitalize">{item.value}</span>
+                          )}
+                        </div>
+                      ))}
+                      {/* Signatures in Contract Execution */}
+                      {transaction.signatures.length > 0 && transaction.signatures.map((sig, idx) => (
+                        <div key={idx} className="flex justify-between items-center px-4 py-3">
+                          <span className="text-xs text-[var(--text-tertiary)] font-medium">Signature {transaction.signatures.length > 1 ? `${idx + 1}` : ''}</span>
+                          <button
+                            onClick={(e) => {
+                              navigator.clipboard.writeText(sig);
+                              const btn = e.currentTarget;
+                              const original = btn.textContent;
+                              btn.textContent = 'Copied!';
+                              btn.classList.add('text-[var(--success)]');
+                              setTimeout(() => {
+                                btn.textContent = original;
+                                btn.classList.remove('text-[var(--success)]');
+                              }, 1500);
+                            }}
+                            className="text-xs font-mono font-bold text-[var(--text-secondary)] hover:opacity-70 transition-all cursor-pointer"
+                            title="Click to copy"
+                          >
+                            {sig.slice(0, 8)}...{sig.slice(-6)}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Transaction Resources & Metrics */}
+                  <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+                    <div className="px-4 py-3 bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)]">
+                      <h3 className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">Transaction Resources</h3>
+                    </div>
+
+                    <div className="divide-y divide-[var(--border-subtle)]">
+                      {/* Transaction Overview */}
+                      <div className="p-4">
+                        <div className="grid grid-cols-4 gap-2">
+                          {[
+                            { label: 'Ledger', value: transaction.ledger.toLocaleString() },
+                            { label: 'Ops', value: transaction.operation_count.toString() },
+                            { label: 'Effects', value: effects.length.toString() },
+                            { label: 'Sigs', value: transaction.signatures.length.toString() },
+                          ].map((item, i) => (
+                            <div key={i} className="bg-[var(--bg-tertiary)] rounded-lg p-2 border border-[var(--border-subtle)] text-center">
+                              <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">{item.label}</div>
+                              <div className="text-xs font-bold text-[var(--text-secondary)] font-mono mt-0.5">{item.value}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Fees */}
+                      <div className="p-4">
+                        <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-bold tracking-wider mb-3">Fees</div>
+                        <div className="space-y-2">
+                          {[
+                            { label: 'Fee Charged', value: `${(parseInt(transaction.fee_charged) / 10000000).toFixed(7)} XLM` },
+                            { label: 'Max Fee', value: `${(parseInt(transaction.max_fee) / 10000000).toFixed(7)} XLM` },
+                            { label: 'Base Fee', value: `${(100 / 10000000).toFixed(7)} XLM` },
+                          ].map((item, i) => (
+                            <div key={i} className="flex justify-between items-center text-xs">
+                              <span className="text-[var(--text-tertiary)]">{item.label}</span>
+                              <span className="font-mono font-semibold text-[var(--text-secondary)]">{item.value}</span>
+                            </div>
+                          ))}
+                          {/* Detailed fee breakdown */}
+                          {decodedMeta && decodedMeta.success && decodedMeta.metrics && (
+                            (decodedMeta.metrics.totalRefundableResourceFeeCharged || decodedMeta.metrics.totalNonRefundableResourceFeeCharged || decodedMeta.metrics.rentFeeCharged) && (
+                              <div className="pt-2 mt-2 border-t border-[var(--border-subtle)] space-y-2">
+                                {decodedMeta.metrics.totalRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) > 0 && (
+                                  <div className="flex justify-between items-center text-xs">
+                                    <span className="text-[var(--text-muted)]">└ Refundable</span>
+                                    <span className="font-mono text-[var(--text-secondary)]">{(parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM</span>
+                                  </div>
+                                )}
+                                {decodedMeta.metrics.totalNonRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) > 0 && (
+                                  <div className="flex justify-between items-center text-xs">
+                                    <span className="text-[var(--text-muted)]">└ Non-Refundable</span>
+                                    <span className="font-mono text-[var(--text-secondary)]">{(parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM</span>
+                                  </div>
+                                )}
+                                {decodedMeta.metrics.rentFeeCharged && parseInt(decodedMeta.metrics.rentFeeCharged) > 0 && (
+                                  <div className="flex justify-between items-center text-xs">
+                                    <span className="text-[var(--text-muted)]">└ Rent</span>
+                                    <span className="font-mono text-[var(--text-secondary)]">{(parseInt(decodedMeta.metrics.rentFeeCharged) / 10000000).toFixed(7)} XLM</span>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Contract Resources */}
+                      {(envelopeMetrics || (decodedMeta && decodedMeta.success)) && (
+                        <div className="p-4">
+                          <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-bold tracking-wider mb-3">Contract Resources</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                              <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">Instructions</div>
+                              <div className="text-xs font-bold font-mono text-[var(--text-secondary)] mt-0.5">
+                                {envelopeMetrics?.cpuInsns ? parseInt(envelopeMetrics.cpuInsns).toLocaleString() :
+                                  decodedMeta?.metrics?.cpuInsns ? parseInt(decodedMeta.metrics.cpuInsns).toLocaleString() : '—'}
+                              </div>
+                            </div>
+                            <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                              <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">Read Bytes</div>
+                              <div className="text-xs font-bold font-mono text-[var(--text-secondary)] mt-0.5">
+                                {envelopeMetrics?.readBytes ? parseInt(envelopeMetrics.readBytes).toLocaleString() :
+                                  decodedMeta?.metrics?.txByteRead ? decodedMeta.metrics.txByteRead.toLocaleString() : '—'}
+                              </div>
+                            </div>
+                            <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                              <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">Write Bytes</div>
+                              <div className="text-xs font-bold font-mono text-[var(--text-secondary)] mt-0.5">
+                                {envelopeMetrics?.writeBytes ? parseInt(envelopeMetrics.writeBytes).toLocaleString() :
+                                  decodedMeta?.metrics?.txByteWrite ? decodedMeta.metrics.txByteWrite.toLocaleString() : '—'}
+                              </div>
+                            </div>
+                            <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                              <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">Ledger Entries</div>
+                              <div className="text-xs font-bold font-mono text-[var(--text-secondary)] mt-0.5">
+                                {envelopeMetrics ? (
+                                  <>{envelopeMetrics.readEntries || 0}R / {envelopeMetrics.writeEntries || 0}W</>
+                                ) : decodedMeta?.stateChanges ? (
+                                  <>{decodedMeta.stateChanges.filter(c => c.type === 'updated' || c.type === 'removed').length}R / {decodedMeta.stateChanges.length}W</>
+                                ) : '—'}
+                              </div>
+                            </div>
+                          </div>
+                          {decodedMeta && decodedMeta.success && decodedMeta.events && decodedMeta.events.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
+                              <span className="text-[var(--text-tertiary)]">Events Emitted</span>
+                              <span className="font-mono font-semibold text-[var(--text-secondary)]">{decodedMeta.events.length}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Transaction Data */}
+                      <div className="p-4">
+                        <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-bold tracking-wider mb-3">Transaction Data</div>
+                        <div className="space-y-2">
+                          {[
+                            { label: 'Envelope XDR', value: Math.ceil(transaction.envelope_xdr.length * 3 / 4) },
+                            { label: 'Result XDR', value: Math.ceil(transaction.result_xdr.length * 3 / 4) },
+                            ...(transaction.result_meta_xdr ? [{ label: 'Result Meta', value: Math.ceil(transaction.result_meta_xdr.length * 3 / 4) }] : []),
+                            ...(transaction.fee_meta_xdr ? [{ label: 'Fee Meta', value: Math.ceil(transaction.fee_meta_xdr.length * 3 / 4) }] : []),
+                          ].map((item, i) => (
+                            <div key={i} className="flex justify-between items-center text-xs">
+                              <span className="text-[var(--text-tertiary)]">{item.label}</span>
+                              <span className="font-mono font-semibold text-[var(--text-secondary)]">{item.value.toLocaleString()} bytes</span>
+                            </div>
+                          ))}
+                          <div className="pt-2 mt-2 border-t border-[var(--border-subtle)] flex justify-between items-center text-xs">
+                            <span className="text-[var(--text-secondary)] font-medium">Total Size</span>
+                            <span className="font-mono font-bold text-[var(--text-primary)]">
+                              {(
+                                Math.ceil(transaction.envelope_xdr.length * 3 / 4) +
+                                Math.ceil(transaction.result_xdr.length * 3 / 4) +
+                                (transaction.result_meta_xdr ? Math.ceil(transaction.result_meta_xdr.length * 3 / 4) : 0) +
+                                (transaction.fee_meta_xdr ? Math.ceil(transaction.fee_meta_xdr.length * 3 / 4) : 0)
+                              ).toLocaleString()} bytes
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
               <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
                 {[
                   { label: 'Transaction Size', value: `${Math.ceil(transaction.envelope_xdr.length * 3 / 4).toLocaleString()} bytes` },
@@ -1836,202 +2031,6 @@ export default function TransactionMobileView({ transaction, operations, effects
                 </div>
                 <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)] max-h-32 overflow-y-auto">
                   <p className="font-mono text-[10px] text-[var(--text-secondary)] break-all leading-relaxed">{transaction.result_xdr}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* RESOURCES TAB (Contract transactions only) */}
-          {activeTab === 'resources' && isContractCall && (
-            <div className="space-y-4">
-              {/* Contract Execution */}
-              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
-                <div className="px-4 py-3 bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)]">
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">Contract Execution</h3>
-                </div>
-                <div className="divide-y divide-[var(--border-subtle)]">
-                  {[
-                    { label: 'Contract Address', value: contractAddress || 'N/A', isContract: true },
-                    { label: 'Function Called', value: contractFunctionName || 'Unknown' },
-                    { label: 'Function Type', value: contractFunctionType !== 'unknown' ? contractFunctionType : 'N/A' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex justify-between items-center px-4 py-3">
-                      <span className="text-xs text-[var(--text-tertiary)] font-medium">{item.label}</span>
-                      {item.isContract && contractAddress ? (
-                        <Link href={`/contract/${contractAddress}`} className="text-xs font-mono font-bold hover:opacity-80" style={{ color: primaryColor }}>
-                          {shortenAddress(contractAddress, 6)}
-                        </Link>
-                      ) : (
-                        <span className="text-xs font-mono font-bold text-[var(--text-secondary)] capitalize">{item.value}</span>
-                      )}
-                    </div>
-                  ))}
-                  {/* Signatures */}
-                  {transaction.signatures.length > 0 && transaction.signatures.map((sig, idx) => (
-                    <div key={idx} className="flex justify-between items-center px-4 py-3">
-                      <span className="text-xs text-[var(--text-tertiary)] font-medium">Signature {transaction.signatures.length > 1 ? `${idx + 1}` : ''}</span>
-                      <button
-                        onClick={(e) => {
-                          navigator.clipboard.writeText(sig);
-                          const btn = e.currentTarget;
-                          const original = btn.textContent;
-                          btn.textContent = 'Copied!';
-                          btn.classList.add('text-[var(--success)]');
-                          setTimeout(() => {
-                            btn.textContent = original;
-                            btn.classList.remove('text-[var(--success)]');
-                          }, 1500);
-                        }}
-                        className="text-xs font-mono font-bold text-[var(--text-secondary)] hover:opacity-70 transition-all cursor-pointer"
-                        title="Click to copy"
-                      >
-                        {sig.slice(0, 8)}...{sig.slice(-6)}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Transaction Resources & Metrics - Combined Section */}
-              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden mb-5">
-                <div className="px-4 py-3 bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)]">
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">Transaction Resources</h3>
-                </div>
-
-                <div className="divide-y divide-[var(--border-subtle)]">
-                  {/* Transaction Overview */}
-                  <div className="p-4">
-                    <div className="grid grid-cols-4 gap-2">
-                      {[
-                        { label: 'Ledger', value: transaction.ledger.toLocaleString() },
-                        { label: 'Ops', value: transaction.operation_count.toString() },
-                        { label: 'Effects', value: effects.length.toString() },
-                        { label: 'Sigs', value: transaction.signatures.length.toString() },
-                      ].map((item, i) => (
-                        <div key={i} className="bg-[var(--bg-tertiary)] rounded-lg p-2 border border-[var(--border-subtle)] text-center">
-                          <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">{item.label}</div>
-                          <div className="text-xs font-bold text-[var(--text-secondary)] font-mono mt-0.5">{item.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Fees */}
-                  <div className="p-4">
-                    <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-bold tracking-wider mb-3">Fees</div>
-                    <div className="space-y-2">
-                      {[
-                        { label: 'Fee Charged', value: `${(parseInt(transaction.fee_charged) / 10000000).toFixed(7)} XLM` },
-                        { label: 'Max Fee', value: `${(parseInt(transaction.max_fee) / 10000000).toFixed(7)} XLM` },
-                        { label: 'Base Fee', value: `${(100 / 10000000).toFixed(7)} XLM` },
-                      ].map((item, i) => (
-                        <div key={i} className="flex justify-between items-center text-xs">
-                          <span className="text-[var(--text-tertiary)]">{item.label}</span>
-                          <span className="font-mono font-semibold text-[var(--text-secondary)]">{item.value}</span>
-                        </div>
-                      ))}
-                      {/* Detailed fee breakdown */}
-                      {decodedMeta && decodedMeta.success && decodedMeta.metrics && (
-                        (decodedMeta.metrics.totalRefundableResourceFeeCharged || decodedMeta.metrics.totalNonRefundableResourceFeeCharged || decodedMeta.metrics.rentFeeCharged) && (
-                          <div className="pt-2 mt-2 border-t border-[var(--border-subtle)] space-y-2">
-                            {decodedMeta.metrics.totalRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) > 0 && (
-                              <div className="flex justify-between items-center text-xs">
-                                <span className="text-[var(--text-muted)]">└ Refundable</span>
-                                <span className="font-mono text-[var(--text-secondary)]">{(parseInt(decodedMeta.metrics.totalRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM</span>
-                              </div>
-                            )}
-                            {decodedMeta.metrics.totalNonRefundableResourceFeeCharged && parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) > 0 && (
-                              <div className="flex justify-between items-center text-xs">
-                                <span className="text-[var(--text-muted)]">└ Non-Refundable</span>
-                                <span className="font-mono text-[var(--text-secondary)]">{(parseInt(decodedMeta.metrics.totalNonRefundableResourceFeeCharged) / 10000000).toFixed(7)} XLM</span>
-                              </div>
-                            )}
-                            {decodedMeta.metrics.rentFeeCharged && parseInt(decodedMeta.metrics.rentFeeCharged) > 0 && (
-                              <div className="flex justify-between items-center text-xs">
-                                <span className="text-[var(--text-muted)]">└ Rent</span>
-                                <span className="font-mono text-[var(--text-secondary)]">{(parseInt(decodedMeta.metrics.rentFeeCharged) / 10000000).toFixed(7)} XLM</span>
-                              </div>
-                            )}
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Contract Resources */}
-                  {(envelopeMetrics || (decodedMeta && decodedMeta.success)) && (
-                    <div className="p-4">
-                      <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-bold tracking-wider mb-3">Contract Resources</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
-                          <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">Instructions</div>
-                          <div className="text-xs font-bold font-mono text-[var(--text-secondary)] mt-0.5">
-                            {envelopeMetrics?.cpuInsns ? parseInt(envelopeMetrics.cpuInsns).toLocaleString() :
-                              decodedMeta?.metrics?.cpuInsns ? parseInt(decodedMeta.metrics.cpuInsns).toLocaleString() : '—'}
-                          </div>
-                        </div>
-                        <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
-                          <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">Read Bytes</div>
-                          <div className="text-xs font-bold font-mono text-[var(--text-secondary)] mt-0.5">
-                            {envelopeMetrics?.readBytes ? parseInt(envelopeMetrics.readBytes).toLocaleString() :
-                              decodedMeta?.metrics?.txByteRead ? decodedMeta.metrics.txByteRead.toLocaleString() : '—'}
-                          </div>
-                        </div>
-                        <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
-                          <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">Write Bytes</div>
-                          <div className="text-xs font-bold font-mono text-[var(--text-secondary)] mt-0.5">
-                            {envelopeMetrics?.writeBytes ? parseInt(envelopeMetrics.writeBytes).toLocaleString() :
-                              decodedMeta?.metrics?.txByteWrite ? decodedMeta.metrics.txByteWrite.toLocaleString() : '—'}
-                          </div>
-                        </div>
-                        <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
-                          <div className="text-[9px] uppercase text-[var(--text-muted)] font-semibold tracking-wider">Ledger Entries</div>
-                          <div className="text-xs font-bold font-mono text-[var(--text-secondary)] mt-0.5">
-                            {envelopeMetrics ? (
-                              <>{envelopeMetrics.readEntries || 0}R / {envelopeMetrics.writeEntries || 0}W</>
-                            ) : decodedMeta?.stateChanges ? (
-                              <>{decodedMeta.stateChanges.filter(c => c.type === 'updated' || c.type === 'removed').length}R / {decodedMeta.stateChanges.length}W</>
-                            ) : '—'}
-                          </div>
-                        </div>
-                      </div>
-                      {decodedMeta && decodedMeta.success && decodedMeta.events && decodedMeta.events.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs">
-                          <span className="text-[var(--text-tertiary)]">Events Emitted</span>
-                          <span className="font-mono font-semibold text-[var(--text-secondary)]">{decodedMeta.events.length}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Transaction Data */}
-                  <div className="p-4">
-                    <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-bold tracking-wider mb-3">Transaction Data</div>
-                    <div className="space-y-2">
-                      {[
-                        { label: 'Envelope XDR', value: Math.ceil(transaction.envelope_xdr.length * 3 / 4) },
-                        { label: 'Result XDR', value: Math.ceil(transaction.result_xdr.length * 3 / 4) },
-                        ...(transaction.result_meta_xdr ? [{ label: 'Result Meta', value: Math.ceil(transaction.result_meta_xdr.length * 3 / 4) }] : []),
-                        ...(transaction.fee_meta_xdr ? [{ label: 'Fee Meta', value: Math.ceil(transaction.fee_meta_xdr.length * 3 / 4) }] : []),
-                      ].map((item, i) => (
-                        <div key={i} className="flex justify-between items-center text-xs">
-                          <span className="text-[var(--text-tertiary)]">{item.label}</span>
-                          <span className="font-mono font-semibold text-[var(--text-secondary)]">{item.value.toLocaleString()} bytes</span>
-                        </div>
-                      ))}
-                      <div className="pt-2 mt-2 border-t border-[var(--border-subtle)] flex justify-between items-center text-xs">
-                        <span className="text-[var(--text-secondary)] font-medium">Total Size</span>
-                        <span className="font-mono font-bold text-[var(--text-primary)]">
-                          {(
-                            Math.ceil(transaction.envelope_xdr.length * 3 / 4) +
-                            Math.ceil(transaction.result_xdr.length * 3 / 4) +
-                            (transaction.result_meta_xdr ? Math.ceil(transaction.result_meta_xdr.length * 3 / 4) : 0) +
-                            (transaction.fee_meta_xdr ? Math.ceil(transaction.fee_meta_xdr.length * 3 / 4) : 0)
-                          ).toLocaleString()} bytes
-                        </span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
