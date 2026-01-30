@@ -323,51 +323,120 @@ export default function TransactionPageClient({
         return;
       }
 
-      const res = await fetch(
-        `${getBaseUrl()}/transactions?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
-      );
-      const data = await res.json();
-      const olderTransactions: Transaction[] = data._embedded.records;
+      // For payments filter, fetch from /payments endpoint to get actual payments
+      if (filter === 'transfers') {
+        const res = await fetch(
+          `${getBaseUrl()}/payments?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
+        );
+        const data = await res.json();
+        const paymentOps: { transaction_hash: string; paging_token: string; created_at: string; source_account: string; type: string; transaction_successful: boolean; id: string; amount?: string; asset_type?: string; asset_code?: string; from?: string; to?: string }[] = data._embedded?.records || [];
 
-      if (olderTransactions.length === 0) {
-        setIsLoadingMore(false);
-        setHasMore(false);
-        return;
-      }
-
-      const oldestTx = olderTransactions[olderTransactions.length - 1];
-      setOldestCursor(oldestTx.paging_token);
-      setHasMore(olderTransactions.length >= PAGE_SIZE);
-
-      const txsWithOps = olderTransactions.map((tx) => {
-        if (seenIdsRef.current.has(tx.hash)) {
-          return null;
+        if (paymentOps.length === 0) {
+          setIsLoadingMore(false);
+          setHasMore(false);
+          return;
         }
-        return {
-          ...tx,
-          displayInfo: getTransactionDisplayInfo([]),
-        };
-      });
 
-      const validTxs = txsWithOps.filter(tx => tx !== null) as Transaction[];
+        // Convert payment operations to transactions with displayInfo
+        const newTxs: Transaction[] = [];
+        const seenHashes = new Set<string>();
+        for (const op of paymentOps) {
+          if (seenHashes.has(op.transaction_hash) || seenIdsRef.current.has(op.transaction_hash)) continue;
+          seenHashes.add(op.transaction_hash);
 
-      setTransactions(prev => {
-        const existingMap = new Map(prev.map(t => [t.hash, t]));
-        validTxs.forEach(tx => {
-          if (!existingMap.has(tx.hash)) {
-            existingMap.set(tx.hash, tx);
-          }
+          const displayInfo = getTransactionDisplayInfo([op as any]);
+          if (displayInfo.type !== 'payment') continue; // Skip non-payment ops
+
+          newTxs.push({
+            id: op.id,
+            paging_token: op.paging_token,
+            successful: op.transaction_successful,
+            hash: op.transaction_hash,
+            ledger: 0,
+            created_at: op.created_at,
+            source_account: op.source_account,
+            source_account_sequence: '',
+            fee_account: op.source_account,
+            fee_charged: '0',
+            max_fee: '0',
+            operation_count: 1,
+            envelope_xdr: '',
+            result_xdr: '',
+            result_meta_xdr: '',
+            fee_meta_xdr: '',
+            memo_type: 'none',
+            signatures: [],
+            displayInfo,
+          });
+        }
+
+        const oldestOp = paymentOps[paymentOps.length - 1];
+        setOldestCursor(oldestOp.paging_token);
+        setHasMore(paymentOps.length >= PAGE_SIZE);
+
+        setTransactions(prev => {
+          const existingMap = new Map(prev.map(t => [t.hash, t]));
+          newTxs.forEach(tx => {
+            if (!existingMap.has(tx.hash)) {
+              existingMap.set(tx.hash, tx);
+            }
+          });
+
+          const merged = Array.from(existingMap.values())
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+          seenIdsRef.current = new Set(merged.map(t => t.hash));
+          return merged;
         });
 
-        const merged = Array.from(existingMap.values())
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setMobileLoadedCount(prev => prev + PAGE_SIZE);
+      } else {
+        // For all/contracts, fetch from /transactions
+        const res = await fetch(
+          `${getBaseUrl()}/transactions?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
+        );
+        const data = await res.json();
+        const olderTransactions: Transaction[] = data._embedded.records;
 
-        seenIdsRef.current = new Set(merged.map(t => t.hash));
-        return merged;
-      });
+        if (olderTransactions.length === 0) {
+          setIsLoadingMore(false);
+          setHasMore(false);
+          return;
+        }
 
-      // Increase the loaded count after fetching
-      setMobileLoadedCount(prev => prev + PAGE_SIZE);
+        const oldestTx = olderTransactions[olderTransactions.length - 1];
+        setOldestCursor(oldestTx.paging_token);
+        setHasMore(olderTransactions.length >= PAGE_SIZE);
+
+        const txsWithOps = olderTransactions.map((tx) => {
+          if (seenIdsRef.current.has(tx.hash)) {
+            return null;
+          }
+          return {
+            ...tx,
+            displayInfo: getTransactionDisplayInfo([]),
+          };
+        });
+
+        const validTxs = txsWithOps.filter(tx => tx !== null) as Transaction[];
+
+        setTransactions(prev => {
+          const existingMap = new Map(prev.map(t => [t.hash, t]));
+          validTxs.forEach(tx => {
+            if (!existingMap.has(tx.hash)) {
+              existingMap.set(tx.hash, tx);
+            }
+          });
+
+          const merged = Array.from(existingMap.values())
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+          seenIdsRef.current = new Set(merged.map(t => t.hash));
+          return merged;
+        });
+
+        setMobileLoadedCount(prev => prev + PAGE_SIZE);
+      }
     } catch (error) {
       console.error('Failed to load more transactions:', error);
     } finally {
