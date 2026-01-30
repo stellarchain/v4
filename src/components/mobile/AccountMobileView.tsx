@@ -715,11 +715,9 @@ export default function AccountMobileView({ account, transactions, operations: i
           {(() => {
             // Determine badge type - check dangerous labels FIRST before verified
             const labelName = currentAccountLabel?.name?.toLowerCase() || '';
-            const tags = currentAccountLabel?.tags || [];
-            const isHack = tags.includes('malicious') || tags.includes('hack') || labelName.includes('hack');
-            const isScam = tags.includes('scam') || labelName.includes('scam');
-            const isSpam = tags.includes('spam') || labelName.includes('spam');
-            const isDangerous = isHack || isScam || isSpam;
+            const isHack = labelName.includes('hack') || labelName.includes('malicious');
+            const isScam = labelName.includes('scam');
+            const isSpam = labelName.includes('spam');
 
             return (
               <button onClick={() => setShowBadgeModal(true)} className="flex-shrink-0">
