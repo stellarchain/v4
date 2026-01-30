@@ -280,10 +280,11 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
 
                 {/* Tabs - Glider Style */}
                 {(() => {
+                    const totalTransactions = ledger.successful_transaction_count + ledger.failed_transaction_count;
                     const tabs = [
                         { id: 'overview', label: 'Overview' },
-                        { id: 'transactions', label: 'Transactions' },
-                        { id: 'operations', label: 'Operations' },
+                        { id: 'transactions', label: 'Transactions', count: totalTransactions > 0 ? totalTransactions : undefined },
+                        { id: 'operations', label: 'Operations', count: ledger.operation_count > 0 ? ledger.operation_count : undefined },
                     ];
                     const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab);
                     const tabCount = tabs.length;
@@ -307,12 +308,17 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id as any)}
-                                        className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center ${isActive
+                                        className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center flex items-center justify-center gap-1 ${isActive
                                             ? 'text-[var(--primary-blue)] font-bold'
                                             : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
                                             }`}
                                     >
                                         {tab.label}
+                                        {tab.count !== undefined && (
+                                            <span className="text-[10px] px-1.5 h-[18px] rounded-full flex items-center justify-center bg-[var(--primary-blue)] text-white font-bold min-w-[18px]">
+                                                {tab.count}
+                                            </span>
+                                        )}
                                     </button>
                                 );
                             })}
@@ -417,25 +423,27 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between">
+                                                <div className="flex items-center justify-between gap-2">
                                                     <span className="font-semibold text-sm text-[var(--text-primary)] truncate">
                                                         {description}
                                                         {!tx.successful && <span className="ml-1 text-[var(--error)] text-xs">(Failed)</span>}
                                                     </span>
-                                                    <span className="text-xs font-medium text-[var(--text-muted)] ml-2 shrink-0">{timeAgo(tx.created_at)}</span>
+                                                    <span className="text-xs font-medium text-[var(--text-muted)] shrink-0">{timeAgo(tx.created_at)}</span>
                                                 </div>
-                                                {/* Row 2: Hash + From + Ops */}
-                                                <div className="flex items-center justify-between mt-1">
-                                                    <div className="flex items-center gap-1.5 text-[11px]">
-                                                        <span className="font-mono text-[var(--text-muted)]">#{shortenAddress(tx.hash, 4)}</span>
-                                                        <span className="text-[var(--text-muted)]">·</span>
-                                                        <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(tx.source_account, 4)}</span></span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 shrink-0">
-                                                        {valueDisplay && <span className="text-xs font-semibold text-[var(--text-primary)]">{info.amount} {info.asset}</span>}
-                                                        <span className="text-[11px] font-medium text-[var(--text-muted)]">{tx.operation_count} ops</span>
-                                                    </div>
+                                                {/* Row 2: Hash + From */}
+                                                <div className="flex items-center gap-1.5 text-[11px] mt-1">
+                                                    <span className="font-mono text-[var(--text-muted)]">#{shortenAddress(tx.hash, 4)}</span>
+                                                    <span className="text-[var(--text-muted)]">·</span>
+                                                    <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(tx.source_account, 4)}</span></span>
+                                                    <span className="text-[var(--text-muted)]">·</span>
+                                                    <span className="text-[11px] font-medium text-[var(--text-muted)]">{tx.operation_count} ops</span>
                                                 </div>
+                                                {/* Row 3: Amount (if present) */}
+                                                {valueDisplay && (
+                                                    <div className="mt-1.5">
+                                                        <span className="text-xs font-bold text-[var(--text-primary)]">{info.amount} <span className="text-[var(--text-muted)] font-semibold">{info.asset}</span></span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </Link>
@@ -500,7 +508,8 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                             const symParam = parameters.find((p: any) => p.type === 'Sym');
                                             if (symParam && symParam.value) {
                                                 const decoded = atob(symParam.value);
-                                                const name = decoded.slice(5).replace(/\0/g, '');
+                                                // Filter out non-printable characters and extract clean function name
+                                                const name = decoded.replace(/[^\x20-\x7E]/g, '').trim();
                                                 if (name) functionName = name;
                                             }
                                         }
@@ -552,10 +561,9 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                                         <span className="text-[var(--text-muted)]">·</span>
                                                         <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(op.source_account, 4)}</span></span>
                                                     </div>
-                                                    <div className="flex items-center gap-2 shrink-0">
-                                                        {summary && <span className="text-xs font-semibold text-[var(--text-primary)]">{summary}</span>}
-                                                        <span className="text-[11px] font-medium text-[var(--text-muted)]">1 ops</span>
-                                                    </div>
+                                                    {summary && (
+                                                        <span className="text-xs font-semibold text-[var(--text-primary)] shrink-0">{summary}</span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
