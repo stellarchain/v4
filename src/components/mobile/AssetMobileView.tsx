@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
@@ -427,27 +427,29 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   }, [asset]);
 
   // Show more holders (just increases the display count from pre-loaded list)
-  const showMoreHolders = () => {
+  const showMoreHolders = useCallback(() => {
     setDisplayedHoldersCount(prev => Math.min(prev + 20, allHolders.length));
-  };
+  }, [allHolders.length]);
 
   // Infinite scroll observer for holders - just shows more from pre-loaded list
   useEffect(() => {
-    if (!holdersEndRef.current || activeTab !== 'holders') return;
+    if (activeTab !== 'holders') return;
     if (displayedHoldersCount >= allHolders.length) return; // All shown
+    if (!holdersEndRef.current) return;
 
+    const currentRef = holdersEndRef.current;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && displayedHoldersCount < allHolders.length) {
+        if (entries[0].isIntersecting) {
           showMoreHolders();
         }
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.1, rootMargin: '200px' }
     );
 
-    observer.observe(holdersEndRef.current);
+    observer.observe(currentRef);
     return () => observer.disconnect();
-  }, [displayedHoldersCount, allHolders.length, activeTab]);
+  }, [displayedHoldersCount, allHolders.length, activeTab, showMoreHolders]);
 
   // Pre-fetch trading pairs/markets on page load
   useEffect(() => {
@@ -1380,9 +1382,11 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                               #{index + 1}
                             </span>
                           </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-semibold text-[var(--text-primary)] truncate flex items-center gap-1.5">
-                              {displayName || shortenAddress(holder.account_id, 6)}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                                {displayName || shortenAddress(holder.account_id, 6)}
+                              </span>
                               {label?.verified && (
                                 <svg className="w-3.5 h-3.5 text-[var(--primary-blue)] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
