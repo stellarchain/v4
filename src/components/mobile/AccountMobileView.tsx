@@ -655,9 +655,16 @@ export default function AccountMobileView({ account, transactions, operations: i
 
           {/* Title - Center */}
           <div className="text-center">
-            <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
-              {currentAccountLabel?.name || 'Account'}
-            </h1>
+            <div className="flex items-center justify-center gap-1.5">
+              <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
+                {currentAccountLabel?.name || 'Account'}
+              </h1>
+              {currentAccountLabel?.verified && (
+                <svg className="w-5 h-5 text-[var(--info)] flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
           </div>
 
           {/* Favorite Button - Right */}
@@ -1081,9 +1088,13 @@ export default function AccountMobileView({ account, transactions, operations: i
                         assetIssuer = effectInfo.asset_issuer || null;
                       }
                     } else if (isPayment) {
-                      const isReceive = op.to === account.id;
+                      // For create_account, destination is in 'account' field; for payment it's in 'to'
+                      const isCreateAccount = op.type === 'create_account';
+                      const destination = isCreateAccount ? (op as any).account : op.to;
+                      const sender = op.from || (op as any).funder || op.source_account;
+                      const isReceive = destination === account.id;
                       // Get counterparty address and label
-                      const counterpartyAddress = isReceive ? op.from : op.to;
+                      const counterpartyAddress = isReceive ? sender : destination;
                       const counterpartyLabel = counterpartyAddress ? accountLabels[counterpartyAddress]?.name : null;
                       typeDisplay = counterpartyLabel || (counterpartyAddress ? shortenAddress(counterpartyAddress, 4) : (isReceive ? 'Received' : 'Sent'));
                       counterpartyLink = counterpartyAddress || null;
@@ -1104,15 +1115,24 @@ export default function AccountMobileView({ account, transactions, operations: i
                       asset = (op as any).selling_asset_type === 'native' ? 'XLM' : (op as any).selling_asset_code || '';
                       assetIssuer = (op as any).selling_asset_issuer || null;
                     } else if (effectInfo) {
+                      // For other operations with effects, just get the amount/asset
+                      // Keep the operation type name (already set above)
                       amount = formatXLM(effectInfo.amount || '0');
                       asset = effectInfo.asset;
                       assetIssuer = effectInfo.asset_issuer || null;
-                      // Get counterparty from operation if available
-                      const isReceive = effectInfo.type === 'received';
-                      const counterpartyAddress = isReceive ? op.from : op.to;
-                      const counterpartyLabel = counterpartyAddress ? accountLabels[counterpartyAddress]?.name : null;
-                      typeDisplay = counterpartyLabel || (counterpartyAddress ? shortenAddress(counterpartyAddress, 4) : (isReceive ? 'Received' : 'Sent'));
-                      counterpartyLink = counterpartyAddress || null;
+                      // Only try to show counterparty if the operation has one (to/from fields)
+                      const destination = op.to || (op as any).account;
+                      const sender = op.from || (op as any).funder;
+                      if (destination || sender) {
+                        const isReceive = effectInfo.type === 'received';
+                        const counterpartyAddress = isReceive ? sender : destination;
+                        if (counterpartyAddress) {
+                          const counterpartyLabel = accountLabels[counterpartyAddress]?.name;
+                          typeDisplay = counterpartyLabel || shortenAddress(counterpartyAddress, 4);
+                          counterpartyLink = counterpartyAddress;
+                        }
+                      }
+                      // Otherwise keep typeDisplay as the operation type name
                     }
 
                     const isReceive = effectInfo?.type === 'received' || op.to === account.id;

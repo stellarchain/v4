@@ -1316,6 +1316,45 @@ export default function TransactionMobileView({ transaction, operations, effects
           })()}
         </div>
 
+        {/* Operations Filter - Only show when there's more than 1 operation and on Operations tab */}
+        {activeTab === 'operations' && operations.length > 1 && (
+          <div className="flex items-center justify-between mb-3 mt-2">
+            <div ref={filterRef} className="relative">
+              <button
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[11px] font-semibold text-[var(--text-secondary)]"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                <span>{operationFilter === 'all' ? `All (${operations.length})` : `${operationFilter} (${filteredOperations.length})`}</span>
+                <svg className={`w-3 h-3 transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showFilterDropdown && (
+                <div className="absolute left-0 top-full mt-1 min-w-[140px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
+                  <button
+                    onClick={() => { setOperationFilter('all'); setShowFilterDropdown(false); }}
+                    className={`w-full text-left px-3 py-2 text-[11px] font-medium ${operationFilter === 'all' ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+                  >
+                    All ({operations.length})
+                  </button>
+                  {operationTypes.map(([type, count]) => (
+                    <button
+                      key={type}
+                      onClick={() => { setOperationFilter(type); setShowFilterDropdown(false); }}
+                      className={`w-full text-left px-3 py-2 text-[11px] font-medium ${operationFilter === type ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+                    >
+                      {type} ({count})
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Tab Content */}
         <div className="min-h-[200px] pt-3">
 
@@ -1421,39 +1460,6 @@ export default function TransactionMobileView({ transaction, operations, effects
                           </div>
                           <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{opDescription}</p>
                         </div>
-                        {/* Filter - only on first operation */}
-                        {idx === 0 && (
-                          <div ref={filterRef} className="relative" onClick={(e) => e.stopPropagation()}>
-                            <button
-                              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                              className="flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-secondary)]"
-                            >
-                              <span>{operationFilter === 'all' ? `All (${operations.length})` : `${operationFilter} (${filteredOperations.length})`}</span>
-                              <svg className={`w-3 h-3 transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </button>
-                            {showFilterDropdown && (
-                              <div className="absolute right-0 top-full mt-1 min-w-[140px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
-                                <button
-                                  onClick={() => { setOperationFilter('all'); setShowFilterDropdown(false); }}
-                                  className={`w-full text-left px-3 py-2 text-[11px] font-medium ${operationFilter === 'all' ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
-                                >
-                                  All ({operations.length})
-                                </button>
-                                {operationTypes.map(([type, count]) => (
-                                  <button
-                                    key={type}
-                                    onClick={() => { setOperationFilter(type); setShowFilterDropdown(false); }}
-                                    className={`w-full text-left px-3 py-2 text-[11px] font-medium ${operationFilter === type ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
-                                  >
-                                    {type} ({count})
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </div>
 
                       {/* Operation Details */}
