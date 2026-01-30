@@ -806,11 +806,22 @@ export default function TransactionMobileView({ transaction, operations, effects
                 </div>
                 <div className="text-right">
                   <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Account</div>
-                  <div className="flex items-center justify-end mt-1">
-                    <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold font-mono hover:opacity-80" style={{ color: primaryColor }}>
-                      {shortenAddress(transaction.source_account, 4)}
+                  <div className="flex items-center justify-end gap-1 mt-1">
+                    <Link href={`/account/${transaction.source_account}`} className={`text-xs font-semibold hover:opacity-80 ${accountLabels[transaction.source_account]?.name ? '' : 'font-mono'}`} style={{ color: primaryColor }}>
+                      {accountLabels[transaction.source_account]?.name || shortenAddress(transaction.source_account, 4)}
                     </Link>
-                    <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                    {accountLabels[transaction.source_account]?.verified && (
+                      <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="#1D9BF0">
+                        <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z"/>
+                      </svg>
+                    )}
+                    {accountLabels[transaction.source_account]?.name && !accountLabels[transaction.source_account]?.verified && (
+                      <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
+                        <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
+                        <circle cx="12" cy="10" r="3" fill="white"/>
+                        <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                      </svg>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1040,11 +1051,22 @@ export default function TransactionMobileView({ transaction, operations, effects
                 {/* Order By */}
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-[var(--text-muted)]">Order by</span>
-                  <span className="flex items-center">
-                    <Link href={`/account/${transaction.source_account}`} className="font-semibold font-mono hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
-                      {shortenAddress(transaction.source_account, 4)}
+                  <span className="flex items-center gap-1">
+                    <Link href={`/account/${transaction.source_account}`} className={`font-semibold hover:opacity-80 transition-colors ${accountLabels[transaction.source_account]?.name ? '' : 'font-mono'}`} style={{ color: primaryColor }}>
+                      {accountLabels[transaction.source_account]?.name || shortenAddress(transaction.source_account, 4)}
                     </Link>
-                    <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                    {accountLabels[transaction.source_account]?.verified && (
+                      <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="#1D9BF0">
+                        <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z"/>
+                      </svg>
+                    )}
+                    {accountLabels[transaction.source_account]?.name && !accountLabels[transaction.source_account]?.verified && (
+                      <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
+                        <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
+                        <circle cx="12" cy="10" r="3" fill="white"/>
+                        <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                      </svg>
+                    )}
                   </span>
                 </div>
               </div>
@@ -1070,11 +1092,22 @@ export default function TransactionMobileView({ transaction, operations, effects
                 <div className="bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Account</span>
-                    <span className="flex items-center">
-                      <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold font-mono hover:opacity-80 transition-colors" style={{ color: primaryColor }}>
-                        {shortenAddress(transaction.source_account, 4)}
+                    <span className="flex items-center gap-1">
+                      <Link href={`/account/${transaction.source_account}`} className={`text-xs font-semibold hover:opacity-80 transition-colors ${accountLabels[transaction.source_account]?.name ? '' : 'font-mono'}`} style={{ color: primaryColor }}>
+                        {accountLabels[transaction.source_account]?.name || shortenAddress(transaction.source_account, 4)}
                       </Link>
-                      <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                      {accountLabels[transaction.source_account]?.verified && (
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="#1D9BF0">
+                          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z"/>
+                        </svg>
+                      )}
+                      {accountLabels[transaction.source_account]?.name && !accountLabels[transaction.source_account]?.verified && (
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
+                          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
+                          <circle cx="12" cy="10" r="3" fill="white"/>
+                          <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                        </svg>
+                      )}
                     </span>
                   </div>
 
@@ -1117,11 +1150,22 @@ export default function TransactionMobileView({ transaction, operations, effects
                       </div>
                       <div className="text-right">
                         <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Account</div>
-                        <div className="flex items-center justify-end mt-1">
-                          <Link href={`/account/${transaction.source_account}`} className="text-xs font-semibold font-mono hover:opacity-80" style={{ color: primaryColor }}>
-                            {shortenAddress(transaction.source_account, 4)}
+                        <div className="flex items-center justify-end gap-1 mt-1">
+                          <Link href={`/account/${transaction.source_account}`} className={`text-xs font-semibold hover:opacity-80 ${accountLabels[transaction.source_account]?.name ? '' : 'font-mono'}`} style={{ color: primaryColor }}>
+                            {accountLabels[transaction.source_account]?.name || shortenAddress(transaction.source_account, 4)}
                           </Link>
-                          <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                          {accountLabels[transaction.source_account]?.verified && (
+                            <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="#1D9BF0">
+                              <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z"/>
+                            </svg>
+                          )}
+                          {accountLabels[transaction.source_account]?.name && !accountLabels[transaction.source_account]?.verified && (
+                            <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
+                              <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
+                              <circle cx="12" cy="10" r="3" fill="white"/>
+                              <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                            </svg>
+                          )}
                         </div>
                       </div>
                     </div>
