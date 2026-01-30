@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
-import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, getAssetTrades, getAssetTradeTransactionHash, getAssetHolders, getAssetTradingPairs, getLiquidityPoolByAssets, USDC_ISSUER, shortenAddress, OrderBook as OrderBookType, AssetTrade, AssetHolder, TradingPair } from '@/lib/stellar';
+import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, getAssetTrades, getAssetTradeTransactionHash, getAssetHolders, getAssetTradingPairs, getLiquidityPoolByAssets, USDC_ISSUER, shortenAddress, OrderBook as OrderBookType, AssetTrade, AssetHolder, TradingPair, getAccountLabels, AccountLabel } from '@/lib/stellar';
 import { getXLMHoldersAction } from '@/app/actions/stellar';
 import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/design-system';
 
@@ -108,6 +108,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   const [displayedHoldersCount, setDisplayedHoldersCount] = useState(20); // How many to show
   const [holdersLoading, setHoldersLoading] = useState(true); // Loading all holders
   const [holdersTotalSupply, setHoldersTotalSupply] = useState(0);
+  const [holderLabels, setHolderLabels] = useState<Map<string, AccountLabel>>(new Map());
   const holdersEndRef = useRef<HTMLDivElement>(null);
 
   // Markets/trading pairs state - pre-fetched on page load
@@ -411,6 +412,11 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
         allFetched.sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance));
         setAllHolders(allFetched);
         setHoldersTotalSupply(asset.total_supply || allFetched.reduce((sum, h) => sum + parseFloat(h.balance), 0));
+
+        // Fetch labels for top holders (first 100)
+        const topHolderAddresses = allFetched.slice(0, 100).map(h => h.account_id);
+        const labels = await getAccountLabels(topHolderAddresses);
+        setHolderLabels(labels);
       } catch (e) {
         console.error('Failed to fetch holders', e);
       }
@@ -1358,6 +1364,9 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                     return bal.toLocaleString(undefined, { maximumFractionDigits: 2 });
                   };
 
+                  const label = holderLabels.get(holder.account_id);
+                  const displayName = label?.name || label?.org_name || null;
+
                   return (
                     <Link
                       key={holder.account_id}
@@ -1372,11 +1381,22 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                             </span>
                           </div>
                           <div className="min-w-0">
-                            <div className="text-sm font-mono text-[var(--text-primary)] truncate">
-                              {shortenAddress(holder.account_id, 6)}
+                            <div className="text-sm font-semibold text-[var(--text-primary)] truncate flex items-center gap-1.5">
+                              {displayName || shortenAddress(holder.account_id, 6)}
+                              {label?.verified && (
+                                <svg className="w-3.5 h-3.5 text-[var(--primary-blue)] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                              )}
                             </div>
                             <div className="text-[11px] text-[var(--text-muted)]">
                               {formatPercentage(percentage)} of supply
+                              {displayName && (
+                                <>
+                                  <span className="mx-1.5">·</span>
+                                  <span className="font-mono">{shortenAddress(holder.account_id, 4)}</span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
