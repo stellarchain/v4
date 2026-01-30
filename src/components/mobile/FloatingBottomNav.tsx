@@ -217,11 +217,11 @@ export default function FloatingBottomNav() {
               <div className="flex items-center justify-between">
                 <Link href="/" onClick={() => setIsMoreOpen(false)}>
                   <Image
-                    src="/bunn.png"
+                    src="/stellarchain-logo.svg"
                     alt="StellarChain Explorer"
                     width={200}
-                    height={42}
-                    className="h-10 w-auto"
+                    height={56}
+                    className="h-9 w-auto"
                   />
                 </Link>
               </div>

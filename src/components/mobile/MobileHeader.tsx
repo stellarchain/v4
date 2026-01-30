@@ -86,11 +86,11 @@ export default function MobileHeader() {
       <div className="flex items-center justify-between mb-6">
         <Link href="/">
           <Image
-            src="/bunn.png"
+            src="/stellarchain-logo.svg"
             alt="StellarChain Explorer"
             width={200}
-            height={42}
-            className="h-10 w-auto"
+            height={56}
+            className="h-9 w-auto"
           />
         </Link>
         <NetworkBadge />
