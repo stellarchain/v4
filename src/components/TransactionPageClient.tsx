@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { gsap } from 'gsap';
 import CompactTransactionRow from './CompactTransactionRow';
-import { Transaction, getTransactionDisplayInfo, Operation, getTransactionOperations, getBaseUrl } from '@/lib/stellar';
+import { Transaction, getTransactionDisplayInfo, Operation, getTransactionOperations, getBaseUrl, getNetwork } from '@/lib/stellar';
 import { containers, interactive, spacing } from '@/lib/design-system';
+import { useNetwork } from '@/contexts/NetworkContext';
 
 type FilterType = 'all' | 'transfers' | 'contracts';
 
@@ -60,8 +61,10 @@ export default function TransactionPageClient({
 }: TransactionPageClientProps) {
   // Merge initial transactions with payment transactions
   const mergedInitial = mergeTransactions(initialTransactions, initialPaymentTransactions);
+  const { network } = useNetwork();
 
-  const [transactions, setTransactions] = useState<Transaction[]>(mergedInitial);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -71,8 +74,8 @@ export default function TransactionPageClient({
   const mobileContainerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
-  const seenIdsRef = useRef<Set<string>>(new Set(mergedInitial.map(t => t.hash)));
-  const animatedIdsRef = useRef<Set<string>>(new Set(mergedInitial.map(t => t.hash)));
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const animatedIdsRef = useRef<Set<string>>(new Set());
   const processedIdsRef = useRef<Set<string>>(new Set());
 
   // Mobile infinite scroll state
@@ -401,25 +404,46 @@ export default function TransactionPageClient({
     return () => observer.disconnect();
   }, [isMobile, isLoadingMore, hasMore, loadMoreForMobile]);
 
+  // Fetch fresh data on mount to ensure we have correct network data
   useEffect(() => {
-    // Use the merged initial (includes both regular and payment transactions)
-    // No need to fetch operations - use existing displayInfo or generate minimal one
-    const txsWithOps = mergedInitial.map((tx) => {
-      if (!tx.displayInfo) {
-        return {
+    const fetchInitialData = async () => {
+      setIsInitialLoading(true);
+      try {
+        // Fetch fresh transactions from current network
+        const txRes = await fetch(`${getBaseUrl()}/transactions?limit=${limit}&order=desc`);
+        const txData = await txRes.json();
+        const newTransactions: Transaction[] = txData._embedded.records;
+
+        // Process with minimal displayInfo
+        const txsWithOps = newTransactions.map((tx) => ({
           ...tx,
           displayInfo: getTransactionDisplayInfo([]),
-        };
+        }));
+
+        setTransactions(txsWithOps);
+        seenIdsRef.current = new Set(txsWithOps.map(t => t.hash));
+        animatedIdsRef.current = new Set(txsWithOps.map(t => t.hash));
+      } catch (error) {
+        console.error('Failed to fetch initial transactions:', error);
+        // Fallback to server data if fetch fails
+        const txsWithOps = mergedInitial.map((tx) => ({
+          ...tx,
+          displayInfo: tx.displayInfo || getTransactionDisplayInfo([]),
+        }));
+        setTransactions(txsWithOps);
+      } finally {
+        setIsInitialLoading(false);
       }
-      return tx;
-    });
-    setTransactions(txsWithOps);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    };
+
+    fetchInitialData();
+  }, [network]); // Re-fetch when network changes
 
   useEffect(() => {
+    if (isInitialLoading) return; // Don't start polling until initial load is done
     const interval = setInterval(fetchTransactions, 2000);
     return () => clearInterval(interval);
-  }, [fetchTransactions]);
+  }, [fetchTransactions, isInitialLoading]);
 
   const setRowRef = useCallback((hash: string) => (el: HTMLAnchorElement | null) => {
     if (el) {
@@ -628,7 +652,17 @@ export default function TransactionPageClient({
                 </tr>
               </thead>
               <tbody className="text-[12px] font-mono divide-y divide-[var(--border-subtle)]">
-                {visibleTransactions.length > 0 ? (
+                {isInitialLoading ? (
+                  // Desktop skeleton
+                  Array.from({ length: 10 }).map((_, i) => (
+                    <tr key={i} className="h-[52px]">
+                      <td className="px-4 py-3"><div className="h-4 w-16 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-24 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-32 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="px-4 py-3"><div className="h-4 w-28 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                    </tr>
+                  ))
+                ) : visibleTransactions.length > 0 ? (
                   visibleTransactions.map((tx) => {
                     const info = tx.displayInfo;
                     const style = getTypeStyle(info);
@@ -692,7 +726,25 @@ export default function TransactionPageClient({
 
           {/* Mobile Card List - Visible only on mobile with infinite scroll */}
           <div className="md:hidden flex-1 overflow-auto" ref={mobileContainerRef}>
-            {mobileVisibleTransactions.length > 0 ? (
+            {isInitialLoading ? (
+              // Mobile skeleton
+              <div className="space-y-2">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-3 py-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-start space-x-3">
+                        <div className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+                        <div className="flex flex-col gap-1.5">
+                          <div className="h-4 w-20 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+                          <div className="h-3 w-28 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="h-4 w-16 bg-[var(--bg-tertiary)] rounded animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : mobileVisibleTransactions.length > 0 ? (
               <div className="space-y-2">
                 {mobileVisibleTransactions.map((tx) => {
                   const info = tx.displayInfo;

@@ -235,7 +235,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
         </div>
 
         {/* Transaction Cards */}
-        <LiveTransactionFeed initialTransactions={initialTransactions} limit={30} filter={txFilter} />
+        <LiveTransactionFeed key={txFilter} initialTransactions={initialTransactions} limit={30} filter={txFilter} />
 
         {/* Load More */}
         <div className="mt-3 text-center">

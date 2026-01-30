@@ -609,7 +609,8 @@ export async function getLedgers(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<Ledger>> {
-  let url = `${getBaseUrl()}/ledgers?limit=${limit}&order=${order}`;
+  const baseUrl = await getBaseUrlAsync();
+  let url = `${baseUrl}/ledgers?limit=${limit}&order=${order}`;
   if (cursor) url += `&cursor=${cursor}`;
   return fetchJSON<PaginatedResponse<Ledger>>(url);
 }
@@ -685,7 +686,8 @@ export async function getTransactions(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<Transaction>> {
-  let url = `${getBaseUrl()}/transactions?limit=${limit}&order=${order}`;
+  const baseUrl = await getBaseUrlAsync();
+  let url = `${baseUrl}/transactions?limit=${limit}&order=${order}`;
   if (cursor) url += `&cursor=${cursor}`;
   return fetchJSON<PaginatedResponse<Transaction>>(url);
 }
@@ -953,13 +955,15 @@ export async function getOperations(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<Operation>> {
-  let url = `${getBaseUrl()}/operations?limit=${limit}&order=${order}`;
+  const baseUrl = await getBaseUrlAsync();
+  let url = `${baseUrl}/operations?limit=${limit}&order=${order}`;
   if (cursor) url += `&cursor=${cursor}`;
   return fetchJSON<PaginatedResponse<Operation>>(url);
 }
 
 export async function getOperation(id: string): Promise<Operation> {
-  return fetchJSON<Operation>(`${getBaseUrl()}/operations/${id}`);
+  const baseUrl = await getBaseUrlAsync();
+  return fetchJSON<Operation>(`${baseUrl}/operations/${id}`);
 }
 
 // Active Contracts - fetch contracts by recent activity

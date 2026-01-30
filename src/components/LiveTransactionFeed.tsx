@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
 import CompactTransactionRow from './CompactTransactionRow';
-import { Transaction, getTransactionDisplayInfo, getTransactionOperations, TransactionDisplayInfo, Operation, getBaseUrl } from '@/lib/stellar';
+import { Transaction, getTransactionDisplayInfo, getTransactionOperations, TransactionDisplayInfo, Operation, getBaseUrl, getNetwork } from '@/lib/stellar';
 
 interface LiveTransactionFeedProps {
   initialTransactions: Transaction[];
@@ -11,14 +11,14 @@ interface LiveTransactionFeedProps {
   filter?: 'all' | 'payments' | 'contracts';
 }
 
-// Session storage key for caching transactions
-const CACHE_KEY = 'stellarchain_live_txs';
+// Get network-specific cache key
+const getCacheKey = () => `stellarchain_live_txs_${getNetwork()}`;
 
-// Load cached transactions from sessionStorage
+// Load cached transactions from sessionStorage (network-specific)
 const loadCachedTransactions = (): Transaction[] => {
   if (typeof window === 'undefined') return [];
   try {
-    const cached = sessionStorage.getItem(CACHE_KEY);
+    const cached = sessionStorage.getItem(getCacheKey());
     if (cached) {
       const parsed = JSON.parse(cached);
       // Only use cache if it's less than 2 minutes old
@@ -32,11 +32,11 @@ const loadCachedTransactions = (): Transaction[] => {
   return [];
 };
 
-// Save transactions to sessionStorage
+// Save transactions to sessionStorage (network-specific)
 const saveCachedTransactions = (transactions: Transaction[]) => {
   if (typeof window === 'undefined') return;
   try {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+    sessionStorage.setItem(getCacheKey(), JSON.stringify({
       transactions: transactions.slice(0, 50),
       timestamp: Date.now()
     }));
