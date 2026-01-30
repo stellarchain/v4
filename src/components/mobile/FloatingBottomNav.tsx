@@ -34,25 +34,28 @@ interface MenuCategory {
   href?: string;
 }
 
-const menuCategories: MenuCategory[] = [
+// Menu items - some are mainnet-only
+const getMenuCategories = (isMainnet: boolean): MenuCategory[] => [
   {
     name: 'Blockchain',
     icon: 'blockchain',
     items: [
       { name: 'Ledgers', href: '/ledgers', icon: 'ledger', description: 'Data structures' },
       { name: 'Transactions', href: '/transactions', icon: 'transaction', description: 'Modifies the ledger state' },
-      { name: 'Smart Contracts', href: '/contracts', icon: 'contract', description: 'Deployed contracts' },
-      { name: 'Liquidity Pools', href: '/liquidity-pools', icon: 'pool', description: 'Assets reserves' },
+      ...(isMainnet ? [
+        { name: 'Smart Contracts', href: '/contracts', icon: 'contract', description: 'Deployed contracts' },
+        { name: 'Liquidity Pools', href: '/liquidity-pools', icon: 'pool', description: 'Assets reserves' },
+      ] : []),
     ],
   },
-  {
+  ...(isMainnet ? [{
     name: 'Accounts',
     icon: 'accounts',
     items: [
       { name: 'Top Accounts', href: '/accounts', icon: 'users', description: 'Ranked by XLM holdings' },
       { name: 'Known Accounts', href: '/known-accounts', icon: 'verified', description: 'Labeled accounts directory' },
     ],
-  },
+  }] : []),
 ];
 
 const icons: Record<string, React.ReactNode> = {
@@ -153,6 +156,7 @@ export default function FloatingBottomNav() {
   const { theme, toggleTheme } = useTheme();
   const { favorites } = useFavorites();
   const { network, setNetwork, networkConfig, isChangingNetwork } = useNetwork();
+  const isMainnet = network === 'mainnet';
   const [showFavoritesList, setShowFavoritesList] = useState(false);
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [showNetworkDropdown, setShowNetworkDropdown] = useState(false);
@@ -226,7 +230,7 @@ export default function FloatingBottomNav() {
             {/* Menu Content */}
             <div className="flex-1 overflow-y-auto">
               <nav className="px-4 py-4 space-y-2">
-                {menuCategories.map((category) => (
+                {getMenuCategories(isMainnet).map((category) => (
                   <div key={category.name}>
                     {category.href ? (
                       <Link
