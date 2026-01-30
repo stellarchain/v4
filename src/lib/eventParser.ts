@@ -568,12 +568,15 @@ function buildEventData(
 // Event Fetching
 // =============================================================================
 
-const HORIZON_MAINNET = 'https://horizon.stellar.org';
-const HORIZON_TESTNET = 'https://horizon-testnet.stellar.org';
+const HORIZON_URLS = {
+  mainnet: 'https://horizon.stellar.org',
+  testnet: 'https://horizon-testnet.stellar.org',
+  futurenet: 'https://horizon-futurenet.stellar.org',
+};
 
 function getHorizonBaseUrl(): string {
   const network = getNetwork();
-  return network === 'mainnet' ? HORIZON_MAINNET : HORIZON_TESTNET;
+  return HORIZON_URLS[network] || HORIZON_URLS.mainnet;
 }
 
 /**

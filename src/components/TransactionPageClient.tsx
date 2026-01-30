@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { gsap } from 'gsap';
 import CompactTransactionRow from './CompactTransactionRow';
-import { Transaction, getTransactionDisplayInfo, Operation, getTransactionOperations } from '@/lib/stellar';
+import { Transaction, getTransactionDisplayInfo, Operation, getTransactionOperations, getBaseUrl } from '@/lib/stellar';
 import { containers, interactive, spacing } from '@/lib/design-system';
 
 type FilterType = 'all' | 'transfers' | 'contracts';
@@ -121,14 +121,14 @@ export default function TransactionPageClient({
   const fetchTransactions = useCallback(async () => {
     try {
       // Fetch regular transactions (required)
-      const txRes = await fetch(`https://horizon.stellar.org/transactions?limit=${limit}&order=desc`);
+      const txRes = await fetch(`${getBaseUrl()}/transactions?limit=${limit}&order=desc`);
       const txData = await txRes.json();
       const newTransactions: Transaction[] = txData._embedded.records;
 
       // Fetch payments separately (optional - don't fail if this errors)
       let paymentOps: Operation[] = [];
       try {
-        const paymentsRes = await fetch(`https://horizon.stellar.org/payments?limit=30&order=desc`);
+        const paymentsRes = await fetch(`${getBaseUrl()}/payments?limit=30&order=desc`);
         if (paymentsRes.ok) {
           const paymentsData = await paymentsRes.json();
           paymentOps = paymentsData._embedded?.records || [];
@@ -228,7 +228,7 @@ export default function TransactionPageClient({
 
       // Fetch older transactions
       const res = await fetch(
-        `https://horizon.stellar.org/transactions?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
+        `${getBaseUrl()}/transactions?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
       );
       const data = await res.json();
       const olderTransactions: Transaction[] = data._embedded.records;
@@ -321,7 +321,7 @@ export default function TransactionPageClient({
       }
 
       const res = await fetch(
-        `https://horizon.stellar.org/transactions?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
+        `${getBaseUrl()}/transactions?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
       );
       const data = await res.json();
       const olderTransactions: Transaction[] = data._embedded.records;
@@ -479,7 +479,7 @@ export default function TransactionPageClient({
             // If we found a contract transaction, also fetch effects to get the received/sent amount
             if (info.type === 'contract') {
               try {
-                const effectsRes = await fetch(`https://horizon.stellar.org/transactions/${tx.hash}/effects?limit=10`);
+                const effectsRes = await fetch(`${getBaseUrl()}/transactions/${tx.hash}/effects?limit=10`);
                 const effectsData = await effectsRes.json();
                 const effects = effectsData._embedded?.records || [];
 

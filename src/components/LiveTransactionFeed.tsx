@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
 import CompactTransactionRow from './CompactTransactionRow';
-import { Transaction, getTransactionDisplayInfo, getTransactionOperations, TransactionDisplayInfo, Operation } from '@/lib/stellar';
+import { Transaction, getTransactionDisplayInfo, getTransactionOperations, TransactionDisplayInfo, Operation, getBaseUrl } from '@/lib/stellar';
 
 interface LiveTransactionFeedProps {
   initialTransactions: Transaction[];
@@ -129,7 +129,7 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
   // Fetch payments directly from /payments endpoint
   const fetchPayments = useCallback(async (isInitial = false) => {
     try {
-      const res = await fetch(`https://horizon.stellar.org/payments?limit=${limit}&order=desc`);
+      const res = await fetch(`${getBaseUrl()}/payments?limit=${limit}&order=desc`);
       if (!res.ok) return;
       const data = await res.json();
       const paymentOps: Operation[] = data._embedded?.records || [];
@@ -204,7 +204,7 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
   // Fetch all transactions
   const fetchAllTransactions = useCallback(async (isInitial = false) => {
     try {
-      const res = await fetch(`https://horizon.stellar.org/transactions?limit=${limit}&order=desc`);
+      const res = await fetch(`${getBaseUrl()}/transactions?limit=${limit}&order=desc`);
       const data = await res.json();
       const rawTransactions: Transaction[] = data._embedded.records;
       const newTransactions = await enrichTransactions(rawTransactions);

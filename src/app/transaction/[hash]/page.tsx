@@ -2,6 +2,7 @@ import { getTransaction, getTransactionOperations, getTransactionEffects, getAcc
 import type { AccountLabel } from '@/lib/stellar';
 import TransactionMobileView from '@/components/mobile/TransactionMobileView';
 import TransactionDesktopView from '@/components/desktop/TransactionDesktopView';
+import { notFound } from 'next/navigation';
 
 export const revalidate = 60;
 
@@ -56,11 +57,18 @@ function extractAccountAddresses(
 export default async function TransactionPage({ params }: TransactionPageProps) {
   const { hash } = await params;
 
-  const [transaction, operationsResponse, effectsResponse] = await Promise.all([
-    getTransaction(hash),
-    getTransactionOperations(hash, 200),
-    getTransactionEffects(hash, 200),
-  ]);
+  let transaction, operationsResponse, effectsResponse;
+
+  try {
+    [transaction, operationsResponse, effectsResponse] = await Promise.all([
+      getTransaction(hash),
+      getTransactionOperations(hash, 200),
+      getTransactionEffects(hash, 200),
+    ]);
+  } catch (error) {
+    // Transaction not found on current network
+    notFound();
+  }
 
   const operations = operationsResponse._embedded.records;
   const effects = effectsResponse._embedded.records;

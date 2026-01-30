@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Transaction, Operation, Effect, shortenAddress, timeAgo, formatXLM } from '@/lib/stellar';
+import { Transaction, Operation, Effect, shortenAddress, timeAgo, formatXLM, getBaseUrl } from '@/lib/stellar';
 
 interface Balance {
   asset_type: string;
@@ -61,7 +61,7 @@ export default function AccountDesktopView({ account, transactions, operations, 
 
       await Promise.all(opsToFetch.map(async (op) => {
         try {
-          const res = await fetch(`https://horizon.stellar.org/operations/${op.id}/effects`);
+          const res = await fetch(`${getBaseUrl()}/operations/${op.id}/effects`);
           const data = await res.json();
           if (data._embedded && data._embedded.records) {
             newEffects[op.id] = data._embedded.records;
@@ -108,7 +108,7 @@ export default function AccountDesktopView({ account, transactions, operations, 
 
         try {
           const res = await fetch(
-            `https://horizon.stellar.org/order_book?selling_asset_type=${b.asset_type}&selling_asset_code=${b.asset_code}&selling_asset_issuer=${b.asset_issuer}&buying_asset_type=native&limit=1`,
+            `${getBaseUrl()}/order_book?selling_asset_type=${b.asset_type}&selling_asset_code=${b.asset_code}&selling_asset_issuer=${b.asset_issuer}&buying_asset_type=native&limit=1`,
           );
           const data = await res.json();
           if (data.bids && data.bids.length > 0) {

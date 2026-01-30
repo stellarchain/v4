@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { NetworkBadge } from '@/components/NetworkSwitcher';
+import { getBaseUrl } from '@/lib/stellar';
 
 export default function MobileHeader() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,7 +28,7 @@ export default function MobileHeader() {
         console.error('Failed to fetch header stats', e);
         // Fallback to Horizon for price only
         try {
-          const priceRes = await fetch('https://horizon.stellar.org/trade_aggregations?base_asset_type=native&counter_asset_type=credit_alphanum4&counter_asset_code=USDC&counter_asset_issuer=GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN&resolution=900000&limit=1&order=desc');
+          const priceRes = await fetch(`${getBaseUrl()}/trade_aggregations?base_asset_type=native&counter_asset_type=credit_alphanum4&counter_asset_code=USDC&counter_asset_issuer=GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN&resolution=900000&limit=1&order=desc`);
           const priceData = await priceRes.json();
           if (priceData._embedded.records.length > 0) {
             setXlmPrice(parseFloat(priceData._embedded.records[0].close));
@@ -80,7 +82,7 @@ export default function MobileHeader() {
   // Same header for all pages (with stats)
   return (
     <header className="bg-[var(--header-bg)] text-white pt-6 pb-6 px-4 rounded-b-3xl shadow-lg relative z-10 md:hidden">
-      {/* Top Bar: Logo */}
+      {/* Top Bar: Logo + Network Badge */}
       <div className="flex items-center justify-between mb-6">
         <Link href="/">
           <Image
@@ -91,6 +93,7 @@ export default function MobileHeader() {
             className="h-10 w-auto"
           />
         </Link>
+        <NetworkBadge />
       </div>
 
       {/* Search Bar */}

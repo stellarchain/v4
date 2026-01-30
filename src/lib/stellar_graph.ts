@@ -1,8 +1,6 @@
-import { getTransactions } from './stellar';
+import { getTransactions, getBaseUrl } from './stellar';
 
 // Graph Visualization Types and Functions
-
-const HORIZON_MAINNET = 'https://horizon.stellar.org';
 
 // Helper to fetch JSON
 async function fetchJSON<T>(url: string): Promise<T> {
@@ -70,14 +68,14 @@ export async function buildAddressGraph(
         if (currentDepth >= maxDepth) continue;
 
         try {
-            const txUrl = `${HORIZON_MAINNET}/accounts/${currentAddress}/transactions?order=desc&limit=${fetchLimit}`;
+            const txUrl = `${getBaseUrl()}/accounts/${currentAddress}/transactions?order=desc&limit=${fetchLimit}`;
             const txData: any = await fetchJSON(txUrl);
             const transactions = txData._embedded?.records || [];
 
             for (const tx of transactions) {
                 if (nodes.size >= MAX_TOTAL_NODES) break;
 
-                const opsUrl = `${HORIZON_MAINNET}/transactions/${tx.hash}/operations`;
+                const opsUrl = `${getBaseUrl()}/transactions/${tx.hash}/operations`;
                 const opsData: any = await fetchJSON(opsUrl);
                 const operations = opsData._embedded?.records || [];
 
