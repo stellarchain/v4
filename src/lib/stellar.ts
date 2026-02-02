@@ -326,6 +326,10 @@ export interface NetworkStats {
   base_fee: number;
   base_reserve: number;
   protocol_version: number;
+  // Extended stats
+  ledger_capacity_usage?: number;
+  avg_fee?: number;
+  max_tx_set_size?: number;
 }
 
 export interface LiquidityPool {
@@ -1320,9 +1324,16 @@ export async function getEffects(
   return fetchJSON<PaginatedResponse<Effect>>(url);
 }
 
-// Network stats - uses latest ledger
+// Network stats - uses latest ledger and fee_stats
 export async function getNetworkStats(): Promise<NetworkStats> {
-  const ledgersResponse = await getLedgers(1, 'desc');
+  const [ledgersResponse, feeStatsResponse] = await Promise.all([
+    getLedgers(1, 'desc'),
+    fetch(`${getBaseUrl()}/fee_stats`, {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 10 },
+    }).then(res => res.ok ? res.json() : null).catch(() => null),
+  ]);
+
   const latestLedger = ledgersResponse._embedded.records[0];
 
   return {
@@ -1333,6 +1344,9 @@ export async function getNetworkStats(): Promise<NetworkStats> {
     base_fee: latestLedger.base_fee_in_stroops,
     base_reserve: latestLedger.base_reserve_in_stroops,
     protocol_version: latestLedger.protocol_version,
+    ledger_capacity_usage: feeStatsResponse ? parseFloat(feeStatsResponse.ledger_capacity_usage) : undefined,
+    avg_fee: feeStatsResponse?.fee_charged?.p50 ? parseInt(feeStatsResponse.fee_charged.p50) : undefined,
+    max_tx_set_size: latestLedger.max_tx_set_size,
   };
 }
 
@@ -3400,6 +3414,99 @@ export async function getAssetPriceFromHorizon(
     priceXlm: 0,
     xlmUsdRate: 0.10
   };
+}
+
+/**
+ * Get comprehensive XLM market data including dominance from CoinGecko
+ */
+export async function getXLMMarketData(): Promise<{
+  price: number;
+  priceChange24h: number;
+  marketCap: number;
+  marketCapChange24h: number;
+  volume24h: number;
+  circulatingSupply: number;
+  totalSupply: number;
+  dominance: number;
+  rank: number;
+  sparkline: number[];
+  burnedLumens: number;
+  sdfMandate: number;
+  feePool: number;
+  upgradeReserve: number;
+}> {
+  try {
+    // Fetch XLM data, global market data, and Stellar Dashboard data in parallel
+    const [xlmResponse, globalResponse, stellarDashResponse] = await Promise.all([
+      fetch(
+        'https://api.coingecko.com/api/v3/coins/stellar?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=true',
+        {
+          headers: { 'Accept': 'application/json' },
+          next: { revalidate: 60 },
+        }
+      ),
+      fetch(
+        'https://api.coingecko.com/api/v3/global',
+        {
+          headers: { 'Accept': 'application/json' },
+          next: { revalidate: 60 },
+        }
+      ),
+      fetch(
+        'https://dashboard.stellar.org/api/v2/lumens',
+        {
+          headers: { 'Accept': 'application/json' },
+          next: { revalidate: 300 },
+        }
+      ),
+    ]);
+
+    const xlmData = xlmResponse.ok ? await xlmResponse.json() : null;
+    const globalData = globalResponse.ok ? await globalResponse.json() : null;
+    const stellarDash = stellarDashResponse.ok ? await stellarDashResponse.json() : null;
+
+    // Get XLM market cap and total market cap to calculate dominance
+    const xlmMarketCap = xlmData?.market_data?.market_cap?.usd || 0;
+    const totalMarketCap = globalData?.data?.total_market_cap?.usd || 0;
+
+    // Calculate dominance as percentage of total crypto market cap
+    const dominance = totalMarketCap > 0 ? (xlmMarketCap / totalMarketCap) * 100 : 0;
+
+    return {
+      price: xlmData?.market_data?.current_price?.usd || 0,
+      priceChange24h: xlmData?.market_data?.price_change_percentage_24h || 0,
+      marketCap: xlmMarketCap,
+      marketCapChange24h: xlmData?.market_data?.market_cap_change_percentage_24h || 0,
+      volume24h: xlmData?.market_data?.total_volume?.usd || 0,
+      circulatingSupply: stellarDash ? parseFloat(stellarDash.circulatingSupply) : (xlmData?.market_data?.circulating_supply || 0),
+      totalSupply: stellarDash ? parseFloat(stellarDash.totalSupply) : (xlmData?.market_data?.total_supply || 50001787183),
+      dominance,
+      rank: xlmData?.market_cap_rank || 0,
+      sparkline: xlmData?.market_data?.sparkline_7d?.price?.slice(-48) || [],
+      burnedLumens: stellarDash ? parseFloat(stellarDash.burnedLumens) : 0,
+      sdfMandate: stellarDash ? parseFloat(stellarDash.sdfMandate) : 0,
+      feePool: stellarDash ? parseFloat(stellarDash.feePool) : 0,
+      upgradeReserve: stellarDash ? parseFloat(stellarDash.upgradeReserve) : 0,
+    };
+  } catch (error) {
+    console.error('Error fetching XLM market data:', error);
+    return {
+      price: 0,
+      priceChange24h: 0,
+      marketCap: 0,
+      marketCapChange24h: 0,
+      volume24h: 0,
+      circulatingSupply: 0,
+      totalSupply: 50001787183,
+      dominance: 0,
+      rank: 0,
+      sparkline: [],
+      burnedLumens: 0,
+      sdfMandate: 0,
+      feePool: 0,
+      upgradeReserve: 0,
+    };
+  }
 }
 
 export { USDC_ISSUER };

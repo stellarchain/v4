@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getLedgers, getTransactions, getOperations, getNetworkStats, getMarketAssets, getXLMUSDPriceFromHorizon } from '@/lib/stellar';
+import { getLedgers, getTransactions, getOperations, getPayments, getNetworkStats, getMarketAssets, getXLMMarketData } from '@/lib/stellar';
 import DesktopHomePage from '@/components/desktop/DesktopHomePage';
 import StatsSection from '@/components/mobile/sections/StatsSection';
 import TransactionsSection from '@/components/mobile/sections/TransactionsSection';
@@ -10,18 +10,27 @@ export const revalidate = 10;
 
 // Desktop data fetching (still uses Promise.all for now)
 async function DesktopData() {
-  const [stats, ledgersResponse, transactionsResponse, operationsResponse, marketAssets, xlmPrice] = await Promise.all([
+  const [stats, ledgersResponse, transactionsResponse, operationsResponse, paymentsResponse, marketAssets, xlmMarketData] = await Promise.all([
     getNetworkStats(),
     getLedgers(8),
     getTransactions(8),
-    getOperations(50),
+    getOperations(30),
+    getPayments(20),
     getMarketAssets(),
-    getXLMUSDPriceFromHorizon(),
+    getXLMMarketData(),
   ]);
 
   const ledgers = ledgersResponse._embedded.records;
   const transactions = transactionsResponse._embedded.records;
-  const operations = operationsResponse._embedded.records;
+  const rawOperations = operationsResponse._embedded.records;
+  const payments = paymentsResponse._embedded.records;
+
+  // Merge operations and payments, dedupe by id, sort by time
+  const operationIds = new Set(rawOperations.map(op => op.id));
+  const uniquePayments = payments.filter(p => !operationIds.has(p.id));
+  const operations = [...rawOperations, ...uniquePayments]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
   const xlmAsset = marketAssets.find(a => a.rank === 1) || marketAssets[0];
   const xlmVolume = xlmAsset ? xlmAsset.volume_24h : 0;
 
@@ -32,7 +41,7 @@ async function DesktopData() {
       initialLedgers={ledgers}
       initialOperations={operations}
       xlmVolume={xlmVolume}
-      xlmPrice={xlmPrice}
+      xlmMarketData={xlmMarketData}
     />
   );
 }
