@@ -336,46 +336,6 @@ export default function DesktopHomePage({
         { symbol: 'AQUA', logo: 'https://aqua.network/assets/img/aqua-logo.png', fallbackColor: 'bg-teal-500' },
     ];
 
-    // Community resources
-    const communityResources = [
-        {
-            icon: (
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-            ),
-            title: 'Documentation',
-            description: 'Comprehensive guides and API references for building on Stellar.',
-            gradient: 'from-blue-500 to-blue-600',
-            shadowColor: 'shadow-blue-500/20',
-            href: 'https://developers.stellar.org/docs'
-        },
-        {
-            icon: (
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                </svg>
-            ),
-            title: 'Developer Tools',
-            description: 'SDKs, CLIs, and tools to accelerate your development workflow.',
-            gradient: 'from-indigo-500 to-purple-600',
-            shadowColor: 'shadow-indigo-500/20',
-            href: 'https://developers.stellar.org/docs/tools'
-        },
-        {
-            icon: (
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-            ),
-            title: 'Community',
-            description: 'Join the Stellar community on Discord, forums, and social media.',
-            gradient: 'from-teal-400 to-teal-600',
-            shadowColor: 'shadow-teal-500/20',
-            href: 'https://stellar.org/community'
-        },
-    ];
-
     return (
         <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)' }}>
             {/* Hero Section */}
@@ -433,34 +393,6 @@ export default function DesktopHomePage({
                                 </div>
                                 <span className="text-slate-700 group-hover:text-blue-500 transition">{token.symbol}</span>
                             </Link>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* Community Resources Section */}
-            <section className="pb-8">
-                <div className="max-w-[1400px] mx-auto px-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {communityResources.map((resource) => (
-                            <a
-                                key={resource.title}
-                                href={resource.href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="bg-white rounded-2xl p-6 shadow-md shadow-slate-200/50 border border-slate-100 flex items-start gap-4 hover:border-blue-200 hover:shadow-lg transition-all duration-300 cursor-pointer group h-full"
-                            >
-                                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${resource.gradient} text-white flex-shrink-0 flex items-center justify-center shadow-lg ${resource.shadowColor}`}>
-                                    <span className="group-hover:rotate-12 transition transform">{resource.icon}</span>
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="font-bold text-slate-900 mb-1.5 group-hover:text-blue-500 transition">{resource.title}</h3>
-                                    <p className="text-sm text-slate-500 leading-relaxed">{resource.description}</p>
-                                </div>
-                                <svg className="w-5 h-5 text-slate-300 group-hover:translate-x-1 group-hover:text-blue-400 transition mt-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                            </a>
                         ))}
                     </div>
                 </div>

@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Transaction, Operation, Effect, shortenAddress, timeAgo, formatXLM, getBaseUrl } from '@/lib/stellar';
+import type { AccountLabel } from '@/lib/stellar';
+import AccountBadges from '@/components/AccountBadges';
+import { QRCodeSVG } from 'qrcode.react';
+import { useFavorites } from '@/contexts/FavoritesContext';
 
 interface Balance {
   asset_type: string;
@@ -27,13 +31,19 @@ interface AccountData {
   home_domain?: string;
 }
 
+interface AssetPriceData {
+  price: number;
+  priceInXlm: number;
+  change24h: number;
+}
+
 interface AccountDesktopViewProps {
   account: AccountData;
   transactions: Transaction[];
   operations: Operation[];
   xlmPrice: number;
-  accountLabels?: Record<string, { name: string; verified: boolean; org_name: string | null; description: string | null }>;
-  currentAccountLabel?: { name: string; verified: boolean; org_name: string | null; description: string | null } | null;
+  accountLabels?: Record<string, AccountLabel>;
+  currentAccountLabel?: AccountLabel | null;
 }
 
 function getAssetUrl(code: string | undefined, issuer: string | undefined): string {
@@ -42,33 +52,262 @@ function getAssetUrl(code: string | undefined, issuer: string | undefined): stri
   return `/asset/${encodeURIComponent(code)}${issuer ? `?issuer=${encodeURIComponent(issuer)}` : ''}`;
 }
 
-export default function AccountDesktopView({ account, transactions, operations, xlmPrice, accountLabels = {}, currentAccountLabel }: AccountDesktopViewProps) {
-  const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'operations' | 'details'>('operations');
-  const [assetPrices, setAssetPrices] = useState<Record<string, number>>({});
-  const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
-  const [visibleCount, setVisibleCount] = useState(10);
+function formatCompactNumber(value: number): string {
+  if (value === 0) return '0';
+  const absValue = Math.abs(value);
+  if (absValue >= 1_000_000_000_000) return (value / 1_000_000_000_000).toFixed(2) + 'T';
+  if (absValue >= 1_000_000_000) return (value / 1_000_000_000).toFixed(2) + 'B';
+  if (absValue >= 1_000_000) return (value / 1_000_000).toFixed(2) + 'M';
+  if (absValue >= 10_000) return (value / 1_000).toFixed(1) + 'K';
+  return value.toLocaleString(undefined, { maximumFractionDigits: 4 });
+}
 
+function formatExactNumber(value: number): string {
+  return value.toLocaleString(undefined, { maximumFractionDigits: 7 });
+}
+
+const getOperationCategory = (type: string): { label: string; color: string; bgColor: string } => {
+  if (type === 'payment' || type === 'create_account') return { label: 'Payment', color: 'text-emerald-600', bgColor: 'bg-emerald-50 border-emerald-100' };
+  if (type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') return { label: 'Swap', color: 'text-violet-600', bgColor: 'bg-violet-50 border-violet-100' };
+  if (type === 'invoke_host_function') return { label: 'Contract', color: 'text-amber-600', bgColor: 'bg-amber-50 border-amber-100' };
+  if (type.includes('offer')) return { label: 'DEX', color: 'text-indigo-600', bgColor: 'bg-indigo-50 border-indigo-100' };
+  if (type === 'change_trust' || type === 'set_trustline_flags') return { label: 'Trustline', color: 'text-sky-600', bgColor: 'bg-sky-50 border-sky-100' };
+  if (type === 'set_options' || type === 'account_merge') return { label: 'Account', color: 'text-slate-600', bgColor: 'bg-slate-50 border-slate-100' };
+  return { label: 'Action', color: 'text-slate-600', bgColor: 'bg-slate-50 border-slate-100' };
+};
+
+export default function AccountDesktopView({ account, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel }: AccountDesktopViewProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [copied, setCopied] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [showFavoriteModal, setShowFavoriteModal] = useState(false);
+  const [favoriteLabel, setFavoriteLabel] = useState('');
+  const [showTokensDropdown, setShowTokensDropdown] = useState(false);
+  const tokensDropdownRef = useRef<HTMLDivElement>(null);
+  const { favorites, addFavorite, removeFavorite, updateFavoriteLabel, isFavorite, getFavorite } = useFavorites();
+  const isCurrentFavorite = isFavorite(account.id);
+  const currentFavorite = getFavorite(account.id);
+
+  // Read initial tab from URL params
+  const initialTab = (searchParams.get('tab') as 'assets' | 'transactions' | 'operations' | 'details') || 'assets';
+  const [activeTab, setActiveTab] = useState<'assets' | 'transactions' | 'operations' | 'details'>(initialTab);
+
+  const [assetPrices, setAssetPrices] = useState<Record<string, AssetPriceData>>({});
+  const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
+  const [xlmChange24h, setXlmChange24h] = useState(0);
+  const [activityAssets, setActivityAssets] = useState<Array<{ code: string; issuer: string; type: string }>>([]);
+
+  // Operations state for pagination
+  const [allOperations, setAllOperations] = useState<Operation[]>(initialOperations);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreToFetch, setHasMoreToFetch] = useState(initialOperations.length >= 100);
+  const [lastCursor, setLastCursor] = useState<string | null>(
+    initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
+  );
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 25;
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: 'assets' | 'transactions' | 'operations' | 'details') => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === 'assets') {
+      params.delete('tab');
+    } else {
+      params.set('tab', tab);
+    }
+    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+    router.replace(newUrl, { scroll: false });
+  };
+
+  // Sync operations state when initialOperations prop changes
+  useEffect(() => {
+    const sortedOps = [...initialOperations].sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    setAllOperations(sortedOps);
+    setHasMoreToFetch(initialOperations.length >= 100);
+    setLastCursor(
+      initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
+    );
+  }, [initialOperations]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (tokensDropdownRef.current && !tokensDropdownRef.current.contains(e.target as Node)) {
+        setShowTokensDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Balances
+  const xlmBalance = account.balances.find(b => b.asset_type === 'native');
+  const otherBalancesUnsorted = account.balances.filter(b => b.asset_type !== 'native');
+  const xlmAmount = parseFloat(xlmBalance?.balance || '0');
+
+  // Sort other balances by USD value (highest first)
+  const otherBalances = useMemo(() => {
+    return [...otherBalancesUnsorted].sort((a, b) => {
+      const keyA = `${a.asset_code}:${a.asset_issuer}`;
+      const keyB = `${b.asset_code}:${b.asset_issuer}`;
+      const priceA = assetPrices[keyA];
+      const priceB = assetPrices[keyB];
+      const valueA = priceA ? parseFloat(a.balance) * priceA.price : 0;
+      const valueB = priceB ? parseFloat(b.balance) * priceB.price : 0;
+      return valueB - valueA;
+    });
+  }, [otherBalancesUnsorted, assetPrices]);
+
+  // Calculate total balance in XLM
+  const totalBalanceXLM = useMemo(() => {
+    let total = xlmAmount;
+    otherBalances.forEach(b => {
+      const key = `${b.asset_code}:${b.asset_issuer}`;
+      const priceData = assetPrices[key];
+      if (priceData && priceData.priceInXlm > 0) {
+        total += parseFloat(b.balance) * priceData.priceInXlm;
+      }
+    });
+    return total;
+  }, [xlmAmount, otherBalances, assetPrices]);
+
+  // Calculate total USD value
+  const totalValueUSD = totalBalanceXLM * xlmPrice;
+
+  // Calculate tokens total value
+  const tokensValueUSD = useMemo(() => {
+    let total = 0;
+    otherBalances.forEach(b => {
+      const key = `${b.asset_code}:${b.asset_issuer}`;
+      const priceData = assetPrices[key];
+      if (priceData) {
+        total += parseFloat(b.balance) * priceData.price;
+      }
+    });
+    return total;
+  }, [otherBalances, assetPrices]);
+
+  // Fetch XLM 24h change
+  useEffect(() => {
+    const fetchXlmChange = async () => {
+      try {
+        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd&include_24hr_change=true');
+        const data = await res.json();
+        if (data.stellar?.usd_24h_change) {
+          setXlmChange24h(data.stellar.usd_24h_change);
+        }
+      } catch {
+        // Ignore
+      }
+    };
+    fetchXlmChange();
+  }, []);
+
+  // Fetch asset prices with 24h change
+  useEffect(() => {
+    const fetchPrices = async () => {
+      const newPrices: Record<string, AssetPriceData> = {};
+
+      await Promise.all(account.balances.filter(b => b.asset_type !== 'native').map(async (b) => {
+        if (!b.asset_code || !b.asset_issuer) return;
+        const key = `${b.asset_code}:${b.asset_issuer}`;
+
+        if (b.asset_code === 'USDC' || b.asset_code === 'yUSDC') {
+          newPrices[key] = { price: 1.0, priceInXlm: 1 / xlmPrice, change24h: 0 };
+          return;
+        }
+
+        try {
+          const res = await fetch(
+            `${getBaseUrl()}/order_book?selling_asset_type=${b.asset_type}&selling_asset_code=${b.asset_code}&selling_asset_issuer=${b.asset_issuer}&buying_asset_type=native&limit=1`
+          );
+          const data = await res.json();
+
+          if (data.bids && data.bids.length > 0) {
+            const priceInXlm = parseFloat(data.bids[0].price);
+            const priceUSD = priceInXlm * xlmPrice;
+
+            const endTime = Date.now();
+            const startTime = endTime - 86400000;
+            const aggRes = await fetch(
+              `${getBaseUrl()}/trade_aggregations?base_asset_type=${b.asset_type}&base_asset_code=${b.asset_code}&base_asset_issuer=${b.asset_issuer}&counter_asset_type=native&resolution=3600000&start_time=${startTime}&end_time=${endTime}&limit=24&order=asc`
+            );
+            const aggData = await aggRes.json();
+
+            let change24h = 0;
+            const records = aggData._embedded?.records || [];
+            if (records.length > 0) {
+              const oldestRecord = records[0];
+              const openPriceXlm = parseFloat(oldestRecord.open);
+              if (openPriceXlm > 0) {
+                const xlmPriceChange = ((priceInXlm - openPriceXlm) / openPriceXlm) * 100;
+                change24h = xlmPriceChange + xlmChange24h;
+              }
+            } else {
+              change24h = xlmChange24h;
+            }
+
+            newPrices[key] = { price: priceUSD, priceInXlm, change24h };
+          }
+        } catch {
+          // Ignore
+        }
+      }));
+
+      setAssetPrices(prev => ({ ...prev, ...newPrices }));
+    };
+
+    fetchPrices();
+  }, [account.balances, xlmPrice, xlmChange24h]);
+
+  // Fetch more operations for load more
+  const fetchMoreOperations = useCallback(async () => {
+    if (!hasMoreToFetch || loadingMore || !lastCursor) return;
+
+    setLoadingMore(true);
+    try {
+      const res = await fetch(
+        `${getBaseUrl()}/accounts/${account.id}/operations?limit=100&order=desc&cursor=${lastCursor}`
+      );
+      const data = await res.json();
+      const newOps = data._embedded?.records || [];
+
+      if (newOps.length > 0) {
+        setAllOperations(prev => [...prev, ...newOps]);
+        setLastCursor(newOps[newOps.length - 1].paging_token);
+        setHasMoreToFetch(newOps.length >= 100);
+      } else {
+        setHasMoreToFetch(false);
+      }
+    } catch (error) {
+      console.error('Failed to load more operations:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [account.id, hasMoreToFetch, lastCursor, loadingMore]);
+
+  // Fetch effects for operations
   useEffect(() => {
     const fetchEffects = async () => {
-      // Fetch effects for visible operations that we haven't fetched yet
-      const currentVisibleOps = operations.slice(0, visibleCount);
-      const opsToFetch = currentVisibleOps.filter(op => !opEffects[op.id]);
+      const opsNeedingEffects = allOperations
+        .filter(op => !opEffects[op.id])
+        .slice(0, 30);
 
-      if (opsToFetch.length === 0) return;
+      if (opsNeedingEffects.length === 0) return;
 
       const newEffects: Record<string, Effect[]> = {};
-
-      await Promise.all(opsToFetch.map(async (op) => {
+      await Promise.all(opsNeedingEffects.map(async (op) => {
         try {
           const res = await fetch(`${getBaseUrl()}/operations/${op.id}/effects`);
           const data = await res.json();
-          if (data._embedded && data._embedded.records) {
+          if (data._embedded?.records) {
             newEffects[op.id] = data._embedded.records;
           }
-        } catch {
-          // ignore
-        }
+        } catch { /* ignore */ }
       }));
 
       if (Object.keys(newEffects).length > 0) {
@@ -77,59 +316,79 @@ export default function AccountDesktopView({ account, transactions, operations, 
     };
 
     fetchEffects();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [operations, account.id, visibleCount]);
+  }, [allOperations, opEffects]);
 
-  const xlmBalance = account.balances.find(b => b.asset_type === 'native');
-  const otherBalances = account.balances.filter(b => b.asset_type !== 'native');
-  const xlmAmount = parseFloat(xlmBalance?.balance || '0');
-
-  let totalValueUSD = xlmAmount * xlmPrice;
-  otherBalances.forEach(b => {
-    const key = `${b.asset_code}:${b.asset_issuer}`;
-    if (assetPrices[key]) {
-      totalValueUSD += parseFloat(b.balance) * assetPrices[key];
-    }
-  });
-
+  // Extract unique assets from activity effects for price fetching
   useEffect(() => {
-    const fetchPrices = async () => {
-      const newPrices: Record<string, number> = {};
-      const assetsToFetch = account.balances.filter(b => b.asset_type !== 'native');
+    const assets = new Map<string, { code: string; issuer: string; type: string }>();
 
-      await Promise.all(assetsToFetch.map(async (b) => {
-        if (!b.asset_code || !b.asset_issuer) return;
-        const key = `${b.asset_code}:${b.asset_issuer}`;
+    Object.values(opEffects).forEach(effects => {
+      effects.forEach(effect => {
+        const e = effect as any;
+        if (e.asset_code && e.asset_issuer && e.asset_type !== 'native') {
+          const key = `${e.asset_code}:${e.asset_issuer}`;
+          if (!assets.has(key)) {
+            assets.set(key, {
+              code: e.asset_code,
+              issuer: e.asset_issuer,
+              type: e.asset_type || 'credit_alphanum4',
+            });
+          }
+        }
+      });
+    });
 
-        if (b.asset_code === 'USDC' || b.asset_code === 'yUSDC') {
-          newPrices[key] = 1.0;
+    setActivityAssets(Array.from(assets.values()));
+  }, [opEffects]);
+
+  // Fetch prices for activity assets
+  useEffect(() => {
+    const fetchActivityPrices = async () => {
+      const newPrices: Record<string, AssetPriceData> = {};
+
+      const assetsToFetch = activityAssets.filter(a => {
+        const key = `${a.code}:${a.issuer}`;
+        return !assetPrices[key];
+      });
+
+      if (assetsToFetch.length === 0) return;
+
+      await Promise.all(assetsToFetch.map(async (asset) => {
+        const key = `${asset.code}:${asset.issuer}`;
+
+        if (asset.code === 'USDC' || asset.code === 'yUSDC') {
+          newPrices[key] = { price: 1.0, priceInXlm: 1 / xlmPrice, change24h: 0 };
           return;
         }
 
         try {
           const res = await fetch(
-            `${getBaseUrl()}/order_book?selling_asset_type=${b.asset_type}&selling_asset_code=${b.asset_code}&selling_asset_issuer=${b.asset_issuer}&buying_asset_type=native&limit=1`,
+            `${getBaseUrl()}/order_book?selling_asset_type=${asset.type}&selling_asset_code=${asset.code}&selling_asset_issuer=${asset.issuer}&buying_asset_type=native&limit=1`
           );
           const data = await res.json();
+
           if (data.bids && data.bids.length > 0) {
             const priceInXlm = parseFloat(data.bids[0].price);
-            newPrices[key] = priceInXlm * xlmPrice;
+            const priceUSD = priceInXlm * xlmPrice;
+            newPrices[key] = { price: priceUSD, priceInXlm, change24h: 0 };
           }
-        } catch {
-          // ignore pricing errors
-        }
+        } catch { /* ignore */ }
       }));
 
-      setAssetPrices(prev => ({ ...prev, ...newPrices }));
+      if (Object.keys(newPrices).length > 0) {
+        setAssetPrices(prev => ({ ...prev, ...newPrices }));
+      }
     };
 
-    fetchPrices();
-  }, [account, xlmPrice]);
+    if (activityAssets.length > 0 && xlmPrice > 0) {
+      fetchActivityPrices();
+    }
+  }, [activityAssets, xlmPrice, assetPrices]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(account.id);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const decodeContractFunctionName = (op: Operation): string => {
@@ -139,8 +398,8 @@ export default function AccountDesktopView({ account, transactions, operations, 
       const symParam = parameters.find(p => p.type === 'Sym');
       if (!symParam) return 'Contract Call';
       const decoded = atob(symParam.value);
-      // Filter out non-printable characters and extract clean function name
-      return decoded.replace(/[^\x20-\x7E]/g, '').trim() || 'Contract Call';
+      const cleaned = decoded.replace(/[^\x20-\x7E]/g, '').replace(/^[^a-zA-Z]+/, '');
+      return cleaned || 'Contract Call';
     } catch {
       return 'Contract Call';
     }
@@ -149,325 +408,868 @@ export default function AccountDesktopView({ account, transactions, operations, 
   const getAmountFromEffects = (effects: Effect[] | undefined) => {
     if (!effects || effects.length === 0) return null;
 
-    const credit = effects.find(e => e.type === 'account_credited' && e.account === account.id && (e as any).amount);
-    const debit = effects.find(e => e.type === 'account_debited' && e.account === account.id && (e as any).amount);
+    const credits = effects.filter(e => e.type === 'account_credited' && e.account === account.id && (e as any).amount);
+    const debits = effects.filter(e => e.type === 'account_debited' && e.account === account.id && (e as any).amount);
 
-    if (credit) {
+    let largestCredit = credits.reduce((max, e) => {
+      const amount = parseFloat((e as any).amount) || 0;
+      const maxAmount = max ? parseFloat((max as any).amount) || 0 : 0;
+      return amount > maxAmount ? e : max;
+    }, null as Effect | null);
+
+    let largestDebit = debits.reduce((max, e) => {
+      const amount = parseFloat((e as any).amount) || 0;
+      const maxAmount = max ? parseFloat((max as any).amount) || 0 : 0;
+      return amount > maxAmount ? e : max;
+    }, null as Effect | null);
+
+    if (!largestCredit && !largestDebit) {
+      const anyCredits = effects.filter(e => e.type === 'account_credited' && (e as any).amount);
+      const anyDebits = effects.filter(e => e.type === 'account_debited' && (e as any).amount);
+
+      largestCredit = anyCredits.reduce((max, e) => {
+        const amount = parseFloat((e as any).amount) || 0;
+        const maxAmount = max ? parseFloat((max as any).amount) || 0 : 0;
+        return amount > maxAmount ? e : max;
+      }, null as Effect | null);
+
+      largestDebit = anyDebits.reduce((max, e) => {
+        const amount = parseFloat((e as any).amount) || 0;
+        const maxAmount = max ? parseFloat((max as any).amount) || 0 : 0;
+        return amount > maxAmount ? e : max;
+      }, null as Effect | null);
+    }
+
+    const creditAmount = largestCredit ? parseFloat((largestCredit as any).amount) || 0 : 0;
+    const debitAmount = largestDebit ? parseFloat((largestDebit as any).amount) || 0 : 0;
+
+    if (creditAmount >= debitAmount && largestCredit) {
       return {
         type: 'received' as const,
-        amount: (credit as any).amount,
-        asset: (credit as any).asset_code || ((credit as any).asset_type === 'native' ? 'XLM' : 'Unknown'),
+        amount: (largestCredit as any).amount,
+        asset: (largestCredit as any).asset_code || ((largestCredit as any).asset_type === 'native' ? 'XLM' : 'Unknown'),
+        asset_issuer: (largestCredit as any).asset_issuer || null,
+        asset_type: (largestCredit as any).asset_type || 'native',
       };
     }
 
-    if (debit) {
+    if (largestDebit) {
       return {
         type: 'sent' as const,
-        amount: (debit as any).amount,
-        asset: (debit as any).asset_code || ((debit as any).asset_type === 'native' ? 'XLM' : 'Unknown'),
+        amount: (largestDebit as any).amount,
+        asset: (largestDebit as any).asset_code || ((largestDebit as any).asset_type === 'native' ? 'XLM' : 'Unknown'),
+        asset_issuer: (largestDebit as any).asset_issuer || null,
+        asset_type: (largestDebit as any).asset_type || 'native',
       };
     }
 
     return null;
   };
 
+  // Pagination for operations
+  const totalPages = Math.ceil(allOperations.length / PAGE_SIZE);
+  const paginatedOperations = allOperations.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // Get first and last operation times
+  const firstOpTime = allOperations.length > 0 ? allOperations[allOperations.length - 1]?.created_at : null;
+  const latestOpTime = allOperations.length > 0 ? allOperations[0]?.created_at : null;
+
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
-      <div className="max-w-[1600px] mx-auto px-6 pb-8 pt-2">
-        {/* Top Navigation Bar */}
-        <div className="h-16 flex items-center justify-between border-b border-slate-100 mb-2">
-          <Link href="/" className="flex items-center text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Explorer
-          </Link>
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="mx-auto max-w-[1400px] px-4 py-6">
+        {/* Header Row */}
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-500">Address</span>
+            <span className="font-mono text-sm font-medium text-slate-900">{account.id}</span>
             <button
-              onClick={() => setActiveTab('details')}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-[11px] font-bold hover:bg-slate-800 transition-colors shadow-sm"
+              onClick={handleCopy}
+              className="p-1.5 rounded-md hover:bg-slate-200 transition-colors text-slate-400 hover:text-slate-600"
+              title="Copy address"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              View Account Details
-            </button>
-            <div className="flex items-center bg-emerald-50 px-3 py-1.5 rounded-md text-[10px] font-bold text-emerald-600 border border-emerald-100">
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
-              MAINNET
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          {/* Left Column: Overview & Balances */}
-          <div className="lg:col-span-5 space-y-8">
-            {/* Account Header */}
-            <header>
-              <div className="flex flex-col gap-6">
-                <div>
-                  <div className="flex items-center gap-3 mb-3">
-                    <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Account Overview</h1>
-                    <span className="px-2 py-1 rounded bg-slate-100 text-[10px] font-bold tracking-widest text-slate-500 border border-slate-200">G-ADDR</span>
-                  </div>
-                  <div className="flex items-center group">
-                    <code className="text-sm font-medium text-slate-400 break-all leading-tight">
-                      {account.id}
-                    </code>
-                    <button
-                      onClick={handleCopy}
-                      className="ml-3 p-1.5 rounded-md text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-all opacity-0 group-hover:opacity-100 relative"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16h8m-8-4h8m-8-4h8M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H8l-4 4v10a2 2 0 002 2z" />
-                      </svg>
-                      {copied && (
-                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded shadow-lg font-bold">
-                          Copied!
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-8 py-8 border-y border-slate-100">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Net Worth</span>
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-4xl font-extrabold tracking-tight text-slate-900">
-                        ${totalValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                      <span className="text-emerald-500 font-bold text-xs flex items-center bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
-                        1.2%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col justify-center border-l border-slate-100 pl-8">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Lumen Balance</span>
-                    <span className="text-2xl font-bold text-slate-700 tracking-tight">{formatXLM(xlmBalance?.balance || '0')} XLM</span>
-                  </div>
-                </div>
-              </div>
-            </header>
-
-            {/* Balances & Assets */}
-            <section>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-6 block">Balances & Assets</span>
-              <div className="divide-y divide-slate-100 border-t border-b border-slate-100">
-                {/* XLM Balance */}
-                <Link href="/asset/XLM" className="flex justify-between items-center py-4 group hover:bg-slate-50 transition-colors -mx-4 px-4 rounded-xl">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">XLM</div>
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-900">Stellar Lumens</h4>
-                      <span className="text-[11px] text-slate-400 font-medium">Stellar Native Asset</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-sm text-slate-900">${(xlmAmount * xlmPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                    <p className="text-[11px] text-slate-400 font-medium font-mono">{formatXLM(xlmBalance?.balance || '0')} XLM</p>
-                  </div>
-                </Link>
-
-                {/* Other Assets */}
-                {otherBalances.map((balance, idx) => {
-                  const amount = parseFloat(balance.balance);
-                  const isUSDC = balance.asset_code === 'USDC';
-                  const bgColors = ['bg-blue-600', 'bg-purple-600', 'bg-emerald-500', 'bg-orange-500', 'bg-pink-500'];
-                  const colorIdx = (balance.asset_code || '').length % bgColors.length;
-                  const key = `${balance.asset_code}:${balance.asset_issuer}`;
-                  const price = assetPrices[key];
-                  const value = price ? amount * price : 0;
-
-                  return (
-                    <Link
-                      key={idx}
-                      href={getAssetUrl(balance.asset_code, balance.asset_issuer)}
-                      className="flex justify-between items-center py-4 group hover:bg-slate-50 transition-colors -mx-4 px-4 rounded-xl"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full ${isUSDC ? 'bg-[#2775CA]' : bgColors[colorIdx]} text-white flex items-center justify-center font-bold text-xs shadow-sm`}>
-                          {balance.asset_code ? balance.asset_code.substring(0, 4) : 'LP'}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-sm text-slate-900">{balance.asset_code || 'Liquidity Pool'}</h4>
-                          <span className="text-[11px] text-slate-400 font-medium truncate max-w-[200px] block">
-                            {balance.asset_issuer ? shortenAddress(balance.asset_issuer, 10) : 'Unknown Issuer'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-sm text-slate-900">${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                        <p className="text-[11px] text-slate-400 font-medium font-mono">
-                          {amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {balance.asset_code}
-                        </p>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          </div>
-
-          {/* Right Column: Recent Activity */}
-          <div className="lg:col-span-7">
-            <section className="h-full flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-8 block">Recent Activity</span>
-              <div className="relative pl-8 border-l-2 border-slate-100 space-y-8 flex-1">
-                {operations.slice(0, visibleCount).map((op) => {
-                  const effects = opEffects[op.id];
-                  const effectInfo = getAmountFromEffects(effects);
-                  const isSwap = op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive';
-                  const isPayment = op.type === 'payment' || op.type === 'create_account';
-                  const isContract = op.type === 'invoke_host_function';
-
-                  let title = op.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                  let subtitle = `Transaction ${shortenAddress(op.transaction_hash, 8)}`;
-                  let amountDisplay = '';
-                  let timeDisplay = timeAgo(op.created_at);
-                  let colorClass = 'bg-slate-300';
-                  let amountClass = 'text-slate-900';
-
-                  if (effectInfo) {
-                    if (effectInfo.type === 'received') {
-                      title = `Received ${effectInfo.asset}`;
-                      subtitle = `From ${shortenAddress(op.source_account, 8)}`;
-                      amountDisplay = `+${formatXLM(effectInfo.amount)} ${effectInfo.asset}`;
-                      colorClass = 'bg-emerald-500';
-                      amountClass = 'text-emerald-500';
-                    } else {
-                      title = `Sent ${effectInfo.asset}`;
-                      subtitle = `To ${shortenAddress(op.to || (op as any).into || 'Unknown', 8)}`;
-                      amountDisplay = `-${formatXLM(effectInfo.amount)} ${effectInfo.asset}`;
-                      colorClass = 'bg-orange-500';
-                      amountClass = 'text-orange-500';
-                    }
-                  } else if (isSwap) {
-                    title = 'Trade Complete';
-                    subtitle = 'Asset Swap via SDEX';
-                    const destAsset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
-                    amountDisplay = `+${formatXLM(op.amount || '0')} ${destAsset}`;
-                    colorClass = 'bg-blue-500';
-                  } else if (isContract) {
-                    const functionName = decodeContractFunctionName(op);
-                    title = functionName !== 'Contract Call' ? functionName : 'Contract Interaction';
-                    subtitle = 'Smart Contract Call';
-                    colorClass = 'bg-purple-500';
-                  }
-
-                  return (
-                    <div key={op.id} className="relative group">
-                      <div className={`absolute -left-[37px] top-1.5 w-4 h-4 rounded-full border-[3px] border-white ring-1 ring-slate-100 ${colorClass}`}></div>
-                      <Link href={`/transaction/${op.transaction_hash}`} className="flex justify-between items-start hover:bg-slate-50 -my-2 -mx-4 p-4 rounded-xl transition-colors">
-                        <div>
-                          <h4 className="font-bold text-sm text-slate-900 mb-0.5">{title}</h4>
-                          <p className="text-slate-400 text-[11px] font-medium">{subtitle}</p>
-                        </div>
-                        <div className="text-right">
-                          {amountDisplay && <p className={`font-bold text-sm ${amountClass}`}>{amountDisplay}</p>}
-                          <p className="text-slate-400 text-[10px] font-bold mt-1 uppercase tracking-wide">{timeDisplay}</p>
-                        </div>
-                      </Link>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {visibleCount < operations.length && (
-                <div className="mt-8 pl-8">
-                  <button
-                    onClick={() => setVisibleCount(prev => prev + 10)}
-                    className="w-full py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 uppercase tracking-wider hover:bg-slate-100 hover:text-slate-900 transition-colors"
-                  >
-                    View More Activity
-                  </button>
-                </div>
-              )}
-            </section>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <footer className="py-12 text-center border-t border-slate-100 mt-12">
-          <p className="text-[11px] text-slate-400 font-bold tracking-tight">
-            © 2024 StellarChain Explorer
-          </p>
-        </footer>
-      </div>
-
-      {/* Account Details Modal */}
-      {activeTab === 'details' && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setActiveTab('operations')}>
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-100 scale-100 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h3 className="font-bold text-base text-slate-900">Account Information</h3>
-              <button onClick={() => setActiveTab('operations')} className="text-slate-400 hover:text-slate-600 transition-colors">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              {copied ? (
+                <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-              </button>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 gap-y-6">
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sequence ID</span>
-                  <p className="text-sm font-bold font-mono tracking-tight text-slate-900 bg-slate-50 p-2 rounded border border-slate-100">{account.sequence}</p>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={() => setShowQrModal(true)}
+              className="p-1.5 rounded-md hover:bg-slate-200 transition-colors text-slate-400 hover:text-slate-600"
+              title="Show QR Code"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+              </svg>
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              if (isCurrentFavorite) {
+                setFavoriteLabel(currentFavorite?.label || '');
+              }
+              setShowFavoriteModal(true);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${
+              isCurrentFavorite
+                ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+                : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-amber-500'
+            }`}
+          >
+            <svg className="w-4 h-4" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+            {isCurrentFavorite ? 'Favorited' : 'Add to Favorites'}
+          </button>
+        </div>
+
+        {/* Overview Cards Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* Card 1 - Overview */}
+          <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
+            <h3 className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-3 pb-2 border-b border-slate-100">Overview</h3>
+
+            <div className="space-y-3">
+              <div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">XLM Balance</div>
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span className="text-sm font-semibold text-slate-900">{formatCompactNumber(xlmAmount)} XLM</span>
                 </div>
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sub-Entries</span>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                      <div className="bg-blue-500 h-full rounded-full" style={{ width: `${(Math.min(account.subentry_count, 1000) / 1000) * 100}%` }}></div>
-                    </div>
-                    <p className="text-xs font-bold text-slate-700">{account.subentry_count} <span className="text-slate-400">/ 1000</span></p>
-                  </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">XLM Value</div>
+                <div className="text-sm text-slate-700">
+                  ${(xlmAmount * xlmPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <span className="text-xs text-slate-400 ml-1">(@ ${xlmPrice.toFixed(4)}/XLM)</span>
                 </div>
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Signers & Thresholds</span>
-                  <div className="flex gap-2 mt-1">
-                    <div className="px-3 py-1.5 bg-slate-50 rounded-lg text-xs font-bold border border-slate-100 text-slate-600">Low: <span className="text-slate-900">{account.thresholds.low_threshold}</span></div>
-                    <div className="px-3 py-1.5 bg-slate-50 rounded-lg text-xs font-bold border border-slate-100 text-slate-600">Med: <span className="text-slate-900">{account.thresholds.med_threshold}</span></div>
-                    <div className="px-3 py-1.5 bg-slate-50 rounded-lg text-xs font-bold border border-slate-100 text-slate-600">High: <span className="text-slate-900">{account.thresholds.high_threshold}</span></div>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Flags</span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {Object.entries(account.flags).map(([flag, enabled]) => (
-                      enabled && (
-                        <span key={flag} className="px-2 py-1 bg-blue-50 rounded text-[9px] font-bold text-blue-600 border border-blue-100 uppercase tracking-wider">
-                          {flag.replace('auth_', '').replace(/_/g, ' ')}
-                        </span>
-                      )
-                    ))}
-                    {!Object.values(account.flags).some(Boolean) && (
-                      <span className="text-xs text-slate-400 italic">No flags set</span>
+              </div>
+
+              <div ref={tokensDropdownRef} className="relative">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Token Holdings</div>
+                <button
+                  onClick={() => setShowTokensDropdown(!showTokensDropdown)}
+                  className="flex items-center gap-2 text-sm text-slate-700 hover:text-sky-600 transition-colors"
+                >
+                  <span>${tokensValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className="text-xs text-slate-400">({otherBalances.length} tokens)</span>
+                  <svg className={`w-3 h-3 text-slate-400 transition-transform ${showTokensDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showTokensDropdown && otherBalances.length > 0 && (
+                  <div className="absolute left-0 top-full mt-1 w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                    {otherBalances.slice(0, 10).map((b, idx) => {
+                      const key = `${b.asset_code}:${b.asset_issuer}`;
+                      const priceData = assetPrices[key];
+                      const value = priceData ? parseFloat(b.balance) * priceData.price : 0;
+                      return (
+                        <Link
+                          key={idx}
+                          href={getAssetUrl(b.asset_code, b.asset_issuer)}
+                          className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 text-sm border-b border-slate-100 last:border-b-0"
+                        >
+                          <span className="font-medium text-slate-900">{b.asset_code || 'LP'}</span>
+                          <span className="text-slate-500">${value.toFixed(2)}</span>
+                        </Link>
+                      );
+                    })}
+                    {otherBalances.length > 10 && (
+                      <div className="px-3 py-2 text-xs text-slate-400 text-center">
+                        +{otherBalances.length - 10} more tokens
+                      </div>
                     )}
-                  </div>
-                </div>
-                {account.home_domain && (
-                  <div className="space-y-1.5 pt-4 border-t border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Home Domain</span>
-                    <a href={`https://${account.home_domain}`} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1">
-                      {account.home_domain}
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
                   </div>
                 )}
               </div>
             </div>
-            <div className="px-6 py-4 bg-slate-50 text-right border-t border-slate-100">
+          </div>
+
+          {/* Card 2 - More Info */}
+          <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
+            <h3 className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-3 pb-2 border-b border-slate-100">More Info</h3>
+
+            <div className="space-y-3">
+              <div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Account Label</div>
+                {currentAccountLabel?.name || currentFavorite?.label ? (
+                  <div className="flex items-center gap-2">
+                    {currentAccountLabel?.verified && (
+                      <svg className="w-4 h-4 text-sky-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                    <span className="text-sm font-medium text-slate-900">{currentFavorite?.label || currentAccountLabel?.name}</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowFavoriteModal(true)}
+                    className="text-sm text-sky-600 hover:text-sky-700 hover:underline"
+                  >
+                    + Add Label
+                  </button>
+                )}
+              </div>
+
+              <div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Transactions</div>
+                <div className="text-sm text-slate-700">
+                  {latestOpTime && <span>Latest: <span className="text-slate-500">{timeAgo(latestOpTime)}</span></span>}
+                  {firstOpTime && latestOpTime !== firstOpTime && (
+                    <span className="ml-3">First: <span className="text-slate-500">{timeAgo(firstOpTime)}</span></span>
+                  )}
+                </div>
+              </div>
+
+              {account.home_domain && (
+                <div>
+                  <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Home Domain</div>
+                  <a
+                    href={`https://${account.home_domain}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-sky-600 hover:text-sky-700 hover:underline flex items-center gap-1"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                    {account.home_domain}
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Card 3 - Account Details */}
+          <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
+            <h3 className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-3 pb-2 border-b border-slate-100">Account Details</h3>
+
+            <div className="space-y-3">
+              <div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Sequence Number</div>
+                <div className="text-sm font-mono text-slate-700">{account.sequence}</div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Sub-entries</div>
+                <div className="text-sm text-slate-700">{account.subentry_count}</div>
+              </div>
+
+              <div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Signers</div>
+                <div className="text-sm text-slate-700">{account.signers.length}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs Row */}
+        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-4 border-b border-slate-100">
+            <div className="flex gap-1">
+              {[
+                { id: 'assets', label: 'Assets' },
+                { id: 'transactions', label: 'Transactions' },
+                { id: 'operations', label: 'Operations' },
+                { id: 'details', label: 'Details' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id as 'assets' | 'transactions' | 'operations' | 'details')}
+                  className={`px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${
+                    activeTab === tab.id
+                      ? 'text-sky-600 border-sky-500'
+                      : 'text-slate-400 border-transparent hover:text-slate-600'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-0">
+            {/* Transactions Tab - Placeholder */}
+            {activeTab === 'transactions' && (
+              <div>
+                <div className="px-4 py-3 text-xs text-slate-400 border-b border-slate-100">
+                  Latest 25 from a total of {transactions.length.toLocaleString()} transactions
+                </div>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">Txn Hash</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">Ledger</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">Age</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">Source</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right">Operations</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right">Fee</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {transactions.slice(0, 25).map((tx) => (
+                      <tr key={tx.hash} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3 px-4">
+                          <Link href={`/transaction/${tx.hash}`} className="font-mono text-[13px] text-sky-600 hover:text-sky-700 hover:underline">
+                            {shortenAddress(tx.hash, 8)}
+                          </Link>
+                        </td>
+                        <td className="py-3 px-4">
+                          <Link href={`/ledger/${tx.ledger}`} className="text-[13px] text-sky-600 hover:underline">
+                            {tx.ledger.toLocaleString()}
+                          </Link>
+                        </td>
+                        <td className="py-3 px-4 text-[13px] text-slate-500">{timeAgo(tx.created_at)}</td>
+                        <td className="py-3 px-4">
+                          <Link href={`/account/${tx.source_account}`} className="font-mono text-[13px] text-slate-700 hover:text-sky-600 flex items-center gap-1">
+                            <AccountBadges address={tx.source_account} labels={accountLabels} size="sm" />
+                            {shortenAddress(tx.source_account, 6)}
+                          </Link>
+                        </td>
+                        <td className="py-3 px-4 text-[13px] text-slate-700 text-right">{tx.operation_count}</td>
+                        <td className="py-3 px-4 text-[13px] text-slate-500 text-right font-mono">{(parseInt(tx.fee_charged) / 10000000).toFixed(7)} XLM</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Operations Tab */}
+            {activeTab === 'operations' && (
+              <div>
+                <div className="px-4 py-3 text-xs text-slate-400 border-b border-slate-100">
+                  Latest {Math.min(PAGE_SIZE, allOperations.length)} from a total of {allOperations.length.toLocaleString()} operations
+                </div>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">Operation Hash</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">Type</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">Ledger</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">Age</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">From</th>
+                      <th className="py-3 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center w-8"></th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">To</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {paginatedOperations.map((op) => {
+                      const effects = opEffects[op.id];
+                      const effectInfo = getAmountFromEffects(effects);
+                      const category = getOperationCategory(op.type);
+                      const isContract = op.type === 'invoke_host_function';
+
+                      let displayLabel = category.label;
+                      if (isContract) {
+                        const fname = decodeContractFunctionName(op);
+                        if (fname !== 'Contract Call') displayLabel = fname;
+                      }
+
+                      // Determine from/to addresses
+                      let fromAddress = op.source_account;
+                      let toAddress: string | null = null;
+
+                      if (op.from) fromAddress = op.from;
+                      if (op.to) toAddress = op.to;
+                      else if ((op as any).into) toAddress = (op as any).into;
+
+                      const isIncoming = effectInfo?.type === 'received';
+                      const isOutgoing = effectInfo?.type === 'sent';
+
+                      return (
+                        <tr
+                          key={op.id}
+                          className="hover:bg-slate-50 transition-colors cursor-pointer"
+                          onClick={() => router.push(`/transaction/${op.transaction_hash}`)}
+                        >
+                          <td className="px-4 py-3">
+                            <Link
+                              href={`/transaction/${op.transaction_hash}`}
+                              className="font-mono text-sm text-sky-600 hover:text-sky-700 hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {shortenAddress(op.transaction_hash, 8)}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${category.bgColor} ${category.color} border`}>
+                              {displayLabel}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Link
+                              href={`/ledger/${(op as any).ledger || ''}`}
+                              className="text-sm text-sky-600 hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {(op as any).ledger?.toLocaleString() || '-'}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">
+                            {timeAgo(op.created_at)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <Link
+                              href={`/account/${fromAddress}`}
+                              className="font-mono text-sm text-slate-700 hover:text-sky-600 flex items-center gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <AccountBadges address={fromAddress} labels={accountLabels} size="sm" />
+                              {fromAddress === account.id ? (
+                                <span className="text-slate-400">Self</span>
+                              ) : (
+                                shortenAddress(fromAddress, 6)
+                              )}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3">
+                            {effectInfo && (
+                              <span className={`inline-flex items-center justify-center w-10 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                isIncoming
+                                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                  : 'bg-amber-100 text-amber-700 border border-amber-200'
+                              }`}>
+                                {isIncoming ? 'IN' : 'OUT'}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {toAddress ? (
+                              <Link
+                                href={`/account/${toAddress}`}
+                                className="font-mono text-sm text-slate-700 hover:text-sky-600 flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <AccountBadges address={toAddress} labels={accountLabels} size="sm" />
+                                {toAddress === account.id ? (
+                                  <span className="text-slate-400">Self</span>
+                                ) : (
+                                  shortenAddress(toAddress, 6)
+                                )}
+                              </Link>
+                            ) : (
+                              <span className="text-sm text-slate-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {effectInfo ? (
+                              <span className={`text-sm font-medium ${
+                                isIncoming ? 'text-emerald-600' : 'text-slate-700'
+                              }`}>
+                                {isIncoming ? '+' : '-'}{formatCompactNumber(parseFloat(effectInfo.amount))} {effectInfo.asset}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-slate-400">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {/* Pagination */}
+                {(totalPages > 1 || hasMoreToFetch) && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-slate-50">
+                    <div className="text-sm text-slate-500">
+                      Showing {((currentPage - 1) * PAGE_SIZE) + 1} to {Math.min(currentPage * PAGE_SIZE, allOperations.length)} of {allOperations.length} operations
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                        className="px-2 py-1 text-sm text-slate-500 hover:bg-white hover:text-sky-600 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        First
+                      </button>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="p-1 text-slate-500 hover:bg-white hover:text-sky-600 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <span className="px-3 py-1 text-sm text-slate-700">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                        className="p-1 text-slate-500 hover:bg-white hover:text-sky-600 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage >= totalPages}
+                        className="px-2 py-1 text-sm text-slate-500 hover:bg-white hover:text-sky-600 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Last
+                      </button>
+                      {hasMoreToFetch && (
+                        <button
+                          onClick={fetchMoreOperations}
+                          disabled={loadingMore}
+                          className="ml-2 px-3 py-1 text-sm text-sky-600 hover:bg-sky-50 rounded disabled:opacity-50"
+                        >
+                          {loadingMore ? 'Loading...' : 'Load More'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Assets Tab */}
+            {activeTab === 'assets' && (
+              <div>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">Asset</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right">Balance</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right">Value</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right">Price</th>
+                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right">24H %</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {/* XLM Row */}
+                    <tr
+                      className="hover:bg-slate-50 transition-colors cursor-pointer"
+                      onClick={() => router.push('/asset/XLM')}
+                    >
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center shrink-0">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm text-slate-900">XLM</div>
+                            <div className="text-xs text-slate-400">Stellar Lumens</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <div className="font-mono text-sm text-slate-900" title={formatExactNumber(xlmAmount)}>
+                          {formatCompactNumber(xlmAmount)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <div className="text-sm font-medium text-slate-900">
+                          ${(xlmAmount * xlmPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <div className="text-sm text-slate-700">${xlmPrice.toFixed(4)}</div>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <span className={`text-sm font-medium ${xlmChange24h >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {xlmChange24h >= 0 ? '+' : ''}{xlmChange24h.toFixed(2)}%
+                        </span>
+                      </td>
+                    </tr>
+
+                    {/* Other Assets */}
+                    {otherBalances.map((balance, idx) => {
+                      const amount = parseFloat(balance.balance);
+                      const key = `${balance.asset_code}:${balance.asset_issuer}`;
+                      const priceData = assetPrices[key];
+                      const valueUSD = priceData ? amount * priceData.price : 0;
+                      const pnlPercent = priceData?.change24h || 0;
+
+                      const bgColors = ['bg-blue-500', 'bg-purple-500', 'bg-emerald-500', 'bg-orange-500', 'bg-pink-500', 'bg-indigo-500', 'bg-violet-500'];
+                      const colorIdx = (balance.asset_code || '').length % bgColors.length;
+
+                      return (
+                        <tr
+                          key={idx}
+                          className="hover:bg-slate-50 transition-colors cursor-pointer"
+                          onClick={() => router.push(getAssetUrl(balance.asset_code, balance.asset_issuer))}
+                        >
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-full ${bgColors[colorIdx]} text-white flex items-center justify-center font-bold text-xs shrink-0`}>
+                                {(balance.asset_code || 'LP')[0]}
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm text-slate-900">{balance.asset_code || 'LP'}</div>
+                                <div className="text-xs text-slate-400 capitalize">{balance.asset_type.replace(/_/g, ' ')}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <div className="font-mono text-sm text-slate-900" title={formatExactNumber(amount)}>
+                              {formatCompactNumber(amount)}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <div className="text-sm font-medium text-slate-900">
+                              {valueUSD > 0 ? `$${valueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <div className="text-sm text-slate-700">
+                              {priceData ? `$${priceData.price.toFixed(priceData.price >= 1 ? 4 : 6)}` : '--'}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            {priceData ? (
+                              <span className={`text-sm font-medium ${pnlPercent >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
+                              </span>
+                            ) : (
+                              <span className="text-sm text-slate-400">--</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Details Tab */}
+            {activeTab === 'details' && (
+              <div className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Thresholds */}
+                  <div>
+                    <h3 className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-3">Thresholds</h3>
+                    <div className="bg-slate-50 rounded-lg border border-slate-200 divide-y divide-slate-200">
+                      <div className="flex justify-between px-4 py-3">
+                        <span className="text-sm text-slate-600">Low Threshold</span>
+                        <span className="text-sm font-medium text-slate-900">{account.thresholds.low_threshold}</span>
+                      </div>
+                      <div className="flex justify-between px-4 py-3">
+                        <span className="text-sm text-slate-600">Medium Threshold</span>
+                        <span className="text-sm font-medium text-slate-900">{account.thresholds.med_threshold}</span>
+                      </div>
+                      <div className="flex justify-between px-4 py-3">
+                        <span className="text-sm text-slate-600">High Threshold</span>
+                        <span className="text-sm font-medium text-slate-900">{account.thresholds.high_threshold}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Flags */}
+                  <div>
+                    <h3 className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-3">Flags</h3>
+                    <div className="bg-slate-50 rounded-lg border border-slate-200 divide-y divide-slate-200">
+                      {Object.entries(account.flags).map(([flag, enabled]) => (
+                        <div key={flag} className="flex justify-between px-4 py-3">
+                          <span className="text-sm text-slate-600 capitalize">{flag.replace('auth_', '').replace(/_/g, ' ')}</span>
+                          <span className={`text-sm font-medium ${enabled ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {enabled ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Signers */}
+                  <div className="md:col-span-2">
+                    <h3 className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-3">Signers ({account.signers.length})</h3>
+                    <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="text-left text-xs text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                            <th className="px-4 py-2 font-medium">Key</th>
+                            <th className="px-4 py-2 font-medium">Type</th>
+                            <th className="px-4 py-2 font-medium text-right">Weight</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {account.signers.map((signer, idx) => (
+                            <tr key={idx}>
+                              <td className="px-4 py-3">
+                                <Link
+                                  href={`/account/${signer.key}`}
+                                  className="font-mono text-sm text-sky-600 hover:underline"
+                                >
+                                  {shortenAddress(signer.key, 12)}
+                                </Link>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-slate-600 capitalize">{signer.type.replace(/_/g, ' ')}</td>
+                              <td className="px-4 py-3 text-sm font-medium text-slate-900 text-right">{signer.weight}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Sponsorship */}
+                  <div className="md:col-span-2">
+                    <h3 className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-3">Sponsorship Info</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50 rounded-lg border border-slate-200 p-4 text-center">
+                        <div className="text-2xl font-bold text-emerald-600">{account.num_sponsoring}</div>
+                        <div className="text-xs text-slate-500 mt-1">Sponsoring</div>
+                      </div>
+                      <div className="bg-slate-50 rounded-lg border border-slate-200 p-4 text-center">
+                        <div className="text-2xl font-bold text-violet-600">{account.num_sponsored}</div>
+                        <div className="text-xs text-slate-500 mt-1">Sponsored</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* QR Code Modal */}
+      {showQrModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowQrModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-6 mx-4 max-w-sm w-full shadow-2xl border border-slate-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-bold text-slate-900">Account QR Code</h3>
+              <p className="text-sm text-slate-500 mt-1">Scan to get address</p>
+            </div>
+
+            <div className="flex justify-center mb-4">
+              <div className="bg-white p-4 rounded-lg border border-slate-200">
+                <QRCodeSVG
+                  value={account.id}
+                  size={180}
+                  level="H"
+                  bgColor="#ffffff"
+                  fgColor="#0f172a"
+                />
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-3 mb-4 border border-slate-200">
+              <p className="text-xs text-slate-400 mb-1 font-medium uppercase">Address</p>
+              <p className="text-xs font-mono text-slate-700 break-all">{account.id}</p>
+            </div>
+
+            <div className="flex gap-2">
               <button
-                onClick={() => setActiveTab('operations')}
-                className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-100 hover:text-slate-900 transition-colors shadow-sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(account.id);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="flex-1 py-2.5 rounded-lg bg-sky-600 text-white font-medium text-sm flex items-center justify-center gap-2 hover:bg-sky-700 transition-colors"
+              >
+                {copied ? 'Copied!' : 'Copy Address'}
+              </button>
+              <button
+                onClick={() => setShowQrModal(false)}
+                className="py-2.5 px-4 rounded-lg bg-slate-100 text-slate-600 font-medium text-sm hover:bg-slate-200 transition-colors"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Favorite Modal */}
+      {showFavoriteModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowFavoriteModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-6 mx-4 max-w-sm w-full shadow-2xl border border-slate-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-amber-500" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">
+                {isCurrentFavorite ? 'Edit Favorite' : 'Add to Favorites'}
+              </h3>
+              <p className="text-xs text-slate-500 mt-1 font-mono">{shortenAddress(account.id, 8)}</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs text-slate-500 font-medium mb-2 block">
+                Label (optional)
+              </label>
+              <input
+                type="text"
+                value={favoriteLabel}
+                onChange={(e) => setFavoriteLabel(e.target.value)}
+                placeholder="e.g. My Wallet, Exchange..."
+                className="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              {isCurrentFavorite ? (
+                <>
+                  <button
+                    onClick={() => {
+                      updateFavoriteLabel(account.id, favoriteLabel);
+                      setShowFavoriteModal(false);
+                    }}
+                    className="flex-1 py-2.5 rounded-lg bg-amber-500 text-white font-medium text-sm hover:bg-amber-600 transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => {
+                      removeFavorite(account.id);
+                      setFavoriteLabel('');
+                      setShowFavoriteModal(false);
+                    }}
+                    className="py-2.5 px-4 rounded-lg bg-rose-50 text-rose-600 font-medium text-sm border border-rose-100 hover:bg-rose-100 transition-colors"
+                  >
+                    Remove
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    addFavorite(account.id, favoriteLabel || undefined);
+                    setFavoriteLabel('');
+                    setShowFavoriteModal(false);
+                  }}
+                  className="flex-1 py-2.5 rounded-lg bg-amber-500 text-white font-medium text-sm flex items-center justify-center gap-2 hover:bg-amber-600 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
+                  Add Favorite
+                </button>
+              )}
+              <button
+                onClick={() => setShowFavoriteModal(false)}
+                className="py-2.5 px-4 rounded-lg bg-slate-100 text-slate-600 font-medium text-sm hover:bg-slate-200 transition-colors"
+              >
+                Cancel
               </button>
             </div>
           </div>
