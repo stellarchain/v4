@@ -6,6 +6,7 @@ import Image from 'next/image';
 import gsap from 'gsap';
 import { Ledger, NetworkStats, Transaction, formatXLM, shortenAddress, timeAgo, Operation, getBaseUrl } from '@/lib/stellar';
 import InfoTooltip from '../InfoTooltip';
+import TransactionFlowAnimation from './TransactionFlowAnimation';
 
 interface XLMMarketData {
     price: number;
@@ -660,6 +661,13 @@ export default function DesktopHomePage({
                             </div>
                         </div>
                     </div>
+                </div>
+            </section>
+
+            {/* Transaction Flow Animation */}
+            <section className="pb-6">
+                <div className="max-w-[1400px] mx-auto px-6">
+                    <TransactionFlowAnimation operations={operations} height={380} />
                 </div>
             </section>
 
