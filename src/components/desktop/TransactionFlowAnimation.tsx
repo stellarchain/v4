@@ -325,7 +325,10 @@ export default function TransactionFlowAnimation({
             ctx.textBaseline = 'bottom';
             ctx.fillText('Wallets', 80, height - 12);
             ctx.fillText('Validators', width * 0.5, height - 12);
-            ctx.fillText('Ledger', width - 100, height - 12);
+
+            // Draw Ledger label under the ledger circle
+            ctx.textBaseline = 'top';
+            ctx.fillText('Ledger', ledger.x, ledger.y + 50);
 
             // Update and draw particles
             particlesRef.current = particlesRef.current.filter(p => p.alive);
