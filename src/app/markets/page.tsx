@@ -19,7 +19,7 @@ export default async function MarketsPage() {
 
       {/* Desktop View */}
       <div className="hidden md:block">
-        <MarketsDesktopView initialAssets={assets} />
+        <MarketsDesktopView initialAssets={assets} xlmPrice={xlmPrice} />
       </div>
     </>
   );

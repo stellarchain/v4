@@ -21,7 +21,7 @@
 - Indentation is 2 spaces; keep semicolons and single-quoted strings in TS/TSX.
 - Components are `PascalCase` (`StatsCard.tsx`), route folders use lowercase with `page.tsx` entrypoints, and dynamic params use `[param]`.
 - Styling is primarily via Tailwind CSS (imported in `src/app/globals.css`) plus project-wide CSS variables.
-
+- We need consistency in the design, use the same colors, fonts, and spacing throughout the website, for example tabs have a specific style, should be use everywhere the same style, also lists have a specific style, with a bubble for each item.
 ## Testing Guidelines
 - No automated test framework is currently configured.
 - If you add tests, keep them close to the source (for example, `src/components/__tests__/Component.test.tsx`) and document any new command in this file.

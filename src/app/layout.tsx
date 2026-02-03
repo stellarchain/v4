@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
 import FloatingBottomNav from "@/components/mobile/FloatingBottomNav";
 import MobileHeader from "@/components/mobile/MobileHeader";
+import DesktopNavbar from "@/components/desktop/DesktopNavbar";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { NetworkProvider } from "@/contexts/NetworkContext";
@@ -58,19 +58,15 @@ export default function RootLayout({
           {/* Mobile Header */}
           <MobileHeader />
 
-          <div className="flex">
-            {/* Desktop Sidebar - hidden on mobile */}
-            <div className="hidden md:block">
-              <Sidebar />
-            </div>
+          {/* Desktop Navbar */}
+          <DesktopNavbar />
 
-            {/* Main Content */}
-            <main className="flex-1 min-h-screen p-0 pb-20 md:p-0 overflow-x-hidden">
-              <div className="w-full max-w-full overflow-x-hidden">
-                {children}
-              </div>
-            </main>
-          </div>
+          {/* Main Content */}
+          <main className="min-h-screen p-0 pb-20 md:pb-0 overflow-x-hidden">
+            <div className="w-full max-w-full overflow-x-hidden">
+              {children}
+            </div>
+          </main>
 
           {/* Mobile Bottom Navigation - iOS 26 Style */}
           <FloatingBottomNav />

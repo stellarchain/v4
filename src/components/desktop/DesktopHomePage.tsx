@@ -417,7 +417,7 @@ export default function DesktopHomePage({
                         {trendingTokens.map((token) => (
                             <Link
                                 key={token.symbol}
-                                href={`/assets`}
+                                href={`/markets`}
                                 className="group flex items-center bg-white hover:border-blue-300 px-3 py-1.5 rounded-full shadow-sm border border-slate-200 transition"
                             >
                                 <div className="w-5 h-5 rounded-full overflow-hidden mr-2 group-hover:scale-110 transition flex-shrink-0">
@@ -666,7 +666,7 @@ export default function DesktopHomePage({
             {/* Live Network Activity Section */}
             <section className="pb-12">
                 <div className="max-w-[1400px] mx-auto px-6">
-                    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                    <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
                         {/* Header with tabs */}
                         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                             <div className="flex items-center gap-4">
@@ -682,7 +682,7 @@ export default function DesktopHomePage({
                                                 key={tab}
                                                 onClick={() => setActiveTab(tabMap[tab])}
                                                 className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-tight whitespace-nowrap transition-colors ${activeTab === tabMap[tab]
-                                                    ? 'bg-blue-500 text-white'
+                                                    ? 'bg-sky-500 text-white'
                                                     : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                                                     }`}
                                             >
@@ -692,7 +692,7 @@ export default function DesktopHomePage({
                                     })}
                                 </div>
                             </div>
-                            <Link href="/transactions" className="text-xs text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1 transition">
+                            <Link href="/transactions" className="text-xs text-sky-500 hover:text-sky-600 font-medium flex items-center gap-1 transition">
                                 View All
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -700,125 +700,206 @@ export default function DesktopHomePage({
                             </Link>
                         </div>
 
-                        {/* Activity List */}
-                        <div className="divide-y divide-slate-50">
-                            {filteredOperations.length === 0 && (
-                                <div className="px-5 py-12 text-center">
-                                    <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                                        <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                                        </svg>
-                                    </div>
-                                    <p className="text-sm text-slate-500 font-medium">No {activeTab === 'All Activity' ? 'activity' : activeTab.toLowerCase()} found</p>
-                                    <p className="text-xs text-slate-400 mt-1">Check back later for new transactions</p>
-                                </div>
-                            )}
-                            {filteredOperations.slice(0, 15).map((op) => {
-                                const style = getOpStyle(op.type);
+                        {/* Activity Table */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-slate-100 bg-slate-50/50">
+                                        <th className="py-2.5 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Txn Hash</th>
+                                        <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Type</th>
+                                        <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Age</th>
+                                        <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">From</th>
+                                        <th className="py-2.5 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center whitespace-nowrap w-8"></th>
+                                        <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">To / Details</th>
+                                        <th className="py-2.5 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {filteredOperations.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} className="text-center py-12 text-slate-400 text-sm">
+                                                No {activeTab === 'All Activity' ? 'activity' : activeTab.toLowerCase()} found
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredOperations.slice(0, 15).map((op) => {
+                                            const style = getOpStyle(op.type);
 
-                                // Build operation summary
-                                const getOpSummary = () => {
-                                    if (op.type === 'payment') {
-                                        const amount = op.amount ? formatTokenAmount(op.amount) : '0';
-                                        const asset = op.asset_code || 'XLM';
-                                        const to = op.to ? shortenAddress(op.to, 4) : 'unknown';
-                                        return { action: 'Payment', main: `${amount} ${asset}`, detail: `→ ${to}` };
-                                    }
-                                    if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') {
-                                        const amount = op.amount ? formatTokenAmount(op.amount) : '0';
-                                        const srcAsset = (op as any).source_asset_code || ((op as any).source_asset_type === 'native' ? 'XLM' : '?');
-                                        const destAsset = op.asset_code || 'XLM';
-                                        return { action: 'Swap', main: `${amount} ${destAsset}`, detail: `from ${srcAsset}` };
-                                    }
-                                    if (op.type === 'create_account') {
-                                        const balance = (op as any).starting_balance ? formatTokenAmount((op as any).starting_balance) : '0';
-                                        const account = (op as any).account ? shortenAddress((op as any).account, 4) : 'new';
-                                        return { action: 'New Account', main: `${balance} XLM`, detail: `→ ${account}` };
-                                    }
-                                    if (['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type)) {
-                                        const amount = (op as any).amount ? formatTokenAmount((op as any).amount) : '0';
-                                        const selling = (op as any).selling_asset_code || ((op as any).selling_asset_type === 'native' ? 'XLM' : '?');
-                                        const buying = (op as any).buying_asset_code || ((op as any).buying_asset_type === 'native' ? 'XLM' : '?');
-                                        return { action: 'DEX Order', main: `${amount} ${selling}`, detail: `→ ${buying}` };
-                                    }
-                                    if (op.type === 'change_trust') {
-                                        const asset = (op as any).asset_code || 'Asset';
-                                        const limit = (op as any).limit;
-                                        const action = limit === '0' ? 'Removed' : 'Added';
-                                        return { action: 'Trustline', main: `${action} ${asset}`, detail: '' };
-                                    }
-                                    if (op.type === 'invoke_host_function') {
-                                        const fn = decodeContractFunctionName(op);
-                                        return { action: 'Contract', main: fn, detail: '' };
-                                    }
-                                    if (op.type === 'set_options') {
-                                        return { action: 'Settings', main: 'Account options', detail: 'updated' };
-                                    }
-                                    if (op.type === 'account_merge') {
-                                        const into = (op as any).into ? shortenAddress((op as any).into, 4) : 'account';
-                                        return { action: 'Merge', main: 'Account merged', detail: `→ ${into}` };
-                                    }
-                                    return { action: style.label, main: '', detail: '' };
-                                };
+                                            // Get type label
+                                            const getTypeLabel = () => {
+                                                if (op.type === 'payment' || op.type === 'create_account') return 'Payment';
+                                                if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') return 'Swap';
+                                                if (['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type)) return 'DEX';
+                                                if (op.type === 'invoke_host_function') return 'Contract';
+                                                if (op.type === 'change_trust') return 'Trustline';
+                                                if (op.type === 'set_options') return 'Settings';
+                                                if (op.type === 'account_merge') return 'Merge';
+                                                return op.type.replace(/_/g, ' ').slice(0, 12);
+                                            };
 
-                                const summary = getOpSummary();
+                                            // Get type colors
+                                            const getTypeColors = () => {
+                                                if (op.type === 'payment' || op.type === 'create_account') return 'bg-emerald-50 text-emerald-600 border-emerald-200';
+                                                if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') return 'bg-violet-50 text-violet-600 border-violet-200';
+                                                if (['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type)) return 'bg-indigo-50 text-indigo-600 border-indigo-200';
+                                                if (op.type === 'invoke_host_function') return 'bg-amber-50 text-amber-600 border-amber-200';
+                                                if (op.type === 'change_trust') return 'bg-teal-50 text-teal-600 border-teal-200';
+                                                return 'bg-slate-50 text-slate-600 border-slate-200';
+                                            };
 
-                                return (
-                                    <Link
-                                        key={op.id}
-                                        href={`/transaction/${op.transaction_hash}`}
-                                        className="flex items-center px-5 py-3 hover:bg-slate-50 transition-colors group"
-                                    >
-                                        {/* Time */}
-                                        <div className="w-16 flex-shrink-0">
-                                            <span className="text-xs text-slate-400 font-mono">
-                                                {new Date(op.created_at).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                                            </span>
-                                        </div>
+                                            // Get destination/details
+                                            const getDetails = () => {
+                                                if (op.type === 'payment') {
+                                                    return { text: op.to ? shortenAddress(op.to, 4) : '—', isAddress: true, address: op.to };
+                                                }
+                                                if (op.type === 'create_account') {
+                                                    const account = (op as any).account;
+                                                    return { text: account ? shortenAddress(account, 4) : '—', isAddress: true, address: account };
+                                                }
+                                                if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') {
+                                                    const srcAsset = (op as any).source_asset_code || ((op as any).source_asset_type === 'native' ? 'XLM' : '?');
+                                                    const destAsset = op.asset_code || 'XLM';
+                                                    return { text: `${srcAsset} → ${destAsset}`, isAddress: false, color: 'text-violet-600' };
+                                                }
+                                                if (['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type)) {
+                                                    const selling = (op as any).selling_asset_code || ((op as any).selling_asset_type === 'native' ? 'XLM' : '?');
+                                                    const buying = (op as any).buying_asset_code || ((op as any).buying_asset_type === 'native' ? 'XLM' : '?');
+                                                    return { text: `${selling} → ${buying}`, isAddress: false, color: 'text-indigo-600' };
+                                                }
+                                                if (op.type === 'invoke_host_function') {
+                                                    const fn = decodeContractFunctionName(op);
+                                                    return { text: `${fn}()`, isAddress: false, color: 'text-amber-600' };
+                                                }
+                                                if (op.type === 'change_trust') {
+                                                    const asset = (op as any).asset_code || 'Asset';
+                                                    const limit = (op as any).limit;
+                                                    return { text: limit === '0' ? `Remove ${asset}` : `Add ${asset}`, isAddress: false, color: 'text-teal-600' };
+                                                }
+                                                if (op.type === 'account_merge') {
+                                                    const into = (op as any).into;
+                                                    return { text: into ? shortenAddress(into, 4) : '—', isAddress: true, address: into };
+                                                }
+                                                return { text: '—', isAddress: false };
+                                            };
 
-                                        {/* Type badge */}
-                                        <div className="w-28 flex-shrink-0">
-                                            <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${style.color}`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${style.bg}`}></span>
-                                                {summary.action}
-                                            </span>
-                                        </div>
+                                            // Get amount
+                                            const getAmount = () => {
+                                                if (op.type === 'payment' || op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') {
+                                                    const amount = op.amount ? formatTokenAmount(op.amount) : null;
+                                                    const asset = op.asset_code || 'XLM';
+                                                    return amount ? { value: amount, asset } : null;
+                                                }
+                                                if (op.type === 'create_account') {
+                                                    const balance = (op as any).starting_balance;
+                                                    return balance ? { value: formatTokenAmount(balance), asset: 'XLM' } : null;
+                                                }
+                                                if (['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type)) {
+                                                    const amount = (op as any).amount;
+                                                    const selling = (op as any).selling_asset_code || 'XLM';
+                                                    return amount ? { value: formatTokenAmount(amount), asset: selling } : null;
+                                                }
+                                                return null;
+                                            };
 
-                                        {/* Summary */}
-                                        <div className="flex-1 min-w-0 flex items-center gap-2">
-                                            <span className="font-semibold text-slate-900 text-sm group-hover:text-blue-500 transition-colors">
-                                                {summary.main || style.label}
-                                            </span>
-                                            {summary.detail && (
-                                                <span className="text-xs text-slate-400">{summary.detail}</span>
-                                            )}
-                                        </div>
+                                            const details = getDetails();
+                                            const amount = getAmount();
 
-                                        {/* Transaction hash */}
-                                        <div className="w-32 flex-shrink-0 text-right">
-                                            <span className="text-xs text-slate-400 font-mono group-hover:text-blue-500 transition-colors">
-                                                {shortenAddress(op.transaction_hash, 6)}
-                                            </span>
-                                        </div>
+                                            return (
+                                                <tr
+                                                    key={op.id}
+                                                    className="hover:bg-sky-50/30 transition-colors group cursor-pointer"
+                                                    onClick={() => window.location.href = `/transaction/${op.transaction_hash}`}
+                                                >
+                                                    {/* Txn Hash */}
+                                                    <td className="py-2 px-4">
+                                                        <Link
+                                                            href={`/transaction/${op.transaction_hash}`}
+                                                            className="font-mono text-[11px] text-sky-600 hover:text-sky-700 hover:underline"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            {shortenAddress(op.transaction_hash, 5)}
+                                                        </Link>
+                                                    </td>
 
-                                        {/* Arrow */}
-                                        <div className="w-6 flex-shrink-0 flex justify-end">
-                                            <svg className="w-4 h-4 text-slate-300 group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </div>
-                                    </Link>
-                                );
-                            })}
+                                                    {/* Type */}
+                                                    <td className="py-2 px-3">
+                                                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded border text-[9px] font-medium ${getTypeColors()}`}>
+                                                            {getTypeLabel()}
+                                                        </span>
+                                                    </td>
+
+                                                    {/* Age */}
+                                                    <td className="py-2 px-3 text-[11px] text-slate-500 whitespace-nowrap">
+                                                        {timeAgo(op.created_at)}
+                                                    </td>
+
+                                                    {/* From */}
+                                                    <td className="py-2 px-3">
+                                                        <Link
+                                                            href={`/account/${op.source_account}`}
+                                                            className="font-mono text-[11px] text-slate-700 hover:text-sky-600 hover:underline"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            {shortenAddress(op.source_account, 4)}
+                                                        </Link>
+                                                    </td>
+
+                                                    {/* Arrow */}
+                                                    <td className="py-2 px-1 text-center">
+                                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-50 text-emerald-500">
+                                                            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                            </svg>
+                                                        </span>
+                                                    </td>
+
+                                                    {/* To / Details */}
+                                                    <td className="py-2 px-3">
+                                                        {details.isAddress && details.address ? (
+                                                            <Link
+                                                                href={`/account/${details.address}`}
+                                                                className="font-mono text-[11px] text-slate-700 hover:text-sky-600 hover:underline"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                {details.text}
+                                                            </Link>
+                                                        ) : (
+                                                            <span className={`text-[11px] font-medium ${details.color || 'text-slate-500'}`}>
+                                                                {details.text}
+                                                            </span>
+                                                        )}
+                                                    </td>
+
+                                                    {/* Amount */}
+                                                    <td className="py-2 px-4 text-right">
+                                                        {amount ? (
+                                                            <div>
+                                                                <span className="text-[11px] font-medium text-slate-900">
+                                                                    {amount.value}
+                                                                </span>
+                                                                <span className="text-[10px] text-slate-400 ml-1">
+                                                                    {amount.asset}
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-[11px] text-slate-400">—</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
 
                         {/* Footer */}
-                        <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 text-center">
-                            <Link href="/transactions" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-blue-500 transition-colors uppercase tracking-tight">
+                        <div className="px-5 py-3 bg-slate-50/50 border-t border-slate-100 text-center">
+                            <Link href="/transactions" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-sky-500 transition-colors uppercase tracking-tight">
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
-                                Load More Activity
+                                View All Transactions
                             </Link>
                         </div>
                     </div>

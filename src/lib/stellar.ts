@@ -135,10 +135,13 @@ export interface TransactionDisplayInfo {
   rawAmount?: number; // For sorting
   asset?: string;
   functionName?: string;
+  // Payment specific
+  to?: string; // Recipient address
   // Swap specific
   isSwap?: boolean;
   sourceAmount?: string;
   sourceAsset?: string;
+  destinationAsset?: string;
   // Contract effect (received/sent from effects)
   effectType?: 'received' | 'sent';
   effectAmount?: string;
@@ -854,6 +857,7 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
       amount,
       rawAmount,
       asset,
+      to: primaryOp.to, // Recipient address
     };
   }
   // Create account
@@ -865,6 +869,7 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
       amount,
       rawAmount,
       asset: 'XLM', // Starting balance is always in XLM
+      to: (primaryOp as any).account, // Newly created account
     };
   }
 

@@ -1,208 +1,460 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { LiquidityPool, PaginatedResponse, shortenAddress } from '@/lib/stellar';
+import { LiquidityPool, PaginatedResponse, shortenAddress, getBaseUrl } from '@/lib/stellar';
+import { useNetwork } from '@/contexts/NetworkContext';
 
 interface LiquidityPoolsDesktopViewProps {
     initialPools: PaginatedResponse<LiquidityPool>;
 }
 
-export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoolsDesktopViewProps) {
-    const [pools, setPools] = useState<LiquidityPool[]>(initialPools._embedded.records);
-    const [nextLink, setNextLink] = useState<string | null>(initialPools._links.next?.href || null);
-    const [loading, setLoading] = useState(false);
-    const sentinelRef = useRef<HTMLDivElement>(null);
+const PAGE_SIZE = 25;
 
-    // Primary color for this design
-    const primaryColor = '#0F4C81';
+const formatAmount = (amount: string) => {
+    const num = parseFloat(amount);
+    if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
+    if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+    if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+    if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+    if (num >= 1) return num.toFixed(2);
+    return num.toFixed(4);
+};
 
-    const loadMore = useCallback(async () => {
-        if (!nextLink || loading) return;
-        setLoading(true);
-        try {
-            const res = await fetch(nextLink);
-            const data: PaginatedResponse<LiquidityPool> = await res.json();
-            setPools(prev => [...prev, ...data._embedded.records]);
-            setNextLink(data._links.next?.href || null);
-        } catch (e) {
-            console.error('Failed to load more pools', e);
-        } finally {
-            setLoading(false);
-        }
-    }, [nextLink, loading]);
+const formatShares = (shares: string) => {
+    const num = parseFloat(shares);
+    if (num >= 1e12) return (num / 1e12).toFixed(1) + 'T';
+    if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
+    if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+    if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
+    return num.toFixed(0);
+};
 
-    useEffect(() => {
-        if (!sentinelRef.current) return;
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && !loading && nextLink) {
-                    loadMore();
+const getAssetCode = (assetString: string) => {
+    if (assetString === 'native') return 'XLM';
+    const parts = assetString.split(':');
+    return parts[0] || 'UNK';
+};
+
+const getAssetIssuer = (assetString: string) => {
+    if (assetString === 'native') return null;
+    const parts = assetString.split(':');
+    return parts[1] || null;
+};
+
+// Pagination component
+const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, hasMore }: {
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+    loading: boolean;
+    hasMore: boolean;
+}) => {
+    if (totalPages <= 1) return null;
+    return (
+        <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-slate-100 bg-slate-50/50">
+            <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1 || loading}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                let pageNum: number;
+                if (totalPages <= 5) {
+                    pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                } else {
+                    pageNum = currentPage - 2 + i;
                 }
-            },
-            { root: null, rootMargin: '100px', threshold: 0.1 }
-        );
-        observer.observe(sentinelRef.current);
-        return () => observer.disconnect();
-    }, [loading, nextLink, loadMore]);
+                return (
+                    <button
+                        key={pageNum}
+                        onClick={() => onPageChange(pageNum)}
+                        disabled={loading}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${
+                            currentPage === pageNum
+                                ? 'bg-sky-600 text-white shadow-sm'
+                                : 'text-slate-400 hover:bg-sky-50 hover:text-sky-600'
+                        }`}
+                    >
+                        {pageNum}
+                    </button>
+                );
+            })}
 
-    const getAssetCode = (assetString: string) => {
-        if (assetString === 'native') return 'XLM';
-        const parts = assetString.split(':');
-        return parts[0] || 'UNK';
-    };
+            {hasMore && totalPages > 5 && (
+                <span className="text-slate-300 text-xs px-1">...</span>
+            )}
 
-    const getAssetIssuer = (assetString: string) => {
-        if (assetString === 'native') return null;
-        const parts = assetString.split(':');
-        return parts[1] || null;
-    };
+            <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={(currentPage >= totalPages && !hasMore) || loading}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
 
-    const formatAmount = (amount: string) => {
-        const num = parseFloat(amount);
-        if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-        if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-        if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
-        if (num >= 1) return num.toFixed(2);
-        return num.toFixed(4);
-    };
+            {loading && (
+                <svg className="w-4 h-4 animate-spin ml-2 text-sky-500" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+            )}
+        </div>
+    );
+};
 
-    const formatShares = (shares: string) => {
-        const num = parseFloat(shares);
-        if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
-        if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
-        if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
-        return num.toFixed(0);
-    };
+export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoolsDesktopViewProps) {
+    const { network } = useNetwork();
+
+    const [pools, setPools] = useState<LiquidityPool[]>(initialPools._embedded.records);
+    const [isInitialLoading, setIsInitialLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [oldestCursor, setOldestCursor] = useState<string | null>(initialPools._links.next?.href || null);
+    const [hasMore, setHasMore] = useState(!!initialPools._links.next?.href);
+    const [searchQuery, setSearchQuery] = useState('');
+    const seenIdsRef = useRef<Set<string>>(new Set(initialPools._embedded.records.map(p => p.id)));
+
+    const fetchMoreIfNeeded = useCallback(async (targetPage: number) => {
+        const neededItems = targetPage * PAGE_SIZE;
+        if (neededItems <= pools.length || !hasMore || isLoadingMore) return;
+
+        setIsLoadingMore(true);
+
+        try {
+            const cursor = pools[pools.length - 1]?.paging_token;
+
+            if (!cursor) {
+                setIsLoadingMore(false);
+                setHasMore(false);
+                return;
+            }
+
+            const res = await fetch(
+                `${getBaseUrl()}/liquidity_pools?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
+            );
+            const data: PaginatedResponse<LiquidityPool> = await res.json();
+            const olderPools = data._embedded.records;
+
+            if (olderPools.length === 0) {
+                setIsLoadingMore(false);
+                setHasMore(false);
+                return;
+            }
+
+            setOldestCursor(data._links.next?.href || null);
+            setHasMore(olderPools.length >= PAGE_SIZE);
+
+            // Filter out already seen pools
+            const unseenPools = olderPools.filter(p => !seenIdsRef.current.has(p.id));
+
+            setPools(prev => {
+                const newPools = [...prev, ...unseenPools];
+                seenIdsRef.current = new Set(newPools.map(p => p.id));
+                return newPools;
+            });
+        } catch (error) {
+            console.error('Failed to load more pools:', error);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    }, [isLoadingMore, pools, hasMore]);
+
+    const goToPage = useCallback((page: number) => {
+        setCurrentPage(page);
+        fetchMoreIfNeeded(page);
+    }, [fetchMoreIfNeeded]);
+
+    // Filter pools based on search
+    const filteredPools = useMemo(() => {
+        if (!searchQuery.trim()) return pools;
+        const query = searchQuery.toLowerCase();
+        return pools.filter(pool => {
+            const codeA = getAssetCode(pool.reserves[0]?.asset || '');
+            const codeB = getAssetCode(pool.reserves[1]?.asset || '');
+            const issuerA = getAssetIssuer(pool.reserves[0]?.asset || '');
+            const issuerB = getAssetIssuer(pool.reserves[1]?.asset || '');
+            return (
+                pool.id.toLowerCase().includes(query) ||
+                codeA.toLowerCase().includes(query) ||
+                codeB.toLowerCase().includes(query) ||
+                (issuerA && issuerA.toLowerCase().includes(query)) ||
+                (issuerB && issuerB.toLowerCase().includes(query))
+            );
+        });
+    }, [pools, searchQuery]);
+
+    // Calculate stats
+    const stats = useMemo(() => {
+        const total = pools.length;
+        const totalTrustlines = pools.reduce((sum, p) => sum + p.total_trustlines, 0);
+        const totalShares = pools.reduce((sum, p) => sum + parseFloat(p.total_shares || '0'), 0);
+
+        // Estimate total liquidity (sum of all reserves)
+        let totalLiquidity = 0;
+        pools.forEach(pool => {
+            pool.reserves.forEach(r => {
+                totalLiquidity += parseFloat(r.amount || '0');
+            });
+        });
+
+        return { total, totalTrustlines, totalShares, totalLiquidity };
+    }, [pools]);
+
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredPools.length / PAGE_SIZE) + (hasMore ? 1 : 0);
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const visiblePools = filteredPools.slice(startIndex, startIndex + PAGE_SIZE);
 
     return (
-        <div className="min-h-screen bg-[var(--bg-primary)] py-8">
-            <div className="max-w-[1400px] mx-auto px-6">
-                {/* Header */}
-                <div className="mb-6">
-                    <div className="flex items-center gap-4 mb-2">
-                        <Link
-                            href="/"
-                            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-muted)] transition hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
-                        >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
-                        </Link>
-                        <div>
-                            <h1 className="text-2xl font-bold" style={{ color: primaryColor }}>Liquidity Pools</h1>
-                            <p className="text-sm text-[var(--text-muted)]">
-                                AMM pools on Stellar DEX - {pools.length}+ pools loaded
-                            </p>
+        <div className="min-h-screen bg-slate-50 text-slate-900">
+            <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
+                {/* Header Card */}
+                <div className="mb-5 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-5">
+                        {/* Left: Title & Meta */}
+                        <div className="flex items-start gap-4 min-w-0">
+                            <Link
+                                href="/"
+                                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                            >
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </Link>
+                            <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2 mb-1">
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Stellar DEX</span>
+                                    <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
+                                        AMM
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-violet-500">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+                                        Liquidity Pools
+                                    </span>
+                                </div>
+                                <div className="text-xl font-bold text-slate-900">Liquidity Pools</div>
+                                <div className="mt-1 text-xs text-slate-500">
+                                    Automated Market Maker pools on the Stellar network
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right: Quick Stats */}
+                        <div className="flex gap-3 flex-wrap">
+                            <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
+                                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pools</div>
+                                <div className="text-lg font-bold text-slate-900">{stats.total.toLocaleString()}</div>
+                            </div>
+                            <div className="p-3 rounded-xl bg-violet-50/70 border border-violet-100 min-w-[100px]">
+                                <div className="text-[9px] font-bold text-violet-600/60 uppercase tracking-widest mb-1">Total Shares</div>
+                                <div className="text-lg font-bold text-violet-600">{formatShares(stats.totalShares.toString())}</div>
+                            </div>
+                            <div className="p-3 rounded-xl bg-sky-50/70 border border-sky-100 min-w-[100px]">
+                                <div className="text-[9px] font-bold text-sky-600/60 uppercase tracking-widest mb-1">Liquidity</div>
+                                <div className="text-lg font-bold text-sky-600">{formatAmount(stats.totalLiquidity.toString())}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Table */}
-                <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] overflow-hidden">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-[var(--border-subtle)]">
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Pool</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Reserve A</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Reserve B</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Exchange Rate</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Total Shares</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Trustlines</th>
-                                <th className="px-4 py-3 text-center text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-16"></th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border-subtle)]">
-                            {pools.map((pool) => {
-                                const assetA = pool.reserves[0];
-                                const assetB = pool.reserves[1];
-                                const codeA = getAssetCode(assetA.asset);
-                                const codeB = getAssetCode(assetB.asset);
-                                const issuerA = getAssetIssuer(assetA.asset);
-                                const issuerB = getAssetIssuer(assetB.asset);
-                                const amountA = parseFloat(assetA.amount);
-                                const amountB = parseFloat(assetB.amount);
-                                const priceRatio = amountA > 0 ? (amountB / amountA).toFixed(4) : '0';
+                {/* Search / Filters Row */}
+                <div className="mb-5 flex items-center justify-between gap-4">
+                    <div className="relative flex-1 max-w-md">
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input
+                            type="text"
+                            placeholder="Search by asset code, issuer, or pool ID..."
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100 transition-all"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+                            >
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <span className="font-medium">{filteredPools.length}</span>
+                        <span>pools found</span>
+                    </div>
+                </div>
 
-                                return (
-                                    <tr
-                                        key={pool.id}
-                                        className="hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
-                                        onClick={() => window.location.href = `/liquidity-pool/${pool.id}`}
-                                    >
-                                        <td className="px-4 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div
-                                                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm"
-                                                    style={{ backgroundColor: primaryColor }}
-                                                >
-                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                                    </svg>
-                                                </div>
-                                                <div>
-                                                    <div className="font-semibold" style={{ color: primaryColor }}>{codeA} / {codeB}</div>
-                                                    <div className="text-xs text-[var(--text-muted)] font-mono">
-                                                        {shortenAddress(pool.id, 6)}
+                {/* Pools Table */}
+                <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-slate-100 bg-slate-50/50">
+                                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Pool</th>
+                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Reserve A</th>
+                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Reserve B</th>
+                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Exchange Rate</th>
+                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Total Shares</th>
+                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Trustlines</th>
+                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center whitespace-nowrap">Fee</th>
+                                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center whitespace-nowrap w-10"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {isInitialLoading ? (
+                                    // Skeleton loading
+                                    Array.from({ length: 15 }).map((_, i) => (
+                                        <tr key={i} className="animate-pulse">
+                                            <td className="py-3 px-4"><div className="h-10 w-32 bg-slate-100 rounded" /></td>
+                                            <td className="py-3 px-3"><div className="h-4 w-20 bg-slate-100 rounded ml-auto" /></td>
+                                            <td className="py-3 px-3"><div className="h-4 w-20 bg-slate-100 rounded ml-auto" /></td>
+                                            <td className="py-3 px-3"><div className="h-4 w-24 bg-slate-100 rounded ml-auto" /></td>
+                                            <td className="py-3 px-3"><div className="h-4 w-16 bg-slate-100 rounded ml-auto" /></td>
+                                            <td className="py-3 px-3"><div className="h-4 w-12 bg-slate-100 rounded ml-auto" /></td>
+                                            <td className="py-3 px-3"><div className="h-5 w-12 bg-slate-100 rounded mx-auto" /></td>
+                                            <td className="py-3 px-4"><div className="h-6 w-6 bg-slate-100 rounded mx-auto" /></td>
+                                        </tr>
+                                    ))
+                                ) : visiblePools.length > 0 ? (
+                                    visiblePools.map((pool) => {
+                                        const assetA = pool.reserves[0];
+                                        const assetB = pool.reserves[1];
+                                        const codeA = getAssetCode(assetA?.asset || '');
+                                        const codeB = getAssetCode(assetB?.asset || '');
+                                        const issuerA = getAssetIssuer(assetA?.asset || '');
+                                        const issuerB = getAssetIssuer(assetB?.asset || '');
+                                        const amountA = parseFloat(assetA?.amount || '0');
+                                        const amountB = parseFloat(assetB?.amount || '0');
+                                        const priceRatio = amountA > 0 ? (amountB / amountA) : 0;
+                                        const feePercent = (pool.fee_bp / 100).toFixed(2);
+
+                                        return (
+                                            <tr
+                                                key={pool.id}
+                                                className="hover:bg-sky-50/30 transition-colors group cursor-pointer"
+                                                onClick={() => window.location.href = `/liquidity-pool/${pool.id}`}
+                                            >
+                                                {/* Pool */}
+                                                <td className="py-2.5 px-4">
+                                                    <div>
+                                                        <Link
+                                                            href={`/liquidity-pool/${pool.id}`}
+                                                            className="font-semibold text-sm text-slate-900 group-hover:text-sky-600 transition-colors"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            {codeA} / {codeB}
+                                                        </Link>
+                                                        <div className="text-[10px] text-slate-400 font-mono">
+                                                            {shortenAddress(pool.id, 6)}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-4 text-right">
-                                            <div className="font-mono text-sm text-[var(--text-primary)]">{formatAmount(assetA.amount)}</div>
-                                            <div className="text-xs text-[var(--text-muted)]">{codeA}</div>
-                                            {issuerA && (
-                                                <div className="text-[10px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerA, 4)}</div>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-4 text-right">
-                                            <div className="font-mono text-sm text-[var(--text-primary)]">{formatAmount(assetB.amount)}</div>
-                                            <div className="text-xs text-[var(--text-muted)]">{codeB}</div>
-                                            {issuerB && (
-                                                <div className="text-[10px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerB, 4)}</div>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-4 text-right">
-                                            <div className="text-sm text-[var(--text-secondary)]">
-                                                1 {codeA} = <span className="font-mono">{priceRatio}</span> {codeB}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-4 text-right">
-                                            <div className="font-mono text-sm text-[var(--text-primary)]">{formatShares(pool.total_shares)}</div>
-                                        </td>
-                                        <td className="px-4 py-4 text-right">
-                                            <div className="text-sm text-[var(--text-secondary)]">{pool.total_trustlines.toLocaleString()}</div>
-                                        </td>
-                                        <td className="px-4 py-4 text-center">
-                                            <svg className="w-4 h-4 text-[var(--text-muted)] inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                            </svg>
+                                                </td>
+
+                                                {/* Reserve A */}
+                                                <td className="py-2.5 px-3 text-right">
+                                                    <div className="text-[12px] font-medium text-slate-900 font-mono">
+                                                        {formatAmount(assetA?.amount || '0')}
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400">{codeA}</div>
+                                                    {issuerA && (
+                                                        <div className="text-[9px] text-slate-300 font-mono">{shortenAddress(issuerA, 3)}</div>
+                                                    )}
+                                                </td>
+
+                                                {/* Reserve B */}
+                                                <td className="py-2.5 px-3 text-right">
+                                                    <div className="text-[12px] font-medium text-slate-900 font-mono">
+                                                        {formatAmount(assetB?.amount || '0')}
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400">{codeB}</div>
+                                                    {issuerB && (
+                                                        <div className="text-[9px] text-slate-300 font-mono">{shortenAddress(issuerB, 3)}</div>
+                                                    )}
+                                                </td>
+
+                                                {/* Exchange Rate */}
+                                                <td className="py-2.5 px-3 text-right">
+                                                    <div className="text-[12px] text-slate-700">
+                                                        <span className="text-slate-400">1 {codeA} =</span>
+                                                    </div>
+                                                    <div className="text-[12px] font-medium text-slate-900 font-mono">
+                                                        {priceRatio > 1000 ? priceRatio.toExponential(2) : priceRatio.toFixed(4)} <span className="text-slate-400 font-normal">{codeB}</span>
+                                                    </div>
+                                                </td>
+
+                                                {/* Total Shares */}
+                                                <td className="py-2.5 px-3 text-right">
+                                                    <div className="text-[12px] font-medium text-slate-900 font-mono">
+                                                        {formatShares(pool.total_shares)}
+                                                    </div>
+                                                </td>
+
+                                                {/* Trustlines */}
+                                                <td className="py-2.5 px-3 text-right">
+                                                    <div className="inline-flex items-center gap-1">
+                                                        <svg className="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                        </svg>
+                                                        <span className="text-[12px] font-medium text-slate-700">
+                                                            {pool.total_trustlines.toLocaleString()}
+                                                        </span>
+                                                    </div>
+                                                </td>
+
+                                                {/* Fee */}
+                                                <td className="py-2.5 px-3 text-center">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-amber-50 border border-amber-100 text-[10px] font-bold text-amber-600">
+                                                        {feePercent}%
+                                                    </span>
+                                                </td>
+
+                                                {/* Arrow */}
+                                                <td className="py-2.5 px-4 text-center">
+                                                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors mx-auto">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan={8} className="text-center py-12 text-slate-400 text-sm">
+                                            {searchQuery ? 'No pools found matching your search.' : 'No liquidity pools found.'}
                                         </td>
                                     </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
 
-                    {/* Infinite scroll sentinel */}
-                    <div ref={sentinelRef} className="h-4" />
-
-                    {/* Loading indicator */}
-                    {loading && (
-                        <div className="py-6 text-center border-t border-[var(--border-subtle)]">
-                            <div className="inline-flex items-center gap-2 text-[var(--text-muted)]">
-                                <div className="w-5 h-5 border-2 border-[var(--text-muted)] border-t-transparent rounded-full animate-spin" />
-                                <span className="text-sm">Loading more pools...</span>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* End of list */}
-                    {!nextLink && pools.length > 0 && (
-                        <div className="py-4 text-center text-[var(--text-muted)] text-sm border-t border-[var(--border-subtle)]">
-                            All pools loaded
-                        </div>
-                    )}
+                    <PaginationControls
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={goToPage}
+                        loading={isLoadingMore}
+                        hasMore={hasMore}
+                    />
                 </div>
             </div>
         </div>

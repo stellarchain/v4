@@ -1,5 +1,6 @@
 import { getTransactions, getPaymentTransactions } from '@/lib/stellar';
 import TransactionPageClient from '@/components/TransactionPageClient';
+import TransactionsDesktopView from '@/components/desktop/TransactionsDesktopView';
 
 export const revalidate = 10;
 
@@ -13,14 +14,24 @@ export default async function TransactionsPage() {
   const transactions = transactionsResponse._embedded.records;
 
   return (
-    <div className="space-y-6">
+    <>
+      {/* Mobile View */}
+      <div className="block md:hidden">
+        <TransactionPageClient
+          initialTransactions={transactions}
+          initialPaymentTransactions={paymentTransactions}
+          limit={100}
+        />
+      </div>
 
-
-      <TransactionPageClient
-        initialTransactions={transactions}
-        initialPaymentTransactions={paymentTransactions}
-        limit={100}
-      />
-    </div>
+      {/* Desktop View */}
+      <div className="hidden md:block">
+        <TransactionsDesktopView
+          initialTransactions={transactions}
+          initialPaymentTransactions={paymentTransactions}
+          limit={100}
+        />
+      </div>
+    </>
   );
 }
