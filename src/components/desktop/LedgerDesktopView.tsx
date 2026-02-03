@@ -56,11 +56,11 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
 }) => {
   if (totalPages <= 1) return null;
   return (
-    <div className="flex items-center justify-center gap-1 mt-4 pt-3 border-t border-slate-100">
+    <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-slate-100 bg-slate-50/50">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1 || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -83,10 +83,10 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
             key={pageNum}
             onClick={() => onPageChange(pageNum)}
             disabled={loading}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
+            className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${
               currentPage === pageNum
-                ? 'bg-slate-900 text-white'
-                : 'text-slate-500 hover:bg-slate-100'
+                ? 'bg-sky-600 text-white shadow-sm'
+                : 'text-slate-400 hover:bg-sky-50 hover:text-sky-600'
             }`}
           >
             {pageNum}
@@ -95,13 +95,13 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
       })}
 
       {hasMore && totalPages > 5 && (
-        <span className="text-slate-400 text-xs px-1">...</span>
+        <span className="text-slate-300 text-xs px-1">...</span>
       )}
 
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={(currentPage >= totalPages && !hasMore) || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -109,7 +109,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
       </button>
 
       {loading && (
-        <svg className="w-4 h-4 animate-spin ml-2 text-slate-400" fill="none" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 animate-spin ml-2 text-sky-500" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
@@ -205,215 +205,250 @@ export default function LedgerDesktopView({
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
-        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.14),_transparent_45%)]"></div>
-          <div className="relative z-10 flex flex-wrap items-start justify-between gap-6">
+        {/* Header Card */}
+        <div className="mb-5 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
               <Link
                 href="/ledgers"
-                className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 transition hover:text-slate-800"
+                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition hover:bg-sky-100"
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </Link>
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Ledger</span>
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                    Protocol v{ledger.protocol_version}
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Ledger</span>
+                  <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
+                    v{ledger.protocol_version}
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                  <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                     {ledger.successful_transaction_count} Success
                   </span>
                   {ledger.failed_transaction_count > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-700">
-                      <span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-rose-500">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                       {ledger.failed_transaction_count} Failed
                     </span>
                   )}
                 </div>
-                <div className="text-2xl font-bold font-mono text-slate-900">#{ledger.sequence.toLocaleString()}</div>
-                <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                <div className="text-xl font-bold text-slate-900">#{ledger.sequence.toLocaleString()}</div>
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                   <span className="flex items-center gap-1.5">
                     <svg className="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     {formatDate(ledger.closed_at)}
                   </span>
-                  <span className="text-slate-300">|</span>
-                  <span className="font-medium text-slate-700">{timeAgo(ledger.closed_at)}</span>
-                  <span className="text-slate-300">|</span>
+                  <span className="text-slate-300">•</span>
+                  <span className="font-semibold text-sky-600">{timeAgo(ledger.closed_at)}</span>
+                  <span className="text-slate-300">•</span>
                   <button
                     type="button"
                     onClick={handleCopyHash}
-                    className="group flex items-center gap-2 font-mono text-[11px] text-slate-500 hover:text-slate-800"
+                    className="group flex items-center gap-1.5 font-mono text-[11px] text-slate-400 hover:text-sky-600 transition-colors"
                   >
-                    <span className="truncate">Hash {shortenAddress(ledger.hash, 8)}</span>
-                    <svg className="h-3.5 w-3.5 text-slate-400 opacity-0 transition-opacity group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16h8m-8-4h8m-8-4h8M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H8l-4 4v10a2 2 0 002 2z" />
+                    <span className="truncate">{shortenAddress(ledger.hash, 6)}</span>
+                    <svg className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
-                    {copied && <span className="text-[10px] font-semibold text-emerald-500">Copied</span>}
+                    {copied && <span className="text-[9px] font-bold text-emerald-500">Copied!</span>}
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="flex divide-x divide-slate-200 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-600 shadow-sm">
-              <div className="px-5 py-2">
-                <div className="text-[10px] font-bold uppercase tracking-tight text-slate-400 mb-0.5">Transactions</div>
-                <div className="text-sm font-bold text-slate-900">
+            {/* Right: Quick Stats */}
+            <div className="flex gap-3">
+              <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
+                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Transactions</div>
+                <div className="text-lg font-bold text-slate-900">
                   <span className="text-emerald-600">{ledger.successful_transaction_count}</span>
                   {ledger.failed_transaction_count > 0 && (
-                    <span className="text-rose-500"> / {ledger.failed_transaction_count}</span>
+                    <span className="text-rose-500">/{ledger.failed_transaction_count}</span>
                   )}
                 </div>
               </div>
-              <div className="px-5 py-2">
-                <div className="text-[10px] font-bold uppercase tracking-tight text-slate-400 mb-0.5">Operations</div>
-                <div className="text-sm font-bold text-slate-900">{ledger.operation_count}</div>
+              <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
+                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Operations</div>
+                <div className="text-lg font-bold text-slate-900">{ledger.operation_count}</div>
               </div>
-              <div className="px-5 py-2">
-                <div className="text-[10px] font-bold uppercase tracking-tight text-slate-400 mb-0.5">Base Fee</div>
-                <div className="text-sm font-bold text-slate-900">
-                  {formatStroopsToXLM(ledger.base_fee_in_stroops)}{' '}
-                  <span className="text-[11px] font-mono font-normal text-slate-500">XLM</span>
+              <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
+                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Base Fee</div>
+                <div className="text-lg font-bold text-sky-600">
+                  {formatStroopsToXLM(ledger.base_fee_in_stroops)}
+                  <span className="text-[10px] font-medium text-slate-400 ml-1">XLM</span>
                 </div>
               </div>
-              <div className="px-5 py-2">
-                <div className="text-[10px] font-bold uppercase tracking-tight text-slate-400 mb-0.5">Reserve</div>
-                <div className="text-sm font-bold text-slate-900">
-                  {formatStroopsToXLM(ledger.base_reserve_in_stroops)}{' '}
-                  <span className="text-[11px] font-mono font-normal text-slate-500">XLM</span>
+              <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
+                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Reserve</div>
+                <div className="text-lg font-bold text-slate-900">
+                  {formatStroopsToXLM(ledger.base_reserve_in_stroops)}
+                  <span className="text-[10px] font-medium text-slate-400 ml-1">XLM</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Navigation */}
+        <div className="mb-5 grid grid-cols-2 gap-3">
           <Link
             href={`/ledger/${ledger.sequence - 1}`}
-            className="group flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-slate-300 hover:shadow-md transition-all"
+            className="group flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-200/60 hover:border-sky-200 hover:bg-sky-50/50 transition-all"
           >
-            <div className="flex items-center gap-3 text-sm font-semibold text-slate-700">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-500 group-hover:text-slate-800 transition-colors">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </span>
-              Previous Ledger
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </span>
+            <div>
+              <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Previous</div>
+              <div className="text-sm font-bold text-slate-700 group-hover:text-sky-600 font-mono">#{(ledger.sequence - 1).toLocaleString()}</div>
             </div>
-            <span className="text-xs font-mono text-slate-400">#{(ledger.sequence - 1).toLocaleString()}</span>
           </Link>
           <Link
             href={`/ledger/${ledger.sequence + 1}`}
-            className="group flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-slate-300 hover:shadow-md transition-all"
+            className="group flex items-center justify-end gap-3 p-3 rounded-xl bg-white border border-slate-200/60 hover:border-sky-200 hover:bg-sky-50/50 transition-all"
           >
-            <div className="flex items-center gap-3 text-sm font-semibold text-slate-700">
-              Next Ledger
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-500 group-hover:text-slate-800 transition-colors">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
+            <div className="text-right">
+              <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Next</div>
+              <div className="text-sm font-bold text-slate-700 group-hover:text-sky-600 font-mono">#{(ledger.sequence + 1).toLocaleString()}</div>
             </div>
-            <span className="text-xs font-mono text-slate-400">#{(ledger.sequence + 1).toLocaleString()}</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </span>
           </Link>
         </div>
 
-        <div className="flex flex-col gap-6 lg:flex-row items-start">
-          <div className="flex-1 w-full space-y-6">
-            <div className="border-b border-slate-200 flex gap-8">
-              {[
-                { id: 'overview', label: 'Overview' },
-                { id: 'transactions', label: `Transactions (${totalTx})` },
-                { id: 'operations', label: `Operations (${ledger.operation_count})` },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                  className={`pb-3 text-sm font-bold transition-all ${activeTab === tab.id ? 'border-b-2 border-sky-500 text-sky-600' : 'text-slate-400 hover:text-slate-600'}`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+        {/* Tabs */}
+        <div className="flex items-center gap-4 px-1 border-b border-slate-200/60 pb-2 mb-5">
+          {[
+            { id: 'overview', label: 'Overview' },
+            { id: 'transactions', label: 'Transactions', count: totalTx },
+            { id: 'operations', label: 'Operations', count: ledger.operation_count },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id as typeof activeTab)}
+              className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${
+                activeTab === tab.id
+                  ? 'text-sky-600 border-b-2 border-sky-600'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              {tab.label}
+              {'count' in tab && (
+                <span className={activeTab === tab.id ? 'text-sky-500 ml-1' : 'text-slate-300 ml-1'}>{tab.count}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1 w-full space-y-5">
 
             {activeTab === 'overview' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <section className="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col">
-                  <div className="flex items-center justify-between px-5 pt-5 pb-2">
-                    <h3 className="text-sm font-bold text-slate-800">Ledger Details</h3>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Closed</span>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                {/* Left: Ledger Details */}
+                <section className="lg:col-span-7 rounded-2xl border border-slate-200/60 bg-white shadow-sm">
+                  <div className="flex items-center gap-3 px-5 pt-5 pb-3">
+                    <div className="w-9 h-9 bg-sky-50 rounded-lg flex items-center justify-center text-sky-500">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800">Ledger Details</h3>
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-500">Closed</span>
+                    </div>
                   </div>
-                  <div className="divide-y divide-slate-100">
-                    <div className="p-4">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Hash</div>
-                      <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-600 break-all">
+                  <div className="p-4 space-y-3">
+                    <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Hash</div>
+                      <div className="font-mono text-xs font-medium text-slate-700 break-all leading-relaxed">
                         {ledger.hash}
                       </div>
                     </div>
-                    <div className="p-4">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Previous Hash</div>
-                      <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-600 break-all">
+                    <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Previous Hash</div>
+                      <div className="font-mono text-xs font-medium text-slate-700 break-all leading-relaxed">
                         {ledger.prev_hash}
                       </div>
                     </div>
-                    <div className="p-4 grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Max Tx Set</div>
-                        <div className="text-sm font-bold text-slate-900">{ledger.max_tx_set_size}</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-xl border border-slate-100 bg-white">
+                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Max Tx Set</div>
+                        <div className="text-lg font-bold text-slate-900">{ledger.max_tx_set_size}</div>
                       </div>
-                      <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Tx Set Ops</div>
-                        <div className="text-sm font-bold text-slate-900">{ledger.tx_set_operation_count}</div>
+                      <div className="p-3 rounded-xl border border-slate-100 bg-white">
+                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tx Set Ops</div>
+                        <div className="text-lg font-bold text-slate-900">{ledger.tx_set_operation_count}</div>
                       </div>
-                      <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Base Fee</div>
-                        <div className="text-sm font-bold text-slate-900">
-                          {formatStroopsToXLM(ledger.base_fee_in_stroops)} <span className="text-[10px] text-slate-500">XLM</span>
+                      <div className="p-3 rounded-xl border border-sky-100 bg-sky-50/50">
+                        <div className="text-[9px] font-bold text-sky-600/60 uppercase tracking-widest mb-1">Base Fee</div>
+                        <div className="text-lg font-bold text-sky-600">
+                          {formatStroopsToXLM(ledger.base_fee_in_stroops)} <span className="text-xs font-medium text-slate-400">XLM</span>
                         </div>
                       </div>
-                      <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Reserve</div>
-                        <div className="text-sm font-bold text-slate-900">
-                          {formatStroopsToXLM(ledger.base_reserve_in_stroops)} <span className="text-[10px] text-slate-500">XLM</span>
+                      <div className="p-3 rounded-xl border border-slate-100 bg-white">
+                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Reserve</div>
+                        <div className="text-lg font-bold text-slate-900">
+                          {formatStroopsToXLM(ledger.base_reserve_in_stroops)} <span className="text-xs font-medium text-slate-400">XLM</span>
                         </div>
                       </div>
                     </div>
                   </div>
                 </section>
 
-                <section className="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col">
-                  <div className="flex items-center justify-between px-5 pt-5 pb-2">
-                    <h3 className="text-sm font-bold text-slate-800">Ledger Activity</h3>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">{totalTx} Total Tx</span>
+                {/* Right: Ledger Activity */}
+                <section className="lg:col-span-5 rounded-2xl border border-slate-200/60 bg-white shadow-sm">
+                  <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-500">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-sm font-bold text-slate-800">Ledger Activity</h3>
+                    </div>
+                    <span className="bg-slate-100 px-2 py-0.5 rounded text-[9px] font-bold text-slate-500">{totalTx} TX</span>
                   </div>
-                  <div className="p-5 grid grid-cols-2 gap-4 text-xs">
-                    <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">Successful</div>
-                      <div className="text-lg font-bold text-emerald-700">{ledger.successful_transaction_count}</div>
+                  <div className="p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-xl border border-emerald-100 bg-emerald-50/50">
+                        <div className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-widest mb-1">Successful</div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                          <span className="text-xl font-bold text-emerald-600">{ledger.successful_transaction_count}</span>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl border border-rose-100 bg-rose-50/50">
+                        <div className="text-[9px] font-bold text-rose-600/60 uppercase tracking-widest mb-1">Failed</div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                          <span className="text-xl font-bold text-rose-600">{ledger.failed_transaction_count}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="rounded-lg border border-rose-100 bg-rose-50 p-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-rose-500 mb-1">Failed</div>
-                      <div className="text-lg font-bold text-rose-700">{ledger.failed_transaction_count}</div>
+                    <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/70">
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Operations</div>
+                      <div className="text-xl font-bold text-slate-900">{ledger.operation_count}</div>
                     </div>
-                    <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Operations</div>
-                      <div className="text-lg font-bold text-slate-800">{ledger.operation_count}</div>
+                    <div className="p-3 rounded-xl border border-violet-100 bg-violet-50/50">
+                      <div className="text-[9px] font-bold text-violet-600/60 uppercase tracking-widest mb-1">Total Coins</div>
+                      <div className="text-lg font-bold text-violet-600">{formatXLM(ledger.total_coins)} <span className="text-xs font-medium">XLM</span></div>
                     </div>
-                    <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Total Coins</div>
-                      <div className="text-lg font-bold text-slate-800">{formatXLM(ledger.total_coins)} XLM</div>
-                    </div>
-                    <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 col-span-2">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Fee Pool</div>
-                      <div className="text-lg font-bold text-slate-800">{formatXLM(ledger.fee_pool)} XLM</div>
+                    <div className="p-3 rounded-xl border border-amber-100 bg-amber-50/50">
+                      <div className="text-[9px] font-bold text-amber-600/60 uppercase tracking-widest mb-1">Fee Pool</div>
+                      <div className="text-lg font-bold text-amber-600">{formatXLM(ledger.fee_pool)} <span className="text-xs font-medium">XLM</span></div>
                     </div>
                   </div>
                 </section>
@@ -421,100 +456,135 @@ export default function LedgerDesktopView({
             )}
 
             {activeTab === 'transactions' && (
-              <div className="space-y-4">
-                {paginatedTx.map((tx) => {
-                  const info = tx.displayInfo || { type: 'other' as const };
-                  let description = 'Transaction';
-                  let typeDisplay = 'TRANSACTION';
-                  let valueDisplay: ReactNode = null;
-                  let accentClass = 'text-slate-500';
-                  let iconBgClass = 'bg-slate-100 text-slate-500';
+              <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+                <div className="divide-y divide-slate-100">
+                  {paginatedTx.map((tx, idx) => {
+                    const info = tx.displayInfo || { type: 'other' as const };
+                    let description = 'Transaction';
+                    let typeDisplay = 'TRANSACTION';
+                    let valueDisplay: ReactNode = null;
+                    let accentClass = 'text-slate-500';
+                    let bgClass = 'bg-slate-50';
+                    let iconBgClass = 'bg-slate-100';
 
-                  if (info.type === 'contract') {
-                    description = info.functionName || 'Smart Contract Call';
-                    typeDisplay = 'SMART CONTRACT';
-                    accentClass = 'text-purple-500';
-                    iconBgClass = 'bg-purple-50 text-purple-500';
-                  } else if (info.type === 'payment') {
-                    typeDisplay = info.isSwap ? 'SWAP' : 'PAYMENT';
-                    description = info.isSwap ? 'Swap Tokens' : 'Payment';
-                    accentClass = info.isSwap ? 'text-indigo-500' : 'text-emerald-500';
-                    iconBgClass = info.isSwap ? 'bg-indigo-50 text-indigo-500' : 'bg-emerald-50 text-emerald-500';
+                    if (info.type === 'contract') {
+                      description = info.functionName || 'Contract Call';
+                      typeDisplay = 'CONTRACT';
+                      accentClass = 'text-amber-600';
+                      bgClass = 'bg-amber-50';
+                      iconBgClass = 'bg-amber-100';
+                    } else if (info.type === 'payment') {
+                      typeDisplay = info.isSwap ? 'SWAP' : 'PAYMENT';
+                      description = info.isSwap ? 'Swap Tokens' : 'Payment';
+                      accentClass = info.isSwap ? 'text-violet-600' : 'text-emerald-600';
+                      bgClass = info.isSwap ? 'bg-violet-50' : 'bg-emerald-50';
+                      iconBgClass = info.isSwap ? 'bg-violet-100' : 'bg-emerald-100';
 
-                    if (info.amount) {
+                      if (info.amount) {
+                        valueDisplay = (
+                          <div className="text-right">
+                            <div className="text-sm font-bold text-slate-900">{formatTokenAmount(info.amount, 2)}</div>
+                            <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{info.asset}</div>
+                          </div>
+                        );
+                      }
+                    } else if (info.type === 'manage_offer') {
+                      description = 'Manage Offer';
+                      typeDisplay = 'OFFER';
+                      accentClass = 'text-indigo-600';
+                      bgClass = 'bg-indigo-50';
+                      iconBgClass = 'bg-indigo-100';
+                    } else if (info.type === 'multi_send' || info.type === 'bulk_send') {
+                      description = info.type === 'bulk_send' ? 'Bulk Send' : 'Multi Send';
+                      typeDisplay = 'MULTI SEND';
+                      accentClass = 'text-cyan-600';
+                      bgClass = 'bg-cyan-50';
+                      iconBgClass = 'bg-cyan-100';
                       valueDisplay = (
-                        <span className="text-sm font-bold text-slate-900">
-                          {formatTokenAmount(info.amount, 2)}{' '}
-                          <span className="text-[10px] font-bold text-slate-400">{info.asset}</span>
-                        </span>
+                        <div className="text-right">
+                          <div className="text-sm font-bold text-slate-900">{info.elementCount}</div>
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Recipients</div>
+                        </div>
                       );
                     }
-                  } else if (info.type === 'manage_offer') {
-                    description = 'Manage Offer';
-                    typeDisplay = 'OFFER';
-                    accentClass = 'text-orange-500';
-                    iconBgClass = 'bg-orange-50 text-orange-500';
-                  } else if (info.type === 'multi_send' || info.type === 'bulk_send') {
-                    description = info.type === 'bulk_send' ? 'Bulk Send' : 'Multi Send';
-                    typeDisplay = 'MULTI SEND';
-                    accentClass = 'text-cyan-500';
-                    iconBgClass = 'bg-cyan-50 text-cyan-500';
-                    valueDisplay = <span className="text-sm font-bold text-slate-900">{info.elementCount} Recipients</span>;
-                  }
 
-                  if (!tx.successful) {
-                    accentClass = 'text-rose-500';
-                    iconBgClass = 'bg-rose-50 text-rose-600';
-                  }
+                    if (!tx.successful) {
+                      accentClass = 'text-rose-600';
+                      bgClass = 'bg-rose-50';
+                      iconBgClass = 'bg-rose-100';
+                    }
 
-                  return (
-                    <Link
-                      href={`/transaction/${tx.hash}`}
-                      key={tx.id}
-                      className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-slate-300 hover:shadow-md transition-all"
-                    >
-                      <div className="flex items-start justify-between gap-6">
-                        <div className="flex items-start gap-4">
-                          <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${iconBgClass}`}>
-                            {info.type === 'payment' && info.isSwap ? (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
-                            ) : info.type === 'contract' ? (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                            ) : !tx.successful ? (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            ) : (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-[10px] font-bold uppercase tracking-widest ${accentClass}`}>
-                                {typeDisplay}
-                                {!tx.successful && <span className="ml-1 text-rose-500 font-extrabold">(FAILED)</span>}
-                              </span>
-                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
-                                {tx.operation_count} Ops
-                              </span>
-                            </div>
-                            <div className="text-sm font-bold text-slate-900">{description}</div>
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400">
-                              <span>#{shortenAddress(tx.hash, 4)}</span>
-                              <span className="text-slate-300">•</span>
-                              <span>{timeAgo(tx.created_at)}</span>
-                              <span className="text-slate-300">•</span>
-                              <span className="truncate">From {shortenAddress(tx.source_account, 4)}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          {valueDisplay || (
-                            <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">View details</span>
+                    return (
+                      <Link
+                        href={`/transaction/${tx.hash}`}
+                        key={tx.id}
+                        className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50/80 transition-colors group"
+                      >
+                        {/* Index with icon */}
+                        <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center ${iconBgClass} ${accentClass} transition-colors`}>
+                          {info.type === 'contract' ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                            </svg>
+                          ) : info.type === 'payment' && info.isSwap ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                          ) : info.type === 'payment' ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          ) : !tx.successful ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
                           )}
                         </div>
-                      </div>
-                    </Link>
-                  );
-                })}
+
+                        {/* Main content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${bgClass} ${accentClass}`}>
+                              {typeDisplay}
+                            </span>
+                            {!tx.successful && (
+                              <span className="px-2 py-0.5 rounded-md bg-rose-100 text-[9px] font-black text-rose-600 uppercase">Failed</span>
+                            )}
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[9px] font-bold text-slate-500">
+                              {tx.operation_count} ops
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors">
+                              {description}
+                            </span>
+                            <span className="text-slate-300">→</span>
+                            <span className="text-xs font-mono text-slate-500 truncate">{shortenAddress(tx.source_account, 6)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                            <span className="font-mono">{shortenAddress(tx.hash, 8)}</span>
+                            <span className="text-slate-300">•</span>
+                            <span>{timeAgo(tx.created_at)}</span>
+                          </div>
+                        </div>
+
+                        {/* Value / Arrow */}
+                        <div className="shrink-0 flex items-center gap-3">
+                          {valueDisplay}
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
                 {paginatedTx.length === 0 && (
                   <div className="text-center py-12 text-slate-400 text-sm">
                     No transactions found in this ledger.
@@ -531,63 +601,143 @@ export default function LedgerDesktopView({
             )}
 
             {activeTab === 'operations' && (
-              <div className="space-y-4">
-                {paginatedOps.map((op, idx) => {
-                  let typeDisplay = getOperationTypeLabel(op.type).replace(/_/g, ' ');
-                  let summary = '';
-                  let summaryLabel = '';
+              <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+                <div className="divide-y divide-slate-100">
+                  {paginatedOps.map((op, idx) => {
+                    let typeDisplay = getOperationTypeLabel(op.type).replace(/_/g, ' ');
+                    let summary = '';
+                    let summaryLabel = '';
+                    let accentClass = 'text-slate-600';
+                    let bgClass = 'bg-slate-50';
+                    let iconBgClass = 'bg-slate-100';
 
-                  if (op.type === 'payment') {
-                    const asset = (op as any).asset_code || ((op as any).asset_type === 'native' ? 'XLM' : '');
-                    summary = `${formatTokenAmount((op as any).amount, 2)} ${asset}`;
-                    summaryLabel = (op as any).to ? `To ${shortenAddress((op as any).to, 4)}` : '';
-                  } else if (op.type === 'create_account') {
-                    summary = `${formatTokenAmount((op as any).starting_balance, 2)} XLM`;
-                    summaryLabel = 'New Account';
-                  } else if (op.type === 'invoke_host_function') {
-                    typeDisplay = 'SMART CONTRACT';
-                    summary = decodeContractFunctionName(op);
-                  } else if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') {
-                    typeDisplay = 'SWAP';
-                    summary = `${formatTokenAmount((op as any).amount, 2)} ${(op as any).asset_code || 'XLM'}`;
-                    summaryLabel = 'Received';
-                  }
+                    if (op.type === 'payment') {
+                      const asset = (op as any).asset_code || ((op as any).asset_type === 'native' ? 'XLM' : '');
+                      summary = `${formatTokenAmount((op as any).amount, 2)} ${asset}`;
+                      summaryLabel = (op as any).to ? `→ ${shortenAddress((op as any).to, 4)}` : '';
+                      typeDisplay = 'Payment';
+                      accentClass = 'text-emerald-600';
+                      bgClass = 'bg-emerald-50';
+                      iconBgClass = 'bg-emerald-100';
+                    } else if (op.type === 'create_account') {
+                      summary = `${formatTokenAmount((op as any).starting_balance, 2)} XLM`;
+                      summaryLabel = 'New Account';
+                      typeDisplay = 'Create Account';
+                      accentClass = 'text-blue-600';
+                      bgClass = 'bg-blue-50';
+                      iconBgClass = 'bg-blue-100';
+                    } else if (op.type === 'invoke_host_function') {
+                      typeDisplay = 'Contract';
+                      summary = decodeContractFunctionName(op);
+                      accentClass = 'text-amber-600';
+                      bgClass = 'bg-amber-50';
+                      iconBgClass = 'bg-amber-100';
+                    } else if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') {
+                      typeDisplay = 'Swap';
+                      summary = `${formatTokenAmount((op as any).amount, 2)} ${(op as any).asset_code || 'XLM'}`;
+                      summaryLabel = 'Received';
+                      accentClass = 'text-violet-600';
+                      bgClass = 'bg-violet-50';
+                      iconBgClass = 'bg-violet-100';
+                    } else if (op.type === 'change_trust') {
+                      typeDisplay = 'Trustline';
+                      accentClass = 'text-indigo-600';
+                      bgClass = 'bg-indigo-50';
+                      iconBgClass = 'bg-indigo-100';
+                    } else if (op.type.includes('offer')) {
+                      typeDisplay = 'Offer';
+                      accentClass = 'text-cyan-600';
+                      bgClass = 'bg-cyan-50';
+                      iconBgClass = 'bg-cyan-100';
+                    }
 
-                  return (
-                    <Link
-                      href={`/transaction/${op.transaction_hash}?tab=operations&op=${op.id}`}
-                      key={op.id}
-                      className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-slate-300 hover:shadow-md transition-all"
-                    >
-                      <div className="flex items-center justify-between gap-6">
-                        <div className="flex items-center gap-4 min-w-0">
-                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center text-xs font-bold border ${op.transaction_successful
-                            ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
-                            : 'bg-rose-50 border-rose-100 text-rose-600'
-                            }`}>
-                            {(opsPage - 1) * ITEMS_PER_PAGE + idx + 1}
+                    if (!op.transaction_successful) {
+                      accentClass = 'text-rose-600';
+                      bgClass = 'bg-rose-50';
+                      iconBgClass = 'bg-rose-100';
+                    }
+
+                    return (
+                      <Link
+                        href={`/transaction/${op.transaction_hash}?tab=operations&op=${op.id}`}
+                        key={op.id}
+                        className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50/80 transition-colors group"
+                      >
+                        {/* Icon */}
+                        <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center ${iconBgClass} ${accentClass} transition-colors`}>
+                          {op.type === 'invoke_host_function' ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                            </svg>
+                          ) : op.type === 'payment' ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          ) : op.type === 'create_account' ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                            </svg>
+                          ) : op.type.includes('path_payment') ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                          ) : op.type === 'change_trust' ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                          ) : op.type.includes('offer') ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          )}
+                        </div>
+
+                        {/* Main content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${bgClass} ${accentClass}`}>
+                              {typeDisplay}
+                            </span>
+                            {!op.transaction_successful && (
+                              <span className="px-2 py-0.5 rounded-md bg-rose-100 text-[9px] font-black text-rose-600 uppercase">Failed</span>
+                            )}
                           </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-bold text-slate-900 capitalize truncate">{typeDisplay}</div>
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400">
-                              {op.source_account && (
-                                <span className="truncate">Source {shortenAddress(op.source_account, 4)}</span>
-                              )}
-                              <span className="text-slate-300">•</span>
-                              <span>{timeAgo(op.created_at)}</span>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            {op.source_account && (
+                              <>
+                                <span className="text-xs text-slate-500">from</span>
+                                <span className="text-xs font-mono font-medium text-slate-700">{shortenAddress(op.source_account, 6)}</span>
+                              </>
+                            )}
+                            <span className="text-slate-300">•</span>
+                            <span className="text-xs text-slate-400">{timeAgo(op.created_at)}</span>
                           </div>
                         </div>
-                        {(summary || summaryLabel) && (
-                          <div className="text-right">
-                            <div className="text-sm font-bold text-slate-900">{summary}</div>
-                            <div className="text-[10px] font-medium text-slate-400">{summaryLabel}</div>
+
+                        {/* Summary / Function */}
+                        <div className="shrink-0 flex items-center gap-3">
+                          {(summary || summaryLabel) && (
+                            <div className="text-right">
+                              <div className="text-sm font-bold text-slate-900">{summary}</div>
+                              {summaryLabel && (
+                                <div className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">{summaryLabel}</div>
+                              )}
+                            </div>
+                          )}
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
                           </div>
-                        )}
-                      </div>
-                    </Link>
-                  );
-                })}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
                 {paginatedOps.length === 0 && (
                   <div className="text-center py-12 text-slate-400 text-sm">
                     No operations found in this ledger.
@@ -603,7 +753,6 @@ export default function LedgerDesktopView({
               </div>
             )}
           </div>
-        </div>
       </div>
     </div>
   );
