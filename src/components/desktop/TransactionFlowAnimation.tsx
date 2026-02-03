@@ -58,7 +58,7 @@ export default function TransactionFlowAnimation({
     const containerRef = useRef<HTMLDivElement>(null);
     const particlesRef = useRef<Particle[]>([]);
     const lastOperationIdRef = useRef<string>('');
-    const animationRef = useRef<number>();
+    const animationRef = useRef<number | undefined>(undefined);
     const spawnTimerRef = useRef<number>(0);
     const operationQueueRef = useRef<Operation[]>([]);
     const processedCountRef = useRef<number>(0);
@@ -100,7 +100,7 @@ export default function TransactionFlowAnimation({
     useEffect(() => {
         const types = ['payment', 'swap', 'contract', 'trustline', 'contract', 'payment', 'swap', 'contract'];
 
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < 11; i++) {
             const opType = types[i % types.length];
             const walletIndex = Math.floor(Math.random() * 5);
             const validatorIndex = Math.floor(Math.random() * 4);
@@ -127,8 +127,11 @@ export default function TransactionFlowAnimation({
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        const context = canvas.getContext('2d');
+        if (!context) return;
+
+        // Use non-nullable reference for inner functions
+        const ctx: CanvasRenderingContext2D = context;
 
         const { width } = dimensions;
         const dpr = window.devicePixelRatio || 1;
@@ -140,25 +143,25 @@ export default function TransactionFlowAnimation({
         ctx.scale(dpr, dpr);
 
         // Node positions - 5 wallets, 4 validators, 1 ledger
-        const wallets = [];
+        const wallets: Array<{ x: number; y: number; label: string }> = [];
         for (let i = 0; i < 5; i++) {
             wallets.push({
                 x: 80,
                 y: 50 + i * ((height - 100) / 4),
-                label: `Wallet ${i + 1}`
+                label: '' // No individual labels
             });
         }
 
-        const validators = [];
+        const validators: Array<{ x: number; y: number; label: string }> = [];
         for (let i = 0; i < 4; i++) {
             validators.push({
                 x: width * 0.5,
                 y: 70 + i * ((height - 140) / 3),
-                label: `Validator ${i + 1}`
+                label: '' // No individual labels
             });
         }
 
-        const ledger = { x: width - 100, y: height / 2, label: 'Ledger' };
+        const ledger = { x: width - 100, y: height / 2, label: '' };
 
         function drawNode(
             x: number, y: number, size: number,
@@ -302,7 +305,7 @@ export default function TransactionFlowAnimation({
 
             // Spawn particles
             spawnTimerRef.current++;
-            if (spawnTimerRef.current >= 12) {
+            if (spawnTimerRef.current >= 16) {
                 spawnParticle();
                 spawnTimerRef.current = 0;
             }
@@ -314,6 +317,15 @@ export default function TransactionFlowAnimation({
             wallets.forEach(w => drawNode(w.x, w.y, 22, 'wallet', w.label));
             validators.forEach(v => drawNode(v.x, v.y, 28, 'validator', v.label));
             drawNode(ledger.x, ledger.y, 40, 'ledger', ledger.label);
+
+            // Draw bottom labels
+            ctx.fillStyle = '#64748b';
+            ctx.font = '600 12px -apple-system, system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('Wallets', 80, height - 12);
+            ctx.fillText('Validators', width * 0.5, height - 12);
+            ctx.fillText('Ledger', width - 100, height - 12);
 
             // Update and draw particles
             particlesRef.current = particlesRef.current.filter(p => p.alive);

@@ -1,6 +1,5 @@
-'use client';
-
-import { containers } from '@/lib/design-system';
+import NewsMobileView from '@/components/mobile/NewsMobileView';
+import NewsDesktopView from '@/components/desktop/NewsDesktopView';
 
 interface NewsItem {
   id: string;
@@ -9,6 +8,7 @@ interface NewsItem {
   source: string;
   url: string;
   category: 'stellar' | 'crypto' | 'defi' | 'regulation';
+  description?: string;
 }
 
 const mockNews: NewsItem[] = [
@@ -19,6 +19,7 @@ const mockNews: NewsItem[] = [
     source: 'Stellar Blog',
     url: 'https://stellar.org/blog',
     category: 'stellar',
+    description: 'The Stellar Development Foundation has announced a comprehensive protocol upgrade scheduled for Q2 2026, featuring enhanced smart contract capabilities and improved cross-chain interoperability.',
   },
   {
     id: '2',
@@ -27,6 +28,7 @@ const mockNews: NewsItem[] = [
     source: 'CoinDesk',
     url: 'https://coindesk.com',
     category: 'crypto',
+    description: 'Bitcoin has reached a new all-time high as major financial institutions continue to allocate significant portions of their portfolios to digital assets.',
   },
   {
     id: '3',
@@ -35,6 +37,7 @@ const mockNews: NewsItem[] = [
     source: 'The Block',
     url: 'https://theblock.co',
     category: 'stellar',
+    description: 'MoneyGram has announced a significant expansion of its Stellar-powered remittance services, bringing fast and affordable cross-border payments to 50 additional countries.',
   },
   {
     id: '4',
@@ -43,6 +46,7 @@ const mockNews: NewsItem[] = [
     source: 'Bloomberg',
     url: 'https://bloomberg.com',
     category: 'regulation',
+    description: 'The U.S. Securities and Exchange Commission has approved options trading on spot Ethereum ETFs, marking another milestone in cryptocurrency market maturation.',
   },
   {
     id: '5',
@@ -51,6 +55,7 @@ const mockNews: NewsItem[] = [
     source: 'Stellar Blog',
     url: 'https://stellar.org/blog',
     category: 'stellar',
+    description: 'Developer activity on Stellar\'s Soroban smart contract platform has exploded, with the number of deployed contracts and active developers reaching record highs.',
   },
   {
     id: '6',
@@ -59,6 +64,7 @@ const mockNews: NewsItem[] = [
     source: 'DeFi Pulse',
     url: 'https://defipulse.com',
     category: 'defi',
+    description: 'The total value locked in decentralized finance protocols has reached an unprecedented $500 billion, driven by institutional adoption and new yield opportunities.',
   },
   {
     id: '7',
@@ -67,6 +73,7 @@ const mockNews: NewsItem[] = [
     source: 'Circle Blog',
     url: 'https://circle.com/blog',
     category: 'stellar',
+    description: 'Circle has announced native USDC support on the Stellar network, enabling faster and cheaper stablecoin transactions for global payments.',
   },
   {
     id: '8',
@@ -75,6 +82,7 @@ const mockNews: NewsItem[] = [
     source: 'Reuters',
     url: 'https://reuters.com',
     category: 'regulation',
+    description: 'The European Union has released final implementation guidelines for the Markets in Crypto-Assets (MiCA) regulation, providing clarity for crypto businesses operating in Europe.',
   },
   {
     id: '9',
@@ -83,6 +91,7 @@ const mockNews: NewsItem[] = [
     source: 'Stellar Blog',
     url: 'https://stellar.org/blog',
     category: 'stellar',
+    description: 'The Stellar network continues to expand its anchor ecosystem with 20 new licensed partners across Africa, Asia, and Latin America.',
   },
   {
     id: '10',
@@ -91,6 +100,7 @@ const mockNews: NewsItem[] = [
     source: 'Forbes',
     url: 'https://forbes.com',
     category: 'crypto',
+    description: 'A new report projects the global cross-border payments market will reach $250 trillion by 2030, with blockchain-based solutions capturing an increasing share.',
   },
   {
     id: '11',
@@ -99,6 +109,7 @@ const mockNews: NewsItem[] = [
     source: 'The Block',
     url: 'https://theblock.co',
     category: 'defi',
+    description: 'Layer 2 scaling solutions on Ethereum now process more daily transactions than the Ethereum mainnet, highlighting the success of the scaling roadmap.',
   },
   {
     id: '12',
@@ -107,78 +118,22 @@ const mockNews: NewsItem[] = [
     source: 'Stellar Blog',
     url: 'https://stellar.org/blog',
     category: 'stellar',
+    description: 'The Stellar Development Foundation has distributed $10 million in grants to innovative projects building on the Stellar network in Q4 2025.',
   },
 ];
 
-const categoryColors: Record<string, string> = {
-  stellar: 'bg-blue-500/10 text-blue-500',
-  crypto: 'bg-amber-500/10 text-amber-500',
-  defi: 'bg-purple-500/10 text-purple-500',
-  regulation: 'bg-green-500/10 text-green-500',
-};
-
-const categoryLabels: Record<string, string> = {
-  stellar: 'Stellar',
-  crypto: 'Crypto',
-  defi: 'DeFi',
-  regulation: 'Regulation',
-};
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffTime = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
 export default function NewsPage() {
   return (
-    <div className={`${containers.page} pt-3`}>
-      {/* News List */}
-      <main className="px-3 space-y-2">
-        {mockNews.map((news) => (
-          <a
-            key={news.id}
-            href={news.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors"
-          >
-            {/* Row 1: Title with link icon */}
-            <div className="flex items-start justify-between gap-2 mb-1.5">
-              <h2 className="text-sm font-semibold text-[var(--text-primary)] leading-snug line-clamp-2 flex-1">
-                {news.title}
-              </h2>
-              <svg className="w-4 h-4 text-[var(--text-muted)] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </div>
+    <>
+      {/* Mobile View */}
+      <div className="block md:hidden">
+        <NewsMobileView news={mockNews} />
+      </div>
 
-            {/* Row 2: Category, Source & Date */}
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${categoryColors[news.category]}`}>
-                {categoryLabels[news.category]}
-              </span>
-              <span className="text-[var(--text-muted)]">{news.source}</span>
-              <span className="text-[var(--text-muted)]">·</span>
-              <span className="text-[var(--text-muted)]">{formatDate(news.date)}</span>
-            </div>
-          </a>
-        ))}
-
-        {/* Load More */}
-        <div className="py-4 text-center">
-          <button className="px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm font-medium text-[var(--text-tertiary)] shadow-sm">
-            Load more news
-          </button>
-        </div>
-      </main>
-    </div>
+      {/* Desktop View */}
+      <div className="hidden md:block">
+        <NewsDesktopView news={mockNews} />
+      </div>
+    </>
   );
 }
