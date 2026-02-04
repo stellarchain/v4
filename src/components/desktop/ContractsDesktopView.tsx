@@ -285,7 +285,7 @@ export default function ContractsDesktopView({
             <div className="flex items-start gap-4 min-w-0">
               <Link
                 href="/"
-                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 transition hover:bg-sky-200 dark:hover:bg-sky-900/60"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -311,17 +311,17 @@ export default function ContractsDesktopView({
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total</div>
                 <div className="text-lg font-bold text-[var(--text-primary)]">{pagination.total.toLocaleString()}</div>
               </div>
-              <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-indigo-600/60 uppercase tracking-widest mb-1">Tokens</div>
-                <div className="text-lg font-bold text-indigo-600">{currentStats.tokens}</div>
+              <div className="p-3 rounded-xl bg-indigo-100/70 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800/50 min-w-[90px]">
+                <div className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1">Tokens</div>
+                <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{currentStats.tokens}</div>
               </div>
-              <div className="p-3 rounded-xl bg-violet-50/70 border border-violet-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-violet-600/60 uppercase tracking-widest mb-1">DEXs</div>
-                <div className="text-lg font-bold text-violet-600">{currentStats.dex}</div>
+              <div className="p-3 rounded-xl bg-violet-100/70 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800/50 min-w-[90px]">
+                <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">DEXs</div>
+                <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{currentStats.dex}</div>
               </div>
-              <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-widest mb-1">Verified</div>
-                <div className="text-lg font-bold text-emerald-600">{currentStats.verified}</div>
+              <div className="p-3 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 min-w-[90px]">
+                <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Verified</div>
+                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{currentStats.verified}</div>
               </div>
             </div>
           </div>

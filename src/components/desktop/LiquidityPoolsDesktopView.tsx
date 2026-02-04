@@ -227,7 +227,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                         <div className="flex items-start gap-4 min-w-0">
                             <Link
                                 href="/"
-                                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 transition hover:bg-sky-200 dark:hover:bg-sky-900/60"
                             >
                                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -257,13 +257,13 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Pools</div>
                                 <div className="text-lg font-bold text-[var(--text-primary)]">{stats.total.toLocaleString()}</div>
                             </div>
-                            <div className="p-3 rounded-xl bg-violet-50/70 border border-violet-100 min-w-[100px]">
-                                <div className="text-[9px] font-bold text-violet-600/60 uppercase tracking-widest mb-1">Total Shares</div>
-                                <div className="text-lg font-bold text-violet-600">{formatShares(stats.totalShares.toString())}</div>
+                            <div className="p-3 rounded-xl bg-violet-100/70 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800/50 min-w-[100px]">
+                                <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">Total Shares</div>
+                                <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{formatShares(stats.totalShares.toString())}</div>
                             </div>
-                            <div className="p-3 rounded-xl bg-sky-50/70 border border-sky-100 min-w-[100px]">
-                                <div className="text-[9px] font-bold text-sky-600/60 uppercase tracking-widest mb-1">Liquidity</div>
-                                <div className="text-lg font-bold text-sky-600">{formatAmount(stats.totalLiquidity.toString())}</div>
+                            <div className="p-3 rounded-xl bg-sky-100/70 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[100px]">
+                                <div className="text-[9px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest mb-1">Liquidity</div>
+                                <div className="text-lg font-bold text-sky-600 dark:text-sky-400">{formatAmount(stats.totalLiquidity.toString())}</div>
                             </div>
                         </div>
                     </div>
