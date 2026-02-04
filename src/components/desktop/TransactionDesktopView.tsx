@@ -334,11 +334,11 @@ export default function TransactionDesktopView({ transaction, operations, effect
                 <span className="text-[8px] font-bold text-amber-500 uppercase">{contractFunctionName}</span>
               </div>
               {/* Contract */}
-              <div className="flex-1 p-3 rounded-xl bg-amber-50 border border-amber-100">
+              <div className="flex-1 p-3 rounded-xl bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center text-white text-xs font-bold shadow-sm">C</div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[9px] font-bold text-amber-600/70 uppercase tracking-wider mb-0.5">Contract</div>
+                    <div className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-0.5">Contract</div>
                     <Link href={`/contract/${destination}`} className="font-mono text-xs font-medium text-[var(--text-primary)] hover:text-sky-600 truncate block">{shortenAddress(destination, 6)}</Link>
                   </div>
                 </div>

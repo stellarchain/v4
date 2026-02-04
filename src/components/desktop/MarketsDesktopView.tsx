@@ -219,7 +219,7 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
           <div className="flex flex-wrap items-start justify-between gap-5">
             {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
-              <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center text-sky-600">
+              <div className="w-10 h-10 bg-sky-100 dark:bg-sky-900/40 rounded-xl flex items-center justify-center text-sky-600 dark:text-sky-400">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
@@ -241,9 +241,9 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
 
             {/* Right: Quick Stats */}
             <div className="flex gap-3">
-              <div className="p-3 rounded-xl bg-sky-50/70 border border-sky-100 min-w-[110px]">
-                <div className="text-[9px] font-bold text-sky-600/60 uppercase tracking-widest mb-1">Market Cap</div>
-                <div className="text-lg font-bold text-sky-600">{formatLargeNumber(marketTotals.totalMarketCap)}</div>
+              <div className="p-3 rounded-xl bg-sky-100/70 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[110px]">
+                <div className="text-[9px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest mb-1">Market Cap</div>
+                <div className="text-lg font-bold text-sky-600 dark:text-sky-400">{formatLargeNumber(marketTotals.totalMarketCap)}</div>
               </div>
               <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[110px]">
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Volume 24h</div>

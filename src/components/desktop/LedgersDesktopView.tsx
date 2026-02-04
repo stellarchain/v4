@@ -266,7 +266,7 @@ export default function LedgersDesktopView({
             <div className="flex items-start gap-4 min-w-0">
               <Link
                 href="/"
-                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 transition hover:bg-sky-200 dark:hover:bg-sky-900/60"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -296,21 +296,21 @@ export default function LedgersDesktopView({
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Loaded</div>
                 <div className="text-lg font-bold text-[var(--text-primary)]">{stats.total}</div>
               </div>
-              <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-widest mb-1">Transactions</div>
-                <div className="text-lg font-bold text-emerald-600">{stats.totalTxs.toLocaleString()}</div>
+              <div className="p-3 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 min-w-[90px]">
+                <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Transactions</div>
+                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{stats.totalTxs.toLocaleString()}</div>
               </div>
-              <div className="p-3 rounded-xl bg-sky-50/70 border border-sky-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-sky-600/60 uppercase tracking-widest mb-1">Operations</div>
-                <div className="text-lg font-bold text-sky-600">{stats.totalOps.toLocaleString()}</div>
+              <div className="p-3 rounded-xl bg-sky-100/70 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[90px]">
+                <div className="text-[9px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest mb-1">Operations</div>
+                <div className="text-lg font-bold text-sky-600 dark:text-sky-400">{stats.totalOps.toLocaleString()}</div>
               </div>
-              <div className="p-3 rounded-xl bg-violet-50/70 border border-violet-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-violet-600/60 uppercase tracking-widest mb-1">Avg Close</div>
-                <div className="text-lg font-bold text-violet-600">{stats.avgCloseTime.toFixed(1)}s</div>
+              <div className="p-3 rounded-xl bg-violet-100/70 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800/50 min-w-[90px]">
+                <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">Avg Close</div>
+                <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{stats.avgCloseTime.toFixed(1)}s</div>
               </div>
-              <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-100 min-w-[110px]">
-                <div className="text-[9px] font-bold text-amber-600/60 uppercase tracking-widest mb-1">Total Coins</div>
-                <div className="text-lg font-bold text-amber-600">{formatCompact(stats.totalCoins)}</div>
+              <div className="p-3 rounded-xl bg-amber-100/70 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 min-w-[110px]">
+                <div className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-1">Total Coins</div>
+                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">{formatCompact(stats.totalCoins)}</div>
               </div>
             </div>
           </div>
@@ -403,7 +403,7 @@ export default function LedgersDesktopView({
 
                         {/* Protocol Version */}
                         <td className="py-2.5 px-4 text-center">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded bg-sky-50 border border-sky-100 text-[10px] font-bold text-sky-600">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-900/40 border border-sky-200 dark:border-sky-800/50 text-[10px] font-bold text-sky-600 dark:text-sky-400">
                             v{ledger.protocol_version}
                           </span>
                         </td>
