@@ -91,11 +91,11 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading }: 
   };
 
   return (
-    <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-slate-100 bg-slate-50/50">
+    <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1 || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -104,7 +104,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading }: 
 
       {getPageNumbers().map((page, idx) => (
         page === '...' ? (
-          <span key={`ellipsis-${idx}`} className="text-slate-300 text-xs px-1">...</span>
+          <span key={`ellipsis-${idx}`} className="text-[var(--text-muted)] text-xs px-1">...</span>
         ) : (
           <button
             key={page}
@@ -113,7 +113,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading }: 
             className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${
               currentPage === page
                 ? 'bg-sky-600 text-white shadow-sm'
-                : 'text-slate-400 hover:bg-sky-50 hover:text-sky-600'
+                : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-600'
             }`}
           >
             {page}
@@ -124,7 +124,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading }: 
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage >= totalPages || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -138,7 +138,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading }: 
         </svg>
       )}
 
-      <span className="ml-3 text-[10px] font-medium text-slate-400">
+      <span className="ml-3 text-[10px] font-medium text-[var(--text-muted)]">
         Page {currentPage} of {totalPages}
       </span>
     </div>
@@ -262,7 +262,7 @@ export default function ContractsDesktopView({
       case 'bridge':
         return { label: 'Bridge', color: 'text-cyan-600', bg: 'bg-cyan-50 border-cyan-100' };
       default:
-        return { label: 'Contract', color: 'text-slate-600', bg: 'bg-slate-50 border-slate-100' };
+        return { label: 'Contract', color: 'text-[var(--text-secondary)]', bg: 'bg-[var(--bg-primary)] border-[var(--border-subtle)]' };
     }
   };
 
@@ -276,10 +276,10 @@ export default function ContractsDesktopView({
   }), [contracts, pagination.total]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
         {/* Header Card */}
-        <div className="mb-5 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+        <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-5">
             {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
@@ -293,13 +293,13 @@ export default function ContractsDesktopView({
               </Link>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Soroban</span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Soroban</span>
                   <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
                     Mainnet
                   </span>
                 </div>
-                <div className="text-xl font-bold text-slate-900">Smart Contracts</div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="text-xl font-bold text-[var(--text-primary)]">Smart Contracts</div>
+                <div className="mt-1 text-xs text-[var(--text-tertiary)]">
                   {pagination.total.toLocaleString()} smart contracts deployed on Stellar
                 </div>
               </div>
@@ -307,9 +307,9 @@ export default function ContractsDesktopView({
 
             {/* Right: Quick Stats */}
             <div className="flex gap-3">
-              <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total</div>
-                <div className="text-lg font-bold text-slate-900">{pagination.total.toLocaleString()}</div>
+              <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{pagination.total.toLocaleString()}</div>
               </div>
               <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100 min-w-[90px]">
                 <div className="text-[9px] font-bold text-indigo-600/60 uppercase tracking-widest mb-1">Tokens</div>
@@ -335,16 +335,16 @@ export default function ContractsDesktopView({
               placeholder="Search by name, symbol, or contract ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-4 py-2.5 pl-10 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent shadow-sm"
+              className="w-full px-4 py-2.5 pl-10 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent shadow-sm"
             />
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'activity' | 'name' | 'recent')}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm cursor-pointer"
+            className="px-4 py-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-medium text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm cursor-pointer"
           >
             <option value="recent">Most Recent</option>
             <option value="activity">Most Active</option>
@@ -353,7 +353,7 @@ export default function ContractsDesktopView({
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex items-center gap-4 px-1 border-b border-slate-200/60 pb-2 mb-5">
+        <div className="flex items-center gap-4 px-1 border-b border-[var(--border-default)] pb-2 mb-5">
           {[
             { id: 'all', label: 'All Contracts', count: pagination.total },
             { id: 'verified', label: 'Verified', count: currentStats.verified },
@@ -367,11 +367,11 @@ export default function ContractsDesktopView({
               className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${
                 filter === tab.id
                   ? 'text-sky-600 border-b-2 border-sky-600'
-                  : 'text-slate-400 hover:text-slate-600'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
               }`}
             >
               {tab.label}
-              <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-slate-300 ml-1'}>
+              <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>
                 {tab.count.toLocaleString()}
               </span>
             </button>
@@ -384,7 +384,7 @@ export default function ContractsDesktopView({
               className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${
                 filter === cat.id
                   ? 'text-sky-600 border-b-2 border-sky-600'
-                  : 'text-slate-400 hover:text-slate-600'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
               }`}
             >
               {cat.name}
@@ -394,33 +394,33 @@ export default function ContractsDesktopView({
 
         {/* Loading overlay */}
         {isLoading && (
-          <div className="fixed inset-0 bg-slate-900/20 z-50 flex items-center justify-center backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-xl p-6 flex items-center gap-3">
+          <div className="fixed inset-0 bg-[var(--text-primary)]/20 z-50 flex items-center justify-center backdrop-blur-sm">
+            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-xl p-6 flex items-center gap-3">
               <svg className="animate-spin h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <span className="font-medium text-slate-700">Loading contracts...</span>
+              <span className="font-medium text-[var(--text-secondary)]">Loading contracts...</span>
             </div>
           </div>
         )}
 
         {/* Contracts Table */}
-        <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
-                  <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Contract ID</th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Name</th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Type</th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Created</th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Invocations</th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Status</th>
-                  <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center whitespace-nowrap w-10"></th>
+                <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
+                  <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Contract ID</th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Name</th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Type</th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Created</th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Invocations</th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Status</th>
+                  <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-center whitespace-nowrap w-10"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-[var(--bg-primary)]">
                 {filteredContracts.length > 0 ? (
                   filteredContracts.map((contract) => {
                     const typeBadge = getTypeBadge(contract.type);
@@ -445,7 +445,7 @@ export default function ContractsDesktopView({
                         {/* Name */}
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors truncate max-w-[180px]">
+                            <span className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-sky-600 transition-colors truncate max-w-[180px]">
                               {contract.name}
                             </span>
                             {contract.verified && (
@@ -454,7 +454,7 @@ export default function ContractsDesktopView({
                               </svg>
                             )}
                             {contract.symbol && (
-                              <span className="text-[10px] font-bold text-slate-400 uppercase">
+                              <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
                                 {contract.symbol}
                               </span>
                             )}
@@ -474,18 +474,18 @@ export default function ContractsDesktopView({
                         </td>
 
                         {/* Created */}
-                        <td className="py-3 px-3 text-[12px] text-slate-500 whitespace-nowrap">
+                        <td className="py-3 px-3 text-[12px] text-[var(--text-tertiary)] whitespace-nowrap">
                           {contract.createdAt ? timeAgo(contract.createdAt) : '-'}
                         </td>
 
                         {/* Invocations */}
                         <td className="py-3 px-3 text-right">
                           {contract.operationCount > 0 ? (
-                            <span className="text-[12px] font-semibold text-slate-900">
+                            <span className="text-[12px] font-semibold text-[var(--text-primary)]">
                               {contract.operationCount.toLocaleString()}
                             </span>
                           ) : (
-                            <span className="text-[12px] text-slate-400">0</span>
+                            <span className="text-[12px] text-[var(--text-muted)]">0</span>
                           )}
                         </td>
 
@@ -497,8 +497,8 @@ export default function ContractsDesktopView({
                               Active
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                              <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
                               Idle
                             </span>
                           )}
@@ -506,7 +506,7 @@ export default function ContractsDesktopView({
 
                         {/* Arrow */}
                         <td className="py-3 px-4 text-center">
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100 text-slate-400 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-muted)] group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
@@ -519,13 +519,13 @@ export default function ContractsDesktopView({
                   <tr>
                     <td colSpan={7} className="text-center py-12">
                       <div className="flex flex-col items-center justify-center">
-                        <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mb-3">
-                          <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="w-12 h-12 bg-[var(--bg-tertiary)] rounded-xl flex items-center justify-center mb-3">
+                          <svg className="w-6 h-6 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
-                        <p className="text-sm font-medium text-slate-700 mb-1">No contracts found</p>
-                        <p className="text-xs text-slate-400">Try adjusting your search or filter criteria</p>
+                        <p className="text-sm font-medium text-[var(--text-secondary)] mb-1">No contracts found</p>
+                        <p className="text-xs text-[var(--text-muted)]">Try adjusting your search or filter criteria</p>
                       </div>
                     </td>
                   </tr>

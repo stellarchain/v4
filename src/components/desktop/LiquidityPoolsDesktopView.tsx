@@ -52,11 +52,11 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
 }) => {
     if (totalPages <= 1) return null;
     return (
-        <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-slate-100 bg-slate-50/50">
+        <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
             <button
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1 || loading}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -82,7 +82,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
                         className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${
                             currentPage === pageNum
                                 ? 'bg-sky-600 text-white shadow-sm'
-                                : 'text-slate-400 hover:bg-sky-50 hover:text-sky-600'
+                                : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-600'
                         }`}
                     >
                         {pageNum}
@@ -91,13 +91,13 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
             })}
 
             {hasMore && totalPages > 5 && (
-                <span className="text-slate-300 text-xs px-1">...</span>
+                <span className="text-[var(--text-muted)] text-xs px-1">...</span>
             )}
 
             <button
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={(currentPage >= totalPages && !hasMore) || loading}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -218,10 +218,10 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
     const visiblePools = filteredPools.slice(startIndex, startIndex + PAGE_SIZE);
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900">
+        <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
             <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
                 {/* Header Card */}
-                <div className="mb-5 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+                <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
                     <div className="flex flex-wrap items-start justify-between gap-5">
                         {/* Left: Title & Meta */}
                         <div className="flex items-start gap-4 min-w-0">
@@ -235,7 +235,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                             </Link>
                             <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Stellar DEX</span>
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Stellar DEX</span>
                                     <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
                                         AMM
                                     </span>
@@ -244,8 +244,8 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                         Liquidity Pools
                                     </span>
                                 </div>
-                                <div className="text-xl font-bold text-slate-900">Liquidity Pools</div>
-                                <div className="mt-1 text-xs text-slate-500">
+                                <div className="text-xl font-bold text-[var(--text-primary)]">Liquidity Pools</div>
+                                <div className="mt-1 text-xs text-[var(--text-tertiary)]">
                                     Automated Market Maker pools on the Stellar network
                                 </div>
                             </div>
@@ -253,9 +253,9 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
 
                         {/* Right: Quick Stats */}
                         <div className="flex gap-3 flex-wrap">
-                            <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
-                                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pools</div>
-                                <div className="text-lg font-bold text-slate-900">{stats.total.toLocaleString()}</div>
+                            <div className="p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] min-w-[90px]">
+                                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Pools</div>
+                                <div className="text-lg font-bold text-[var(--text-primary)]">{stats.total.toLocaleString()}</div>
                             </div>
                             <div className="p-3 rounded-xl bg-violet-50/70 border border-violet-100 min-w-[100px]">
                                 <div className="text-[9px] font-bold text-violet-600/60 uppercase tracking-widest mb-1">Total Shares</div>
@@ -272,7 +272,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                 {/* Search / Filters Row */}
                 <div className="mb-5 flex items-center justify-between gap-4">
                     <div className="relative flex-1 max-w-md">
-                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                         <input
@@ -283,12 +283,12 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                 setSearchQuery(e.target.value);
                                 setCurrentPage(1);
                             }}
-                            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100 transition-all"
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100 transition-all"
                         />
                         {searchQuery && (
                             <button
                                 onClick={() => setSearchQuery('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] transition-colors"
                             >
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -296,41 +296,41 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                             </button>
                         )}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <div className="flex items-center gap-2 text-xs text-[var(--text-tertiary)]">
                         <span className="font-medium">{filteredPools.length}</span>
                         <span>pools found</span>
                     </div>
                 </div>
 
                 {/* Pools Table */}
-                <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+                <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="border-b border-slate-100 bg-slate-50/50">
-                                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Pool</th>
-                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Reserve A</th>
-                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Reserve B</th>
-                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Exchange Rate</th>
-                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Total Shares</th>
-                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Trustlines</th>
-                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center whitespace-nowrap">Fee</th>
-                                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center whitespace-nowrap w-10"></th>
+                                <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+                                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Pool</th>
+                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Reserve A</th>
+                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Reserve B</th>
+                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Exchange Rate</th>
+                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Total Shares</th>
+                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Trustlines</th>
+                                    <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-center whitespace-nowrap">Fee</th>
+                                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-center whitespace-nowrap w-10"></th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-[var(--border-subtle)]">
                                 {isInitialLoading ? (
                                     // Skeleton loading
                                     Array.from({ length: 15 }).map((_, i) => (
                                         <tr key={i} className="animate-pulse">
-                                            <td className="py-3 px-4"><div className="h-10 w-32 bg-slate-100 rounded" /></td>
-                                            <td className="py-3 px-3"><div className="h-4 w-20 bg-slate-100 rounded ml-auto" /></td>
-                                            <td className="py-3 px-3"><div className="h-4 w-20 bg-slate-100 rounded ml-auto" /></td>
-                                            <td className="py-3 px-3"><div className="h-4 w-24 bg-slate-100 rounded ml-auto" /></td>
-                                            <td className="py-3 px-3"><div className="h-4 w-16 bg-slate-100 rounded ml-auto" /></td>
-                                            <td className="py-3 px-3"><div className="h-4 w-12 bg-slate-100 rounded ml-auto" /></td>
-                                            <td className="py-3 px-3"><div className="h-5 w-12 bg-slate-100 rounded mx-auto" /></td>
-                                            <td className="py-3 px-4"><div className="h-6 w-6 bg-slate-100 rounded mx-auto" /></td>
+                                            <td className="py-3 px-4"><div className="h-10 w-32 bg-[var(--bg-tertiary)] rounded" /></td>
+                                            <td className="py-3 px-3"><div className="h-4 w-20 bg-[var(--bg-tertiary)] rounded ml-auto" /></td>
+                                            <td className="py-3 px-3"><div className="h-4 w-20 bg-[var(--bg-tertiary)] rounded ml-auto" /></td>
+                                            <td className="py-3 px-3"><div className="h-4 w-24 bg-[var(--bg-tertiary)] rounded ml-auto" /></td>
+                                            <td className="py-3 px-3"><div className="h-4 w-16 bg-[var(--bg-tertiary)] rounded ml-auto" /></td>
+                                            <td className="py-3 px-3"><div className="h-4 w-12 bg-[var(--bg-tertiary)] rounded ml-auto" /></td>
+                                            <td className="py-3 px-3"><div className="h-5 w-12 bg-[var(--bg-tertiary)] rounded mx-auto" /></td>
+                                            <td className="py-3 px-4"><div className="h-6 w-6 bg-[var(--bg-tertiary)] rounded mx-auto" /></td>
                                         </tr>
                                     ))
                                 ) : visiblePools.length > 0 ? (
@@ -349,7 +349,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                         return (
                                             <tr
                                                 key={pool.id}
-                                                className="hover:bg-sky-50/30 transition-colors group cursor-pointer"
+                                                className="hover:bg-[var(--bg-hover)] transition-colors group cursor-pointer"
                                                 onClick={() => window.location.href = `/liquidity-pool/${pool.id}`}
                                             >
                                                 {/* Pool */}
@@ -357,12 +357,12 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                                     <div>
                                                         <Link
                                                             href={`/liquidity-pool/${pool.id}`}
-                                                            className="font-semibold text-sm text-slate-900 group-hover:text-sky-600 transition-colors"
+                                                            className="font-semibold text-sm text-[var(--text-primary)] group-hover:text-sky-600 transition-colors"
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
                                                             {codeA} / {codeB}
                                                         </Link>
-                                                        <div className="text-[10px] text-slate-400 font-mono">
+                                                        <div className="text-[10px] text-[var(--text-muted)] font-mono">
                                                             {shortenAddress(pool.id, 6)}
                                                         </div>
                                                     </div>
@@ -370,39 +370,39 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
 
                                                 {/* Reserve A */}
                                                 <td className="py-2.5 px-3 text-right">
-                                                    <div className="text-[12px] font-medium text-slate-900 font-mono">
+                                                    <div className="text-[12px] font-medium text-[var(--text-primary)] font-mono">
                                                         {formatAmount(assetA?.amount || '0')}
                                                     </div>
-                                                    <div className="text-[10px] text-slate-400">{codeA}</div>
+                                                    <div className="text-[10px] text-[var(--text-muted)]">{codeA}</div>
                                                     {issuerA && (
-                                                        <div className="text-[9px] text-slate-300 font-mono">{shortenAddress(issuerA, 3)}</div>
+                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerA, 3)}</div>
                                                     )}
                                                 </td>
 
                                                 {/* Reserve B */}
                                                 <td className="py-2.5 px-3 text-right">
-                                                    <div className="text-[12px] font-medium text-slate-900 font-mono">
+                                                    <div className="text-[12px] font-medium text-[var(--text-primary)] font-mono">
                                                         {formatAmount(assetB?.amount || '0')}
                                                     </div>
-                                                    <div className="text-[10px] text-slate-400">{codeB}</div>
+                                                    <div className="text-[10px] text-[var(--text-muted)]">{codeB}</div>
                                                     {issuerB && (
-                                                        <div className="text-[9px] text-slate-300 font-mono">{shortenAddress(issuerB, 3)}</div>
+                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerB, 3)}</div>
                                                     )}
                                                 </td>
 
                                                 {/* Exchange Rate */}
                                                 <td className="py-2.5 px-3 text-right">
-                                                    <div className="text-[12px] text-slate-700">
-                                                        <span className="text-slate-400">1 {codeA} =</span>
+                                                    <div className="text-[12px] text-[var(--text-secondary)]">
+                                                        <span className="text-[var(--text-muted)]">1 {codeA} =</span>
                                                     </div>
-                                                    <div className="text-[12px] font-medium text-slate-900 font-mono">
-                                                        {priceRatio > 1000 ? priceRatio.toExponential(2) : priceRatio.toFixed(4)} <span className="text-slate-400 font-normal">{codeB}</span>
+                                                    <div className="text-[12px] font-medium text-[var(--text-primary)] font-mono">
+                                                        {priceRatio > 1000 ? priceRatio.toExponential(2) : priceRatio.toFixed(4)} <span className="text-[var(--text-muted)] font-normal">{codeB}</span>
                                                     </div>
                                                 </td>
 
                                                 {/* Total Shares */}
                                                 <td className="py-2.5 px-3 text-right">
-                                                    <div className="text-[12px] font-medium text-slate-900 font-mono">
+                                                    <div className="text-[12px] font-medium text-[var(--text-primary)] font-mono">
                                                         {formatShares(pool.total_shares)}
                                                     </div>
                                                 </td>
@@ -413,7 +413,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                                         <svg className="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                                         </svg>
-                                                        <span className="text-[12px] font-medium text-slate-700">
+                                                        <span className="text-[12px] font-medium text-[var(--text-secondary)]">
                                                             {pool.total_trustlines.toLocaleString()}
                                                         </span>
                                                     </div>
@@ -428,7 +428,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
 
                                                 {/* Arrow */}
                                                 <td className="py-2.5 px-4 text-center">
-                                                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors mx-auto">
+                                                    <div className="w-7 h-7 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-muted)] group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors mx-auto">
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                                         </svg>
@@ -439,7 +439,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan={8} className="text-center py-12 text-slate-400 text-sm">
+                                        <td colSpan={8} className="text-center py-12 text-[var(--text-muted)] text-sm">
                                             {searchQuery ? 'No pools found matching your search.' : 'No liquidity pools found.'}
                                         </td>
                                     </tr>

@@ -82,11 +82,11 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
 }) => {
   if (totalPages <= 1) return null;
   return (
-    <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-slate-100 bg-slate-50/50">
+    <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1 || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -112,7 +112,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
             className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${
               currentPage === pageNum
                 ? 'bg-sky-600 text-white shadow-sm'
-                : 'text-slate-400 hover:bg-sky-50 hover:text-sky-600'
+                : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-600'
             }`}
           >
             {pageNum}
@@ -121,13 +121,13 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
       })}
 
       {hasMore && totalPages > 5 && (
-        <span className="text-slate-300 text-xs px-1">...</span>
+        <span className="text-[var(--text-muted)] text-xs px-1">...</span>
       )}
 
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={(currentPage >= totalPages && !hasMore) || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -423,9 +423,9 @@ export default function TransactionsDesktopView({
 
     return {
       label: 'Transaction',
-      color: 'text-slate-600',
-      bgColor: 'bg-slate-50',
-      iconBg: 'bg-slate-100',
+      color: 'text-[var(--text-secondary)]',
+      bgColor: 'bg-[var(--bg-primary)]',
+      iconBg: 'bg-[var(--bg-tertiary)]',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -435,10 +435,10 @@ export default function TransactionsDesktopView({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
         {/* Header Card */}
-        <div className="mb-5 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+        <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-5">
             {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
@@ -452,7 +452,7 @@ export default function TransactionsDesktopView({
               </Link>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Network</span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Network</span>
                   <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
                     Live
                   </span>
@@ -461,8 +461,8 @@ export default function TransactionsDesktopView({
                     Real-time
                   </span>
                 </div>
-                <div className="text-xl font-bold text-slate-900">Transactions</div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="text-xl font-bold text-[var(--text-primary)]">Transactions</div>
+                <div className="mt-1 text-xs text-[var(--text-tertiary)]">
                   Live stream of all transactions on the Stellar network
                 </div>
               </div>
@@ -470,9 +470,9 @@ export default function TransactionsDesktopView({
 
             {/* Right: Quick Stats */}
             <div className="flex gap-3">
-              <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total</div>
-                <div className="text-lg font-bold text-slate-900">{stats.total}</div>
+              <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{stats.total}</div>
               </div>
               <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 min-w-[90px]">
                 <div className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-widest mb-1">Payments</div>
@@ -493,7 +493,7 @@ export default function TransactionsDesktopView({
         </div>
 
         {/* Filters Row */}
-        <div className="flex items-center gap-4 px-1 border-b border-slate-200/60 pb-2 mb-5">
+        <div className="flex items-center gap-4 px-1 border-b border-[var(--border-default)] pb-2 mb-5">
           {[
             { id: 'all', label: 'All Activity', count: stats.total },
             { id: 'transfers', label: 'Payments', count: stats.payments },
@@ -506,33 +506,33 @@ export default function TransactionsDesktopView({
               className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${
                 filter === tab.id
                   ? 'text-sky-600 border-b-2 border-sky-600'
-                  : 'text-slate-400 hover:text-slate-600'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
               }`}
             >
               {tab.label}
-              <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-slate-300 ml-1'}>{tab.count}</span>
+              <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>{tab.count}</span>
             </button>
           ))}
         </div>
 
         {/* Transactions Table */}
-        <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
-                  <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Txn Hash</th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Method</th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Ledger</th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Age</th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">From</th>
-                  <th className="py-3 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center whitespace-nowrap w-8"></th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">To / Interacted With</th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Amount</th>
-                  <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Fee</th>
+                <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50">
+                  <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Txn Hash</th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Method</th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Ledger</th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Age</th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">From</th>
+                  <th className="py-3 px-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-center whitespace-nowrap w-8"></th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">To / Interacted With</th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Amount</th>
+                  <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Fee</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-[var(--bg-primary)]">
                 {visibleTransactions.length > 0 ? (
                   visibleTransactions.map((tx) => {
                     const info = tx.displayInfo;
@@ -560,7 +560,7 @@ export default function TransactionsDesktopView({
                         return { text: `${info.offerDetails.sellingAsset} → ${info.offerDetails.buyingAsset}`, color: 'text-indigo-600', isAddress: false };
                       }
                       if (info?.type === 'payment' && info.to) {
-                        return { text: info.to, color: 'text-slate-700', isAddress: true };
+                        return { text: info.to, color: 'text-[var(--text-secondary)]', isAddress: true };
                       }
                       return null;
                     };
@@ -606,7 +606,7 @@ export default function TransactionsDesktopView({
                         </td>
 
                         {/* Age */}
-                        <td className="py-2.5 px-3 text-[12px] text-slate-500 whitespace-nowrap">
+                        <td className="py-2.5 px-3 text-[12px] text-[var(--text-tertiary)] whitespace-nowrap">
                           {timeAgo(tx.created_at)}
                         </td>
 
@@ -614,7 +614,7 @@ export default function TransactionsDesktopView({
                         <td className="py-2.5 px-3">
                           <Link
                             href={`/account/${tx.source_account}`}
-                            className="font-mono text-[12px] text-slate-700 hover:text-sky-600 hover:underline"
+                            className="font-mono text-[12px] text-[var(--text-secondary)] hover:text-sky-600 hover:underline"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {shortenAddress(tx.source_account, 5)}
@@ -636,7 +636,7 @@ export default function TransactionsDesktopView({
                             interacted.isAddress ? (
                               <Link
                                 href={`/account/${interacted.text}`}
-                                className="font-mono text-[12px] text-slate-700 hover:text-sky-600 hover:underline"
+                                className="font-mono text-[12px] text-[var(--text-secondary)] hover:text-sky-600 hover:underline"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 {shortenAddress(interacted.text, 5)}
@@ -647,7 +647,7 @@ export default function TransactionsDesktopView({
                               </span>
                             )
                           ) : (
-                            <span className="text-[12px] text-slate-400">—</span>
+                            <span className="text-[12px] text-[var(--text-muted)]">—</span>
                           )}
                         </td>
 
@@ -655,30 +655,30 @@ export default function TransactionsDesktopView({
                         <td className="py-2.5 px-3 text-right">
                           {info?.amount && info.amount !== '0' ? (
                             <div>
-                              <span className="text-[12px] font-medium text-slate-900">
+                              <span className="text-[12px] font-medium text-[var(--text-primary)]">
                                 {formatCompact(info.amount)}
                               </span>
-                              <span className="text-[11px] text-slate-400 ml-1">
+                              <span className="text-[11px] text-[var(--text-muted)] ml-1">
                                 {info.asset || 'XLM'}
                               </span>
                             </div>
                           ) : info?.type === 'manage_offer' && info.offerDetails ? (
                             <div>
-                              <span className="text-[12px] font-medium text-slate-900">
+                              <span className="text-[12px] font-medium text-[var(--text-primary)]">
                                 {formatCompact(info.offerDetails.amount)}
                               </span>
-                              <span className="text-[11px] text-slate-400 ml-1">
+                              <span className="text-[11px] text-[var(--text-muted)] ml-1">
                                 {info.offerDetails.sellingAsset}
                               </span>
                             </div>
                           ) : (
-                            <span className="text-[12px] text-slate-400">—</span>
+                            <span className="text-[12px] text-[var(--text-muted)]">—</span>
                           )}
                         </td>
 
                         {/* Fee */}
                         <td className="py-2.5 px-4 text-right">
-                          <span className="text-[11px] text-slate-500 font-mono">
+                          <span className="text-[11px] text-[var(--text-tertiary)] font-mono">
                             {feeXLM}
                           </span>
                         </td>
@@ -687,7 +687,7 @@ export default function TransactionsDesktopView({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={9} className="text-center py-12 text-slate-400 text-sm">
+                    <td colSpan={9} className="text-center py-12 text-[var(--text-muted)] text-sm">
                       No transactions found matching your filter.
                     </td>
                   </tr>

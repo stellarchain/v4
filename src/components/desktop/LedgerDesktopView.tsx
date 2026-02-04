@@ -56,11 +56,11 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
 }) => {
   if (totalPages <= 1) return null;
   return (
-    <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-slate-100 bg-slate-50/50">
+    <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1 || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -86,7 +86,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
             className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${
               currentPage === pageNum
                 ? 'bg-sky-600 text-white shadow-sm'
-                : 'text-slate-400 hover:bg-sky-50 hover:text-sky-600'
+                : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-600'
             }`}
           >
             {pageNum}
@@ -95,13 +95,13 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
       })}
 
       {hasMore && totalPages > 5 && (
-        <span className="text-slate-300 text-xs px-1">...</span>
+        <span className="text-[var(--text-muted)] text-xs px-1">...</span>
       )}
 
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={(currentPage >= totalPages && !hasMore) || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -205,10 +205,10 @@ export default function LedgerDesktopView({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
         {/* Header Card */}
-        <div className="mb-5 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+        <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-5">
             {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
@@ -222,7 +222,7 @@ export default function LedgerDesktopView({
               </Link>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Ledger</span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Ledger</span>
                   <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
                     v{ledger.protocol_version}
                   </span>
@@ -237,21 +237,21 @@ export default function LedgerDesktopView({
                     </span>
                   )}
                 </div>
-                <div className="text-xl font-bold text-slate-900">#{ledger.sequence.toLocaleString()}</div>
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                <div className="text-xl font-bold text-[var(--text-primary)]">#{ledger.sequence.toLocaleString()}</div>
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--text-tertiary)]">
                   <span className="flex items-center gap-1.5">
-                    <svg className="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-3.5 w-3.5 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     {formatDate(ledger.closed_at)}
                   </span>
-                  <span className="text-slate-300">•</span>
+                  <span className="text-[var(--text-muted)]">•</span>
                   <span className="font-semibold text-sky-600">{timeAgo(ledger.closed_at)}</span>
-                  <span className="text-slate-300">•</span>
+                  <span className="text-[var(--text-muted)]">•</span>
                   <button
                     type="button"
                     onClick={handleCopyHash}
-                    className="group flex items-center gap-1.5 font-mono text-[11px] text-slate-400 hover:text-sky-600 transition-colors"
+                    className="group flex items-center gap-1.5 font-mono text-[11px] text-[var(--text-muted)] hover:text-sky-600 transition-colors"
                   >
                     <span className="truncate">{shortenAddress(ledger.hash, 6)}</span>
                     <svg className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -265,31 +265,31 @@ export default function LedgerDesktopView({
 
             {/* Right: Quick Stats */}
             <div className="flex gap-3">
-              <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Transactions</div>
-                <div className="text-lg font-bold text-slate-900">
+              <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Transactions</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">
                   <span className="text-emerald-600">{ledger.successful_transaction_count}</span>
                   {ledger.failed_transaction_count > 0 && (
                     <span className="text-rose-500">/{ledger.failed_transaction_count}</span>
                   )}
                 </div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Operations</div>
-                <div className="text-lg font-bold text-slate-900">{ledger.operation_count}</div>
+              <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Operations</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{ledger.operation_count}</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Base Fee</div>
+              <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Base Fee</div>
                 <div className="text-lg font-bold text-sky-600">
                   {formatStroopsToXLM(ledger.base_fee_in_stroops)}
-                  <span className="text-[10px] font-medium text-slate-400 ml-1">XLM</span>
+                  <span className="text-[10px] font-medium text-[var(--text-muted)] ml-1">XLM</span>
                 </div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Reserve</div>
-                <div className="text-lg font-bold text-slate-900">
+              <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Reserve</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">
                   {formatStroopsToXLM(ledger.base_reserve_in_stroops)}
-                  <span className="text-[10px] font-medium text-slate-400 ml-1">XLM</span>
+                  <span className="text-[10px] font-medium text-[var(--text-muted)] ml-1">XLM</span>
                 </div>
               </div>
             </div>
@@ -300,27 +300,27 @@ export default function LedgerDesktopView({
         <div className="mb-5 grid grid-cols-2 gap-3">
           <Link
             href={`/ledger/${ledger.sequence - 1}`}
-            className="group flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-200/60 hover:border-sky-200 hover:bg-sky-50/50 transition-all"
+            className="group flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] hover:border-sky-200 hover:bg-sky-50/50 transition-all"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </span>
             <div>
-              <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Previous</div>
-              <div className="text-sm font-bold text-slate-700 group-hover:text-sky-600 font-mono">#{(ledger.sequence - 1).toLocaleString()}</div>
+              <div className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Previous</div>
+              <div className="text-sm font-bold text-[var(--text-secondary)] group-hover:text-sky-600 font-mono">#{(ledger.sequence - 1).toLocaleString()}</div>
             </div>
           </Link>
           <Link
             href={`/ledger/${ledger.sequence + 1}`}
-            className="group flex items-center justify-end gap-3 p-3 rounded-xl bg-white border border-slate-200/60 hover:border-sky-200 hover:bg-sky-50/50 transition-all"
+            className="group flex items-center justify-end gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] hover:border-sky-200 hover:bg-sky-50/50 transition-all"
           >
             <div className="text-right">
-              <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Next</div>
-              <div className="text-sm font-bold text-slate-700 group-hover:text-sky-600 font-mono">#{(ledger.sequence + 1).toLocaleString()}</div>
+              <div className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Next</div>
+              <div className="text-sm font-bold text-[var(--text-secondary)] group-hover:text-sky-600 font-mono">#{(ledger.sequence + 1).toLocaleString()}</div>
             </div>
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -329,7 +329,7 @@ export default function LedgerDesktopView({
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-4 px-1 border-b border-slate-200/60 pb-2 mb-5">
+        <div className="flex items-center gap-4 px-1 border-b border-[var(--border-default)] pb-2 mb-5">
           {[
             { id: 'overview', label: 'Overview' },
             { id: 'transactions', label: 'Transactions', count: totalTx },
@@ -342,12 +342,12 @@ export default function LedgerDesktopView({
               className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${
                 activeTab === tab.id
                   ? 'text-sky-600 border-b-2 border-sky-600'
-                  : 'text-slate-400 hover:text-slate-600'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
               }`}
             >
               {tab.label}
               {'count' in tab && (
-                <span className={activeTab === tab.id ? 'text-sky-500 ml-1' : 'text-slate-300 ml-1'}>{tab.count}</span>
+                <span className={activeTab === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>{tab.count}</span>
               )}
             </button>
           ))}
@@ -358,7 +358,7 @@ export default function LedgerDesktopView({
             {activeTab === 'overview' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 {/* Left: Ledger Details */}
-                <section className="lg:col-span-7 rounded-2xl border border-slate-200/60 bg-white shadow-sm">
+                <section className="lg:col-span-7 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                   <div className="flex items-center gap-3 px-5 pt-5 pb-3">
                     <div className="w-9 h-9 bg-sky-50 rounded-lg flex items-center justify-center text-sky-500">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -366,42 +366,42 @@ export default function LedgerDesktopView({
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-800">Ledger Details</h3>
+                      <h3 className="text-sm font-bold text-[var(--text-primary)]">Ledger Details</h3>
                       <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-500">Closed</span>
                     </div>
                   </div>
                   <div className="p-4 space-y-3">
-                    <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Hash</div>
-                      <div className="font-mono text-xs font-medium text-slate-700 break-all leading-relaxed">
+                    <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)]">
+                      <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Hash</div>
+                      <div className="font-mono text-xs font-medium text-[var(--text-secondary)] break-all leading-relaxed">
                         {ledger.hash}
                       </div>
                     </div>
-                    <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Previous Hash</div>
-                      <div className="font-mono text-xs font-medium text-slate-700 break-all leading-relaxed">
+                    <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)]">
+                      <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Previous Hash</div>
+                      <div className="font-mono text-xs font-medium text-[var(--text-secondary)] break-all leading-relaxed">
                         {ledger.prev_hash}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 rounded-xl border border-slate-100 bg-white">
-                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Max Tx Set</div>
-                        <div className="text-lg font-bold text-slate-900">{ledger.max_tx_set_size}</div>
+                      <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                        <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Max Tx Set</div>
+                        <div className="text-lg font-bold text-[var(--text-primary)]">{ledger.max_tx_set_size}</div>
                       </div>
-                      <div className="p-3 rounded-xl border border-slate-100 bg-white">
-                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tx Set Ops</div>
-                        <div className="text-lg font-bold text-slate-900">{ledger.tx_set_operation_count}</div>
+                      <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                        <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Tx Set Ops</div>
+                        <div className="text-lg font-bold text-[var(--text-primary)]">{ledger.tx_set_operation_count}</div>
                       </div>
                       <div className="p-3 rounded-xl border border-sky-100 bg-sky-50/50">
                         <div className="text-[9px] font-bold text-sky-600/60 uppercase tracking-widest mb-1">Base Fee</div>
                         <div className="text-lg font-bold text-sky-600">
-                          {formatStroopsToXLM(ledger.base_fee_in_stroops)} <span className="text-xs font-medium text-slate-400">XLM</span>
+                          {formatStroopsToXLM(ledger.base_fee_in_stroops)} <span className="text-xs font-medium text-[var(--text-muted)]">XLM</span>
                         </div>
                       </div>
-                      <div className="p-3 rounded-xl border border-slate-100 bg-white">
-                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Reserve</div>
-                        <div className="text-lg font-bold text-slate-900">
-                          {formatStroopsToXLM(ledger.base_reserve_in_stroops)} <span className="text-xs font-medium text-slate-400">XLM</span>
+                      <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                        <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Reserve</div>
+                        <div className="text-lg font-bold text-[var(--text-primary)]">
+                          {formatStroopsToXLM(ledger.base_reserve_in_stroops)} <span className="text-xs font-medium text-[var(--text-muted)]">XLM</span>
                         </div>
                       </div>
                     </div>
@@ -409,7 +409,7 @@ export default function LedgerDesktopView({
                 </section>
 
                 {/* Right: Ledger Activity */}
-                <section className="lg:col-span-5 rounded-2xl border border-slate-200/60 bg-white shadow-sm">
+                <section className="lg:col-span-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                   <div className="flex items-center justify-between px-5 pt-5 pb-3">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-500">
@@ -417,9 +417,9 @@ export default function LedgerDesktopView({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
                       </div>
-                      <h3 className="text-sm font-bold text-slate-800">Ledger Activity</h3>
+                      <h3 className="text-sm font-bold text-[var(--text-primary)]">Ledger Activity</h3>
                     </div>
-                    <span className="bg-slate-100 px-2 py-0.5 rounded text-[9px] font-bold text-slate-500">{totalTx} TX</span>
+                    <span className="bg-[var(--bg-tertiary)] px-2 py-0.5 rounded text-[9px] font-bold text-[var(--text-tertiary)]">{totalTx} TX</span>
                   </div>
                   <div className="p-4 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
@@ -438,9 +438,9 @@ export default function LedgerDesktopView({
                         </div>
                       </div>
                     </div>
-                    <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/70">
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Operations</div>
-                      <div className="text-xl font-bold text-slate-900">{ledger.operation_count}</div>
+                    <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/70">
+                      <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Operations</div>
+                      <div className="text-xl font-bold text-[var(--text-primary)]">{ledger.operation_count}</div>
                     </div>
                     <div className="p-3 rounded-xl border border-violet-100 bg-violet-50/50">
                       <div className="text-[9px] font-bold text-violet-600/60 uppercase tracking-widest mb-1">Total Coins</div>
@@ -456,16 +456,16 @@ export default function LedgerDesktopView({
             )}
 
             {activeTab === 'transactions' && (
-              <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
-                <div className="divide-y divide-slate-100">
+              <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
+                <div className="divide-y divide-[var(--border-subtle)]">
                   {paginatedTx.map((tx, idx) => {
                     const info = tx.displayInfo || { type: 'other' as const };
                     let description = 'Transaction';
                     let typeDisplay = 'TRANSACTION';
                     let valueDisplay: ReactNode = null;
-                    let accentClass = 'text-slate-500';
-                    let bgClass = 'bg-slate-50';
-                    let iconBgClass = 'bg-slate-100';
+                    let accentClass = 'text-[var(--text-tertiary)]';
+                    let bgClass = 'bg-[var(--bg-primary)]';
+                    let iconBgClass = 'bg-[var(--bg-tertiary)]';
 
                     if (info.type === 'contract') {
                       description = info.functionName || 'Contract Call';
@@ -483,8 +483,8 @@ export default function LedgerDesktopView({
                       if (info.amount) {
                         valueDisplay = (
                           <div className="text-right">
-                            <div className="text-sm font-bold text-slate-900">{formatTokenAmount(info.amount, 2)}</div>
-                            <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{info.asset}</div>
+                            <div className="text-sm font-bold text-[var(--text-primary)]">{formatTokenAmount(info.amount, 2)}</div>
+                            <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{info.asset}</div>
                           </div>
                         );
                       }
@@ -502,8 +502,8 @@ export default function LedgerDesktopView({
                       iconBgClass = 'bg-cyan-100';
                       valueDisplay = (
                         <div className="text-right">
-                          <div className="text-sm font-bold text-slate-900">{info.elementCount}</div>
-                          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Recipients</div>
+                          <div className="text-sm font-bold text-[var(--text-primary)]">{info.elementCount}</div>
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Recipients</div>
                         </div>
                       );
                     }
@@ -518,7 +518,7 @@ export default function LedgerDesktopView({
                       <Link
                         href={`/transaction/${tx.hash}`}
                         key={tx.id}
-                        className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50/80 transition-colors group"
+                        className="flex items-center gap-4 px-5 py-4 hover:bg-[var(--bg-primary)]/80 transition-colors group"
                       >
                         {/* Index with icon */}
                         <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center ${iconBgClass} ${accentClass} transition-colors`}>
@@ -554,20 +554,20 @@ export default function LedgerDesktopView({
                             {!tx.successful && (
                               <span className="px-2 py-0.5 rounded-md bg-rose-100 text-[9px] font-black text-rose-600 uppercase">Failed</span>
                             )}
-                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[9px] font-bold text-slate-500">
+                            <span className="px-2 py-0.5 rounded-md bg-[var(--bg-tertiary)] text-[9px] font-bold text-[var(--text-tertiary)]">
                               {tx.operation_count} ops
                             </span>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors">
+                            <span className="text-sm font-bold text-[var(--text-primary)] group-hover:text-sky-600 transition-colors">
                               {description}
                             </span>
-                            <span className="text-slate-300">→</span>
-                            <span className="text-xs font-mono text-slate-500 truncate">{shortenAddress(tx.source_account, 6)}</span>
+                            <span className="text-[var(--text-muted)]">→</span>
+                            <span className="text-xs font-mono text-[var(--text-tertiary)] truncate">{shortenAddress(tx.source_account, 6)}</span>
                           </div>
-                          <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                          <div className="flex items-center gap-2 mt-1 text-[10px] text-[var(--text-muted)]">
                             <span className="font-mono">{shortenAddress(tx.hash, 8)}</span>
-                            <span className="text-slate-300">•</span>
+                            <span className="text-[var(--text-muted)]">•</span>
                             <span>{timeAgo(tx.created_at)}</span>
                           </div>
                         </div>
@@ -575,7 +575,7 @@ export default function LedgerDesktopView({
                         {/* Value / Arrow */}
                         <div className="shrink-0 flex items-center gap-3">
                           {valueDisplay}
-                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
+                          <div className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-muted)] group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
@@ -586,7 +586,7 @@ export default function LedgerDesktopView({
                   })}
                 </div>
                 {paginatedTx.length === 0 && (
-                  <div className="text-center py-12 text-slate-400 text-sm">
+                  <div className="text-center py-12 text-[var(--text-muted)] text-sm">
                     No transactions found in this ledger.
                   </div>
                 )}
@@ -601,15 +601,15 @@ export default function LedgerDesktopView({
             )}
 
             {activeTab === 'operations' && (
-              <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
-                <div className="divide-y divide-slate-100">
+              <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
+                <div className="divide-y divide-[var(--border-subtle)]">
                   {paginatedOps.map((op, idx) => {
                     let typeDisplay = getOperationTypeLabel(op.type).replace(/_/g, ' ');
                     let summary = '';
                     let summaryLabel = '';
-                    let accentClass = 'text-slate-600';
-                    let bgClass = 'bg-slate-50';
-                    let iconBgClass = 'bg-slate-100';
+                    let accentClass = 'text-[var(--text-secondary)]';
+                    let bgClass = 'bg-[var(--bg-primary)]';
+                    let iconBgClass = 'bg-[var(--bg-tertiary)]';
 
                     if (op.type === 'payment') {
                       const asset = (op as any).asset_code || ((op as any).asset_type === 'native' ? 'XLM' : '');
@@ -661,7 +661,7 @@ export default function LedgerDesktopView({
                       <Link
                         href={`/transaction/${op.transaction_hash}?tab=operations&op=${op.id}`}
                         key={op.id}
-                        className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50/80 transition-colors group"
+                        className="flex items-center gap-4 px-5 py-4 hover:bg-[var(--bg-primary)]/80 transition-colors group"
                       >
                         {/* Icon */}
                         <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center ${iconBgClass} ${accentClass} transition-colors`}>
@@ -709,12 +709,12 @@ export default function LedgerDesktopView({
                           <div className="flex items-center gap-2">
                             {op.source_account && (
                               <>
-                                <span className="text-xs text-slate-500">from</span>
-                                <span className="text-xs font-mono font-medium text-slate-700">{shortenAddress(op.source_account, 6)}</span>
+                                <span className="text-xs text-[var(--text-tertiary)]">from</span>
+                                <span className="text-xs font-mono font-medium text-[var(--text-secondary)]">{shortenAddress(op.source_account, 6)}</span>
                               </>
                             )}
-                            <span className="text-slate-300">•</span>
-                            <span className="text-xs text-slate-400">{timeAgo(op.created_at)}</span>
+                            <span className="text-[var(--text-muted)]">•</span>
+                            <span className="text-xs text-[var(--text-muted)]">{timeAgo(op.created_at)}</span>
                           </div>
                         </div>
 
@@ -722,13 +722,13 @@ export default function LedgerDesktopView({
                         <div className="shrink-0 flex items-center gap-3">
                           {(summary || summaryLabel) && (
                             <div className="text-right">
-                              <div className="text-sm font-bold text-slate-900">{summary}</div>
+                              <div className="text-sm font-bold text-[var(--text-primary)]">{summary}</div>
                               {summaryLabel && (
-                                <div className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">{summaryLabel}</div>
+                                <div className="text-[9px] font-medium text-[var(--text-muted)] uppercase tracking-wider">{summaryLabel}</div>
                               )}
                             </div>
                           )}
-                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
+                          <div className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-muted)] group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
@@ -739,7 +739,7 @@ export default function LedgerDesktopView({
                   })}
                 </div>
                 {paginatedOps.length === 0 && (
-                  <div className="text-center py-12 text-slate-400 text-sm">
+                  <div className="text-center py-12 text-[var(--text-muted)] text-sm">
                     No operations found in this ledger.
                   </div>
                 )}

@@ -95,7 +95,7 @@ export default function DesktopNavbar() {
 
     return (
         <>
-            <nav className="hidden md:block bg-white border-b border-slate-200 sticky top-0 z-50">
+            <nav className="hidden md:block bg-[var(--bg-secondary)] border-b border-[var(--border-default)] sticky top-0 z-50">
                 <div className="max-w-[1400px] mx-auto px-6">
                     <div className="flex items-center justify-between h-16">
                         {/* Logo */}
@@ -122,8 +122,8 @@ export default function DesktopNavbar() {
                                             <button
                                                 onClick={() => setOpenDropdown(isOpen ? null : item.name)}
                                                 className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${active
-                                                    ? 'text-slate-900 bg-slate-100'
-                                                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                                    ? 'text-[var(--text-primary)] bg-[var(--bg-tertiary)]'
+                                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)]'
                                                     }`}
                                             >
                                                 {item.name}
@@ -139,21 +139,21 @@ export default function DesktopNavbar() {
 
                                             {/* Dropdown Menu */}
                                             {isOpen && (
-                                                <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50">
+                                                <div className="absolute top-full left-0 mt-1 w-64 bg-[var(--bg-secondary)] rounded-xl shadow-xl border border-[var(--border-default)] py-2 z-50">
                                                     {item.dropdown.map((subItem) => (
                                                         <Link
                                                             key={subItem.href}
                                                             href={subItem.href}
                                                             className={`flex flex-col px-4 py-2.5 transition-colors ${isActive(subItem.href)
-                                                                ? 'bg-blue-50 text-blue-600'
-                                                                : 'hover:bg-slate-50'
+                                                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30'
+                                                                : 'hover:bg-[var(--bg-primary)]'
                                                                 }`}
                                                         >
-                                                            <span className={`text-sm font-medium ${isActive(subItem.href) ? 'text-blue-600' : 'text-slate-900'}`}>
+                                                            <span className={`text-sm font-medium ${isActive(subItem.href) ? 'text-blue-600' : 'text-[var(--text-primary)]'}`}>
                                                                 {subItem.name}
                                                             </span>
                                                             {subItem.description && (
-                                                                <span className="text-xs text-slate-500">{subItem.description}</span>
+                                                                <span className="text-xs text-[var(--text-tertiary)]">{subItem.description}</span>
                                                             )}
                                                         </Link>
                                                     ))}
@@ -168,8 +168,8 @@ export default function DesktopNavbar() {
                                         key={item.name}
                                         href={item.href!}
                                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive(item.href!)
-                                            ? 'text-slate-900 bg-slate-100'
-                                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                            ? 'text-[var(--text-primary)] bg-[var(--bg-tertiary)]'
+                                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)]'
                                             }`}
                                     >
                                         {item.name}
@@ -191,7 +191,7 @@ export default function DesktopNavbar() {
                                                 setShowFavoritesDropdown(!showFavoritesDropdown);
                                             }
                                         }}
-                                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+                                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors"
                                     >
                                         <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
                                             <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -213,14 +213,14 @@ export default function DesktopNavbar() {
                                     </button>
 
                                     {showFavoritesDropdown && favorites.length > 1 && (
-                                        <div className="absolute top-full right-0 mt-1 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50">
-                                            <div className="px-4 py-2 border-b border-slate-100">
+                                        <div className="absolute top-full right-0 mt-1 w-72 bg-[var(--bg-secondary)] rounded-xl shadow-xl border border-[var(--border-default)] py-2 z-50">
+                                            <div className="px-4 py-2 border-b border-[var(--border-subtle)]">
                                                 <div className="flex items-center gap-2">
                                                     <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
                                                         <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                                                     </svg>
-                                                    <span className="text-sm font-semibold text-slate-700">Watchlist</span>
-                                                    <span className="text-xs text-slate-500">({favorites.length} accounts)</span>
+                                                    <span className="text-sm font-semibold text-[var(--text-secondary)]">Watchlist</span>
+                                                    <span className="text-xs text-[var(--text-tertiary)]">({favorites.length} accounts)</span>
                                                 </div>
                                             </div>
                                             <div className="max-h-[300px] overflow-y-auto">
@@ -234,20 +234,20 @@ export default function DesktopNavbar() {
                                                             key={fav.address}
                                                             href={`/account/${fav.address}`}
                                                             onClick={() => setShowFavoritesDropdown(false)}
-                                                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors"
+                                                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-primary)] transition-colors"
                                                         >
                                                             <div className={`w-8 h-8 rounded-full ${bgColors[colorIdx]} flex items-center justify-center text-white text-xs font-bold`}>
                                                                 {initials}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <div className="text-sm font-medium text-slate-900 truncate">
+                                                                <div className="text-sm font-medium text-[var(--text-primary)] truncate">
                                                                     {fav.label || 'Unnamed Account'}
                                                                 </div>
-                                                                <div className="text-xs font-mono text-slate-500 truncate">
+                                                                <div className="text-xs font-mono text-[var(--text-tertiary)] truncate">
                                                                     {shortenAddress(fav.address, 6)}
                                                                 </div>
                                                             </div>
-                                                            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                                             </svg>
                                                         </Link>
@@ -260,14 +260,14 @@ export default function DesktopNavbar() {
                             )}
 
                             {/* Divider - only show if favorites exist */}
-                            {favorites.length > 0 && <div className="h-5 w-px bg-slate-200"></div>}
+                            {favorites.length > 0 && <div className="h-5 w-px bg-[var(--border-default)]"></div>}
 
                             {/* Network Selector */}
                             <div className="relative" ref={networkRef}>
                                 <button
                                     onClick={() => setShowNetworkDropdown(!showNetworkDropdown)}
                                     disabled={isChangingNetwork}
-                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors disabled:opacity-50"
                                 >
                                     <span
                                         className="w-2 h-2 rounded-full"
@@ -285,7 +285,7 @@ export default function DesktopNavbar() {
                                 </button>
 
                                 {showNetworkDropdown && (
-                                    <div className="absolute top-full right-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50">
+                                    <div className="absolute top-full right-0 mt-1 w-48 bg-[var(--bg-secondary)] rounded-xl shadow-xl border border-[var(--border-default)] py-2 z-50">
                                         {(['mainnet', 'testnet', 'futurenet'] as NetworkType[]).map((net) => {
                                             const config = NETWORK_CONFIGS[net];
                                             const isActive = net === network;
@@ -296,13 +296,13 @@ export default function DesktopNavbar() {
                                                         if (net !== network) setNetwork(net);
                                                         setShowNetworkDropdown(false);
                                                     }}
-                                                    className={`flex items-center gap-3 w-full px-4 py-2 text-left transition-colors ${isActive ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
+                                                    className={`flex items-center gap-3 w-full px-4 py-2 text-left transition-colors ${isActive ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-[var(--bg-primary)]'}`}
                                                 >
                                                     <span
                                                         className="w-2.5 h-2.5 rounded-full"
                                                         style={{ backgroundColor: config.color }}
                                                     />
-                                                    <span className={`text-sm font-medium ${isActive ? 'text-blue-600' : 'text-slate-700'}`}>
+                                                    <span className={`text-sm font-medium ${isActive ? 'text-blue-600' : 'text-[var(--text-secondary)]'}`}>
                                                         {config.displayName}
                                                     </span>
                                                     {isActive && (
@@ -318,12 +318,12 @@ export default function DesktopNavbar() {
                             </div>
 
                             {/* Divider */}
-                            <div className="h-5 w-px bg-slate-200"></div>
+                            <div className="h-5 w-px bg-[var(--border-default)]"></div>
 
                             {/* Theme Toggle */}
                             <button
                                 onClick={toggleTheme}
-                                className="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+                                className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors"
                                 title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                             >
                                 {theme === 'dark' ? (

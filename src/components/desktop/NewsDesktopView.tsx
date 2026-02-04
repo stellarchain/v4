@@ -53,7 +53,7 @@ function formatFullDate(dateString: string): string {
 
 function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
   return (
-    <svg className={`w-3 h-3 ml-1 inline-block ${active ? 'text-sky-600' : 'text-slate-300'}`} fill="currentColor" viewBox="0 0 24 24">
+    <svg className={`w-3 h-3 ml-1 inline-block ${active ? 'text-sky-600' : 'text-[var(--text-muted)]'}`} fill="currentColor" viewBox="0 0 24 24">
       {order === 'desc' || !active ? (
         <path d="M7 10l5 5 5-5H7z" />
       ) : (
@@ -129,7 +129,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
 
     return (
       <th
-        className={`py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-left whitespace-nowrap ${isSortable ? 'cursor-pointer hover:text-sky-600 transition-colors select-none' : ''} ${isActive ? 'text-sky-600' : 'text-slate-400'} ${className}`}
+        className={`py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-left whitespace-nowrap ${isSortable ? 'cursor-pointer hover:text-sky-600 transition-colors select-none' : ''} ${isActive ? 'text-sky-600' : 'text-[var(--text-muted)]'} ${className}`}
         onClick={() => field && handleSort(field)}
       >
         <span className="inline-flex items-center">
@@ -141,10 +141,10 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
         {/* Header Card */}
-        <div className="mb-5 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+        <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-5">
             {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
@@ -158,7 +158,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
               </Link>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Feed</span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Feed</span>
                   <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
                     {stats.total} Articles
                   </span>
@@ -167,8 +167,8 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                     {stats.sources} Sources
                   </span>
                 </div>
-                <div className="text-xl font-bold text-slate-900">Stellar & Crypto News</div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="text-xl font-bold text-[var(--text-primary)]">Stellar & Crypto News</div>
+                <div className="mt-1 text-xs text-[var(--text-tertiary)]">
                   Latest news and updates from the Stellar ecosystem and broader crypto market
                 </div>
               </div>
@@ -199,7 +199,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
         {/* Filters Row */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
           {/* Category Tabs */}
-          <div className="flex items-center gap-4 px-1 border-b border-slate-200/60 pb-2">
+          <div className="flex items-center gap-4 px-1 border-b border-[var(--border-default)] pb-2">
             {[
               { id: 'all', label: 'All News', count: stats.total },
               { id: 'stellar', label: 'Stellar', count: stats.stellar },
@@ -214,18 +214,18 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                 className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${
                   filter === tab.id
                     ? 'text-sky-600 border-b-2 border-sky-600'
-                    : 'text-slate-400 hover:text-slate-600'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                 }`}
               >
                 {tab.label}
-                <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-slate-300 ml-1'}>{tab.count}</span>
+                <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>{tab.count}</span>
               </button>
             ))}
           </div>
 
           {/* Search */}
           <div className="relative flex-shrink-0 w-72">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -233,7 +233,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search news..."
-              className="w-full bg-white border border-slate-200 text-slate-900 px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 pl-10 text-sm shadow-sm"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 pl-10 text-sm shadow-sm"
             />
           </div>
         </div>
@@ -242,10 +242,10 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Left: News Table */}
           <div className="lg:col-span-7">
-            <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+            <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/50">
+                  <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                     <HeaderCell label="Title" className="min-w-[280px]" />
                     <HeaderCell label="Category" className="w-24" />
                     <HeaderCell label="Source" field="source" className="w-28" />
@@ -253,7 +253,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                     <th className="py-3 px-3 w-10"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-[var(--bg-primary)]">
                   {filteredNews.length > 0 ? (
                     filteredNews.map((item) => {
                       const config = categoryConfig[item.category];
@@ -265,13 +265,13 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                           className={`transition-colors cursor-pointer ${
                             isSelected
                               ? 'bg-sky-50/50 border-l-2 border-l-sky-500'
-                              : 'hover:bg-slate-50/50'
+                              : 'hover:bg-[var(--bg-primary)]'
                           }`}
                           onClick={() => setSelectedNews(item)}
                         >
                           {/* Title */}
                           <td className="py-3 px-4">
-                            <div className="text-[13px] font-semibold text-slate-900 line-clamp-2 group-hover:text-sky-600">
+                            <div className="text-[13px] font-semibold text-[var(--text-primary)] line-clamp-2 group-hover:text-sky-600">
                               {item.title}
                             </div>
                           </td>
@@ -285,14 +285,14 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
 
                           {/* Source */}
                           <td className="py-3 px-3">
-                            <span className="text-[12px] text-slate-600 font-medium">
+                            <span className="text-[12px] text-[var(--text-secondary)] font-medium">
                               {item.source}
                             </span>
                           </td>
 
                           {/* Date */}
                           <td className="py-3 px-3">
-                            <span className="text-[12px] text-slate-500">
+                            <span className="text-[12px] text-[var(--text-tertiary)]">
                               {formatDate(item.date)}
                             </span>
                           </td>
@@ -303,7 +303,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                               href={item.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-400 hover:bg-sky-100 hover:text-sky-600 transition-colors"
+                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:bg-sky-100 hover:text-sky-600 transition-colors"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -316,7 +316,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={5} className="text-center py-12 text-slate-400 text-sm">
+                      <td colSpan={5} className="text-center py-12 text-[var(--text-muted)] text-sm">
                         No news articles found matching your criteria.
                       </td>
                     </tr>
@@ -329,9 +329,9 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
           {/* Right: Selected News Detail */}
           <div className="lg:col-span-5">
             {selectedNews ? (
-              <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden sticky top-6">
+              <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden sticky top-6">
                 {/* Detail Header */}
-                <div className="p-5 border-b border-slate-100">
+                <div className="p-5 border-b border-[var(--border-subtle)]">
                   <div className="flex items-start gap-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${categoryConfig[selectedNews.category].bgColor}`}>
                       <svg className={`w-6 h-6 ${categoryConfig[selectedNews.category].color}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -344,7 +344,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                           {categoryConfig[selectedNews.category].label.toUpperCase()}
                         </span>
                       </div>
-                      <h2 className="text-lg font-bold text-slate-900 leading-snug">
+                      <h2 className="text-lg font-bold text-[var(--text-primary)] leading-snug">
                         {selectedNews.title}
                       </h2>
                     </div>
@@ -355,27 +355,27 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                 <div className="p-5 space-y-4">
                   {/* Meta Info */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Source</div>
-                      <div className="text-sm font-semibold text-slate-700">{selectedNews.source}</div>
+                    <div className="p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+                      <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Source</div>
+                      <div className="text-sm font-semibold text-[var(--text-secondary)]">{selectedNews.source}</div>
                     </div>
-                    <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Published</div>
-                      <div className="text-sm font-semibold text-slate-700">{formatDate(selectedNews.date)}</div>
+                    <div className="p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+                      <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Published</div>
+                      <div className="text-sm font-semibold text-[var(--text-secondary)]">{formatDate(selectedNews.date)}</div>
                     </div>
                   </div>
 
                   {/* Full Date */}
-                  <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Full Date</div>
-                    <div className="text-sm font-medium text-slate-600">{formatFullDate(selectedNews.date)}</div>
+                  <div className="p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+                    <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Full Date</div>
+                    <div className="text-sm font-medium text-[var(--text-secondary)]">{formatFullDate(selectedNews.date)}</div>
                   </div>
 
                   {/* Description if available */}
                   {selectedNews.description && (
-                    <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Summary</div>
-                      <p className="text-sm text-slate-600 leading-relaxed">{selectedNews.description}</p>
+                    <div className="p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+                      <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Summary</div>
+                      <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{selectedNews.description}</p>
                     </div>
                   )}
 
@@ -394,7 +394,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                 </div>
 
                 {/* Category Info Footer */}
-                <div className={`p-4 border-t ${categoryConfig[selectedNews.category].bgColor}/50 border-slate-100`}>
+                <div className={`p-4 border-t ${categoryConfig[selectedNews.category].bgColor}/50 border-[var(--border-subtle)]`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${categoryConfig[selectedNews.category].color.replace('text-', 'bg-')}`}></span>
@@ -402,21 +402,21 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                         {categoryConfig[selectedNews.category].label} News
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-[var(--text-muted)]">
                       {stats[selectedNews.category as keyof typeof stats]} articles in category
                     </span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm p-12 text-center">
-                <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm p-12 text-center">
+                <div className="w-14 h-14 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-7 h-7 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                   </svg>
                 </div>
-                <h3 className="text-slate-900 font-semibold mb-1">Select an article</h3>
-                <p className="text-slate-400 text-sm">Click on a news item to view details</p>
+                <h3 className="text-[var(--text-primary)] font-semibold mb-1">Select an article</h3>
+                <p className="text-[var(--text-muted)] text-sm">Click on a news item to view details</p>
               </div>
             )}
           </div>

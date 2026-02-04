@@ -97,7 +97,7 @@ function ChangeCell({ value }: { value: number }) {
   const isNeutral = Math.abs(value) < 0.01;
 
   if (isNeutral) {
-    return <span className="text-slate-400 text-[12px]">0.00%</span>;
+    return <span className="text-[var(--text-muted)] text-[12px]">0.00%</span>;
   }
 
   return (
@@ -110,7 +110,7 @@ function ChangeCell({ value }: { value: number }) {
 
 function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
   return (
-    <svg className={`w-3 h-3 ml-1 inline-block ${active ? 'text-sky-600' : 'text-slate-300'}`} fill="currentColor" viewBox="0 0 24 24">
+    <svg className={`w-3 h-3 ml-1 inline-block ${active ? 'text-sky-600' : 'text-[var(--text-muted)]'}`} fill="currentColor" viewBox="0 0 24 24">
       {order === 'desc' || !active ? (
         <path d="M7 10l5 5 5-5H7z" />
       ) : (
@@ -200,7 +200,7 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
 
     return (
       <th
-        className={`py-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-left whitespace-nowrap ${isSortable ? 'cursor-pointer hover:text-sky-600 transition-colors select-none' : ''} ${isActive ? 'text-sky-600' : 'text-slate-400'} ${className}`}
+        className={`py-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-left whitespace-nowrap ${isSortable ? 'cursor-pointer hover:text-sky-600 transition-colors select-none' : ''} ${isActive ? 'text-sky-600' : 'text-[var(--text-muted)]'} ${className}`}
         onClick={() => field && handleSort(field)}
       >
         <span className="inline-flex items-center">
@@ -212,10 +212,10 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
         {/* Header Card */}
-        <div className="mb-5 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+        <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-5">
             {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
@@ -226,14 +226,14 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
               </div>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Markets</span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Markets</span>
                   <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     Live
                   </span>
                 </div>
-                <div className="text-xl font-bold text-slate-900">Stellar Assets</div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="text-xl font-bold text-[var(--text-primary)]">Stellar Assets</div>
+                <div className="mt-1 text-xs text-[var(--text-tertiary)]">
                   Network assets ranked by market capitalization
                 </div>
               </div>
@@ -245,13 +245,13 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
                 <div className="text-[9px] font-bold text-sky-600/60 uppercase tracking-widest mb-1">Market Cap</div>
                 <div className="text-lg font-bold text-sky-600">{formatLargeNumber(marketTotals.totalMarketCap)}</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[110px]">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Volume 24h</div>
-                <div className="text-lg font-bold text-slate-900">{formatLargeNumber(marketTotals.totalVolume)}</div>
+              <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[110px]">
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Volume 24h</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{formatLargeNumber(marketTotals.totalVolume)}</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Assets</div>
-                <div className="text-lg font-bold text-slate-900">{marketTotals.totalAssets}</div>
+              <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Assets</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{marketTotals.totalAssets}</div>
               </div>
             </div>
           </div>
@@ -261,7 +261,7 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -269,20 +269,20 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search assets..."
-              className="w-full bg-white border border-slate-200 text-slate-900 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 pl-11 text-sm shadow-sm"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 pl-11 text-sm shadow-sm"
             />
           </div>
 
-          <div className="text-sm text-slate-400">
+          <div className="text-sm text-[var(--text-muted)]">
             Showing {filteredAndSortedAssets.length} assets
           </div>
         </div>
 
         {/* Table */}
-        <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/50">
+              <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50">
                 <th className="py-3 px-3 w-8"></th>
                 <HeaderCell label="#" field="rank" className="w-12" />
                 <HeaderCell label="Name" className="min-w-[180px]" />
@@ -292,12 +292,12 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
                 <HeaderCell label="Market Cap" field="market_cap" className="text-right" />
                 <HeaderCell label="Volume (24h)" field="volume_24h" className="text-right" />
                 <HeaderCell label="Supply" className="text-right" />
-                <th className="py-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-right">
+                <th className="py-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">
                   Last 7 Days
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[var(--border-subtle)]">
               {filteredAndSortedAssets.map((asset, index) => {
                 const assetId = `${asset.code}-${asset.issuer || 'native'}`;
                 const isFavorite = favorites.has(assetId);
@@ -313,7 +313,7 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
                     <td className="py-3 px-3">
                       <button
                         onClick={(e) => toggleFavorite(assetId, e)}
-                        className={`transition-colors ${isFavorite ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}`}
+                        className={`transition-colors ${isFavorite ? 'text-amber-400' : 'text-[var(--text-muted)] hover:text-amber-400'}`}
                       >
                         <svg className="w-4 h-4" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -322,14 +322,14 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
                     </td>
 
                     {/* Rank */}
-                    <td className="py-3 px-3 text-slate-400 text-[13px] font-medium">{index + 1}</td>
+                    <td className="py-3 px-3 text-[var(--text-muted)] text-[13px] font-medium">{index + 1}</td>
 
                     {/* Name */}
                     <td className="py-3 px-3">
                       <Link href={getAssetUrl(asset)} className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-slate-100 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-[var(--bg-tertiary)] flex items-center justify-center">
                           {asset.code === 'XLM' && !asset.issuer ? (
-                            <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                            <div className="w-full h-full bg-[var(--text-primary)] flex items-center justify-center">
                               <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
@@ -344,22 +344,22 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
                               unoptimized
                             />
                           ) : (
-                            <span className="text-[10px] font-bold text-slate-500">
+                            <span className="text-[10px] font-bold text-[var(--text-tertiary)]">
                               {asset.code.slice(0, 2)}
                             </span>
                           )}
                         </div>
                         <div className="min-w-0">
-                          <span className="text-slate-900 font-semibold text-[13px] group-hover:text-sky-600 transition-colors block">{asset.name}</span>
-                          <span className="text-slate-400 text-[11px] font-medium">{asset.code}</span>
+                          <span className="text-[var(--text-primary)] font-semibold text-[13px] group-hover:text-sky-600 transition-colors block">{asset.name}</span>
+                          <span className="text-[var(--text-muted)] text-[11px] font-medium">{asset.code}</span>
                         </div>
                       </Link>
                     </td>
 
                     {/* Price */}
                     <td className="py-3 px-3 text-right">
-                      <div className="text-slate-900 font-semibold text-[13px]">{formatPrice(asset.price_usd || 0)}</div>
-                      <div className="text-slate-400 text-[10px]">{formatXLMPrice(priceInXlm)}</div>
+                      <div className="text-[var(--text-primary)] font-semibold text-[13px]">{formatPrice(asset.price_usd || 0)}</div>
+                      <div className="text-[var(--text-muted)] text-[10px]">{formatXLMPrice(priceInXlm)}</div>
                     </td>
 
                     {/* 24h Change */}
@@ -374,18 +374,18 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
 
                     {/* Market Cap */}
                     <td className="py-3 px-3 text-right">
-                      <span className="text-slate-900 text-[13px]">${formatNumber(asset.market_cap || 0)}</span>
+                      <span className="text-[var(--text-primary)] text-[13px]">${formatNumber(asset.market_cap || 0)}</span>
                     </td>
 
                     {/* Volume */}
                     <td className="py-3 px-3 text-right">
-                      <span className="text-slate-900 text-[13px]">${formatNumber(asset.volume_24h || 0)}</span>
+                      <span className="text-[var(--text-primary)] text-[13px]">${formatNumber(asset.volume_24h || 0)}</span>
                     </td>
 
                     {/* Circulating Supply */}
                     <td className="py-3 px-3 text-right">
-                      <span className="text-slate-900 text-[13px]">{formatNumber(asset.circulating_supply || 0)}</span>
-                      <div className="text-slate-400 text-[10px]">{asset.code}</div>
+                      <span className="text-[var(--text-primary)] text-[13px]">{formatNumber(asset.circulating_supply || 0)}</span>
+                      <div className="text-[var(--text-muted)] text-[10px]">{asset.code}</div>
                     </td>
 
                     {/* Sparkline */}
@@ -403,14 +403,14 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
 
         {/* Empty State */}
         {filteredAndSortedAssets.length === 0 && (
-          <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-slate-200/60">
-            <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center py-16 bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
+            <div className="w-14 h-14 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-7 h-7 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <h3 className="text-slate-900 font-semibold mb-1">No assets found</h3>
-            <p className="text-slate-400 text-sm">No assets matching &quot;{searchQuery}&quot;</p>
+            <h3 className="text-[var(--text-primary)] font-semibold mb-1">No assets found</h3>
+            <p className="text-[var(--text-muted)] text-sm">No assets matching &quot;{searchQuery}&quot;</p>
           </div>
         )}
       </div>
