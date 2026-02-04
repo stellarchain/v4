@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { createChart, ColorType, ISeriesApi, CandlestickSeries, CandlestickData, HistogramSeries } from 'lightweight-charts';
-import { AssetDetails, getTradeAggregations, TradeAggregation, getXLMUSDPriceFromHorizon, USDC_ISSUER } from '@/lib/stellar';
+import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
+import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, USDC_ISSUER } from '@/lib/stellar';
 
 interface ChartProps {
     asset: AssetDetails;
@@ -54,43 +54,43 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
         const chart = createChart(chartContainerRef.current, {
             layout: {
                 background: { type: ColorType.Solid, color: 'transparent' },
-                textColor: '#999',
+                textColor: '#64748b',
             },
             grid: {
-                vertLines: { color: 'rgba(42, 46, 57, 0.1)' },
-                horzLines: { color: 'rgba(42, 46, 57, 0.1)' },
+                vertLines: { color: 'rgba(148, 163, 184, 0.1)' },
+                horzLines: { color: 'rgba(148, 163, 184, 0.1)' },
             },
             width: chartContainerRef.current.clientWidth,
             height: 400,
             timeScale: {
                 timeVisible: true,
                 secondsVisible: false,
-                borderColor: 'rgba(42, 46, 57, 0.2)',
+                borderColor: 'rgba(148, 163, 184, 0.2)',
             },
             rightPriceScale: {
-                borderColor: 'rgba(42, 46, 57, 0.2)',
+                borderColor: 'rgba(148, 163, 184, 0.2)',
                 scaleMargins: {
                     top: 0.1,
-                    bottom: 0.2, // Leave space for volume
+                    bottom: 0.2,
                 },
             },
             crosshair: {
                 vertLine: {
-                    labelBackgroundColor: '#222',
+                    labelBackgroundColor: '#1e293b',
                 },
                 horzLine: {
-                    labelBackgroundColor: '#222',
+                    labelBackgroundColor: '#1e293b',
                 },
             },
         });
 
         // Candlestick Series
         const candlestickSeries = chart.addSeries(CandlestickSeries, {
-            upColor: '#26a69a',
-            downColor: '#ef5350',
+            upColor: '#10b981',
+            downColor: '#f43f5e',
             borderVisible: false,
-            wickUpColor: '#26a69a',
-            wickDownColor: '#ef5350',
+            wickUpColor: '#10b981',
+            wickDownColor: '#f43f5e',
             priceLineVisible: true,
             priceFormat: {
                 type: 'price',
@@ -100,17 +100,16 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
         });
 
         // Volume Series (Histogram)
-        // We use a custom price scale for volume so it sits at the bottom overlaid
         const volumeSeries = chart.addSeries(HistogramSeries, {
             priceFormat: {
                 type: 'volume',
             },
-            priceScaleId: '', // Overlay on the main chart
+            priceScaleId: '',
         });
 
         volumeSeries.priceScale().applyOptions({
             scaleMargins: {
-                top: 0.8, // Push volume to bottom 20%
+                top: 0.8,
                 bottom: 0,
             },
         });
@@ -118,10 +117,8 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
         const fetchData = async () => {
             setLoading(true);
             try {
-                // Get XLM/USD price from Horizon for conversion
                 const xlmUsdPrice = await getXLMUSDPriceFromHorizon();
 
-                // Fetch OHLC data against XLM (native) or USDC
                 const isXLM = asset.code === 'XLM';
                 const counterAsset = isXLM
                     ? { code: 'USDC', issuer: USDC_ISSUER }
@@ -131,19 +128,15 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                     { code: asset.code, issuer: asset.issuer },
                     counterAsset,
                     resolution,
-                    200 // limit
+                    200
                 );
 
-                // Process Data - convert all prices to USD
                 const processedData = data.reverse().map(item => {
-                    // Raw prices are in counter asset (USDC for XLM, XLM for others)
                     let close = parseFloat(item.close);
                     let open = parseFloat(item.open);
                     let high = parseFloat(item.high);
                     let low = parseFloat(item.low);
 
-                    // Convert to USD: for non-XLM assets, multiply by XLM/USD rate
-                    // For XLM, prices are already in USDC (≈ USD)
                     if (!isXLM) {
                         close *= xlmUsdPrice;
                         open *= xlmUsdPrice;
@@ -151,8 +144,6 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                         low *= xlmUsdPrice;
                     }
 
-                    // Simple outlier clamping to prevent 1000x wicks from ruining the view
-                    // If high is > 5x the larger of open/close, clamp it (heuristic)
                     const bodyMax = Math.max(open, close);
                     const bodyMin = Math.min(open, close);
                     const saneHigh = high > bodyMax * 5 ? bodyMax * 1.5 : high;
@@ -164,8 +155,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                         high: saneHigh,
                         low: saneLow,
                         close,
-                        // Volume color based on price direction
-                        color: close >= open ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)',
+                        color: close >= open ? 'rgba(16, 185, 129, 0.5)' : 'rgba(244, 63, 94, 0.5)',
                         volume: parseFloat(item.base_volume),
                     };
                 });
@@ -184,7 +174,6 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                     color: d.color
                 })));
 
-                // Store volume data for volume tab
                 const volumePoints: VolumeDataPoint[] = processedData.map((d, i) => ({
                     time: d.time * 1000,
                     timestamp: formatTimeLabel(d.time * 1000, resolution),
@@ -195,7 +184,6 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                 }));
                 setVolumeData(volumePoints);
 
-                // Calculate volume stats
                 const volumes = processedData.map(d => d.volume).filter(v => v > 0);
                 const trades = volumePoints.map(v => v.tradeCount);
                 setVolumeStats({
@@ -206,7 +194,6 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                     totalTrades: trades.reduce((a, b) => a + b, 0),
                 });
 
-                // Auto-fit content
                 chart.timeScale().fitContent();
 
             } catch (error) {
@@ -238,28 +225,28 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
         const chart = createChart(volumeChartContainerRef.current, {
             layout: {
                 background: { type: ColorType.Solid, color: 'transparent' },
-                textColor: '#999',
+                textColor: '#64748b',
             },
             grid: {
-                vertLines: { color: 'rgba(42, 46, 57, 0.1)' },
-                horzLines: { color: 'rgba(42, 46, 57, 0.1)' },
+                vertLines: { color: 'rgba(148, 163, 184, 0.1)' },
+                horzLines: { color: 'rgba(148, 163, 184, 0.1)' },
             },
             width: volumeChartContainerRef.current.clientWidth,
             height: 250,
             timeScale: {
                 timeVisible: true,
                 secondsVisible: false,
-                borderColor: 'rgba(42, 46, 57, 0.2)',
+                borderColor: 'rgba(148, 163, 184, 0.2)',
             },
             rightPriceScale: {
-                borderColor: 'rgba(42, 46, 57, 0.2)',
+                borderColor: 'rgba(148, 163, 184, 0.2)',
             },
             crosshair: {
                 vertLine: {
-                    labelBackgroundColor: '#222',
+                    labelBackgroundColor: '#1e293b',
                 },
                 horzLine: {
-                    labelBackgroundColor: '#222',
+                    labelBackgroundColor: '#1e293b',
                 },
             },
         });
@@ -273,7 +260,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
         volumeSeries.setData(volumeData.map(d => ({
             time: (d.time / 1000) as any,
             value: d.volume,
-            color: d.priceChange >= 0 ? 'rgba(38, 166, 154, 0.8)' : 'rgba(239, 83, 80, 0.8)',
+            color: d.priceChange >= 0 ? 'rgba(16, 185, 129, 0.8)' : 'rgba(244, 63, 94, 0.8)',
         })));
 
         chart.timeScale().fitContent();
@@ -293,34 +280,34 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
     }, [viewMode, volumeData]);
 
     return (
-        <div className="bg-[var(--bg-secondary)] rounded-2xl p-5 shadow-sm border border-[var(--border-color)]">
+        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5 overflow-hidden">
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-4">
-                    <div className="flex gap-1 bg-[var(--bg-tertiary)] p-1 rounded-lg">
+                    <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
                         <button
                             onClick={() => setViewMode('price')}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-2xl transition-all ${viewMode === 'price'
-                                ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm'
-                                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'price'
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             Price
                         </button>
                         <button
                             onClick={() => setViewMode('volume')}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-2xl transition-all ${viewMode === 'volume'
-                                ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm'
-                                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'volume'
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             Volume
                         </button>
                     </div>
-                    <span className="text-sm text-[var(--text-muted)]">
+                    <span className="text-sm text-slate-500">
                         {asset.code}/USD
                     </span>
                 </div>
-                <div className="flex gap-1 bg-[var(--bg-tertiary)] p-1 rounded-lg">
+                <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
                     {[
                         { label: '15m', value: 900000 },
                         { label: '1h', value: 3600000 },
@@ -330,9 +317,9 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                         <button
                             key={opt.label}
                             onClick={() => setResolution(opt.value)}
-                            className={`px-3 py-1 text-xs font-medium rounded-2xl transition-all ${resolution === opt.value
-                                ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm'
-                                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                            className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${resolution === opt.value
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             {opt.label}
@@ -348,8 +335,8 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                     className="w-full h-[400px] relative rounded-lg overflow-hidden"
                 >
                     {loading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-secondary)]/80 z-20 backdrop-blur-sm">
-                            <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20 backdrop-blur-sm">
+                            <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
                         </div>
                     )}
                 </div>
@@ -360,33 +347,33 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                 <div className="space-y-4">
                     {/* Volume Stats Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                        <div className="bg-[var(--bg-tertiary)] rounded-xl p-3">
-                            <div className="text-xs text-[var(--text-muted)] mb-1">Total Volume</div>
-                            <div className="text-lg font-semibold text-[var(--text-primary)]">
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Total Volume</div>
+                            <div className="text-lg font-semibold text-slate-900">
                                 {formatVolume(volumeStats.total)}
                             </div>
                         </div>
-                        <div className="bg-[var(--bg-tertiary)] rounded-xl p-3">
-                            <div className="text-xs text-[var(--text-muted)] mb-1">Avg Volume</div>
-                            <div className="text-lg font-semibold text-[var(--text-primary)]">
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Avg Volume</div>
+                            <div className="text-lg font-semibold text-slate-900">
                                 {formatVolume(volumeStats.average)}
                             </div>
                         </div>
-                        <div className="bg-[var(--bg-tertiary)] rounded-xl p-3">
-                            <div className="text-xs text-[var(--text-muted)] mb-1">High</div>
-                            <div className="text-lg font-semibold text-[#26a69a]">
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">High</div>
+                            <div className="text-lg font-semibold text-emerald-600">
                                 {formatVolume(volumeStats.high)}
                             </div>
                         </div>
-                        <div className="bg-[var(--bg-tertiary)] rounded-xl p-3">
-                            <div className="text-xs text-[var(--text-muted)] mb-1">Low</div>
-                            <div className="text-lg font-semibold text-[#ef5350]">
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Low</div>
+                            <div className="text-lg font-semibold text-rose-600">
                                 {formatVolume(volumeStats.low)}
                             </div>
                         </div>
-                        <div className="bg-[var(--bg-tertiary)] rounded-xl p-3">
-                            <div className="text-xs text-[var(--text-muted)] mb-1">Total Trades</div>
-                            <div className="text-lg font-semibold text-[var(--text-primary)]">
+                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Total Trades</div>
+                            <div className="text-lg font-semibold text-slate-900">
                                 {volumeStats.totalTrades.toLocaleString()}
                             </div>
                         </div>
@@ -398,15 +385,15 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                         className="w-full h-[250px] relative rounded-lg overflow-hidden"
                     >
                         {loading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-secondary)]/80 z-20 backdrop-blur-sm">
-                                <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20 backdrop-blur-sm">
+                                <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
                             </div>
                         )}
                     </div>
 
                     {/* Volume Data Table */}
-                    <div className="bg-[var(--bg-tertiary)] rounded-xl overflow-hidden">
-                        <div className="grid grid-cols-5 gap-2 p-3 text-xs font-medium text-[var(--text-muted)] border-b border-[var(--border-color)]">
+                    <div className="bg-slate-50 rounded-xl overflow-hidden border border-slate-100">
+                        <div className="grid grid-cols-5 gap-2 p-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200">
                             <div>Time</div>
                             <div className="text-right">Volume</div>
                             <div className="text-right">Trades</div>
@@ -415,7 +402,6 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                         </div>
                         <div className="max-h-[200px] overflow-y-auto">
                             {[...volumeData].reverse().slice(0, 20).map((item, idx) => {
-                                // Format price based on value
                                 const formatPriceDisplay = (price: number) => {
                                     if (price < 0.0001) return '$' + price.toFixed(8);
                                     if (price < 0.01) return '$' + price.toFixed(6);
@@ -426,19 +412,19 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                                 return (
                                     <div
                                         key={idx}
-                                        className="grid grid-cols-5 gap-2 p-3 text-sm border-b border-[var(--border-color)]/50 last:border-0 hover:bg-[var(--bg-primary)]/50 transition-colors"
+                                        className="grid grid-cols-5 gap-2 p-3 text-sm border-b border-slate-100 last:border-0 hover:bg-white transition-colors"
                                     >
-                                        <div className="text-[var(--text-muted)]">{item.timestamp}</div>
-                                        <div className="text-right font-medium text-[var(--text-primary)]">
+                                        <div className="text-slate-500">{item.timestamp}</div>
+                                        <div className="text-right font-medium text-slate-900">
                                             {formatVolume(item.volume)}
                                         </div>
-                                        <div className="text-right text-[var(--text-muted)]">
+                                        <div className="text-right text-slate-500">
                                             {item.tradeCount.toLocaleString()}
                                         </div>
-                                        <div className="text-right text-[var(--text-primary)]">
+                                        <div className="text-right text-slate-900">
                                             {formatPriceDisplay(item.avgPrice)}
                                         </div>
-                                        <div className={`text-right font-medium ${item.priceChange >= 0 ? 'text-[#26a69a]' : 'text-[#ef5350]'}`}>
+                                        <div className={`text-right font-medium ${item.priceChange >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                                             {item.priceChange >= 0 ? '+' : ''}{item.priceChange.toFixed(2)}%
                                         </div>
                                     </div>

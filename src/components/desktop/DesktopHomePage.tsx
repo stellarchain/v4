@@ -330,11 +330,14 @@ export default function DesktopHomePage({
 
     // Trending tokens data
     const trendingTokens = [
-        { symbol: 'XLM', logo: 'https://stellar.org/favicon.ico', fallbackColor: 'bg-black' },
+        { symbol: 'XLM', logo: 'https://stellar.org/favicon.ico', fallbackColor: 'bg-slate-900' },
         { symbol: 'USDC', logo: 'https://www.centre.io/images/usdc/usdc-icon-86074d9d49.png', fallbackColor: 'bg-blue-500' },
-        { symbol: 'yXLM', logo: 'https://ultrastellar.com/static/media/yXLM.5765ab46efa0eb1c4ce6.png', fallbackColor: 'bg-indigo-500' },
-        { symbol: 'AQUA', logo: 'https://aqua.network/assets/img/aqua-logo.png', fallbackColor: 'bg-teal-500' },
+        { symbol: 'yXLM', logo: null, fallbackColor: 'bg-indigo-500' },
+        { symbol: 'AQUA', logo: 'https://aqua.network/assets/img/aqua-logo.png', fallbackColor: 'bg-purple-500' },
     ];
+
+    // Track failed images
+    const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
     return (
         <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)' }}>
@@ -379,19 +382,26 @@ export default function DesktopHomePage({
                             <Link
                                 key={token.symbol}
                                 href={`/markets`}
-                                className="group flex items-center bg-white hover:border-blue-300 px-3 py-1.5 rounded-full shadow-sm border border-slate-200 transition"
+                                className="group flex items-center bg-white hover:border-sky-300 px-3 py-1.5 rounded-full shadow-sm border border-slate-200 transition"
                             >
                                 <div className="w-5 h-5 rounded-full overflow-hidden mr-2 group-hover:scale-110 transition flex-shrink-0">
-                                    <Image
-                                        src={token.logo}
-                                        alt={token.symbol}
-                                        width={20}
-                                        height={20}
-                                        className="w-full h-full object-cover"
-                                        unoptimized
-                                    />
+                                    {token.logo && !failedImages.has(token.symbol) ? (
+                                        <Image
+                                            src={token.logo}
+                                            alt={token.symbol}
+                                            width={20}
+                                            height={20}
+                                            className="w-full h-full object-cover"
+                                            unoptimized
+                                            onError={() => setFailedImages(prev => new Set(prev).add(token.symbol))}
+                                        />
+                                    ) : (
+                                        <div className={`w-full h-full ${token.fallbackColor} flex items-center justify-center text-white text-[9px] font-bold`}>
+                                            {token.symbol.slice(0, 2)}
+                                        </div>
+                                    )}
                                 </div>
-                                <span className="text-slate-700 group-hover:text-blue-500 transition">{token.symbol}</span>
+                                <span className="text-slate-700 group-hover:text-sky-600 transition">{token.symbol}</span>
                             </Link>
                         ))}
                     </div>
