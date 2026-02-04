@@ -111,13 +111,13 @@ export default function LedgersDesktopView({
 }: LedgersDesktopViewProps) {
   const { network } = useNetwork();
 
-  const [ledgers, setLedgers] = useState<Ledger[]>([]);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  // Initialize with server-provided data immediately (no loading state)
+  const [ledgers, setLedgers] = useState<Ledger[]>(initialLedgers);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [oldestCursor, setOldestCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  const seenIdsRef = useRef<Set<string>>(new Set());
+  const seenIdsRef = useRef<Set<string>>(new Set(initialLedgers.map(l => l.id)));
 
   const fetchLedgers = useCallback(async () => {
     try {
@@ -212,31 +212,16 @@ export default function LedgersDesktopView({
   }, [fetchMoreIfNeeded]);
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-      setIsInitialLoading(true);
-      try {
-        const res = await fetch(`${getBaseUrl()}/ledgers?limit=${limit}&order=desc`);
-        const data = await res.json();
-        const newLedgers: Ledger[] = data._embedded.records;
-
-        setLedgers(newLedgers);
-        seenIdsRef.current = new Set(newLedgers.map(l => l.id));
-      } catch (error) {
-        console.error('Failed to fetch initial ledgers:', error);
-        setLedgers(initialLedgers);
-      } finally {
-        setIsInitialLoading(false);
-      }
-    };
-
-    fetchInitialData();
-  }, [network]);
+    // When network changes, reset to initial ledgers
+    setLedgers(initialLedgers);
+    seenIdsRef.current = new Set(initialLedgers.map(l => l.id));
+  }, [network, initialLedgers]);
 
   useEffect(() => {
-    if (isInitialLoading) return;
+    // Start polling for new ledgers right away (data is already shown from server)
     const interval = setInterval(fetchLedgers, 6000);
     return () => clearInterval(interval);
-  }, [fetchLedgers, isInitialLoading]);
+  }, [fetchLedgers]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -347,20 +332,7 @@ export default function LedgersDesktopView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {isInitialLoading ? (
-                  // Skeleton loading
-                  Array.from({ length: 15 }).map((_, i) => (
-                    <tr key={i} className="animate-pulse">
-                      <td className="py-3 px-4"><div className="h-4 w-24 bg-slate-100 rounded" /></td>
-                      <td className="py-3 px-3"><div className="h-4 w-16 bg-slate-100 rounded" /></td>
-                      <td className="py-3 px-3"><div className="h-4 w-20 bg-slate-100 rounded" /></td>
-                      <td className="py-3 px-3"><div className="h-4 w-14 bg-slate-100 rounded" /></td>
-                      <td className="py-3 px-3"><div className="h-4 w-16 bg-slate-100 rounded ml-auto" /></td>
-                      <td className="py-3 px-3"><div className="h-4 w-20 bg-slate-100 rounded ml-auto" /></td>
-                      <td className="py-3 px-4"><div className="h-5 w-8 bg-slate-100 rounded mx-auto" /></td>
-                    </tr>
-                  ))
-                ) : visibleLedgers.length > 0 ? (
+                {visibleLedgers.length > 0 ? (
                   visibleLedgers.map((ledger) => {
                     const totalTx = ledger.successful_transaction_count + ledger.failed_transaction_count;
                     const hasFailedTx = ledger.failed_transaction_count > 0;

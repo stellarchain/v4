@@ -301,196 +301,244 @@ export default function TransactionDesktopView({ transaction, operations, effect
           </div>
         </div>
 
-        {/* From/To */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
-          <div className="flex flex-col md:flex-row">
-            <div className="flex-1 p-4">
-              <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">From</div>
-              <div className="flex items-center justify-between gap-4">
+        {/* From/To or Contract Interaction */}
+        {isContractCall && displayAmount === 0 ? (
+          /* Contract Interaction Layout */
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+              </div>
+              <div>
+                <div className="text-[9px] font-bold text-amber-600 uppercase tracking-widest">Contract Interaction</div>
+                <div className="text-xs text-slate-500">No value transferred</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Caller */}
+              <div className="flex-1 p-3 rounded-xl bg-slate-50 border border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow-md">{transaction.source_account.charAt(0)}</div>
-                  <div>
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-sky-600 to-indigo-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">{transaction.source_account.charAt(0)}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Caller</div>
                     <div className="flex items-center">
-                      <Link href={`/account/${transaction.source_account}`} className="font-mono text-sm font-medium text-slate-900 hover:text-sky-600">{shortenAddress(transaction.source_account, 6)}</Link>
+                      <Link href={`/account/${transaction.source_account}`} className="font-mono text-xs font-medium text-slate-900 hover:text-sky-600 truncate">{shortenAddress(transaction.source_account, 6)}</Link>
                       <AccountBadges address={transaction.source_account} labels={accountLabels} />
                     </div>
-                    <div className="text-[10px] text-slate-400">Source</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-rose-500 font-bold text-lg">-{displayAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
-                  <div className="text-[10px] text-slate-400">{displayAsset}</div>
-                </div>
               </div>
-            </div>
-            <div className="hidden md:flex items-center justify-center px-2 bg-slate-50/50">
-              <div className="w-8 h-8 rounded-full bg-white shadow-sm border border-slate-200 flex items-center justify-center">
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+              {/* Arrow */}
+              <div className="flex flex-col items-center gap-1 px-2">
+                <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                <span className="text-[8px] font-bold text-amber-500 uppercase">{contractFunctionName}</span>
               </div>
-            </div>
-            <div className="flex-1 p-4 border-t md:border-t-0 md:border-l border-slate-100">
-              <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">To</div>
-              <div className="flex items-center justify-between gap-4">
+              {/* Contract */}
+              <div className="flex-1 p-3 rounded-xl bg-amber-50 border border-amber-100">
                 <div className="flex items-center gap-3">
-                  {isMultiSend ? (
-                    <>
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 text-sm font-bold">{uniqueRecipients.length}</div>
-                      <div>
-                        <div className="font-medium text-sm text-slate-900">{uniqueRecipients.length} Recipients</div>
-                        <div className="flex -space-x-1.5 mt-1">
-                          {uniqueRecipients.slice(0, 3).map((a, i) => <div key={a} className={`w-4 h-4 rounded-full ring-2 ring-white text-[6px] font-bold text-white flex items-center justify-center ${['bg-indigo-500', 'bg-sky-400', 'bg-emerald-400'][i]}`}>{a.charAt(0)}</div>)}
-                          {uniqueRecipients.length > 3 && <div className="w-4 h-4 rounded-full bg-slate-200 ring-2 ring-white text-[6px] font-bold text-slate-500 flex items-center justify-center">+{uniqueRecipients.length - 3}</div>}
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white text-sm font-bold shadow-md">{isContractDestination ? 'C' : destination.charAt(0)}</div>
-                      <div>
-                        <div className="flex items-center">
-                          <Link href={isContractDestination ? `/contract/${destination}` : `/account/${destination}`} className="font-mono text-sm font-medium text-slate-900 hover:text-sky-600">{shortenAddress(destination, 6)}</Link>
-                          {!isContractDestination && <AccountBadges address={destination} labels={accountLabels} />}
-                        </div>
-                        <div className="text-[10px] text-slate-400">{isContractDestination ? 'Contract' : 'Destination'}</div>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="text-right">
-                  <div className="text-emerald-500 font-bold text-lg">+{displayAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
-                  <div className="text-[10px] text-slate-400">{displayAsset}</div>
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center text-white text-xs font-bold shadow-sm">C</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[9px] font-bold text-amber-600/70 uppercase tracking-wider mb-0.5">Contract</div>
+                    <Link href={`/contract/${destination}`} className="font-mono text-xs font-medium text-slate-900 hover:text-sky-600 truncate block">{shortenAddress(destination, 6)}</Link>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : (
+          /* Standard Transfer Layout */
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+            <div className="flex flex-col md:flex-row">
+              <div className="flex-1 p-4">
+                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">From</div>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow-md">{transaction.source_account.charAt(0)}</div>
+                    <div>
+                      <div className="flex items-center">
+                        <Link href={`/account/${transaction.source_account}`} className="font-mono text-sm font-medium text-slate-900 hover:text-sky-600">{shortenAddress(transaction.source_account, 6)}</Link>
+                        <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                      </div>
+                      <div className="text-[10px] text-slate-400">Source</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-rose-500 font-bold text-lg">-{displayAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
+                    <div className="text-[10px] text-slate-400">{displayAsset}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden md:flex items-center justify-center px-2 bg-slate-50/50">
+                <div className="w-8 h-8 rounded-full bg-white shadow-sm border border-slate-200 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                </div>
+              </div>
+              <div className="flex-1 p-4 border-t md:border-t-0 md:border-l border-slate-100">
+                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">To</div>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    {isMultiSend ? (
+                      <>
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 text-sm font-bold">{uniqueRecipients.length}</div>
+                        <div>
+                          <div className="font-medium text-sm text-slate-900">{uniqueRecipients.length} Recipients</div>
+                          <div className="flex -space-x-1.5 mt-1">
+                            {uniqueRecipients.slice(0, 3).map((a, i) => <div key={a} className={`w-4 h-4 rounded-full ring-2 ring-white text-[6px] font-bold text-white flex items-center justify-center ${['bg-indigo-500', 'bg-sky-400', 'bg-emerald-400'][i]}`}>{a.charAt(0)}</div>)}
+                            {uniqueRecipients.length > 3 && <div className="w-4 h-4 rounded-full bg-slate-200 ring-2 ring-white text-[6px] font-bold text-slate-500 flex items-center justify-center">+{uniqueRecipients.length - 3}</div>}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white text-sm font-bold shadow-md">{isContractDestination ? 'C' : destination.charAt(0)}</div>
+                        <div>
+                          <div className="flex items-center">
+                            <Link href={isContractDestination ? `/contract/${destination}` : `/account/${destination}`} className="font-mono text-sm font-medium text-slate-900 hover:text-sky-600">{shortenAddress(destination, 6)}</Link>
+                            {!isContractDestination && <AccountBadges address={destination} labels={accountLabels} />}
+                          </div>
+                          <div className="text-[10px] text-slate-400">{isContractDestination ? 'Contract' : 'Destination'}</div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <div className="text-emerald-500 font-bold text-lg">+{displayAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
+                    <div className="text-[10px] text-slate-400">{displayAsset}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Master-Detail */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left Sidebar - Operations/Effects List */}
-          <div className="lg:col-span-4 space-y-3">
-            {/* Tabs Header */}
-            <div className="flex items-center gap-4 px-1 border-b border-slate-200/60 pb-2">
-              <button
-                onClick={() => setListTab('operations')}
-                className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-colors ${listTab === 'operations' ? 'text-sky-600 border-b-2 border-sky-600' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                Operations <span className={listTab === 'operations' ? 'text-sky-500' : 'text-slate-400'}>{filteredOperations.length}</span>
-              </button>
-              <button
-                onClick={() => setListTab('effects')}
-                className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-colors ${listTab === 'effects' ? 'text-sky-600 border-b-2 border-sky-600' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                Effects <span className={listTab === 'effects' ? 'text-sky-500' : 'text-slate-400'}>{effects.length}</span>
-              </button>
+          <div className="lg:col-span-4">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4">
+              {/* Tabs Header */}
+              <div className="flex items-center gap-4 border-b border-slate-200/60 pb-3 mb-3">
+                <button
+                  onClick={() => setListTab('operations')}
+                  className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[11px] transition-colors ${listTab === 'operations' ? 'text-sky-600 border-b-2 border-sky-600' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  Operations <span className={listTab === 'operations' ? 'text-sky-500' : 'text-slate-400'}>{filteredOperations.length}</span>
+                </button>
+                <button
+                  onClick={() => setListTab('effects')}
+                  className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[11px] transition-colors ${listTab === 'effects' ? 'text-sky-600 border-b-2 border-sky-600' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  Effects <span className={listTab === 'effects' ? 'text-sky-500' : 'text-slate-400'}>{effects.length}</span>
+                </button>
 
-              {/* Filter Dropdown - Only show when operations tab is active */}
-              {listTab === 'operations' && (
-                <div className="relative ml-auto">
-                  <button
-                    onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-all ${operationFilter !== 'all' ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-                  >
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                    </svg>
-                    {operationFilter === 'all' ? 'Filter' : operationFilter}
-                    <svg className={`w-3 h-3 transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
+                {/* Filter Dropdown - Only show when operations tab is active */}
+                {listTab === 'operations' && (
+                  <div className="relative ml-auto">
+                    <button
+                      onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-all ${operationFilter !== 'all' ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                      </svg>
+                      {operationFilter === 'all' ? 'Filter' : operationFilter}
+                      <svg className={`w-3 h-3 transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
 
-                  {showFilterDropdown && (
-                    <div className="absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
-                      <button
-                        onClick={() => { setOperationFilter('all'); setShowFilterDropdown(false); setSelectedOpIndex(0); }}
-                        className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-slate-50 ${operationFilter === 'all' ? 'text-sky-600 font-medium bg-sky-50' : 'text-slate-600'}`}
-                      >
-                        All Types
-                      </button>
-                      {operationCategories.map(cat => (
+                    {showFilterDropdown && (
+                      <div className="absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
                         <button
-                          key={cat}
-                          onClick={() => { setOperationFilter(cat); setShowFilterDropdown(false); setSelectedOpIndex(0); }}
-                          className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-slate-50 ${operationFilter === cat ? 'text-sky-600 font-medium bg-sky-50' : 'text-slate-600'}`}
+                          onClick={() => { setOperationFilter('all'); setShowFilterDropdown(false); setSelectedOpIndex(0); }}
+                          className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-slate-50 ${operationFilter === 'all' ? 'text-sky-600 font-medium bg-sky-50' : 'text-slate-600'}`}
                         >
-                          {cat}
+                          All Types
                         </button>
-                      ))}
-                    </div>
+                        {operationCategories.map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => { setOperationFilter(cat); setShowFilterDropdown(false); setSelectedOpIndex(0); }}
+                            className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-slate-50 ${operationFilter === cat ? 'text-sky-600 font-medium bg-sky-50' : 'text-slate-600'}`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Operations List */}
+              {listTab === 'operations' && (
+                <div className="space-y-1.5 overflow-y-auto max-h-[500px] pr-1" style={{ scrollbarWidth: 'thin' }}>
+                  {filteredOperations.length === 0 ? (
+                    <div className="text-center py-8 text-slate-400 text-sm">No operations matching filter.</div>
+                  ) : (
+                    filteredOperations.map((op, idx) => {
+                      const { title } = getOpInfo(op);
+                      const { label: cat, color: catColor } = getOperationCategory(op.type);
+                      const isActive = idx === selectedOpIndex;
+                      const originalIdx = operations.findIndex(o => o.id === op.id);
+                      return (
+                        <button key={op.id} onClick={() => setSelectedOpIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 border border-sky-100 shadow-sm' : 'hover:bg-slate-50 border border-transparent hover:border-slate-200/50'}`}>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-[9px] font-black transition-all ${isActive ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'}`}>OP{originalIdx + 1}</div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className={`text-sm font-semibold truncate ${isActive ? 'text-sky-600' : 'text-slate-800 group-hover:text-sky-600'}`}>{title}</h4>
+                              <p className={`text-[9px] uppercase tracking-wider font-bold ${isActive ? 'text-sky-400' : catColor}`}>{cat}</p>
+                            </div>
+                            {isActive && <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>}
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
+              {/* Effects List */}
+              {listTab === 'effects' && (
+                <div className="space-y-1.5 overflow-y-auto max-h-[500px] pr-1" style={{ scrollbarWidth: 'thin' }}>
+                  {effects.length === 0 ? (
+                    <div className="text-center py-8 text-slate-400 text-sm">No effects found.</div>
+                  ) : (
+                    effects.map((ef, idx) => {
+                      const { title } = getEffectInfo(ef);
+                      const { label: cat, color: catColor } = getEffectCategory(ef.type);
+                      const isActive = idx === selectedEffectIndex;
+                      const isCredit = ef.type.includes('credited');
+                      const isDebit = ef.type.includes('debited');
+                      return (
+                        <button key={ef.id} onClick={() => setSelectedEffectIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 border border-sky-100 shadow-sm' : 'hover:bg-slate-50 border border-transparent hover:border-slate-200/50'}`}>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center transition-all ${isActive ? 'bg-sky-600 text-white' : isCredit ? 'bg-emerald-100 text-emerald-600' : isDebit ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-500'}`}>
+                              {isCredit ? (
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                              ) : isDebit ? (
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className={`text-sm font-semibold truncate ${isActive ? 'text-sky-600' : 'text-slate-800 group-hover:text-sky-600'}`}>{title}</h4>
+                              <p className={`text-[9px] uppercase tracking-wider font-bold ${isActive ? 'text-sky-400' : catColor}`}>{cat}</p>
+                            </div>
+                            {ef.amount && (
+                              <span className={`text-xs font-bold ${isCredit ? 'text-emerald-500' : isDebit ? 'text-rose-500' : 'text-slate-500'}`}>
+                                {isCredit ? '+' : isDebit ? '-' : ''}{formatTokenAmount(ef.amount, 2)}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               )}
             </div>
-
-            {/* Operations List */}
-            {listTab === 'operations' && (
-              <div className="space-y-1.5 overflow-y-auto max-h-[600px] pr-1" style={{ scrollbarWidth: 'thin' }}>
-                {filteredOperations.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 text-sm">No operations matching filter.</div>
-                ) : (
-                  filteredOperations.map((op, idx) => {
-                    const { title } = getOpInfo(op);
-                    const { label: cat, color: catColor } = getOperationCategory(op.type);
-                    const isActive = idx === selectedOpIndex;
-                    const originalIdx = operations.findIndex(o => o.id === op.id);
-                    return (
-                      <button key={op.id} onClick={() => setSelectedOpIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 border border-sky-100 shadow-sm' : 'hover:bg-white border border-transparent hover:border-slate-200/50'}`}>
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-[9px] font-black transition-all ${isActive ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'}`}>OP{originalIdx + 1}</div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className={`text-sm font-semibold truncate ${isActive ? 'text-sky-600' : 'text-slate-800 group-hover:text-sky-600'}`}>{title}</h4>
-                            <p className={`text-[9px] uppercase tracking-wider font-bold ${isActive ? 'text-sky-400' : catColor}`}>{cat}</p>
-                          </div>
-                          {isActive && <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>}
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            )}
-
-            {/* Effects List */}
-            {listTab === 'effects' && (
-              <div className="space-y-1.5 overflow-y-auto max-h-[600px] pr-1" style={{ scrollbarWidth: 'thin' }}>
-                {effects.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 text-sm">No effects found.</div>
-                ) : (
-                  effects.map((ef, idx) => {
-                    const { title } = getEffectInfo(ef);
-                    const { label: cat, color: catColor } = getEffectCategory(ef.type);
-                    const isActive = idx === selectedEffectIndex;
-                    const isCredit = ef.type.includes('credited');
-                    const isDebit = ef.type.includes('debited');
-                    return (
-                      <button key={ef.id} onClick={() => setSelectedEffectIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 border border-sky-100 shadow-sm' : 'hover:bg-white border border-transparent hover:border-slate-200/50'}`}>
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center transition-all ${isActive ? 'bg-sky-600 text-white' : isCredit ? 'bg-emerald-100 text-emerald-600' : isDebit ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-500'}`}>
-                            {isCredit ? (
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
-                            ) : isDebit ? (
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
-                            ) : (
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className={`text-sm font-semibold truncate ${isActive ? 'text-sky-600' : 'text-slate-800 group-hover:text-sky-600'}`}>{title}</h4>
-                            <p className={`text-[9px] uppercase tracking-wider font-bold ${isActive ? 'text-sky-400' : catColor}`}>{cat}</p>
-                          </div>
-                          {ef.amount && (
-                            <span className={`text-xs font-bold ${isCredit ? 'text-emerald-500' : isDebit ? 'text-rose-500' : 'text-slate-500'}`}>
-                              {isCredit ? '+' : isDebit ? '-' : ''}{formatTokenAmount(ef.amount, 2)}
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            )}
           </div>
 
           {/* Right Panel - Details */}

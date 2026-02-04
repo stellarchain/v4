@@ -27,9 +27,9 @@ function BadgeTooltip({ children, content }: BadgeTooltipProps) {
         {children}
       </div>
       {isVisible && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 px-2 py-1 bg-[var(--bg-primary)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-[10px] leading-tight rounded-lg shadow-lg z-50 whitespace-nowrap">
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-[10px] leading-tight rounded-lg shadow-lg z-50 whitespace-nowrap">
           {content}
-          <div className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-[var(--border-subtle)]" />
+          <div className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-slate-200 dark:border-t-slate-700" />
         </div>
       )}
     </div>
@@ -77,21 +77,21 @@ export default function AccountBadges({ address, labels, size = 'sm' }: AccountB
       {/* Verified badge */}
       {label.verified && label.name && (
         <BadgeTooltip content={`Verified: ${label.name}`}>
-          <VerifiedIcon className={`${iconSize} text-[var(--primary-blue)]`} />
+          <VerifiedIcon className={`${iconSize} text-sky-500`} />
         </BadgeTooltip>
       )}
 
       {/* Label badge (only if not verified, to avoid redundancy) */}
       {!label.verified && label.name && (
         <BadgeTooltip content={label.name}>
-          <TagIcon className={`${iconSize} text-[var(--text-muted)]`} />
+          <TagIcon className={`${iconSize} text-slate-400`} />
         </BadgeTooltip>
       )}
 
       {/* Organization badge */}
       {label.org_name && (
         <BadgeTooltip content={`Org: ${label.org_name}`}>
-          <BuildingIcon className={`${iconSize} text-[var(--text-secondary)]`} />
+          <BuildingIcon className={`${iconSize} text-slate-500`} />
         </BadgeTooltip>
       )}
     </span>

@@ -152,15 +152,23 @@ export default function TransactionsDesktopView({
   const mergedInitial = mergeTransactions(initialTransactions, initialPaymentTransactions);
   const { network } = useNetwork();
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  // Initialize with server-provided data immediately (no loading state)
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    // Mark initial transactions with basic display info
+    return mergedInitial.map(tx => ({
+      ...tx,
+      displayInfo: tx.displayInfo || { type: 'other' as const },
+    }));
+  });
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+  const [isEnrichingData, setIsEnrichingData] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [oldestCursor, setOldestCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  const seenIdsRef = useRef<Set<string>>(new Set());
-  const animatedIdsRef = useRef<Set<string>>(new Set());
+  const seenIdsRef = useRef<Set<string>>(new Set(mergedInitial.map(t => t.hash)));
+  const animatedIdsRef = useRef<Set<string>>(new Set(mergedInitial.map(t => t.hash)));
 
 
   const fetchTransactions = useCallback(async () => {
@@ -275,45 +283,44 @@ export default function TransactionsDesktopView({
   }, [filter]);
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-      setIsInitialLoading(true);
+    // Enrich the initial transactions with operation details in the background
+    // This doesn't block the UI - data shows immediately from server
+    const enrichTransactions = async () => {
+      setIsEnrichingData(true);
       try {
-        const txRes = await fetch(`${getBaseUrl()}/transactions?limit=${limit}&order=desc`);
-        const txData = await txRes.json();
-        const newTransactions: Transaction[] = txData._embedded.records;
-
-        // Fetch operations for each transaction in parallel (batch of 10 at a time to avoid rate limiting)
-        const txsWithOps: Transaction[] = [];
+        // Fetch operations for each transaction to get better display info
         const batchSize = 10;
-        for (let i = 0; i < newTransactions.length; i += batchSize) {
-          const batch = newTransactions.slice(i, i + batchSize);
-          const batchResults = await Promise.all(batch.map(fetchTransactionWithOps));
-          txsWithOps.push(...batchResults);
-        }
+        const enrichedTxs: Transaction[] = [...transactions];
 
-        setTransactions(txsWithOps);
-        seenIdsRef.current = new Set(txsWithOps.map(t => t.hash));
-        animatedIdsRef.current = new Set(txsWithOps.map(t => t.hash));
+        for (let i = 0; i < transactions.length; i += batchSize) {
+          const batch = transactions.slice(i, i + batchSize);
+          const batchResults = await Promise.all(batch.map(fetchTransactionWithOps));
+
+          // Update the enriched array
+          batchResults.forEach((enrichedTx, idx) => {
+            enrichedTxs[i + idx] = enrichedTx;
+          });
+
+          // Update state progressively so UI shows enriched data as it loads
+          setTransactions([...enrichedTxs]);
+        }
       } catch (error) {
-        console.error('Failed to fetch initial transactions:', error);
-        const txsWithOps = mergedInitial.map((tx) => ({
-          ...tx,
-          displayInfo: tx.displayInfo || { type: 'other' as const },
-        }));
-        setTransactions(txsWithOps);
+        console.error('Failed to enrich transactions:', error);
       } finally {
-        setIsInitialLoading(false);
+        setIsEnrichingData(false);
       }
     };
 
-    fetchInitialData();
-  }, [network]);
+    if (transactions.length > 0) {
+      enrichTransactions();
+    }
+  }, [network]); // Only run on network change, not on transactions change
 
   useEffect(() => {
-    if (isInitialLoading) return;
+    // Start polling for new transactions right away (data is already shown from server)
     const interval = setInterval(fetchTransactions, 2000);
     return () => clearInterval(interval);
-  }, [fetchTransactions, isInitialLoading]);
+  }, [fetchTransactions]);
 
   // Filter transactions based on selected filter
   const filteredTransactions = transactions.filter(tx => {
@@ -526,22 +533,7 @@ export default function TransactionsDesktopView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {isInitialLoading ? (
-                  // Skeleton loading
-                  Array.from({ length: 15 }).map((_, i) => (
-                    <tr key={i} className="animate-pulse">
-                      <td className="py-3 px-4"><div className="h-4 w-24 bg-slate-100 rounded" /></td>
-                      <td className="py-3 px-3"><div className="h-5 w-16 bg-slate-100 rounded" /></td>
-                      <td className="py-3 px-3"><div className="h-4 w-16 bg-slate-100 rounded" /></td>
-                      <td className="py-3 px-3"><div className="h-4 w-14 bg-slate-100 rounded" /></td>
-                      <td className="py-3 px-3"><div className="h-4 w-24 bg-slate-100 rounded" /></td>
-                      <td className="py-3 px-1"><div className="h-5 w-5 bg-slate-100 rounded-full mx-auto" /></td>
-                      <td className="py-3 px-3"><div className="h-4 w-24 bg-slate-100 rounded" /></td>
-                      <td className="py-3 px-3"><div className="h-4 w-16 bg-slate-100 rounded ml-auto" /></td>
-                      <td className="py-3 px-4"><div className="h-4 w-14 bg-slate-100 rounded ml-auto" /></td>
-                    </tr>
-                  ))
-                ) : visibleTransactions.length > 0 ? (
+                {visibleTransactions.length > 0 ? (
                   visibleTransactions.map((tx) => {
                     const info = tx.displayInfo;
                     const typeInfo = getTypeInfo(tx);

@@ -50,6 +50,7 @@ export default function DesktopNavbar() {
     const accountsItems: MenuItem[] = isMainnet ? [
         { name: 'Top Accounts', href: '/accounts', description: 'Ranked by XLM holdings' },
         { name: 'Known Accounts', href: '/known-accounts', description: 'Labeled accounts directory' },
+        { name: 'Add Label', href: '/add-label', description: 'Submit a label for an account' },
     ] : [];
 
     const navItems = [

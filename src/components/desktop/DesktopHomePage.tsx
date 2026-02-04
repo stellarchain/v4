@@ -609,7 +609,7 @@ export default function DesktopHomePage({
             {/* Transaction Flow Animation */}
             <section className="pb-6">
                 <div className="max-w-[1400px] mx-auto px-6">
-                    <TransactionFlowAnimation operations={operations} height={380} />
+                    <TransactionFlowAnimation operations={operations} height={380} currentLedger={liveStats.ledger_count} />
                 </div>
             </section>
 

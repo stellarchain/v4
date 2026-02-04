@@ -298,7 +298,7 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredAndSortedAssets.map((asset) => {
+              {filteredAndSortedAssets.map((asset, index) => {
                 const assetId = `${asset.code}-${asset.issuer || 'native'}`;
                 const isFavorite = favorites.has(assetId);
                 const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
@@ -322,7 +322,7 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
                     </td>
 
                     {/* Rank */}
-                    <td className="py-3 px-3 text-slate-400 text-[13px] font-medium">{asset.rank}</td>
+                    <td className="py-3 px-3 text-slate-400 text-[13px] font-medium">{index + 1}</td>
 
                     {/* Name */}
                     <td className="py-3 px-3">
