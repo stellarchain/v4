@@ -105,7 +105,7 @@ export default function DesktopNavbar() {
                                 alt="StellarChain Explorer"
                                 width={180}
                                 height={40}
-                                className="h-9 w-auto brightness-0 dark:brightness-0 dark:invert"
+                                className="h-9 w-auto dark:brightness-0 dark:invert"
                                 priority
                             />
                         </Link>

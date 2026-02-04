@@ -306,11 +306,11 @@ export default function TransactionDesktopView({ transaction, operations, effect
           /* Contract Interaction Layout */
           <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+              <div className="w-8 h-8 rounded-lg bg-amber-500/10 dark:bg-amber-900/40 flex items-center justify-center">
+                <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
               </div>
               <div>
-                <div className="text-[9px] font-bold text-amber-600 uppercase tracking-widest">Contract Interaction</div>
+                <div className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">Contract Interaction</div>
                 <div className="text-xs text-[var(--text-tertiary)]">No value transferred</div>
               </div>
             </div>
@@ -334,7 +334,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                 <span className="text-[8px] font-bold text-amber-500 uppercase">{contractFunctionName}</span>
               </div>
               {/* Contract */}
-              <div className="flex-1 p-3 rounded-xl bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50">
+              <div className="flex-1 p-3 rounded-xl bg-[var(--bg-tertiary)] dark:bg-amber-900/30 border border-[var(--border-subtle)] dark:border-amber-800/50 border-l-4 border-l-amber-500">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center text-white text-xs font-bold shadow-sm">C</div>
                   <div className="min-w-0 flex-1">
