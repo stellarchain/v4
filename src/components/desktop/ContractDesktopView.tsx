@@ -181,15 +181,15 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
   const sourceRepo = contract.verification?.sourceRepo || contract.contractMetadata?.sourceRepo;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
         {/* Header Card */}
-        <div className="mb-6 rounded-md border border-slate-200 bg-white px-5 py-4">
+        <div className="mb-6 rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] px-5 py-4">
           <div className="flex items-center gap-4">
             {/* Back Button */}
             <Link
               href="/"
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-400 transition hover:text-slate-600 hover:border-slate-300"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border-default)] text-[var(--text-muted)] transition hover:text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -197,14 +197,14 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
             </Link>
 
             {/* Divider */}
-            <div className="h-8 w-px bg-slate-200" />
+            <div className="h-8 w-px bg-[var(--border-default)]" />
 
             {/* Contract Icon */}
             <div className={`w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0 ${
               isToken ? 'bg-indigo-500' :
               isNFT ? 'bg-pink-500' :
               isVault ? 'bg-amber-500' :
-              'bg-slate-600'
+              'bg-[var(--text-secondary)]'
             } text-white`}>
               {getTypeIcon()}
             </div>
@@ -212,22 +212,22 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
             {/* Contract Info */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-3">
-                <h1 className="text-lg font-semibold text-slate-900">
+                <h1 className="text-lg font-semibold text-[var(--text-primary)]">
                   {contractDisplayName}
                   {isToken && tokenInfo?.symbol && tokenInfo.name !== 'Unknown Token' && (
-                    <span className="text-base font-medium text-slate-400 ml-1.5">({tokenInfo.symbol})</span>
+                    <span className="text-base font-medium text-[var(--text-muted)] ml-1.5">({tokenInfo.symbol})</span>
                   )}
                   {isNFT && contract.nftInfo?.symbol && (
-                    <span className="text-base font-medium text-slate-400 ml-1.5">({contract.nftInfo.symbol})</span>
+                    <span className="text-base font-medium text-[var(--text-muted)] ml-1.5">({contract.nftInfo.symbol})</span>
                   )}
                   {isVault && contract.vaultInfo?.symbol && (
-                    <span className="text-base font-medium text-slate-400 ml-1.5">({contract.vaultInfo.symbol})</span>
+                    <span className="text-base font-medium text-[var(--text-muted)] ml-1.5">({contract.vaultInfo.symbol})</span>
                   )}
                 </h1>
 
                 {/* Badges */}
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 px-2 py-0.5 bg-slate-100 rounded">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)] px-2 py-0.5 bg-[var(--bg-tertiary)] rounded">
                     {contract.type === 'dex' ? 'DEX' :
                      contract.type === 'lending' ? 'Lending' :
                      contract.type === 'nft' ? 'NFT' :
@@ -271,7 +271,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
               <button
                 type="button"
                 onClick={handleCopy}
-                className="group flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-slate-600 mt-0.5"
+                className="group flex items-center gap-1.5 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-secondary)] mt-0.5"
               >
                 <span className="truncate">{contract.id}</span>
                 <svg className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -287,7 +287,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                 href={contract.verifiedContract.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border-default)] rounded-md text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:border-[var(--border-strong)] transition-colors"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -304,25 +304,25 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
             {/* Token Stats (if token) */}
             {isToken && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Symbol</div>
-                  <div className="text-xl font-bold text-slate-900">{tokenInfo?.symbol || '???'}</div>
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Symbol</div>
+                  <div className="text-xl font-bold text-[var(--text-primary)]">{tokenInfo?.symbol || '???'}</div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Decimals</div>
-                  <div className="text-xl font-bold text-slate-900">
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Decimals</div>
+                  <div className="text-xl font-bold text-[var(--text-primary)]">
                     {contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7}
                   </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Type</div>
-                  <div className="text-xl font-bold text-slate-900">
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Type</div>
+                  <div className="text-xl font-bold text-[var(--text-primary)]">
                     {contract.tokenMetadata?.isSAC ? 'SAC' : 'SEP-41'}
                   </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Operations</div>
-                  <div className="text-xl font-bold text-slate-900">{operations.length}</div>
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Operations</div>
+                  <div className="text-xl font-bold text-[var(--text-primary)]">{operations.length}</div>
                 </div>
               </div>
             )}
@@ -330,23 +330,23 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
             {/* NFT Stats */}
             {isNFT && contract.nftInfo && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Symbol</div>
-                  <div className="text-xl font-bold text-slate-900">{contract.nftInfo.symbol || '???'}</div>
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Symbol</div>
+                  <div className="text-xl font-bold text-[var(--text-primary)]">{contract.nftInfo.symbol || '???'}</div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Total Supply</div>
-                  <div className="text-xl font-bold text-slate-900">
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Total Supply</div>
+                  <div className="text-xl font-bold text-[var(--text-primary)]">
                     {contract.nftInfo.totalSupply !== undefined ? formatTokenAmount(String(contract.nftInfo.totalSupply), 0) : 'N/A'}
                   </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Type</div>
-                  <div className="text-xl font-bold text-slate-900">NFT</div>
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Type</div>
+                  <div className="text-xl font-bold text-[var(--text-primary)]">NFT</div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Operations</div>
-                  <div className="text-xl font-bold text-slate-900">{operations.length}</div>
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Operations</div>
+                  <div className="text-xl font-bold text-[var(--text-primary)]">{operations.length}</div>
                 </div>
               </div>
             )}
@@ -354,33 +354,33 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
             {/* Vault Stats */}
             {isVault && contract.vaultInfo && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Total Assets</div>
-                  <div className="text-xl font-bold text-slate-900">
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Total Assets</div>
+                  <div className="text-xl font-bold text-[var(--text-primary)]">
                     {formatTokenAmount(contract.vaultInfo.totalAssets, 2)}
                   </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Total Shares</div>
-                  <div className="text-xl font-bold text-slate-900">
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Total Shares</div>
+                  <div className="text-xl font-bold text-[var(--text-primary)]">
                     {formatTokenAmount(contract.vaultInfo.totalShares, 2)}
                   </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Asset Address</div>
-                  <div className="text-sm font-bold text-slate-900 font-mono truncate" title={contract.vaultInfo.underlyingAsset}>
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Asset Address</div>
+                  <div className="text-sm font-bold text-[var(--text-primary)] font-mono truncate" title={contract.vaultInfo.underlyingAsset}>
                     {shortenAddress(contract.vaultInfo.underlyingAsset, 6)}
                   </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Decimals Offset</div>
-                  <div className="text-xl font-bold text-slate-900">{contract.vaultInfo.decimalsOffset}</div>
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Decimals Offset</div>
+                  <div className="text-xl font-bold text-[var(--text-primary)]">{contract.vaultInfo.decimalsOffset}</div>
                 </div>
               </div>
             )}
 
             {/* Tabs */}
-            <div className="w-full border-b border-slate-200 flex gap-8 px-2">
+            <div className="w-full border-b border-[var(--border-default)] flex gap-8 px-2">
               {[
                 { id: 'overview', label: 'Overview' },
                 { id: 'history', label: 'History', count: contract.invocations?.length },
@@ -397,12 +397,12 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                   className={`pb-3 text-sm font-bold transition-all flex items-center gap-2 ${
                     activeTab === tab.id
                       ? 'border-b-2 border-sky-500 text-sky-600'
-                      : 'text-slate-400 hover:text-slate-600'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                   }`}
                 >
                   {tab.label}
                   {tab.count !== undefined && tab.count > 0 && (
-                    <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">{tab.count}</span>
+                    <span className="rounded-full bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-tertiary)]">{tab.count}</span>
                   )}
                 </button>
               ))}
@@ -413,21 +413,21 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
               <div className="space-y-6">
                 {/* Description */}
                 {contract.verifiedContract?.description && (
-                  <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h3 className="text-sm font-bold text-slate-800 mb-3">About</h3>
-                    <p className="text-sm text-slate-600 leading-relaxed">{contract.verifiedContract.description}</p>
+                  <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-sm">
+                    <h3 className="text-sm font-bold text-[var(--text-primary)] mb-3">About</h3>
+                    <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{contract.verifiedContract.description}</p>
                   </div>
                 )}
 
                 {/* Recent Activity - Events for Contracts */}
-                <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                   <div className="flex items-center justify-between px-5 pt-5 pb-3">
-                    <h3 className="text-sm font-bold text-slate-800">Recent Activity</h3>
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500">{contract.events?.length || 0} events</span>
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">Recent Activity</h3>
+                    <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">{contract.events?.length || 0} events</span>
                   </div>
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-[var(--border-subtle)]">
                     {!contract.events || contract.events.length === 0 ? (
-                      <div className="p-6 text-center text-sm text-slate-400">No recent activity found</div>
+                      <div className="p-6 text-center text-sm text-[var(--text-muted)]">No recent activity found</div>
                     ) : (
                       contract.events.slice(0, 10).map((event, idx) => {
                         // Get display name - use raw event name for custom events
@@ -444,7 +444,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                               event.type === 'mint' ? 'bg-green-100 text-green-600' :
                               event.type === 'burn' ? 'bg-orange-100 text-orange-600' :
                               event.type === 'approve' ? 'bg-purple-100 text-purple-600' :
-                              'bg-slate-100 text-slate-500'
+                              'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
                             }`}>
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -452,27 +452,27 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm font-bold text-slate-800">
-                                  {displayName}{subType && <span className="text-slate-500 font-normal text-xs ml-1">· {subType}</span>}
+                                <span className="text-sm font-bold text-[var(--text-primary)]">
+                                  {displayName}{subType && <span className="text-[var(--text-tertiary)] font-normal text-xs ml-1">· {subType}</span>}
                                 </span>
                                 {isTransferEventData(event.data) && (
-                                  <span className="text-sm font-mono font-bold text-slate-900">
+                                  <span className="text-sm font-mono font-bold text-[var(--text-primary)]">
                                     {formatEventAmount(event.data.amount || '0', contract.tokenMetadata?.decimals || 7)}{' '}
-                                    <span className="text-[10px] text-slate-500">{tokenInfo?.symbol || ''}</span>
+                                    <span className="text-[10px] text-[var(--text-tertiary)]">{tokenInfo?.symbol || ''}</span>
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                              <div className="flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
                                 {event.timestamp && <span>{timeAgo(event.timestamp)}</span>}
                                 {isTransferEventData(event.data) && (
                                   <>
-                                    <span className="text-slate-300">|</span>
+                                    <span className="text-[var(--text-muted)]">|</span>
                                     <span className="font-mono">{shortenAddress(event.data.from, 4)} → {shortenAddress(event.data.to, 4)}</span>
                                   </>
                                 )}
                                 {customData?.account && (
                                   <>
-                                    <span className="text-slate-300">|</span>
+                                    <span className="text-[var(--text-muted)]">|</span>
                                     <span className="font-mono">{shortenAddress(customData.account, 4)}</span>
                                   </>
                                 )}
@@ -490,7 +490,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                             {eventContent}
                           </Link>
                         ) : (
-                          <div key={idx} className="block p-4 hover:bg-slate-50 transition-colors">
+                          <div key={idx} className="block p-4 hover:bg-[var(--bg-tertiary)] transition-colors">
                             {eventContent}
                           </div>
                         );
@@ -500,7 +500,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                   {contract.events && contract.events.length > 10 && (
                     <button
                       onClick={() => setActiveTab('events')}
-                      className="w-full border-t border-slate-100 py-3 text-center text-xs font-bold text-sky-600 hover:bg-slate-50 transition-colors rounded-b-xl"
+                      className="w-full border-t border-[var(--border-subtle)] py-3 text-center text-xs font-bold text-sky-600 hover:bg-[var(--bg-tertiary)] transition-colors rounded-b-xl"
                     >
                       View All {contract.events.length} Events
                     </button>
@@ -511,25 +511,25 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
             {/* History Tab - Contract Invocations */}
             {activeTab === 'history' && (
-              <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                 <div className="flex items-center justify-between px-5 pt-5 pb-3">
-                  <h3 className="text-sm font-bold text-slate-800">Transaction History</h3>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">Transaction History</h3>
+                  <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
                     {contract.invocations?.length || 0} transactions
                   </span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-slate-100">
-                        <th className="px-5 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Transaction</th>
-                        <th className="px-5 py-3 text-right text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                      <tr className="border-b border-[var(--border-subtle)]">
+                        <th className="px-5 py-3 text-left text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Transaction</th>
+                        <th className="px-5 py-3 text-right text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Date</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[var(--border-subtle)]">
                       {!contract.invocations || contract.invocations.length === 0 ? (
                         <tr>
-                          <td colSpan={2} className="p-6 text-center text-sm text-slate-400">No transaction history found</td>
+                          <td colSpan={2} className="p-6 text-center text-sm text-[var(--text-muted)]">No transaction history found</td>
                         </tr>
                       ) : (
                         contract.invocations.map((invocation, idx) => {
@@ -590,7 +590,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                           const summary = getActionSummary();
 
                           return (
-                            <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                            <tr key={idx} className="hover:bg-[var(--bg-tertiary)] transition-colors">
                               <td className="px-5 py-4">
                                 <div className="flex items-center gap-3">
                                   <div className="h-9 w-9 rounded-lg bg-sky-100 flex items-center justify-center flex-shrink-0">
@@ -603,24 +603,24 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                       <Link href={`/account/${invocation.sourceAccount}`} className="font-mono text-xs text-sky-600 hover:underline">
                                         {shortenAddress(invocation.sourceAccount, 4)}
                                       </Link>
-                                      <span className="text-slate-400 text-xs">invoked</span>
+                                      <span className="text-[var(--text-muted)] text-xs">invoked</span>
                                       <span className="font-mono text-sm font-bold text-indigo-600">
                                         {invocation.functionName}
                                       </span>
                                     </div>
                                     {summary && (
-                                      <div className="text-xs text-slate-500 mt-0.5">
+                                      <div className="text-xs text-[var(--text-tertiary)] mt-0.5">
                                         {summary}
                                       </div>
                                     )}
-                                    <Link href={`/transaction/${invocation.txHash}`} className="font-mono text-[10px] text-slate-400 hover:text-sky-600 hover:underline">
+                                    <Link href={`/transaction/${invocation.txHash}`} className="font-mono text-[10px] text-[var(--text-muted)] hover:text-sky-600 hover:underline">
                                       {shortenAddress(invocation.txHash, 6)}
                                     </Link>
                                   </div>
                                 </div>
                               </td>
                               <td className="px-5 py-4 text-right">
-                                <span className="text-xs text-slate-500">
+                                <span className="text-xs text-[var(--text-tertiary)]">
                                   {new Date(invocation.createdAt).toLocaleString('en-US', {
                                     year: 'numeric',
                                     month: 'short',
@@ -643,16 +643,16 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
             {/* Events Tab */}
             {activeTab === 'events' && (
-              <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                 <div className="flex items-center justify-between px-5 pt-5 pb-3">
-                  <h3 className="text-sm font-bold text-slate-800">Contract Events</h3>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract Events</h3>
+                  <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
                     {contract.events?.length || 0}
                   </span>
                 </div>
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-[var(--border-subtle)]">
                   {!contract.events || contract.events.length === 0 ? (
-                    <div className="p-6 text-center text-sm text-slate-400">No events found</div>
+                    <div className="p-6 text-center text-sm text-[var(--text-muted)]">No events found</div>
                   ) : (
                     contract.events.map((event, idx) => {
                       const getEventBadgeColor = (type: string) => {
@@ -662,7 +662,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                           case 'burn': return 'bg-rose-100 text-rose-700 border-rose-200';
                           case 'approve': return 'bg-amber-100 text-amber-700 border-amber-200';
                           case 'clawback': return 'bg-purple-100 text-purple-700 border-purple-200';
-                          default: return 'bg-slate-100 text-slate-700 border-slate-200';
+                          default: return 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)]';
                         }
                       };
 
@@ -677,7 +677,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
                       const eventContent = (
                         <div className="flex items-start gap-4">
-                          <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-mono text-slate-500 flex-shrink-0">
+                          <div className="h-8 w-8 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center text-[10px] font-mono text-[var(--text-tertiary)] flex-shrink-0">
                             {idx + 1}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -686,12 +686,12 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                 {displayName}
                               </span>
                               {subType && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-50 text-slate-600 border border-slate-200">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--border-default)]">
                                   {subType}
                                 </span>
                               )}
                               {event.timestamp && (
-                                <span className="text-[10px] text-slate-400">{timeAgo(event.timestamp)}</span>
+                                <span className="text-[10px] text-[var(--text-muted)]">{timeAgo(event.timestamp)}</span>
                               )}
                               {event.txHash && (
                                 <span className="text-[10px] text-sky-500 ml-auto">View Transaction →</span>
@@ -702,22 +702,22 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                             {isTransferEventData(event.data) && (
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2 text-xs">
-                                  <span className="text-slate-500">From:</span>
-                                  <span className="font-mono text-slate-700">
+                                  <span className="text-[var(--text-tertiary)]">From:</span>
+                                  <span className="font-mono text-[var(--text-secondary)]">
                                     {shortenAddress(event.data.from, 6)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
-                                  <span className="text-slate-500">To:</span>
-                                  <span className="font-mono text-slate-700">
+                                  <span className="text-[var(--text-tertiary)]">To:</span>
+                                  <span className="font-mono text-[var(--text-secondary)]">
                                     {shortenAddress(event.data.to, 6)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
-                                  <span className="text-slate-500">Amount:</span>
-                                  <span className="font-mono font-semibold text-slate-800">
+                                  <span className="text-[var(--text-tertiary)]">Amount:</span>
+                                  <span className="font-mono font-semibold text-[var(--text-primary)]">
                                     {formatEventAmount(event.data.amount, decimals)}
-                                    {tokenInfo?.symbol && <span className="text-slate-500 ml-1">{tokenInfo.symbol}</span>}
+                                    {tokenInfo?.symbol && <span className="text-[var(--text-tertiary)] ml-1">{tokenInfo.symbol}</span>}
                                   </span>
                                 </div>
                               </div>
@@ -726,16 +726,16 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                             {isMintEventData(event.data) && (
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2 text-xs">
-                                  <span className="text-slate-500">To:</span>
-                                  <span className="font-mono text-slate-700">
+                                  <span className="text-[var(--text-tertiary)]">To:</span>
+                                  <span className="font-mono text-[var(--text-secondary)]">
                                     {shortenAddress(event.data.to, 6)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
-                                  <span className="text-slate-500">Amount:</span>
+                                  <span className="text-[var(--text-tertiary)]">Amount:</span>
                                   <span className="font-mono font-semibold text-emerald-600">
                                     +{formatEventAmount(event.data.amount, decimals)}
-                                    {tokenInfo?.symbol && <span className="text-slate-500 ml-1">{tokenInfo.symbol}</span>}
+                                    {tokenInfo?.symbol && <span className="text-[var(--text-tertiary)] ml-1">{tokenInfo.symbol}</span>}
                                   </span>
                                 </div>
                               </div>
@@ -744,16 +744,16 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                             {isBurnEventData(event.data) && (
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2 text-xs">
-                                  <span className="text-slate-500">From:</span>
-                                  <span className="font-mono text-slate-700">
+                                  <span className="text-[var(--text-tertiary)]">From:</span>
+                                  <span className="font-mono text-[var(--text-secondary)]">
                                     {shortenAddress(event.data.from, 6)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
-                                  <span className="text-slate-500">Amount:</span>
+                                  <span className="text-[var(--text-tertiary)]">Amount:</span>
                                   <span className="font-mono font-semibold text-rose-600">
                                     -{formatEventAmount(event.data.amount, decimals)}
-                                    {tokenInfo?.symbol && <span className="text-slate-500 ml-1">{tokenInfo.symbol}</span>}
+                                    {tokenInfo?.symbol && <span className="text-[var(--text-tertiary)] ml-1">{tokenInfo.symbol}</span>}
                                   </span>
                                 </div>
                               </div>
@@ -762,28 +762,28 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                             {isApproveEventData(event.data) && (
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2 text-xs">
-                                  <span className="text-slate-500">Owner:</span>
-                                  <span className="font-mono text-slate-700">
+                                  <span className="text-[var(--text-tertiary)]">Owner:</span>
+                                  <span className="font-mono text-[var(--text-secondary)]">
                                     {shortenAddress(event.data.from, 6)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
-                                  <span className="text-slate-500">Spender:</span>
-                                  <span className="font-mono text-slate-700">
+                                  <span className="text-[var(--text-tertiary)]">Spender:</span>
+                                  <span className="font-mono text-[var(--text-secondary)]">
                                     {shortenAddress(event.data.spender, 6)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
-                                  <span className="text-slate-500">Allowance:</span>
-                                  <span className="font-mono font-semibold text-slate-800">
+                                  <span className="text-[var(--text-tertiary)]">Allowance:</span>
+                                  <span className="font-mono font-semibold text-[var(--text-primary)]">
                                     {formatEventAmount(event.data.amount, decimals)}
-                                    {tokenInfo?.symbol && <span className="text-slate-500 ml-1">{tokenInfo.symbol}</span>}
+                                    {tokenInfo?.symbol && <span className="text-[var(--text-tertiary)] ml-1">{tokenInfo.symbol}</span>}
                                   </span>
                                 </div>
                                 {event.data.expirationLedger > 0 && (
                                   <div className="flex items-center gap-2 text-xs">
-                                    <span className="text-slate-500">Expires at ledger:</span>
-                                    <span className="font-mono text-slate-600">{event.data.expirationLedger.toLocaleString()}</span>
+                                    <span className="text-[var(--text-tertiary)]">Expires at ledger:</span>
+                                    <span className="font-mono text-[var(--text-secondary)]">{event.data.expirationLedger.toLocaleString()}</span>
                                   </div>
                                 )}
                               </div>
@@ -793,16 +793,16 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                               <div className="space-y-1">
                                 {customData.account && (
                                   <div className="flex items-center gap-2 text-xs">
-                                    <span className="text-slate-500">Account:</span>
-                                    <span className="font-mono text-slate-700">
+                                    <span className="text-[var(--text-tertiary)]">Account:</span>
+                                    <span className="font-mono text-[var(--text-secondary)]">
                                       {shortenAddress(customData.account, 6)}
                                     </span>
                                   </div>
                                 )}
                                 {customData.value !== null && customData.value !== undefined && (
                                   <div className="flex items-center gap-2 text-xs">
-                                    <span className="text-slate-500">Data:</span>
-                                    <span className="font-mono text-slate-600 truncate max-w-[300px]">
+                                    <span className="text-[var(--text-tertiary)]">Data:</span>
+                                    <span className="font-mono text-[var(--text-secondary)] truncate max-w-[300px]">
                                       {typeof customData.value === 'object'
                                         ? JSON.stringify(customData.value).slice(0, 80)
                                         : String(customData.value).slice(0, 80)}
@@ -816,7 +816,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                             )}
 
                             {event.type === 'unknown' && !customData && (
-                              <div className="text-xs text-slate-500 font-mono">
+                              <div className="text-xs text-[var(--text-tertiary)] font-mono">
                                 {JSON.stringify(event.data, null, 2).slice(0, 100)}
                                 {JSON.stringify(event.data).length > 100 && '...'}
                               </div>
@@ -834,7 +834,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                           {eventContent}
                         </Link>
                       ) : (
-                        <div key={idx} className="p-4 hover:bg-slate-50 transition-colors">
+                        <div key={idx} className="p-4 hover:bg-[var(--bg-tertiary)] transition-colors">
                           {eventContent}
                         </div>
                       );
@@ -846,15 +846,15 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
             {/* Storage Tab */}
             {activeTab === 'storage' && (
-              <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
-                  <h3 className="text-sm font-semibold text-slate-900">Contract Storage</h3>
-                  <p className="text-xs text-slate-500">{contract.storage?.totalEntries || 0} entries</p>
+              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] overflow-hidden">
+                <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">Contract Storage</h3>
+                  <p className="text-xs text-[var(--text-tertiary)]">{contract.storage?.totalEntries || 0} entries</p>
                 </div>
                 {!contract.storage || contract.storage.entries.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-slate-400">No storage entries found</div>
+                  <div className="p-6 text-center text-sm text-[var(--text-muted)]">No storage entries found</div>
                 ) : (
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-[var(--border-subtle)]">
                     {contract.storage.entries.map((entry, idx) => {
                       const isExpanded = expandedStorageRows.has(idx);
                       const isLongValue = entry.valueDisplay.length > 50;
@@ -862,7 +862,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                       return (
                         <div
                           key={idx}
-                          className={`px-4 py-3 ${isLongValue ? 'cursor-pointer hover:bg-slate-50' : ''}`}
+                          className={`px-4 py-3 ${isLongValue ? 'cursor-pointer hover:bg-[var(--bg-tertiary)]' : ''}`}
                           onClick={() => {
                             if (isLongValue) {
                               const newExpanded = new Set(expandedStorageRows);
@@ -885,10 +885,10 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                             </span>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2">
-                                <div className="text-sm font-medium text-slate-700 truncate">{entry.keyDisplay}</div>
-                                <span className="text-[10px] text-slate-400 flex-shrink-0">{entry.keyType}</span>
+                                <div className="text-sm font-medium text-[var(--text-secondary)] truncate">{entry.keyDisplay}</div>
+                                <span className="text-[10px] text-[var(--text-muted)] flex-shrink-0">{entry.keyType}</span>
                               </div>
-                              <div className={`text-xs text-slate-500 font-mono mt-1 ${isExpanded ? 'whitespace-pre-wrap break-all' : 'truncate'}`}>
+                              <div className={`text-xs text-[var(--text-tertiary)] font-mono mt-1 ${isExpanded ? 'whitespace-pre-wrap break-all' : 'truncate'}`}>
                                 {entry.valueDisplay}
                               </div>
                               {isLongValue && !isExpanded && (
@@ -897,9 +897,9 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                             </div>
                           </div>
                           <div className="flex items-center justify-between mt-2 pl-16">
-                            <span className="text-[10px] text-slate-400">Type: {entry.valueType}</span>
+                            <span className="text-[10px] text-[var(--text-muted)]">Type: {entry.valueType}</span>
                             {entry.expirationLedger && (
-                              <span className="text-[10px] text-slate-400">TTL: {entry.expirationLedger.toLocaleString()}</span>
+                              <span className="text-[10px] text-[var(--text-muted)]">TTL: {entry.expirationLedger.toLocaleString()}</span>
                             )}
                           </div>
                         </div>
@@ -915,108 +915,108 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
           {/* Sidebar */}
           <div className="w-full lg:w-80 space-y-6 flex-shrink-0">
             {/* Contract Details */}
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-800 mb-4">Contract Details</h3>
+            <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-sm">
+              <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Contract Details</h3>
               <div className="space-y-3">
-                <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                  <span className="text-[11px] text-slate-500">Contract Type</span>
-                  <span className="text-[11px] font-semibold text-slate-700 capitalize">{contract.type}</span>
+                <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                  <span className="text-[11px] text-[var(--text-tertiary)]">Contract Type</span>
+                  <span className="text-[11px] font-semibold text-[var(--text-secondary)] capitalize">{contract.type}</span>
                 </div>
-                <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                  <span className="text-[11px] text-slate-500">Verified</span>
-                  <span className={`text-[11px] font-semibold ${contract.isVerified ? 'text-emerald-600' : 'text-slate-400'}`}>
+                <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                  <span className="text-[11px] text-[var(--text-tertiary)]">Verified</span>
+                  <span className={`text-[11px] font-semibold ${contract.isVerified ? 'text-emerald-600' : 'text-[var(--text-muted)]'}`}>
                     {contract.isVerified ? 'Yes' : 'No'}
                   </span>
                 </div>
                 {isToken && (
                   <>
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-[11px] text-slate-500">Token Name</span>
-                      <span className="text-[11px] font-semibold text-slate-700">{contractDisplayName}</span>
+                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                      <span className="text-[11px] text-[var(--text-tertiary)]">Token Name</span>
+                      <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{contractDisplayName}</span>
                     </div>
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-[11px] text-slate-500">Symbol</span>
-                      <span className="text-[11px] font-semibold text-slate-700">{tokenInfo?.symbol || 'Unknown'}</span>
+                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                      <span className="text-[11px] text-[var(--text-tertiary)]">Symbol</span>
+                      <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{tokenInfo?.symbol || 'Unknown'}</span>
                     </div>
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-[11px] text-slate-500">Decimals</span>
-                      <span className="text-[11px] font-semibold text-slate-700">
+                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                      <span className="text-[11px] text-[var(--text-tertiary)]">Decimals</span>
+                      <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
                         {contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-[11px] text-slate-500">Is SAC</span>
-                      <span className="text-[11px] font-semibold text-slate-700">
+                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                      <span className="text-[11px] text-[var(--text-tertiary)]">Is SAC</span>
+                      <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
                         {contract.tokenMetadata?.isSAC ? 'Yes' : 'No'}
                       </span>
                     </div>
                   </>
                 )}
                 <div className="flex justify-between items-center py-1">
-                  <span className="text-[11px] text-slate-500">Total Operations</span>
-                  <span className="text-[11px] font-semibold text-slate-700">{operations.length}</span>
+                  <span className="text-[11px] text-[var(--text-tertiary)]">Total Operations</span>
+                  <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{operations.length}</span>
                 </div>
               </div>
             </section>
 
             {/* Event Summary */}
             {contract.eventSummary && contract.eventSummary.totalEvents > 0 && (
-              <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">Event Summary</h3>
+              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">Event Summary</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-500">Total Events</span>
-                    <span className="text-xs font-medium text-slate-700">{contract.eventSummary.totalEvents}</span>
+                    <span className="text-xs text-[var(--text-tertiary)]">Total Events</span>
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">{contract.eventSummary.totalEvents}</span>
                   </div>
                   {contract.eventSummary.transfers > 0 && (
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-500">Transfers</span>
+                      <span className="text-xs text-[var(--text-tertiary)]">Transfers</span>
                       <span className="text-xs font-medium text-blue-600">{contract.eventSummary.transfers}</span>
                     </div>
                   )}
                   {contract.eventSummary.mints > 0 && (
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-500">Mints</span>
+                      <span className="text-xs text-[var(--text-tertiary)]">Mints</span>
                       <span className="text-xs font-medium text-emerald-600">{contract.eventSummary.mints}</span>
                     </div>
                   )}
                   {contract.eventSummary.burns > 0 && (
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-500">Burns</span>
+                      <span className="text-xs text-[var(--text-tertiary)]">Burns</span>
                       <span className="text-xs font-medium text-rose-600">{contract.eventSummary.burns}</span>
                     </div>
                   )}
                   {contract.eventSummary.approvals > 0 && (
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-500">Approvals</span>
+                      <span className="text-xs text-[var(--text-tertiary)]">Approvals</span>
                       <span className="text-xs font-medium text-amber-600">{contract.eventSummary.approvals}</span>
                     </div>
                   )}
                   {contract.eventSummary.clawbacks > 0 && (
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-500">Clawbacks</span>
+                      <span className="text-xs text-[var(--text-tertiary)]">Clawbacks</span>
                       <span className="text-xs font-medium text-purple-600">{contract.eventSummary.clawbacks}</span>
                     </div>
                   )}
                   {contract.eventSummary.totalVolume && contract.eventSummary.totalVolume !== '0' && (
-                    <div className="pt-2 mt-2 border-t border-slate-100">
+                    <div className="pt-2 mt-2 border-t border-[var(--border-subtle)]">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-slate-500">Total Volume</span>
-                        <span className="text-xs font-mono font-medium text-slate-700">
+                        <span className="text-xs text-[var(--text-tertiary)]">Total Volume</span>
+                        <span className="text-xs font-mono font-medium text-[var(--text-secondary)]">
                           {formatEventAmount(
                             contract.eventSummary.totalVolume,
                             contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7
                           )}
-                          {tokenInfo?.symbol && <span className="text-slate-500 ml-1">{tokenInfo.symbol}</span>}
+                          {tokenInfo?.symbol && <span className="text-[var(--text-tertiary)] ml-1">{tokenInfo.symbol}</span>}
                         </span>
                       </div>
                     </div>
                   )}
                   {contract.eventSummary.uniqueAddresses.length > 0 && (
-                    <div className="pt-2 mt-2 border-t border-slate-100">
+                    <div className="pt-2 mt-2 border-t border-[var(--border-subtle)]">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-slate-500">Unique Addresses</span>
-                        <span className="text-xs font-medium text-slate-700">{contract.eventSummary.uniqueAddresses.length}</span>
+                        <span className="text-xs text-[var(--text-tertiary)]">Unique Addresses</span>
+                        <span className="text-xs font-medium text-[var(--text-secondary)]">{contract.eventSummary.uniqueAddresses.length}</span>
                       </div>
                     </div>
                   )}
@@ -1026,12 +1026,12 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
             {/* Build Verification Section */}
             {contract.verification && (
-              <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-sm font-bold text-slate-800 mb-4">Build Verification</h3>
+              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-sm">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Build Verification</h3>
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                    <span className="text-[11px] text-slate-500">Status</span>
-                    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${contract.verification.isVerified ? 'text-emerald-600' : 'text-slate-400'}`}>
+                  <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                    <span className="text-[11px] text-[var(--text-tertiary)]">Status</span>
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${contract.verification.isVerified ? 'text-emerald-600' : 'text-[var(--text-muted)]'}`}>
                       {contract.verification.isVerified ? (
                         <>
                           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -1050,8 +1050,8 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                     </span>
                   </div>
                   {contract.verification.sourceRepo && (
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-[11px] text-slate-500">Source Repo</span>
+                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                      <span className="text-[11px] text-[var(--text-tertiary)]">Source Repo</span>
                       <a
                         href={contract.verification.sourceRepo}
                         target="_blank"
@@ -1066,8 +1066,8 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                     </div>
                   )}
                   {contract.verification.commitHash && (
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-[11px] text-slate-500">Commit</span>
+                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                      <span className="text-[11px] text-[var(--text-tertiary)]">Commit</span>
                       {getCommitUrl(contract.verification.sourceRepo, contract.verification.commitHash) ? (
                         <a
                           href={getCommitUrl(contract.verification.sourceRepo, contract.verification.commitHash)!}
@@ -1078,21 +1078,21 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                           {contract.verification.commitHash.slice(0, 8)}
                         </a>
                       ) : (
-                        <span className="text-[11px] font-mono font-semibold text-slate-700">
+                        <span className="text-[11px] font-mono font-semibold text-[var(--text-secondary)]">
                           {contract.verification.commitHash.slice(0, 8)}
                         </span>
                       )}
                     </div>
                   )}
                   {contract.verification.wasmHash && (
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-[11px] text-slate-500">WASM Hash</span>
+                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                      <span className="text-[11px] text-[var(--text-tertiary)]">WASM Hash</span>
                       <button
                         onClick={() => handleCopyWasm(contract.verification!.wasmHash!)}
-                        className="text-[11px] font-mono font-semibold text-slate-700 hover:text-slate-900 flex items-center gap-1"
+                        className="text-[11px] font-mono font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1"
                       >
                         {contract.verification.wasmHash.slice(0, 8)}...
-                        <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
                         {copiedWasm && <span className="text-emerald-500 text-[9px]">Copied!</span>}
@@ -1101,7 +1101,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                   )}
                   {contract.verification.buildWorkflow && (
                     <div className="flex justify-between items-center py-1">
-                      <span className="text-[11px] text-slate-500">Build Workflow</span>
+                      <span className="text-[11px] text-[var(--text-tertiary)]">Build Workflow</span>
                       <a
                         href={contract.verification.buildWorkflow}
                         target="_blank"
@@ -1121,12 +1121,12 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
             {/* Access Control Section */}
             {contract.accessControl && (contract.accessControl.admin || contract.accessControl.owner || contract.accessControl.pendingOwner || contract.accessControl.isPaused) && (
-              <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-sm font-bold text-slate-800 mb-4">Access Control</h3>
+              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-sm">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Access Control</h3>
                 <div className="space-y-3">
                   {contract.accessControl.admin && (
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-[11px] text-slate-500">Admin</span>
+                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                      <span className="text-[11px] text-[var(--text-tertiary)]">Admin</span>
                       <Link
                         href={`/account/${contract.accessControl.admin}`}
                         className="text-[11px] font-mono font-semibold text-sky-600 hover:text-sky-700"
@@ -1136,8 +1136,8 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                     </div>
                   )}
                   {contract.accessControl.owner && !contract.accessControl.admin && (
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-[11px] text-slate-500">Owner</span>
+                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                      <span className="text-[11px] text-[var(--text-tertiary)]">Owner</span>
                       <Link
                         href={`/account/${contract.accessControl.owner}`}
                         className="text-[11px] font-mono font-semibold text-sky-600 hover:text-sky-700"
@@ -1146,8 +1146,8 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                       </Link>
                     </div>
                   )}
-                  <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                    <span className="text-[11px] text-slate-500">Pause State</span>
+                  <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                    <span className="text-[11px] text-[var(--text-tertiary)]">Pause State</span>
                     <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${contract.accessControl.isPaused ? 'text-amber-600' : 'text-emerald-600'}`}>
                       <span className={`w-2 h-2 rounded-full ${contract.accessControl.isPaused ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                       {contract.accessControl.isPaused ? 'Paused' : 'Active'}
@@ -1155,7 +1155,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                   </div>
                   {contract.accessControl.pendingOwner && (
                     <div className="flex justify-between items-center py-1">
-                      <span className="text-[11px] text-slate-500">Pending Owner</span>
+                      <span className="text-[11px] text-[var(--text-tertiary)]">Pending Owner</span>
                       <Link
                         href={`/account/${contract.accessControl.pendingOwner}`}
                         className="text-[11px] font-mono font-semibold text-sky-600 hover:text-sky-700"
@@ -1170,12 +1170,12 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
             {/* Contract Metadata Section */}
             {contract.contractMetadata && (contract.contractMetadata.homeDomain || contract.contractMetadata.sourceRepo || contract.contractMetadata.customMeta) && (
-              <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-sm font-bold text-slate-800 mb-4">Contract Metadata</h3>
+              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-sm">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Contract Metadata</h3>
                 <div className="space-y-3">
                   {contract.contractMetadata.homeDomain && (
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-[11px] text-slate-500">Home Domain</span>
+                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                      <span className="text-[11px] text-[var(--text-tertiary)]">Home Domain</span>
                       <a
                         href={`https://${contract.contractMetadata.homeDomain}`}
                         target="_blank"
@@ -1190,8 +1190,8 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                     </div>
                   )}
                   {contract.contractMetadata.sourceRepo && !contract.verification?.sourceRepo && (
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-[11px] text-slate-500">Source Repo</span>
+                    <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                      <span className="text-[11px] text-[var(--text-tertiary)]">Source Repo</span>
                       <a
                         href={contract.contractMetadata.sourceRepo}
                         target="_blank"
@@ -1206,9 +1206,9 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                     </div>
                   )}
                   {contract.contractMetadata.customMeta && Object.entries(contract.contractMetadata.customMeta).map(([key, value]) => (
-                    <div key={key} className="flex justify-between items-center py-1 border-b border-slate-100 last:border-0">
-                      <span className="text-[11px] text-slate-500 capitalize">{key.replace(/_/g, ' ')}</span>
-                      <span className="text-[11px] font-semibold text-slate-700 truncate max-w-[150px]" title={value}>
+                    <div key={key} className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)] last:border-0">
+                      <span className="text-[11px] text-[var(--text-tertiary)] capitalize">{key.replace(/_/g, ' ')}</span>
+                      <span className="text-[11px] font-semibold text-[var(--text-secondary)] truncate max-w-[150px]" title={value}>
                         {value}
                       </span>
                     </div>
@@ -1218,17 +1218,17 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
             )}
 
             {/* External Links */}
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-800 mb-4">External Links</h3>
+            <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-sm">
+              <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">External Links</h3>
               <div className="space-y-2">
                 <a
                   href={`https://stellar.expert/explorer/public/contract/${contract.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] transition-colors"
                 >
-                  <span className="text-xs font-semibold text-slate-700">Stellar Expert</span>
-                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <span className="text-xs font-semibold text-[var(--text-secondary)]">Stellar Expert</span>
+                  <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                 </a>
@@ -1236,10 +1236,10 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                   href={`https://stellarchain.io/accounts/${contract.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] transition-colors"
                 >
-                  <span className="text-xs font-semibold text-slate-700">Stellarchain.io</span>
-                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <span className="text-xs font-semibold text-[var(--text-secondary)]">Stellarchain.io</span>
+                  <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                 </a>
@@ -1248,11 +1248,11 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                     href={sourceRepo}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+                    className="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] transition-colors"
                   >
-                    <span className="text-xs font-semibold text-slate-700">Source Repository</span>
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    <span className="text-xs font-semibold text-[var(--text-secondary)]">Source Repository</span>
+                    <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
                   </a>
                 )}

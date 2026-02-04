@@ -86,8 +86,8 @@ const getOperationCategory = (type: string): { label: string; color: string } =>
   if (type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') return { label: 'Swap', color: 'text-sky-500' };
   if (type === 'invoke_host_function') return { label: 'Contract', color: 'text-amber-500' };
   if (type.includes('offer')) return { label: 'DEX', color: 'text-violet-500' };
-  if (type === 'change_trust' || type === 'set_trustline_flags') return { label: 'Action', color: 'text-slate-400' };
-  return { label: 'Action', color: 'text-slate-400' };
+  if (type === 'change_trust' || type === 'set_trustline_flags') return { label: 'Action', color: 'text-[var(--text-muted)]' };
+  return { label: 'Action', color: 'text-[var(--text-muted)]' };
 };
 
 const getEffectCategory = (type: string): { label: string; color: string } => {
@@ -95,7 +95,7 @@ const getEffectCategory = (type: string): { label: string; color: string } => {
   if (type.includes('debited')) return { label: 'Debit', color: 'text-rose-500' };
   if (type.includes('trustline')) return { label: 'Trust', color: 'text-indigo-500' };
   if (type.includes('trade')) return { label: 'Trade', color: 'text-violet-500' };
-  return { label: 'Effect', color: 'text-slate-400' };
+  return { label: 'Effect', color: 'text-[var(--text-muted)]' };
 };
 
 export default function TransactionDesktopView({ transaction, operations, effects, accountLabels = {} }: TransactionDesktopViewProps) {
@@ -265,34 +265,34 @@ export default function TransactionDesktopView({ transaction, operations, effect
   }, [isMultiSend, paymentOps]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <main className="mx-auto max-w-[1400px] px-4 lg:px-6 py-6 space-y-4">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4">
+        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
           <div className="flex items-start gap-3">
-            <Link href="/transactions" className="mt-0.5 w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all shrink-0">
+            <Link href="/transactions" className="mt-0.5 w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-secondary)] transition-all shrink-0">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             </Link>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Transaction</span>
+                <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Transaction</span>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${transaction.successful ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
                   <span className={`w-1 h-1 rounded-full mr-1.5 ${transaction.successful ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                   {transaction.successful ? 'Success' : 'Failed'}
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-slate-100 text-slate-600">{typeLabel}</span>
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">{typeLabel}</span>
               </div>
-              <button onClick={handleCopy} className="text-sm font-mono font-medium text-slate-800 hover:text-slate-600 transition-colors text-left break-all">
+              <button onClick={handleCopy} className="text-sm font-mono font-medium text-[var(--text-primary)] hover:text-[var(--text-secondary)] transition-colors text-left break-all">
                 {transaction.hash}
                 {copied && <span className="ml-2 text-[9px] font-semibold text-emerald-500">Copied!</span>}
               </button>
-              <div className="flex flex-wrap items-center gap-4 mt-2 text-[11px] text-slate-500">
+              <div className="flex flex-wrap items-center gap-4 mt-2 text-[11px] text-[var(--text-tertiary)]">
                 <span className="flex items-center gap-1">
-                  <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                   {formatDate(transaction.created_at)}
                 </span>
                 <span className="flex items-center gap-1">
-                  <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   {timeAgo(transaction.created_at)}
                 </span>
                 <span>Ledger <Link href={`/ledger/${transaction.ledger}`} className="text-sky-500 hover:underline font-semibold">{transaction.ledger.toLocaleString()}</Link></span>
@@ -304,25 +304,25 @@ export default function TransactionDesktopView({ transaction, operations, effect
         {/* From/To or Contract Interaction */}
         {isContractCall && displayAmount === 0 ? (
           /* Contract Interaction Layout */
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                 <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
               </div>
               <div>
                 <div className="text-[9px] font-bold text-amber-600 uppercase tracking-widest">Contract Interaction</div>
-                <div className="text-xs text-slate-500">No value transferred</div>
+                <div className="text-xs text-[var(--text-tertiary)]">No value transferred</div>
               </div>
             </div>
             <div className="flex items-center gap-3">
               {/* Caller */}
-              <div className="flex-1 p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="flex-1 p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-sky-600 to-indigo-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">{transaction.source_account.charAt(0)}</div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Caller</div>
+                    <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Caller</div>
                     <div className="flex items-center">
-                      <Link href={`/account/${transaction.source_account}`} className="font-mono text-xs font-medium text-slate-900 hover:text-sky-600 truncate">{shortenAddress(transaction.source_account, 6)}</Link>
+                      <Link href={`/account/${transaction.source_account}`} className="font-mono text-xs font-medium text-[var(--text-primary)] hover:text-sky-600 truncate">{shortenAddress(transaction.source_account, 6)}</Link>
                       <AccountBadges address={transaction.source_account} labels={accountLabels} />
                     </div>
                   </div>
@@ -339,7 +339,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center text-white text-xs font-bold shadow-sm">C</div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[9px] font-bold text-amber-600/70 uppercase tracking-wider mb-0.5">Contract</div>
-                    <Link href={`/contract/${destination}`} className="font-mono text-xs font-medium text-slate-900 hover:text-sky-600 truncate block">{shortenAddress(destination, 6)}</Link>
+                    <Link href={`/contract/${destination}`} className="font-mono text-xs font-medium text-[var(--text-primary)] hover:text-sky-600 truncate block">{shortenAddress(destination, 6)}</Link>
                   </div>
                 </div>
               </div>
@@ -347,44 +347,44 @@ export default function TransactionDesktopView({ transaction, operations, effect
           </div>
         ) : (
           /* Standard Transfer Layout */
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
             <div className="flex flex-col md:flex-row">
               <div className="flex-1 p-4">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">From</div>
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">From</div>
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow-md">{transaction.source_account.charAt(0)}</div>
                     <div>
                       <div className="flex items-center">
-                        <Link href={`/account/${transaction.source_account}`} className="font-mono text-sm font-medium text-slate-900 hover:text-sky-600">{shortenAddress(transaction.source_account, 6)}</Link>
+                        <Link href={`/account/${transaction.source_account}`} className="font-mono text-sm font-medium text-[var(--text-primary)] hover:text-sky-600">{shortenAddress(transaction.source_account, 6)}</Link>
                         <AccountBadges address={transaction.source_account} labels={accountLabels} />
                       </div>
-                      <div className="text-[10px] text-slate-400">Source</div>
+                      <div className="text-[10px] text-[var(--text-muted)]">Source</div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-rose-500 font-bold text-lg">-{displayAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
-                    <div className="text-[10px] text-slate-400">{displayAsset}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">{displayAsset}</div>
                   </div>
                 </div>
               </div>
-              <div className="hidden md:flex items-center justify-center px-2 bg-slate-50/50">
-                <div className="w-8 h-8 rounded-full bg-white shadow-sm border border-slate-200 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+              <div className="hidden md:flex items-center justify-center px-2 bg-[var(--bg-tertiary)]/50">
+                <div className="w-8 h-8 rounded-full bg-[var(--bg-secondary)] shadow-sm border border-[var(--border-default)] flex items-center justify-center">
+                  <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                 </div>
               </div>
-              <div className="flex-1 p-4 border-t md:border-t-0 md:border-l border-slate-100">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">To</div>
+              <div className="flex-1 p-4 border-t md:border-t-0 md:border-l border-[var(--border-subtle)]">
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">To</div>
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     {isMultiSend ? (
                       <>
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 text-sm font-bold">{uniqueRecipients.length}</div>
+                        <div className="w-10 h-10 rounded-xl bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-tertiary)] text-sm font-bold">{uniqueRecipients.length}</div>
                         <div>
-                          <div className="font-medium text-sm text-slate-900">{uniqueRecipients.length} Recipients</div>
+                          <div className="font-medium text-sm text-[var(--text-primary)]">{uniqueRecipients.length} Recipients</div>
                           <div className="flex -space-x-1.5 mt-1">
-                            {uniqueRecipients.slice(0, 3).map((a, i) => <div key={a} className={`w-4 h-4 rounded-full ring-2 ring-white text-[6px] font-bold text-white flex items-center justify-center ${['bg-indigo-500', 'bg-sky-400', 'bg-emerald-400'][i]}`}>{a.charAt(0)}</div>)}
-                            {uniqueRecipients.length > 3 && <div className="w-4 h-4 rounded-full bg-slate-200 ring-2 ring-white text-[6px] font-bold text-slate-500 flex items-center justify-center">+{uniqueRecipients.length - 3}</div>}
+                            {uniqueRecipients.slice(0, 3).map((a, i) => <div key={a} className={`w-4 h-4 rounded-full ring-2 ring-[var(--bg-secondary)] text-[6px] font-bold text-white flex items-center justify-center ${['bg-indigo-500', 'bg-sky-400', 'bg-emerald-400'][i]}`}>{a.charAt(0)}</div>)}
+                            {uniqueRecipients.length > 3 && <div className="w-4 h-4 rounded-full bg-[var(--bg-tertiary)] ring-2 ring-[var(--bg-secondary)] text-[6px] font-bold text-[var(--text-tertiary)] flex items-center justify-center">+{uniqueRecipients.length - 3}</div>}
                           </div>
                         </div>
                       </>
@@ -393,17 +393,17 @@ export default function TransactionDesktopView({ transaction, operations, effect
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white text-sm font-bold shadow-md">{isContractDestination ? 'C' : destination.charAt(0)}</div>
                         <div>
                           <div className="flex items-center">
-                            <Link href={isContractDestination ? `/contract/${destination}` : `/account/${destination}`} className="font-mono text-sm font-medium text-slate-900 hover:text-sky-600">{shortenAddress(destination, 6)}</Link>
+                            <Link href={isContractDestination ? `/contract/${destination}` : `/account/${destination}`} className="font-mono text-sm font-medium text-[var(--text-primary)] hover:text-sky-600">{shortenAddress(destination, 6)}</Link>
                             {!isContractDestination && <AccountBadges address={destination} labels={accountLabels} />}
                           </div>
-                          <div className="text-[10px] text-slate-400">{isContractDestination ? 'Contract' : 'Destination'}</div>
+                          <div className="text-[10px] text-[var(--text-muted)]">{isContractDestination ? 'Contract' : 'Destination'}</div>
                         </div>
                       </>
                     )}
                   </div>
                   <div className="text-right">
                     <div className="text-emerald-500 font-bold text-lg">+{displayAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
-                    <div className="text-[10px] text-slate-400">{displayAsset}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">{displayAsset}</div>
                   </div>
                 </div>
               </div>
@@ -415,20 +415,20 @@ export default function TransactionDesktopView({ transaction, operations, effect
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left Sidebar - Operations/Effects List */}
           <div className="lg:col-span-4">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4">
+            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
               {/* Tabs Header */}
-              <div className="flex items-center gap-4 border-b border-slate-200/60 pb-3 mb-3">
+              <div className="flex items-center gap-4 border-b border-[var(--border-default)] pb-3 mb-3">
                 <button
                   onClick={() => setListTab('operations')}
-                  className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[11px] transition-colors ${listTab === 'operations' ? 'text-sky-600 border-b-2 border-sky-600' : 'text-slate-400 hover:text-slate-600'}`}
+                  className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[11px] transition-colors ${listTab === 'operations' ? 'text-sky-600 border-b-2 border-sky-600' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                 >
-                  Operations <span className={listTab === 'operations' ? 'text-sky-500' : 'text-slate-400'}>{filteredOperations.length}</span>
+                  Operations <span className={listTab === 'operations' ? 'text-sky-500' : 'text-[var(--text-muted)]'}>{filteredOperations.length}</span>
                 </button>
                 <button
                   onClick={() => setListTab('effects')}
-                  className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[11px] transition-colors ${listTab === 'effects' ? 'text-sky-600 border-b-2 border-sky-600' : 'text-slate-400 hover:text-slate-600'}`}
+                  className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[11px] transition-colors ${listTab === 'effects' ? 'text-sky-600 border-b-2 border-sky-600' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                 >
-                  Effects <span className={listTab === 'effects' ? 'text-sky-500' : 'text-slate-400'}>{effects.length}</span>
+                  Effects <span className={listTab === 'effects' ? 'text-sky-500' : 'text-[var(--text-muted)]'}>{effects.length}</span>
                 </button>
 
                 {/* Filter Dropdown - Only show when operations tab is active */}
@@ -436,7 +436,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   <div className="relative ml-auto">
                     <button
                       onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-all ${operationFilter !== 'all' ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-all ${operationFilter !== 'all' ? 'bg-sky-100 text-sky-600' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'}`}
                     >
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -448,10 +448,10 @@ export default function TransactionDesktopView({ transaction, operations, effect
                     </button>
 
                     {showFilterDropdown && (
-                      <div className="absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                      <div className="absolute right-0 mt-1 w-32 bg-[var(--bg-secondary)] rounded-lg shadow-lg border border-[var(--border-default)] py-1 z-50">
                         <button
                           onClick={() => { setOperationFilter('all'); setShowFilterDropdown(false); setSelectedOpIndex(0); }}
-                          className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-slate-50 ${operationFilter === 'all' ? 'text-sky-600 font-medium bg-sky-50' : 'text-slate-600'}`}
+                          className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-[var(--bg-tertiary)] ${operationFilter === 'all' ? 'text-sky-600 font-medium bg-sky-50' : 'text-[var(--text-secondary)]'}`}
                         >
                           All Types
                         </button>
@@ -459,7 +459,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                           <button
                             key={cat}
                             onClick={() => { setOperationFilter(cat); setShowFilterDropdown(false); setSelectedOpIndex(0); }}
-                            className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-slate-50 ${operationFilter === cat ? 'text-sky-600 font-medium bg-sky-50' : 'text-slate-600'}`}
+                            className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-[var(--bg-tertiary)] ${operationFilter === cat ? 'text-sky-600 font-medium bg-sky-50' : 'text-[var(--text-secondary)]'}`}
                           >
                             {cat}
                           </button>
@@ -474,7 +474,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
               {listTab === 'operations' && (
                 <div className="space-y-1.5 overflow-y-auto max-h-[500px] pr-1" style={{ scrollbarWidth: 'thin' }}>
                   {filteredOperations.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400 text-sm">No operations matching filter.</div>
+                    <div className="text-center py-8 text-[var(--text-muted)] text-sm">No operations matching filter.</div>
                   ) : (
                     filteredOperations.map((op, idx) => {
                       const { title } = getOpInfo(op);
@@ -482,11 +482,11 @@ export default function TransactionDesktopView({ transaction, operations, effect
                       const isActive = idx === selectedOpIndex;
                       const originalIdx = operations.findIndex(o => o.id === op.id);
                       return (
-                        <button key={op.id} onClick={() => setSelectedOpIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 border border-sky-100 shadow-sm' : 'hover:bg-slate-50 border border-transparent hover:border-slate-200/50'}`}>
+                        <button key={op.id} onClick={() => setSelectedOpIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 border border-sky-100 shadow-sm' : 'hover:bg-[var(--bg-tertiary)] border border-transparent hover:border-[var(--border-default)]'}`}>
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-[9px] font-black transition-all ${isActive ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'}`}>OP{originalIdx + 1}</div>
+                            <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-[9px] font-black transition-all ${isActive ? 'bg-sky-600 text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] group-hover:bg-[var(--bg-tertiary)]'}`}>OP{originalIdx + 1}</div>
                             <div className="flex-1 min-w-0">
-                              <h4 className={`text-sm font-semibold truncate ${isActive ? 'text-sky-600' : 'text-slate-800 group-hover:text-sky-600'}`}>{title}</h4>
+                              <h4 className={`text-sm font-semibold truncate ${isActive ? 'text-sky-600' : 'text-[var(--text-primary)] group-hover:text-sky-600'}`}>{title}</h4>
                               <p className={`text-[9px] uppercase tracking-wider font-bold ${isActive ? 'text-sky-400' : catColor}`}>{cat}</p>
                             </div>
                             {isActive && <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>}
@@ -502,7 +502,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
               {listTab === 'effects' && (
                 <div className="space-y-1.5 overflow-y-auto max-h-[500px] pr-1" style={{ scrollbarWidth: 'thin' }}>
                   {effects.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400 text-sm">No effects found.</div>
+                    <div className="text-center py-8 text-[var(--text-muted)] text-sm">No effects found.</div>
                   ) : (
                     effects.map((ef, idx) => {
                       const { title } = getEffectInfo(ef);
@@ -511,9 +511,9 @@ export default function TransactionDesktopView({ transaction, operations, effect
                       const isCredit = ef.type.includes('credited');
                       const isDebit = ef.type.includes('debited');
                       return (
-                        <button key={ef.id} onClick={() => setSelectedEffectIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 border border-sky-100 shadow-sm' : 'hover:bg-slate-50 border border-transparent hover:border-slate-200/50'}`}>
+                        <button key={ef.id} onClick={() => setSelectedEffectIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 border border-sky-100 shadow-sm' : 'hover:bg-[var(--bg-tertiary)] border border-transparent hover:border-[var(--border-default)]'}`}>
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center transition-all ${isActive ? 'bg-sky-600 text-white' : isCredit ? 'bg-emerald-100 text-emerald-600' : isDebit ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-500'}`}>
+                            <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center transition-all ${isActive ? 'bg-sky-600 text-white' : isCredit ? 'bg-emerald-100 text-emerald-600' : isDebit ? 'bg-rose-100 text-rose-600' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'}`}>
                               {isCredit ? (
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
                               ) : isDebit ? (
@@ -523,11 +523,11 @@ export default function TransactionDesktopView({ transaction, operations, effect
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className={`text-sm font-semibold truncate ${isActive ? 'text-sky-600' : 'text-slate-800 group-hover:text-sky-600'}`}>{title}</h4>
+                              <h4 className={`text-sm font-semibold truncate ${isActive ? 'text-sky-600' : 'text-[var(--text-primary)] group-hover:text-sky-600'}`}>{title}</h4>
                               <p className={`text-[9px] uppercase tracking-wider font-bold ${isActive ? 'text-sky-400' : catColor}`}>{cat}</p>
                             </div>
                             {ef.amount && (
-                              <span className={`text-xs font-bold ${isCredit ? 'text-emerald-500' : isDebit ? 'text-rose-500' : 'text-slate-500'}`}>
+                              <span className={`text-xs font-bold ${isCredit ? 'text-emerald-500' : isDebit ? 'text-rose-500' : 'text-[var(--text-tertiary)]'}`}>
                                 {isCredit ? '+' : isDebit ? '-' : ''}{formatTokenAmount(ef.amount, 2)}
                               </span>
                             )}
@@ -545,7 +545,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
           <div className="lg:col-span-8">
             {/* Operation Details */}
             {listTab === 'operations' && selectedOp && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5 space-y-5">
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-5 space-y-5">
                 {/* Op Header */}
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
@@ -557,42 +557,42 @@ export default function TransactionDesktopView({ transaction, operations, effect
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">OP {selectedOpIndex + 1}</span>
-                        <h2 className="text-xl font-bold text-slate-900">{getOpInfo(selectedOp).title}</h2>
+                        <h2 className="text-xl font-bold text-[var(--text-primary)]">{getOpInfo(selectedOp).title}</h2>
                       </div>
-                      <p className="text-slate-500 text-sm">{getOpInfo(selectedOp).desc}</p>
+                      <p className="text-[var(--text-tertiary)] text-sm">{getOpInfo(selectedOp).desc}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Accounts */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-100">
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Source</div>
+                  <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/70 border border-[var(--border-subtle)]">
+                    <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Source</div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center">
-                        <Link href={`/account/${selectedOp.source_account || transaction.source_account}`} className="font-mono text-xs font-medium text-slate-700 hover:text-sky-600">{shortenAddress(selectedOp.source_account || transaction.source_account, 6)}</Link>
+                        <Link href={`/account/${selectedOp.source_account || transaction.source_account}`} className="font-mono text-xs font-medium text-[var(--text-secondary)] hover:text-sky-600">{shortenAddress(selectedOp.source_account || transaction.source_account, 6)}</Link>
                         <AccountBadges address={selectedOp.source_account || transaction.source_account} labels={accountLabels} />
                       </span>
-                      <button onClick={() => navigator.clipboard.writeText(selectedOp.source_account || transaction.source_account)} className="text-slate-400 hover:text-sky-500">
+                      <button onClick={() => navigator.clipboard.writeText(selectedOp.source_account || transaction.source_account)} className="text-[var(--text-muted)] hover:text-sky-500">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                       </button>
                     </div>
                   </div>
                   {(selectedOp.to || (selectedOp as any).account || selectedOp.type === 'invoke_host_function') && (
-                    <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-100">
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">{selectedOp.type === 'invoke_host_function' ? 'Contract' : 'Destination'}</div>
+                    <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/70 border border-[var(--border-subtle)]">
+                      <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">{selectedOp.type === 'invoke_host_function' ? 'Contract' : 'Destination'}</div>
                       <div className="flex items-center justify-between">
                         <span className="flex items-center">
                           {selectedOp.type === 'invoke_host_function' ? (
-                            <Link href={`/contract/${contractAddress || ''}`} className="font-mono text-xs font-medium text-slate-700 hover:text-sky-600">{contractAddress ? shortenAddress(contractAddress, 6) : 'Unknown'}</Link>
+                            <Link href={`/contract/${contractAddress || ''}`} className="font-mono text-xs font-medium text-[var(--text-secondary)] hover:text-sky-600">{contractAddress ? shortenAddress(contractAddress, 6) : 'Unknown'}</Link>
                           ) : (
                             <>
-                              <Link href={`/account/${selectedOp.to || (selectedOp as any).account}`} className="font-mono text-xs font-medium text-slate-700 hover:text-sky-600">{shortenAddress(selectedOp.to || (selectedOp as any).account, 6)}</Link>
+                              <Link href={`/account/${selectedOp.to || (selectedOp as any).account}`} className="font-mono text-xs font-medium text-[var(--text-secondary)] hover:text-sky-600">{shortenAddress(selectedOp.to || (selectedOp as any).account, 6)}</Link>
                               <AccountBadges address={selectedOp.to || (selectedOp as any).account} labels={accountLabels} />
                             </>
                           )}
                         </span>
-                        <button onClick={() => navigator.clipboard.writeText(selectedOp.to || (selectedOp as any).account || contractAddress || '')} className="text-slate-400 hover:text-sky-500">
+                        <button onClick={() => navigator.clipboard.writeText(selectedOp.to || (selectedOp as any).account || contractAddress || '')} className="text-[var(--text-muted)] hover:text-sky-500">
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                         </button>
                       </div>
@@ -608,8 +608,8 @@ export default function TransactionDesktopView({ transaction, operations, effect
                       <div className="text-xl font-bold text-emerald-600">{formatTokenAmount(selectedOp.amount || (selectedOp as any).starting_balance)} <span className="text-sm">{selectedOp.asset_type === 'native' ? 'XLM' : (selectedOp.asset_code || 'XLM')}</span></div>
                     </div>
                     {selectedOp.asset_issuer && (
-                      <div className="bg-white px-3 py-1.5 rounded-lg border border-emerald-100 text-[10px]">
-                        <span className="text-slate-400">Issuer:</span> <span className="font-mono text-slate-600">{shortenAddress(selectedOp.asset_issuer, 4)}</span>
+                      <div className="bg-[var(--bg-secondary)] px-3 py-1.5 rounded-lg border border-emerald-100 text-[10px]">
+                        <span className="text-[var(--text-muted)]">Issuer:</span> <span className="font-mono text-[var(--text-secondary)]">{shortenAddress(selectedOp.asset_issuer, 4)}</span>
                       </div>
                     )}
                   </div>
@@ -617,36 +617,36 @@ export default function TransactionDesktopView({ transaction, operations, effect
 
                 {/* Status Row */}
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="p-3 rounded-xl border border-slate-100 bg-white">
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Status</div>
+                  <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                    <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Status</div>
                     <div className={`flex items-center text-sm font-semibold ${selectedOp.transaction_successful ? 'text-emerald-600' : 'text-rose-600'}`}>
                       <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${selectedOp.transaction_successful ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                       {selectedOp.transaction_successful ? 'Success' : 'Failed'}
                     </div>
                   </div>
-                  <div className="p-3 rounded-xl border border-slate-100 bg-white">
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Fee</div>
-                    <div className="text-sm font-semibold text-slate-800">{feeXLM} XLM</div>
+                  <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                    <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Fee</div>
+                    <div className="text-sm font-semibold text-[var(--text-primary)]">{feeXLM} XLM</div>
                   </div>
-                  <div className="p-3 rounded-xl border border-slate-100 bg-white">
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ledger</div>
+                  <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                    <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Ledger</div>
                     <Link href={`/ledger/${transaction.ledger}`} className="text-sm font-semibold text-sky-600 hover:underline">{transaction.ledger.toLocaleString()}</Link>
                   </div>
                 </div>
 
                 {/* Technical */}
-                <div className="pt-4 border-t border-slate-100">
-                  <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-4">Technical</h3>
+                <div className="pt-4 border-t border-[var(--border-subtle)]">
+                  <h3 className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">Technical</h3>
                   <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                    <div><span className="text-slate-400 text-xs">Max Fee</span><div className="font-mono text-slate-800">{maxFeeXLM} XLM</div></div>
-                    <div><span className="text-slate-400 text-xs">Memo</span><div className={transaction.memo ? 'text-slate-800' : 'text-slate-400 italic'}>{transaction.memo || 'None'}</div></div>
-                    <div><span className="text-slate-400 text-xs">Sequence</span><div className="font-mono text-slate-800">{transaction.source_account_sequence || '--'}</div></div>
-                    <div><span className="text-slate-400 text-xs">Fee Account</span><Link href={`/account/${transaction.source_account}`} className="font-mono text-sky-600 hover:underline block truncate">{shortenAddress(transaction.source_account, 6)}</Link></div>
+                    <div><span className="text-[var(--text-muted)] text-xs">Max Fee</span><div className="font-mono text-[var(--text-primary)]">{maxFeeXLM} XLM</div></div>
+                    <div><span className="text-[var(--text-muted)] text-xs">Memo</span><div className={transaction.memo ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] italic'}>{transaction.memo || 'None'}</div></div>
+                    <div><span className="text-[var(--text-muted)] text-xs">Sequence</span><div className="font-mono text-[var(--text-primary)]">{transaction.source_account_sequence || '--'}</div></div>
+                    <div><span className="text-[var(--text-muted)] text-xs">Fee Account</span><Link href={`/account/${transaction.source_account}`} className="font-mono text-sky-600 hover:underline block truncate">{shortenAddress(transaction.source_account, 6)}</Link></div>
                   </div>
                   {transaction.signatures.length > 0 && (
-                    <div className="mt-4 p-3 bg-slate-50 rounded-xl">
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Signatures</div>
-                      <div className="font-mono text-[9px] text-slate-500 break-all leading-relaxed">{transaction.signatures.join(' ')}</div>
+                    <div className="mt-4 p-3 bg-[var(--bg-tertiary)] rounded-xl">
+                      <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Signatures</div>
+                      <div className="font-mono text-[9px] text-[var(--text-tertiary)] break-all leading-relaxed">{transaction.signatures.join(' ')}</div>
                     </div>
                   )}
                 </div>
@@ -655,38 +655,38 @@ export default function TransactionDesktopView({ transaction, operations, effect
 
             {/* Effect Details */}
             {listTab === 'effects' && selectedEffect && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5 space-y-5">
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-5 space-y-5">
                 {/* Effect Header */}
                 <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${selectedEffect.type.includes('credited') ? 'bg-emerald-50' : selectedEffect.type.includes('debited') ? 'bg-rose-50' : 'bg-slate-50'}`}>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${selectedEffect.type.includes('credited') ? 'bg-emerald-50' : selectedEffect.type.includes('debited') ? 'bg-rose-50' : 'bg-[var(--bg-tertiary)]'}`}>
                     {selectedEffect.type.includes('credited') ? (
                       <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
                     ) : selectedEffect.type.includes('debited') ? (
                       <svg className="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
                     ) : (
-                      <svg className="w-6 h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                      <svg className="w-6 h-6 text-[var(--text-secondary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     )}
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${selectedEffect.type.includes('credited') ? 'bg-emerald-600 text-white' : selectedEffect.type.includes('debited') ? 'bg-rose-600 text-white' : 'bg-slate-600 text-white'}`}>
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${selectedEffect.type.includes('credited') ? 'bg-emerald-600 text-white' : selectedEffect.type.includes('debited') ? 'bg-rose-600 text-white' : 'bg-[var(--text-secondary)] text-white'}`}>
                         EF {selectedEffectIndex + 1}
                       </span>
-                      <h2 className="text-xl font-bold text-slate-900">{getEffectInfo(selectedEffect).title}</h2>
+                      <h2 className="text-xl font-bold text-[var(--text-primary)]">{getEffectInfo(selectedEffect).title}</h2>
                     </div>
-                    <p className="text-slate-500 text-sm">{getEffectInfo(selectedEffect).desc}</p>
+                    <p className="text-[var(--text-tertiary)] text-sm">{getEffectInfo(selectedEffect).desc}</p>
                   </div>
                 </div>
 
                 {/* Account */}
-                <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-100">
-                  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Account</div>
+                <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/70 border border-[var(--border-subtle)]">
+                  <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Account</div>
                   <div className="flex items-center justify-between">
                     <span className="flex items-center">
-                      <Link href={`/account/${selectedEffect.account}`} className="font-mono text-xs font-medium text-slate-700 hover:text-sky-600">{shortenAddress(selectedEffect.account, 8)}</Link>
+                      <Link href={`/account/${selectedEffect.account}`} className="font-mono text-xs font-medium text-[var(--text-secondary)] hover:text-sky-600">{shortenAddress(selectedEffect.account, 8)}</Link>
                       <AccountBadges address={selectedEffect.account} labels={accountLabels} />
                     </span>
-                    <button onClick={() => navigator.clipboard.writeText(selectedEffect.account)} className="text-slate-400 hover:text-sky-500">
+                    <button onClick={() => navigator.clipboard.writeText(selectedEffect.account)} className="text-[var(--text-muted)] hover:text-sky-500">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                     </button>
                   </div>
@@ -694,17 +694,17 @@ export default function TransactionDesktopView({ transaction, operations, effect
 
                 {/* Amount */}
                 {selectedEffect.amount && (
-                  <div className={`p-4 rounded-xl border flex items-center justify-between ${selectedEffect.type.includes('credited') ? 'bg-emerald-50/50 border-emerald-100' : selectedEffect.type.includes('debited') ? 'bg-rose-50/50 border-rose-100' : 'bg-slate-50/50 border-slate-100'}`}>
+                  <div className={`p-4 rounded-xl border flex items-center justify-between ${selectedEffect.type.includes('credited') ? 'bg-emerald-50/50 border-emerald-100' : selectedEffect.type.includes('debited') ? 'bg-rose-50/50 border-rose-100' : 'bg-[var(--bg-tertiary)]/50 border-[var(--border-subtle)]'}`}>
                     <div>
-                      <div className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${selectedEffect.type.includes('credited') ? 'text-emerald-600/60' : selectedEffect.type.includes('debited') ? 'text-rose-600/60' : 'text-slate-400'}`}>Amount</div>
-                      <div className={`text-xl font-bold ${selectedEffect.type.includes('credited') ? 'text-emerald-600' : selectedEffect.type.includes('debited') ? 'text-rose-600' : 'text-slate-800'}`}>
+                      <div className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${selectedEffect.type.includes('credited') ? 'text-emerald-600/60' : selectedEffect.type.includes('debited') ? 'text-rose-600/60' : 'text-[var(--text-muted)]'}`}>Amount</div>
+                      <div className={`text-xl font-bold ${selectedEffect.type.includes('credited') ? 'text-emerald-600' : selectedEffect.type.includes('debited') ? 'text-rose-600' : 'text-[var(--text-primary)]'}`}>
                         {selectedEffect.type.includes('credited') ? '+' : selectedEffect.type.includes('debited') ? '-' : ''}
                         {formatTokenAmount(selectedEffect.amount)} <span className="text-sm">{selectedEffect.asset_type === 'native' ? 'XLM' : (selectedEffect.asset_code || 'XLM')}</span>
                       </div>
                     </div>
                     {selectedEffect.asset_issuer && (
-                      <div className="bg-white px-3 py-1.5 rounded-lg border border-slate-100 text-[10px]">
-                        <span className="text-slate-400">Issuer:</span> <span className="font-mono text-slate-600">{shortenAddress(selectedEffect.asset_issuer, 4)}</span>
+                      <div className="bg-[var(--bg-secondary)] px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-[10px]">
+                        <span className="text-[var(--text-muted)]">Issuer:</span> <span className="font-mono text-[var(--text-secondary)]">{shortenAddress(selectedEffect.asset_issuer, 4)}</span>
                       </div>
                     )}
                   </div>
@@ -712,24 +712,24 @@ export default function TransactionDesktopView({ transaction, operations, effect
 
                 {/* Effect Type Info */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl border border-slate-100 bg-white">
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Effect Type</div>
-                    <div className="text-sm font-semibold text-slate-800 capitalize">{selectedEffect.type.replace(/_/g, ' ')}</div>
+                  <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                    <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Effect Type</div>
+                    <div className="text-sm font-semibold text-[var(--text-primary)] capitalize">{selectedEffect.type.replace(/_/g, ' ')}</div>
                   </div>
-                  <div className="p-3 rounded-xl border border-slate-100 bg-white">
-                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Asset</div>
-                    <div className="text-sm font-semibold text-slate-800">{selectedEffect.asset_type === 'native' ? 'XLM (Native)' : (selectedEffect.asset_code || 'Unknown')}</div>
+                  <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                    <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Asset</div>
+                    <div className="text-sm font-semibold text-[var(--text-primary)]">{selectedEffect.asset_type === 'native' ? 'XLM (Native)' : (selectedEffect.asset_code || 'Unknown')}</div>
                   </div>
                 </div>
 
                 {/* Transaction Info */}
-                <div className="pt-4 border-t border-slate-100">
-                  <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-4">Transaction Info</h3>
+                <div className="pt-4 border-t border-[var(--border-subtle)]">
+                  <h3 className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">Transaction Info</h3>
                   <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                    <div><span className="text-slate-400 text-xs">Fee Charged</span><div className="font-mono text-slate-800">{feeXLM} XLM</div></div>
-                    <div><span className="text-slate-400 text-xs">Ledger</span><Link href={`/ledger/${transaction.ledger}`} className="text-sky-600 hover:underline font-semibold block">{transaction.ledger.toLocaleString()}</Link></div>
-                    <div><span className="text-slate-400 text-xs">Source Account</span><Link href={`/account/${transaction.source_account}`} className="font-mono text-sky-600 hover:underline block truncate">{shortenAddress(transaction.source_account, 6)}</Link></div>
-                    <div><span className="text-slate-400 text-xs">Time</span><div className="text-slate-800">{timeAgo(transaction.created_at)}</div></div>
+                    <div><span className="text-[var(--text-muted)] text-xs">Fee Charged</span><div className="font-mono text-[var(--text-primary)]">{feeXLM} XLM</div></div>
+                    <div><span className="text-[var(--text-muted)] text-xs">Ledger</span><Link href={`/ledger/${transaction.ledger}`} className="text-sky-600 hover:underline font-semibold block">{transaction.ledger.toLocaleString()}</Link></div>
+                    <div><span className="text-[var(--text-muted)] text-xs">Source Account</span><Link href={`/account/${transaction.source_account}`} className="font-mono text-sky-600 hover:underline block truncate">{shortenAddress(transaction.source_account, 6)}</Link></div>
+                    <div><span className="text-[var(--text-muted)] text-xs">Time</span><div className="text-[var(--text-primary)]">{timeAgo(transaction.created_at)}</div></div>
                   </div>
                 </div>
               </div>
@@ -737,8 +737,8 @@ export default function TransactionDesktopView({ transaction, operations, effect
 
             {/* Empty state for effects when no effects */}
             {listTab === 'effects' && effects.length === 0 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-8 text-center">
-                <div className="text-slate-400 text-sm">No effects found for this transaction.</div>
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-8 text-center">
+                <div className="text-[var(--text-muted)] text-sm">No effects found for this transaction.</div>
               </div>
             )}
           </div>

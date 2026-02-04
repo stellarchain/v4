@@ -24,7 +24,7 @@ function formatFullBalance(balance: number): string {
 
 function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
   return (
-    <svg className={`w-3 h-3 ml-1 inline-block ${active ? 'text-sky-600' : 'text-slate-300'}`} fill="currentColor" viewBox="0 0 24 24">
+    <svg className={`w-3 h-3 ml-1 inline-block ${active ? 'text-sky-600' : 'text-[var(--text-muted)]'}`} fill="currentColor" viewBox="0 0 24 24">
       {order === 'desc' || !active ? (
         <path d="M7 10l5 5 5-5H7z" />
       ) : (
@@ -93,7 +93,7 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
 
     return (
       <th
-        className={`py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-left whitespace-nowrap ${isSortable ? 'cursor-pointer hover:text-sky-600 transition-colors select-none' : ''} ${isActive ? 'text-sky-600' : 'text-slate-400'} ${className}`}
+        className={`py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-left whitespace-nowrap ${isSortable ? 'cursor-pointer hover:text-sky-600 transition-colors select-none' : ''} ${isActive ? 'text-sky-600' : 'text-[var(--text-muted)]'} ${className}`}
         onClick={() => field && handleSort(field)}
       >
         <span className="inline-flex items-center">
@@ -105,10 +105,10 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
         {/* Header Card */}
-        <div className="mb-5 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+        <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-5">
             {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
@@ -122,7 +122,7 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
               </Link>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Accounts</span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Accounts</span>
                   <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
                     Top {totals.totalAccounts}
                   </span>
@@ -131,8 +131,8 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
                     {totals.verifiedCount} Verified
                   </span>
                 </div>
-                <div className="text-xl font-bold text-slate-900">Top Accounts by Balance</div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="text-xl font-bold text-[var(--text-primary)]">Top Accounts by Balance</div>
+                <div className="mt-1 text-xs text-[var(--text-tertiary)]">
                   Richest accounts on the Stellar network ranked by XLM holdings
                 </div>
               </div>
@@ -144,16 +144,16 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
                 <div className="text-[9px] font-bold text-sky-600/60 uppercase tracking-widest mb-1">Total Balance</div>
                 <div className="text-lg font-bold text-sky-600">
                   {formatBalance(totals.totalBalance)}
-                  <span className="text-[10px] font-medium text-slate-400 ml-1">XLM</span>
+                  <span className="text-[10px] font-medium text-[var(--text-muted)] ml-1">XLM</span>
                 </div>
               </div>
               <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 min-w-[110px]">
                 <div className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-widest mb-1">Supply %</div>
                 <div className="text-lg font-bold text-emerald-600">{totals.totalPercent.toFixed(2)}%</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[90px]">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Verified</div>
-                <div className="text-lg font-bold text-slate-900">{totals.verifiedCount}</div>
+              <div className="p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)] min-w-[90px]">
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Verified</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{totals.verifiedCount}</div>
               </div>
             </div>
           </div>
@@ -163,7 +163,7 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -171,41 +171,41 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name or address..."
-              className="w-full bg-white border border-slate-200 text-slate-900 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 pl-11 text-sm shadow-sm"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 pl-11 text-sm shadow-sm"
             />
           </div>
 
           <div className="flex items-center gap-3">
             <Link
               href="/known-accounts"
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:border-sky-200 hover:text-sky-600 transition-all shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:border-sky-200 hover:text-sky-600 transition-all shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
               Known Accounts
             </Link>
-            <span className="text-sm text-slate-400">
+            <span className="text-sm text-[var(--text-muted)]">
               Showing {filteredAndSortedAccounts.length} accounts
             </span>
           </div>
         </div>
 
         {/* Table */}
-        <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/50">
+              <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                 <HeaderCell label="#" field="rank" className="w-16" />
                 <HeaderCell label="Account" className="min-w-[280px]" />
                 <HeaderCell label="Address" className="min-w-[180px]" />
                 <HeaderCell label="Balance" field="balance" className="text-right" />
                 <HeaderCell label="% Supply" field="percent" className="text-right" />
-                <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center w-24">Status</th>
+                <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-center w-24">Status</th>
                 <th className="py-3 px-4 w-12"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[var(--border-subtle)]">
               {filteredAndSortedAccounts.map((account) => {
                 const isVerified = account.label?.verified;
                 const hasLabel = !!account.label?.name;
@@ -220,9 +220,9 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
                     <td className="py-4 px-4">
                       <span className={`text-sm font-bold ${
                         account.rank === 1 ? 'text-amber-500' :
-                        account.rank === 2 ? 'text-slate-400' :
+                        account.rank === 2 ? 'text-[var(--text-muted)]' :
                         account.rank === 3 ? 'text-amber-700' :
-                        'text-slate-500'
+                        'text-[var(--text-tertiary)]'
                       }`}>
                         #{account.rank}
                       </span>
@@ -231,7 +231,7 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
                     {/* Account Name */}
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
-                        <span className="text-slate-900 font-semibold text-[13px] group-hover:text-sky-600 transition-colors">
+                        <span className="text-[var(--text-primary)] font-semibold text-[13px] group-hover:text-sky-600 transition-colors">
                           {account.label?.name || 'Unknown'}
                         </span>
                         {isVerified ? (
@@ -252,7 +252,7 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
                         )}
                       </div>
                       {account.label?.description && (
-                        <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[250px]">
+                        <p className="text-[11px] text-[var(--text-muted)] mt-0.5 truncate max-w-[250px]">
                           {account.label.description}
                         </p>
                       )}
@@ -260,17 +260,17 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
 
                     {/* Address */}
                     <td className="py-4 px-4">
-                      <span className="font-mono text-xs text-slate-500 group-hover:text-sky-600 transition-colors">
+                      <span className="font-mono text-xs text-[var(--text-tertiary)] group-hover:text-sky-600 transition-colors">
                         {shortenAddress(account.account, 8)}
                       </span>
                     </td>
 
                     {/* Balance */}
                     <td className="py-4 px-4 text-right">
-                      <div className="text-slate-900 font-semibold text-[13px]">
+                      <div className="text-[var(--text-primary)] font-semibold text-[13px]">
                         {formatFullBalance(account.balance || 0)}
                       </div>
-                      <div className="text-[10px] text-slate-400">XLM</div>
+                      <div className="text-[10px] text-[var(--text-muted)]">XLM</div>
                     </td>
 
                     {/* Percent */}
@@ -288,13 +288,13 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
                           Verified
                         </span>
                       ) : hasLabel ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[9px] font-bold uppercase tracking-wider">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] text-[9px] font-bold uppercase tracking-wider">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
                           Labeled
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-50 text-slate-400 text-[9px] font-bold uppercase tracking-wider">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-primary)] text-[var(--text-muted)] text-[9px] font-bold uppercase tracking-wider">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
                           Unknown
                         </span>
                       )}
@@ -302,7 +302,7 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
 
                     {/* Arrow */}
                     <td className="py-4 px-4">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-muted)] group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -316,13 +316,13 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
 
           {filteredAndSortedAccounts.length === 0 && (
             <div className="text-center py-16">
-              <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-14 h-14 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-7 h-7 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              <h3 className="text-slate-900 font-semibold mb-1">No accounts found</h3>
-              <p className="text-slate-400 text-sm">No accounts matching &quot;{searchQuery}&quot;</p>
+              <h3 className="text-[var(--text-primary)] font-semibold mb-1">No accounts found</h3>
+              <p className="text-[var(--text-muted)] text-sm">No accounts matching &quot;{searchQuery}&quot;</p>
             </div>
           )}
         </div>

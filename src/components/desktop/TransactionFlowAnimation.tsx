@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Operation } from '@/lib/stellar';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface TransactionFlowAnimationProps {
     operations: Operation[];
@@ -64,6 +65,26 @@ export default function TransactionFlowAnimation({
     const spawnTimerRef = useRef<number>(0);
     const operationQueueRef = useRef<Operation[]>([]);
     const [dimensions, setDimensions] = useState({ width: 800, height });
+    const { theme } = useTheme();
+
+    // Theme-aware colors for canvas drawing
+    const themeColors = theme === 'dark' ? {
+        labelColor: '#94a3b8', // slate-400 equivalent
+        connectionColor: '#475569', // slate-600 equivalent
+        walletGradientStart: '#475569', // slate-600
+        walletGradientEnd: '#334155', // slate-700
+        walletBorder: '#64748b', // slate-500
+        walletDotColor: '#94a3b8', // slate-400
+        glowWallet: '#64748b', // slate-500
+    } : {
+        labelColor: '#64748b', // slate-500
+        connectionColor: '#cbd5e1', // slate-300
+        walletGradientStart: '#e2e8f0', // slate-200
+        walletGradientEnd: '#cbd5e1', // slate-300
+        walletBorder: '#94a3b8', // slate-400
+        walletDotColor: '#64748b', // slate-500
+        glowWallet: '#94a3b8', // slate-400
+    };
 
     // Update dimensions on resize
     useEffect(() => {
@@ -168,9 +189,9 @@ export default function TransactionFlowAnimation({
             type: 'wallet' | 'validator' | 'ledger',
             label: string
         ) {
-            // Outer glow (subtle for white mode)
+            // Outer glow
             const glow = ctx.createRadialGradient(x, y, 0, x, y, size * 2.5);
-            const glowColor = type === 'ledger' ? '#0ea5e9' : type === 'validator' ? '#8b5cf6' : '#94a3b8';
+            const glowColor = type === 'ledger' ? '#0ea5e9' : type === 'validator' ? '#8b5cf6' : themeColors.glowWallet;
             glow.addColorStop(0, glowColor + '20');
             glow.addColorStop(1, 'transparent');
             ctx.fillStyle = glow;
@@ -187,8 +208,8 @@ export default function TransactionFlowAnimation({
                 gradient.addColorStop(0, '#a78bfa');
                 gradient.addColorStop(1, '#8b5cf6');
             } else {
-                gradient.addColorStop(0, '#e2e8f0');
-                gradient.addColorStop(1, '#cbd5e1');
+                gradient.addColorStop(0, themeColors.walletGradientStart);
+                gradient.addColorStop(1, themeColors.walletGradientEnd);
             }
             ctx.fillStyle = gradient;
             ctx.beginPath();
@@ -196,7 +217,7 @@ export default function TransactionFlowAnimation({
             ctx.fill();
 
             // Border
-            ctx.strokeStyle = type === 'ledger' ? '#0ea5e9' : type === 'validator' ? '#8b5cf6' : '#94a3b8';
+            ctx.strokeStyle = type === 'ledger' ? '#0ea5e9' : type === 'validator' ? '#8b5cf6' : themeColors.walletBorder;
             ctx.lineWidth = 2;
             ctx.stroke();
 
@@ -216,15 +237,15 @@ export default function TransactionFlowAnimation({
                 ctx.font = `${size * 0.5}px -apple-system`;
                 ctx.fillText('◆', x, y);
             } else {
-                // Dot for wallet (darker for light background)
-                ctx.fillStyle = '#64748b';
+                // Dot for wallet
+                ctx.fillStyle = themeColors.walletDotColor;
                 ctx.beginPath();
                 ctx.arc(x, y, size * 0.25, 0, Math.PI * 2);
                 ctx.fill();
             }
 
             // Label below node
-            ctx.fillStyle = '#64748b';
+            ctx.fillStyle = themeColors.labelColor;
             ctx.font = '500 11px -apple-system, system-ui, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
@@ -232,7 +253,7 @@ export default function TransactionFlowAnimation({
         }
 
         function drawConnections() {
-            ctx.strokeStyle = '#cbd5e1';
+            ctx.strokeStyle = themeColors.connectionColor;
             ctx.lineWidth = 1;
             ctx.setLineDash([4, 4]);
 
@@ -319,7 +340,7 @@ export default function TransactionFlowAnimation({
             drawNode(ledger.x, ledger.y, 40, 'ledger', ledger.label);
 
             // Draw bottom labels
-            ctx.fillStyle = '#64748b';
+            ctx.fillStyle = themeColors.labelColor;
             ctx.font = '600 12px -apple-system, system-ui, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
@@ -433,31 +454,33 @@ export default function TransactionFlowAnimation({
                 cancelAnimationFrame(animationRef.current);
             }
         };
-    }, [dimensions, height]);
+    }, [dimensions, height, theme, themeColors]);
 
     return (
         <div
             ref={containerRef}
-            className="relative w-full rounded-2xl overflow-hidden border border-slate-200"
+            className="relative w-full rounded-2xl overflow-hidden border border-[var(--border-default)]"
             style={{
                 height,
-                background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)'
+                background: theme === 'dark'
+                    ? 'linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%)'
+                    : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)'
             }}
         >
             <canvas ref={canvasRef} className="w-full h-full" />
 
             {/* Stats overlay - top right */}
             {currentLedger > 0 && (
-                <div className="absolute top-3 right-4 flex items-center gap-6 bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-slate-200">
+                <div className="absolute top-3 right-4 flex items-center gap-6 bg-[var(--bg-secondary)]/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-[var(--border-default)]">
                     <div className="text-center">
-                        <div className="text-[9px] text-slate-500 uppercase tracking-wider">Current Ledger</div>
+                        <div className="text-[9px] text-[var(--text-tertiary)] uppercase tracking-wider">Current Ledger</div>
                         <div className="text-lg font-bold text-sky-500">#{currentLedger.toLocaleString()}</div>
                     </div>
                 </div>
             )}
 
             {/* Legend */}
-            <div className="absolute bottom-3 right-4 flex items-center gap-4 bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-slate-200">
+            <div className="absolute bottom-3 right-4 flex items-center gap-4 bg-[var(--bg-secondary)]/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-[var(--border-default)]">
                 {[
                     { type: 'payment', label: 'Payment' },
                     { type: 'swap', label: 'Swap' },
@@ -469,7 +492,7 @@ export default function TransactionFlowAnimation({
                             className="w-2.5 h-2.5 rounded-full"
                             style={{ backgroundColor: colors[item.type] }}
                         />
-                        <span className="text-[10px] text-slate-600 font-medium">{item.label}</span>
+                        <span className="text-[10px] text-[var(--text-secondary)] font-medium">{item.label}</span>
                     </div>
                 ))}
             </div>
@@ -477,7 +500,7 @@ export default function TransactionFlowAnimation({
             {/* Title */}
             <div className="absolute top-3 left-4 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                <span className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                     Live Transaction Flow
                 </span>
             </div>

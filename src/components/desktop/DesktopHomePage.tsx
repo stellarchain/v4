@@ -306,7 +306,7 @@ export default function DesktopHomePage({
         if (type.includes('offer') || type.includes('swap') || type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') return { color: 'text-blue-500', bg: 'bg-blue-500', label: 'SWAP' };
         if (type === 'invoke_host_function' || type.toLowerCase().includes('invokecontract') || type.toLowerCase().includes('hostfunction')) return { color: 'text-purple-500', bg: 'bg-purple-500', label: 'CONTRACT CALL' };
         if (type === 'change_trust') return { color: 'text-emerald-500', bg: 'bg-emerald-500', label: 'TRUSTLINE' };
-        return { color: 'text-gray-900', bg: 'bg-gray-400', label: type.replace(/_/g, ' ').toUpperCase() };
+        return { color: 'text-[var(--text-primary)]', bg: 'bg-[var(--text-muted)]', label: type.replace(/_/g, ' ').toUpperCase() };
     };
 
     const decodeContractFunctionName = (op: Operation): string => {
@@ -330,7 +330,7 @@ export default function DesktopHomePage({
 
     // Trending tokens data
     const trendingTokens = [
-        { symbol: 'XLM', logo: 'https://stellar.org/favicon.ico', fallbackColor: 'bg-slate-900' },
+        { symbol: 'XLM', logo: 'https://stellar.org/favicon.ico', fallbackColor: 'bg-[var(--text-primary)]' },
         { symbol: 'USDC', logo: 'https://www.centre.io/images/usdc/usdc-icon-86074d9d49.png', fallbackColor: 'bg-blue-500' },
         { symbol: 'yXLM', logo: null, fallbackColor: 'bg-indigo-500' },
         { symbol: 'AQUA', logo: 'https://aqua.network/assets/img/aqua-logo.png', fallbackColor: 'bg-purple-500' },
@@ -340,7 +340,7 @@ export default function DesktopHomePage({
     const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
     return (
-        <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)' }}>
+        <div className="min-h-screen bg-[var(--bg-primary)]">
             {/* Hero Section */}
             <section className="relative pt-16 pb-12 overflow-hidden">
                 {/* Background Blobs */}
@@ -350,14 +350,14 @@ export default function DesktopHomePage({
                 </div>
 
                 <div className="max-w-[1400px] mx-auto px-6 relative z-10 text-center">
-                    <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold mb-10 text-slate-900 tracking-tight leading-tight">
+                    <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold mb-10 text-[var(--text-primary)] tracking-tight leading-tight">
                         Blockchain Explorer
                     </h1>
 
                     {/* Search Bar */}
                     <div className="max-w-2xl mx-auto relative mb-8 group">
                         <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-                            <svg className="w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-5 h-5 text-[var(--text-muted)] group-focus-within:text-blue-500 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
@@ -366,23 +366,23 @@ export default function DesktopHomePage({
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full py-4 pl-14 pr-16 bg-white border-2 border-slate-100 rounded-2xl shadow-xl focus:outline-none focus:border-blue-500 focus:ring-0 text-lg text-slate-700 placeholder-slate-400 transition"
+                                className="w-full py-4 pl-14 pr-16 bg-[var(--bg-secondary)] border-2 border-[var(--border-subtle)] rounded-2xl shadow-xl focus:outline-none focus:border-blue-500 focus:ring-0 text-lg text-[var(--text-secondary)] placeholder-[var(--text-muted)] transition"
                                 placeholder="Search anything on Stellar"
                             />
                         </form>
                         <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                            <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-lg text-sm font-bold border border-slate-200 shadow-sm">/</span>
+                            <span className="bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] px-3 py-1 rounded-lg text-sm font-bold border border-[var(--border-default)] shadow-sm">/</span>
                         </div>
                     </div>
 
                     {/* Trending Tokens */}
                     <div className="flex flex-wrap justify-center items-center gap-3 text-sm font-medium">
-                        <span className="text-slate-500 mr-2">Trending:</span>
+                        <span className="text-[var(--text-tertiary)] mr-2">Trending:</span>
                         {trendingTokens.map((token) => (
                             <Link
                                 key={token.symbol}
                                 href={`/markets`}
-                                className="group flex items-center bg-white hover:border-sky-300 px-3 py-1.5 rounded-full shadow-sm border border-slate-200 transition"
+                                className="group flex items-center bg-[var(--bg-secondary)] hover:border-sky-300 px-3 py-1.5 rounded-full shadow-sm border border-[var(--border-default)] transition"
                             >
                                 <div className="w-5 h-5 rounded-full overflow-hidden mr-2 group-hover:scale-110 transition flex-shrink-0">
                                     {token.logo && !failedImages.has(token.symbol) ? (
@@ -401,7 +401,7 @@ export default function DesktopHomePage({
                                         </div>
                                     )}
                                 </div>
-                                <span className="text-slate-700 group-hover:text-sky-600 transition">{token.symbol}</span>
+                                <span className="text-[var(--text-secondary)] group-hover:text-sky-600 transition">{token.symbol}</span>
                             </Link>
                         ))}
                     </div>
@@ -413,48 +413,48 @@ export default function DesktopHomePage({
                 <div className="max-w-[1400px] mx-auto px-6">
                     {/* Top Row - Market Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
-                        <div className="bg-white rounded-xl p-4 border border-slate-100">
+                        <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center gap-1 mb-1">
-                                <InfoTooltip label={<span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Market Cap</span>} content="Total value of all XLM in circulation" />
+                                <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Market Cap</span>} content="Total value of all XLM in circulation" />
                             </div>
-                            <div className="text-lg font-bold text-slate-900">${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(marketCap)}</div>
+                            <div className="text-lg font-bold text-[var(--text-primary)]">${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(marketCap)}</div>
                             <div className={`text-xs font-medium ${marketCapChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                 {marketCapChange >= 0 ? '+' : ''}{marketCapChange.toFixed(2)}%
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl p-4 border border-slate-100">
+                        <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center gap-1 mb-1">
-                                <InfoTooltip label={<span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Circulating</span>} content="Current XLM tokens in circulation" />
+                                <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Circulating</span>} content="Current XLM tokens in circulation" />
                             </div>
-                            <div className="text-lg font-bold text-slate-900">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(circulatingSupply)} XLM</div>
+                            <div className="text-lg font-bold text-[var(--text-primary)]">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(circulatingSupply)} XLM</div>
                         </div>
-                        <div className="bg-white rounded-xl p-4 border border-slate-100">
+                        <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center gap-1 mb-1">
-                                <InfoTooltip label={<span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Dominance</span>} content="Stellar's share of total crypto market cap" />
+                                <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Dominance</span>} content="Stellar's share of total crypto market cap" />
                             </div>
-                            <div className="text-lg font-bold text-slate-900">{dominance.toFixed(3)} %</div>
+                            <div className="text-lg font-bold text-[var(--text-primary)]">{dominance.toFixed(3)} %</div>
                         </div>
-                        <div className="bg-white rounded-xl p-4 border border-slate-100">
+                        <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center gap-1 mb-1">
-                                <InfoTooltip label={<span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Total Supply</span>} content="Total XLM that exists" />
+                                <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Total Supply</span>} content="Total XLM that exists" />
                             </div>
-                            <div className="text-lg font-bold text-slate-900">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(totalSupply)} XLM</div>
-                            <div className="text-xs text-slate-400">${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(totalSupply * xlmPrice)}</div>
+                            <div className="text-lg font-bold text-[var(--text-primary)]">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(totalSupply)} XLM</div>
+                            <div className="text-xs text-[var(--text-muted)]">${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(totalSupply * xlmPrice)}</div>
                         </div>
-                        <div className="bg-white rounded-xl p-4 border border-slate-100">
+                        <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center gap-1 mb-1">
-                                <InfoTooltip label={<span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">24H Volume</span>} content="Trading volume in the last 24 hours" />
+                                <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">24H Volume</span>} content="Trading volume in the last 24 hours" />
                             </div>
-                            <div className="text-lg font-bold text-slate-900">{formattedVolume}</div>
-                            <div className="text-[10px] text-slate-400">via CoinGecko</div>
+                            <div className="text-lg font-bold text-[var(--text-primary)]">{formattedVolume}</div>
+                            <div className="text-[10px] text-[var(--text-muted)]">via CoinGecko</div>
                         </div>
-                        <div className="bg-white rounded-xl p-4 border border-slate-100 relative">
+                        <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)] relative">
                             <div className="flex items-center gap-1 mb-1">
-                                <span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">XLM Price</span>
+                                <span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">XLM Price</span>
                             </div>
-                            <div className="text-lg font-bold text-slate-900">${xlmPrice.toFixed(4)}</div>
+                            <div className="text-lg font-bold text-[var(--text-primary)]">${xlmPrice.toFixed(4)}</div>
                             <div className="flex items-center gap-1">
-                                <span className="text-[10px] text-slate-400">24H</span>
+                                <span className="text-[10px] text-[var(--text-muted)]">24H</span>
                                 <span className={`text-xs font-medium ${priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                     {priceChange24h >= 0 ? '+' : ''}{priceChange24h.toFixed(2)}%
                                 </span>
@@ -481,18 +481,18 @@ export default function DesktopHomePage({
 
                     {/* Second Row - Network Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                        <Link href={`/ledger/${liveStats.ledger_count}`} className="bg-white rounded-xl p-4 border border-slate-100 hover:border-blue-200 transition-all group">
+                        <Link href={`/ledger/${liveStats.ledger_count}`} className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)] hover:border-blue-200 transition-all group">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-1 mb-1">
-                                        <InfoTooltip label={<span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Current Ledger</span>} content="Latest confirmed ledger on Stellar network" />
+                                        <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Current Ledger</span>} content="Latest confirmed ledger on Stellar network" />
                                     </div>
                                     <div ref={ledgerCountRef} className="text-xl font-bold text-blue-500">{liveStats.ledger_count.toLocaleString()}</div>
                                     <div className="flex items-center gap-2 mt-1">
-                                        <div className="w-12 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                        <div className="w-12 bg-[var(--bg-tertiary)] rounded-full h-1.5 overflow-hidden">
                                             <div ref={progressBarRef} className="bg-green-500 h-1.5 rounded-full transition-all duration-100 ease-linear" style={{ width: `${ledgerProgress}%` }} />
                                         </div>
-                                        <span className="text-[10px] text-slate-400">~{Math.max(0, Math.round((100 - ledgerProgress) / 100 * 5))}s</span>
+                                        <span className="text-[10px] text-[var(--text-muted)]">~{Math.max(0, Math.round((100 - ledgerProgress) / 100 * 5))}s</span>
                                     </div>
                                 </div>
                                 <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors">
@@ -500,11 +500,11 @@ export default function DesktopHomePage({
                                 </div>
                             </div>
                         </Link>
-                        <Link href="/transactions" className="bg-white rounded-xl p-4 border border-slate-100 hover:border-blue-200 transition-all group">
+                        <Link href="/transactions" className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)] hover:border-blue-200 transition-all group">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-1 mb-1">
-                                        <InfoTooltip label={<span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">TPS Current</span>} content="Transactions per second" />
+                                        <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">TPS Current</span>} content="Transactions per second" />
                                     </div>
                                     <div className="text-xl font-bold text-blue-500">{tps}</div>
                                     <div className="text-[10px] text-green-500 font-medium">{txCount} tx/ledger</div>
@@ -514,28 +514,28 @@ export default function DesktopHomePage({
                                 </div>
                             </div>
                         </Link>
-                        <div className="bg-white rounded-xl p-4 border border-slate-100">
+                        <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-1 mb-1">
-                                        <InfoTooltip label={<span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Network Load</span>} content="Current ledger capacity usage" />
+                                        <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Network Load</span>} content="Current ledger capacity usage" />
                                     </div>
-                                    <div className="text-xl font-bold text-slate-900">{liveStats.ledger_capacity_usage ? `${(liveStats.ledger_capacity_usage * 100).toFixed(0)}%` : '—'}</div>
-                                    <div className="text-[10px] text-slate-400">capacity used</div>
+                                    <div className="text-xl font-bold text-[var(--text-primary)]">{liveStats.ledger_capacity_usage ? `${(liveStats.ledger_capacity_usage * 100).toFixed(0)}%` : '—'}</div>
+                                    <div className="text-[10px] text-[var(--text-muted)]">capacity used</div>
                                 </div>
                                 <div className="w-9 h-9 bg-amber-50 rounded-lg flex items-center justify-center text-amber-500">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl p-4 border border-slate-100">
+                        <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-1 mb-1">
-                                        <InfoTooltip label={<span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Protocol</span>} content="Current Stellar protocol version" />
+                                        <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Protocol</span>} content="Current Stellar protocol version" />
                                     </div>
-                                    <div className="text-xl font-bold text-slate-900">{liveStats.protocol_version}</div>
-                                    <div className="text-[10px] text-slate-400">version</div>
+                                    <div className="text-xl font-bold text-[var(--text-primary)]">{liveStats.protocol_version}</div>
+                                    <div className="text-[10px] text-[var(--text-muted)]">version</div>
                                 </div>
                                 <div className="w-9 h-9 bg-violet-50 rounded-lg flex items-center justify-center text-violet-500">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -546,58 +546,58 @@ export default function DesktopHomePage({
 
                     {/* Third Row - Supply & Fees */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="bg-white rounded-xl p-4 border border-slate-100">
+                        <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-1 mb-1">
-                                        <InfoTooltip label={<span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Burned Lumens</span>} content="XLM permanently removed from circulation" />
+                                        <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Burned Lumens</span>} content="XLM permanently removed from circulation" />
                                     </div>
                                     <div className="text-xl font-bold text-rose-500">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.burnedLumens)}</div>
-                                    <div className="text-[10px] text-slate-400">XLM burned</div>
+                                    <div className="text-[10px] text-[var(--text-muted)]">XLM burned</div>
                                 </div>
                                 <div className="w-9 h-9 bg-rose-50 rounded-lg flex items-center justify-center text-rose-500">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" /></svg>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl p-4 border border-slate-100">
+                        <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-1 mb-1">
-                                        <InfoTooltip label={<span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">SDF Mandate</span>} content="Lumens held by Stellar Development Foundation" />
+                                        <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">SDF Mandate</span>} content="Lumens held by Stellar Development Foundation" />
                                     </div>
                                     <div className="text-xl font-bold text-indigo-500">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.sdfMandate)}</div>
-                                    <div className="text-[10px] text-slate-400">XLM held</div>
+                                    <div className="text-[10px] text-[var(--text-muted)]">XLM held</div>
                                 </div>
                                 <div className="w-9 h-9 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-500">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl p-4 border border-slate-100">
+                        <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-1 mb-1">
-                                        <InfoTooltip label={<span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Fee Pool</span>} content="Accumulated network transaction fees" />
+                                        <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Fee Pool</span>} content="Accumulated network transaction fees" />
                                     </div>
                                     <div className="text-xl font-bold text-emerald-500">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.feePool)}</div>
-                                    <div className="text-[10px] text-slate-400">XLM in fees</div>
+                                    <div className="text-[10px] text-[var(--text-muted)]">XLM in fees</div>
                                 </div>
                                 <div className="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-500">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl p-4 border border-slate-100">
+                        <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-1 mb-1">
-                                        <InfoTooltip label={<span className="text-slate-400 text-[10px] font-medium uppercase tracking-wide">Base Fee</span>} content="Minimum transaction fee (in stroops)" />
+                                        <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Base Fee</span>} content="Minimum transaction fee (in stroops)" />
                                     </div>
-                                    <div className="text-xl font-bold text-slate-900">{(liveStats.base_fee / 10000000).toFixed(7)}</div>
-                                    <div className="text-[10px] text-slate-400">XLM ({liveStats.base_fee.toLocaleString()} stroops)</div>
+                                    <div className="text-xl font-bold text-[var(--text-primary)]">{(liveStats.base_fee / 10000000).toFixed(7)}</div>
+                                    <div className="text-[10px] text-[var(--text-muted)]">XLM ({liveStats.base_fee.toLocaleString()} stroops)</div>
                                 </div>
-                                <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500">
+                                <div className="w-9 h-9 bg-[var(--bg-tertiary)] rounded-lg flex items-center justify-center text-[var(--text-tertiary)]">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                                 </div>
                             </div>
@@ -616,11 +616,11 @@ export default function DesktopHomePage({
             {/* Live Network Activity Section */}
             <section className="pb-12">
                 <div className="max-w-[1400px] mx-auto px-6">
-                    <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
+                    <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-sm">
                         {/* Header with tabs */}
-                        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <div className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wider">
+                                <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2 uppercase tracking-wider">
                                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                                     Live Activity
                                 </h3>
@@ -633,7 +633,7 @@ export default function DesktopHomePage({
                                                 onClick={() => setActiveTab(tabMap[tab])}
                                                 className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-tight whitespace-nowrap transition-colors ${activeTab === tabMap[tab]
                                                     ? 'bg-sky-500 text-white'
-                                                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                                                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
                                                     }`}
                                             >
                                                 {tab}
@@ -654,20 +654,20 @@ export default function DesktopHomePage({
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-slate-100 bg-slate-50/50">
-                                        <th className="py-2.5 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Txn Hash</th>
-                                        <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Type</th>
-                                        <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">Age</th>
-                                        <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">From</th>
-                                        <th className="py-2.5 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center whitespace-nowrap w-8"></th>
-                                        <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left whitespace-nowrap">To / Details</th>
-                                        <th className="py-2.5 px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right whitespace-nowrap">Amount</th>
+                                    <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+                                        <th className="py-2.5 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Txn Hash</th>
+                                        <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Type</th>
+                                        <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Age</th>
+                                        <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">From</th>
+                                        <th className="py-2.5 px-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-center whitespace-nowrap w-8"></th>
+                                        <th className="py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">To / Details</th>
+                                        <th className="py-2.5 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Amount</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50">
+                                <tbody className="divide-y divide-[var(--border-subtle)]">
                                     {filteredOperations.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="text-center py-12 text-slate-400 text-sm">
+                                            <td colSpan={7} className="text-center py-12 text-[var(--text-muted)] text-sm">
                                                 No {activeTab === 'All Activity' ? 'activity' : activeTab.toLowerCase()} found
                                             </td>
                                         </tr>
@@ -694,7 +694,7 @@ export default function DesktopHomePage({
                                                 if (['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type)) return 'bg-indigo-50 text-indigo-600 border-indigo-200';
                                                 if (op.type === 'invoke_host_function') return 'bg-amber-50 text-amber-600 border-amber-200';
                                                 if (op.type === 'change_trust') return 'bg-teal-50 text-teal-600 border-teal-200';
-                                                return 'bg-slate-50 text-slate-600 border-slate-200';
+                                                return 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)]';
                                             };
 
                                             // Get destination/details
@@ -779,7 +779,7 @@ export default function DesktopHomePage({
                                                     </td>
 
                                                     {/* Age */}
-                                                    <td className="py-2 px-3 text-[11px] text-slate-500 whitespace-nowrap">
+                                                    <td className="py-2 px-3 text-[11px] text-[var(--text-tertiary)] whitespace-nowrap">
                                                         {timeAgo(op.created_at)}
                                                     </td>
 
@@ -787,7 +787,7 @@ export default function DesktopHomePage({
                                                     <td className="py-2 px-3">
                                                         <Link
                                                             href={`/account/${op.source_account}`}
-                                                            className="font-mono text-[11px] text-slate-700 hover:text-sky-600 hover:underline"
+                                                            className="font-mono text-[11px] text-[var(--text-secondary)] hover:text-sky-600 hover:underline"
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
                                                             {shortenAddress(op.source_account, 4)}
@@ -808,13 +808,13 @@ export default function DesktopHomePage({
                                                         {details.isAddress && details.address ? (
                                                             <Link
                                                                 href={`/account/${details.address}`}
-                                                                className="font-mono text-[11px] text-slate-700 hover:text-sky-600 hover:underline"
+                                                                className="font-mono text-[11px] text-[var(--text-secondary)] hover:text-sky-600 hover:underline"
                                                                 onClick={(e) => e.stopPropagation()}
                                                             >
                                                                 {details.text}
                                                             </Link>
                                                         ) : (
-                                                            <span className={`text-[11px] font-medium ${details.color || 'text-slate-500'}`}>
+                                                            <span className={`text-[11px] font-medium ${details.color || 'text-[var(--text-tertiary)]'}`}>
                                                                 {details.text}
                                                             </span>
                                                         )}
@@ -824,15 +824,15 @@ export default function DesktopHomePage({
                                                     <td className="py-2 px-4 text-right">
                                                         {amount ? (
                                                             <div>
-                                                                <span className="text-[11px] font-medium text-slate-900">
+                                                                <span className="text-[11px] font-medium text-[var(--text-primary)]">
                                                                     {amount.value}
                                                                 </span>
-                                                                <span className="text-[10px] text-slate-400 ml-1">
+                                                                <span className="text-[10px] text-[var(--text-muted)] ml-1">
                                                                     {amount.asset}
                                                                 </span>
                                                             </div>
                                                         ) : (
-                                                            <span className="text-[11px] text-slate-400">—</span>
+                                                            <span className="text-[11px] text-[var(--text-muted)]">—</span>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -844,8 +844,8 @@ export default function DesktopHomePage({
                         </div>
 
                         {/* Footer */}
-                        <div className="px-5 py-3 bg-slate-50/50 border-t border-slate-100 text-center">
-                            <Link href="/transactions" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-sky-500 transition-colors uppercase tracking-tight">
+                        <div className="px-5 py-3 bg-[var(--bg-tertiary)] border-t border-[var(--border-subtle)] text-center">
+                            <Link href="/transactions" className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] hover:text-sky-500 transition-colors uppercase tracking-tight">
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
