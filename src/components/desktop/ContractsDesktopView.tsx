@@ -110,11 +110,10 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading }: 
             key={page}
             onClick={() => onPageChange(page as number)}
             disabled={loading}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${
-              currentPage === page
+            className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${currentPage === page
                 ? 'bg-sky-600 text-white shadow-sm'
-                : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-600'
-            }`}
+                : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
+              }`}
           >
             {page}
           </button>
@@ -364,11 +363,10 @@ export default function ContractsDesktopView({
               key={tab.id}
               type="button"
               onClick={() => setFilter(tab.id)}
-              className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${
-                filter === tab.id
+              className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${filter === tab.id
                   ? 'text-sky-600 border-b-2 border-sky-600'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-              }`}
+                }`}
             >
               {tab.label}
               <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>
@@ -381,11 +379,10 @@ export default function ContractsDesktopView({
               key={cat.id}
               type="button"
               onClick={() => setFilter(cat.id)}
-              className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${
-                filter === cat.id
+              className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${filter === cat.id
                   ? 'text-sky-600 border-b-2 border-sky-600'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-              }`}
+                }`}
             >
               {cat.name}
             </button>
@@ -467,7 +464,7 @@ export default function ContractsDesktopView({
                             {typeBadge.label}
                           </span>
                           {contract.sep41 && (
-                            <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded border text-[8px] font-bold uppercase tracking-wider bg-blue-50 border-blue-100 text-blue-600">
+                            <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded border text-[8px] font-bold uppercase tracking-wider bg-blue-50 border-blue-100 text-blue-700">
                               SEP-41
                             </span>
                           )}

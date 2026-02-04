@@ -86,7 +86,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1 || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -109,11 +109,10 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
             key={pageNum}
             onClick={() => onPageChange(pageNum)}
             disabled={loading}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${
-              currentPage === pageNum
-                ? 'bg-sky-600 text-white shadow-sm'
-                : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-600'
-            }`}
+            className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${currentPage === pageNum
+              ? 'bg-sky-600 text-white shadow-sm'
+              : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-600'
+              }`}
           >
             {pageNum}
           </button>
@@ -127,7 +126,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={(currentPage >= totalPages && !hasMore) || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -354,9 +353,9 @@ export default function TransactionsDesktopView({
     if (type === 'payment') {
       return {
         label: 'Payment',
-        color: 'text-emerald-600 dark:text-emerald-400',
-        bgColor: 'bg-emerald-100 dark:bg-emerald-900/40',
-        iconBg: 'bg-emerald-100 dark:bg-emerald-900/40',
+        color: 'text-emerald-700 dark:text-emerald-400',
+        bgColor: 'bg-emerald-50 dark:bg-emerald-900/40',
+        iconBg: 'bg-emerald-50 dark:bg-emerald-900/40',
         icon: (
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -368,9 +367,9 @@ export default function TransactionsDesktopView({
     if (type === 'contract') {
       return {
         label: 'Contract',
-        color: 'text-amber-600 dark:text-amber-400',
-        bgColor: 'bg-amber-100 dark:bg-amber-900/40',
-        iconBg: 'bg-amber-100 dark:bg-amber-900/40',
+        color: 'text-amber-700 dark:text-amber-400',
+        bgColor: 'bg-amber-50 dark:bg-amber-900/40',
+        iconBg: 'bg-amber-50 dark:bg-amber-900/40',
         icon: (
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -382,9 +381,9 @@ export default function TransactionsDesktopView({
     if (info?.isSwap) {
       return {
         label: 'Swap',
-        color: 'text-violet-600 dark:text-violet-400',
-        bgColor: 'bg-violet-100 dark:bg-violet-900/40',
-        iconBg: 'bg-violet-100 dark:bg-violet-900/40',
+        color: 'text-violet-700 dark:text-violet-400',
+        bgColor: 'bg-violet-50 dark:bg-violet-900/40',
+        iconBg: 'bg-violet-50 dark:bg-violet-900/40',
         icon: (
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -396,9 +395,9 @@ export default function TransactionsDesktopView({
     if (type === 'manage_offer') {
       return {
         label: 'Offer',
-        color: 'text-indigo-600 dark:text-indigo-400',
-        bgColor: 'bg-indigo-100 dark:bg-indigo-900/40',
-        iconBg: 'bg-indigo-100 dark:bg-indigo-900/40',
+        color: 'text-indigo-700 dark:text-indigo-400',
+        bgColor: 'bg-indigo-50 dark:bg-indigo-900/40',
+        iconBg: 'bg-indigo-50 dark:bg-indigo-900/40',
         icon: (
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -410,9 +409,9 @@ export default function TransactionsDesktopView({
     if (type === 'multi_send' || type === 'bulk_send') {
       return {
         label: 'Multi Send',
-        color: 'text-cyan-600 dark:text-cyan-400',
-        bgColor: 'bg-cyan-100 dark:bg-cyan-900/40',
-        iconBg: 'bg-cyan-100 dark:bg-cyan-900/40',
+        color: 'text-cyan-700 dark:text-cyan-400',
+        bgColor: 'bg-cyan-50 dark:bg-cyan-900/40',
+        iconBg: 'bg-cyan-50 dark:bg-cyan-900/40',
         icon: (
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -444,7 +443,7 @@ export default function TransactionsDesktopView({
             <div className="flex items-start gap-4 min-w-0">
               <Link
                 href="/"
-                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 transition hover:bg-sky-200 dark:hover:bg-sky-900/60"
+                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400 transition hover:bg-sky-50 dark:hover:bg-sky-900/60"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -474,17 +473,17 @@ export default function TransactionsDesktopView({
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total</div>
                 <div className="text-lg font-bold text-[var(--text-primary)]">{stats.total}</div>
               </div>
-              <div className="p-3 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 min-w-[90px]">
-                <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Payments</div>
-                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{stats.payments}</div>
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 min-w-[90px]">
+                <div className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-1">Payments</div>
+                <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{stats.payments}</div>
               </div>
-              <div className="p-3 rounded-xl bg-amber-100/70 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 min-w-[90px]">
-                <div className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-1">Contracts</div>
-                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">{stats.contracts}</div>
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 min-w-[90px]">
+                <div className="text-[9px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-1">Contracts</div>
+                <div className="text-lg font-bold text-amber-700 dark:text-amber-400">{stats.contracts}</div>
               </div>
-              <div className="p-3 rounded-xl bg-sky-100/70 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[90px]">
-                <div className="text-[9px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest mb-1">Success</div>
-                <div className="text-lg font-bold text-sky-600 dark:text-sky-400">
+              <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[90px]">
+                <div className="text-[9px] font-bold text-sky-700 dark:text-sky-400 uppercase tracking-widest mb-1">Success</div>
+                <div className="text-lg font-bold text-sky-700 dark:text-sky-400">
                   {stats.total > 0 ? ((stats.successful / stats.total) * 100).toFixed(1) : 0}%
                 </div>
               </div>
@@ -503,11 +502,10 @@ export default function TransactionsDesktopView({
               key={tab.id}
               type="button"
               onClick={() => setFilter(tab.id as FilterType)}
-              className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${
-                filter === tab.id
-                  ? 'text-sky-600 border-b-2 border-sky-600'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-              }`}
+              className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${filter === tab.id
+                ? 'text-sky-600 border-b-2 border-sky-600'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                }`}
             >
               {tab.label}
               <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>{tab.count}</span>
@@ -539,8 +537,8 @@ export default function TransactionsDesktopView({
                     const typeInfo = getTypeInfo(tx);
 
                     // Adjust colors if failed
-                    const colorClass = !tx.successful ? 'text-rose-600 dark:text-rose-400' : typeInfo.color;
-                    const bgClass = !tx.successful ? 'bg-rose-100 dark:bg-rose-900/40 border-rose-200 dark:border-rose-800/50' : `${typeInfo.bgColor} border-transparent`;
+                    const colorClass = !tx.successful ? 'text-rose-700 dark:text-rose-400' : typeInfo.color;
+                    const bgClass = !tx.successful ? 'bg-rose-50 dark:bg-rose-900/40 border-rose-200 dark:border-rose-800/50' : `${typeInfo.bgColor} border-transparent`;
 
                     // Format fee (convert from stroops)
                     const feeXLM = tx.fee_charged ? (parseInt(tx.fee_charged) / 10000000).toFixed(7) : '0';
@@ -623,7 +621,7 @@ export default function TransactionsDesktopView({
 
                         {/* Arrow */}
                         <td className="py-2.5 px-1 text-center">
-                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-500">
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-500">
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                             </svg>
