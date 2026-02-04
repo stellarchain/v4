@@ -1,14 +1,40 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import AssetCandlestickChart from '@/components/AssetCandlestickChart';
 import AssetOrderBook from '@/components/AssetOrderBook';
-import AssetConverter from '@/components/AssetConverter';
-import { AssetDetails, shortenAddress } from '@/lib/stellar';
+import { AssetDetails, shortenAddress, getBaseUrl, timeAgo } from '@/lib/stellar';
 
 interface AssetDesktopViewProps {
   asset: AssetDetails;
   rank: number;
+}
+
+interface Trade {
+  id: string;
+  paging_token: string;
+  ledger_close_time: string;
+  base_account: string;
+  base_amount: string;
+  base_asset_type: string;
+  base_asset_code?: string;
+  base_asset_issuer?: string;
+  counter_account: string;
+  counter_amount: string;
+  counter_asset_type: string;
+  counter_asset_code?: string;
+  counter_asset_issuer?: string;
+  base_is_seller: boolean;
+  price: { n: number; d: number };
+}
+
+interface Holder {
+  account_id: string;
+  balance: string;
+  label?: { name: string; verified: boolean };
 }
 
 function formatNumber(num: number): string {
@@ -29,249 +55,623 @@ function formatPrice(price: number): string {
   return '$' + price.toFixed(8);
 }
 
-function StatCard({ label, value, subValue, tooltip }: { label: string; value: string; subValue?: string; tooltip?: string }) {
-  return (
-    <div className="bg-[var(--bg-secondary)] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
-      <div className="flex items-center gap-1 mb-1">
-        <span className="text-[var(--text-tertiary)] text-[11px] uppercase tracking-wider font-medium">{label}</span>
-        {tooltip && (
-          <svg className="w-3.5 h-3.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
-          </svg>
-        )}
-      </div>
-      <p className="text-[var(--text-primary)] font-semibold text-lg font-mono">{value}</p>
-      {subValue && <p className="text-[var(--text-tertiary)] text-[12px] mt-0.5">{subValue}</p>}
-    </div>
-  );
+function formatPriceShort(price: number): string {
+  if (price >= 1000) return price.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  if (price >= 1) return price.toFixed(2);
+  if (price >= 0.01) return price.toFixed(4);
+  if (price >= 0.0001) return price.toFixed(6);
+  return price.toFixed(8);
 }
 
-function ChangeIndicator({ value, size = 'md' }: { value: number; size?: 'sm' | 'md' | 'lg' }) {
-  const isPositive = value >= 0;
-  const sizeClasses = {
-    sm: 'text-[12px]',
-    md: 'text-[14px]',
-    lg: 'text-[18px]',
+type TabType = 'chart' | 'markets' | 'holders' | 'about';
+
+export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<TabType>('chart');
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [holders, setHolders] = useState<Holder[]>([]);
+  const [loadingTrades, setLoadingTrades] = useState(false);
+  const [loadingHolders, setLoadingHolders] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Converter state
+  const [assetAmount, setAssetAmount] = useState<string>('1');
+  const [usdAmount, setUsdAmount] = useState<string>(asset.price_usd.toFixed(asset.price_usd >= 1 ? 2 : 6));
+
+  useEffect(() => {
+    const amount = parseFloat(assetAmount) || 0;
+    setUsdAmount((amount * asset.price_usd).toFixed(asset.price_usd >= 1 ? 2 : 6));
+  }, [assetAmount, asset.price_usd]);
+
+  // Calculate price position in 24h range
+  const priceRange = asset.price_high_24h - asset.price_low_24h;
+  const pricePositionPercent = priceRange > 0
+    ? ((asset.price_usd - asset.price_low_24h) / priceRange) * 100
+    : 50;
+
+  // Calculate supply percentage
+  const supplyPercent = asset.total_supply > 0
+    ? (asset.circulating_supply / asset.total_supply) * 100
+    : 100;
+
+  // Fetch trades when markets tab is active
+  useEffect(() => {
+    if (activeTab !== 'markets' || trades.length > 0) return;
+
+    const fetchTrades = async () => {
+      setLoadingTrades(true);
+      try {
+        const isXLM = asset.code === 'XLM' && !asset.issuer;
+        let url: string;
+
+        if (isXLM) {
+          url = `${getBaseUrl()}/trades?base_asset_type=native&limit=50&order=desc`;
+        } else {
+          const assetType = asset.code.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12';
+          url = `${getBaseUrl()}/trades?base_asset_type=${assetType}&base_asset_code=${asset.code}&base_asset_issuer=${asset.issuer}&limit=50&order=desc`;
+        }
+
+        const res = await fetch(url);
+        const data = await res.json();
+        setTrades(data._embedded?.records || []);
+      } catch (error) {
+        console.error('Failed to fetch trades:', error);
+      }
+      setLoadingTrades(false);
+    };
+
+    fetchTrades();
+  }, [activeTab, asset.code, asset.issuer, trades.length]);
+
+  // Fetch holders when tab is active
+  useEffect(() => {
+    if (activeTab !== 'holders' || holders.length > 0 || !asset.issuer) return;
+
+    const fetchHolders = async () => {
+      setLoadingHolders(true);
+      try {
+        const url = `${getBaseUrl()}/accounts?asset=${asset.code}:${asset.issuer}&limit=25&order=desc`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+        const accounts = data._embedded?.records || [];
+
+        const holdersData: Holder[] = accounts.map((acc: any) => {
+          const balance = acc.balances.find((b: any) =>
+            b.asset_code === asset.code && b.asset_issuer === asset.issuer
+          );
+          return {
+            account_id: acc.id,
+            balance: balance?.balance || '0',
+          };
+        }).filter((h: Holder) => parseFloat(h.balance) > 0);
+
+        holdersData.sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance));
+
+        setHolders(holdersData);
+      } catch (error) {
+        console.error('Failed to fetch holders:', error);
+      }
+      setLoadingHolders(false);
+    };
+
+    fetchHolders();
+  }, [activeTab, asset.code, asset.issuer, holders.length]);
+
+  const copyIssuer = () => {
+    if (asset.issuer) {
+      navigator.clipboard.writeText(asset.issuer);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   return (
-    <span className={`font-medium ${sizeClasses[size]} ${isPositive ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-      {isPositive ? '▲' : '▼'} {Math.abs(value).toFixed(2)}%
-    </span>
-  );
-}
-
-export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps) {
-  return (
-    <div className="space-y-6 max-w-[1400px] mx-auto p-6">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-[13px] text-[var(--text-tertiary)]">
-        <Link href="/markets" className="hover:text-[var(--primary)] transition-colors">Markets</Link>
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-        <span className="text-[var(--text-primary)]">{asset.name}</span>
-      </nav>
-
-      {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6">
-        {/* Left Sidebar */}
-        <div className="space-y-4">
-          {/* Asset Header Card */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-14 h-14 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center text-[var(--text-primary)] font-bold text-xl">
-                {asset.code.slice(0, 2)}
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="mx-auto max-w-[1600px] px-6 py-6">
+        {/* Main Grid: Left Sidebar + Right Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-6">
+          {/* Left Sidebar */}
+          <div className="space-y-4">
+            {/* Asset Header */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-sky-50 rounded-full flex items-center justify-center overflow-hidden border border-sky-100">
+                {asset.image ? (
+                  <Image src={asset.image} alt={asset.code} width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                ) : (
+                  <span className="text-sky-600 font-bold text-sm">{asset.code.slice(0, 2)}</span>
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-semibold text-[var(--text-primary)]">{asset.name}</h1>
+                  <h1 className="text-lg font-bold text-slate-900">{asset.name}</h1>
+                  <span className="text-slate-400 text-sm font-medium">{asset.code}</span>
                   {rank > 0 && (
-                    <span className="px-2 py-0.5 bg-[var(--bg-tertiary)] rounded-xl text-[11px] text-[var(--text-tertiary)] font-medium">
+                    <span className="bg-slate-200 text-slate-600 text-[10px] font-bold px-1.5 py-0.5 rounded">
                       #{rank}
                     </span>
                   )}
                 </div>
-                <p className="text-[var(--text-tertiary)] text-[14px]">{asset.code}</p>
               </div>
             </div>
 
             {/* Price */}
-            <div className="mb-4">
+            <div>
               <div className="flex items-baseline gap-3">
-                <span className="text-3xl font-bold text-[var(--text-primary)] font-mono">
+                <span className="text-3xl font-bold text-slate-900">
                   {formatPrice(asset.price_usd)}
                 </span>
-                <ChangeIndicator value={asset.change_24h} size="md" />
+                <span className={`text-sm font-medium ${asset.change_24h >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {asset.change_24h >= 0 ? '▲' : '▼'} {Math.abs(asset.change_24h).toFixed(2)}% (24h)
+                </span>
               </div>
-              <p className="text-[var(--text-tertiary)] text-[13px] mt-1">
-                {asset.price_xlm.toFixed(4)} XLM
-              </p>
             </div>
 
-            {/* 24h Range */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between text-[12px] mb-1">
-                <span className="text-[var(--text-tertiary)]">24h Low</span>
-                <span className="text-[var(--text-tertiary)]">24h High</span>
+            {/* Stats Cards */}
+            <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm divide-y divide-slate-100">
+              {/* Market Cap */}
+              <div className="p-3 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-500">Market cap</span>
+                  <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
+                  </svg>
+                </div>
+                <div className="text-right">
+                  <span className="font-semibold text-slate-900">${formatNumber(asset.market_cap)}</span>
+                  {asset.change_24h !== 0 && (
+                    <span className={`ml-2 text-xs ${asset.change_24h >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      {asset.change_24h >= 0 ? '▲' : '▼'} {Math.abs(asset.change_24h).toFixed(2)}%
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="relative h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
-                <div
-                  className="absolute h-full bg-gradient-to-r from-[var(--error)] via-[var(--primary)] to-[var(--success)] rounded-full"
-                  style={{ left: '0%', right: '0%' }}
-                />
-                {asset.price_high_24h > asset.price_low_24h && (
+
+              {/* Volume & Vol/Mkt Cap */}
+              <div className="p-3 grid grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-xs text-slate-500">Volume (24h)</span>
+                  </div>
+                  <div className="font-semibold text-slate-900">${formatNumber(asset.volume_24h)}</div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-xs text-slate-500">Vol/Mkt Cap</span>
+                  </div>
+                  <div className="font-semibold text-slate-900">
+                    {asset.market_cap > 0 ? ((asset.volume_24h / asset.market_cap) * 100).toFixed(2) + '%' : '--'}
+                  </div>
+                </div>
+              </div>
+
+              {/* FDV */}
+              <div className="p-3 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-500">FDV</span>
+                  <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
+                  </svg>
+                </div>
+                <span className="font-semibold text-slate-900">
+                  ${formatNumber(asset.total_supply * asset.price_usd)}
+                </span>
+              </div>
+
+              {/* Supply Info */}
+              <div className="p-3 grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-slate-500 mb-0.5">Total supply</div>
+                  <div className="font-semibold text-slate-900">{formatNumber(asset.total_supply)} {asset.code}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-0.5">Max. supply</div>
+                  <div className="font-semibold text-slate-900">
+                    {asset.total_supply === asset.circulating_supply ? '∞' : formatNumber(asset.total_supply) + ' ' + asset.code}
+                  </div>
+                </div>
+              </div>
+
+              {/* Circulating Supply */}
+              <div className="p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-slate-500">Circulating supply</span>
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-500">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-500">{supplyPercent.toFixed(0)}%</span>
+                </div>
+                <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className="absolute w-2 h-2 bg-white rounded-full top-0 shadow-sm"
-                    style={{
-                      left: `${((asset.price_usd - asset.price_low_24h) / (asset.price_high_24h - asset.price_low_24h)) * 100}%`,
-                      transform: 'translateX(-50%)'
-                    }}
+                    className="absolute h-full bg-sky-500 rounded-full"
+                    style={{ width: `${supplyPercent}%` }}
                   />
+                </div>
+                <div className="mt-1.5 font-semibold text-slate-900">{formatNumber(asset.circulating_supply)} {asset.code}</div>
+              </div>
+            </div>
+
+            {/* Links Section */}
+            {(asset.domain || asset.issuer) && (
+              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm p-3 space-y-3">
+                {asset.domain && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500">Website</span>
+                    <a
+                      href={`https://${asset.domain}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-medium text-slate-700 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                      </svg>
+                      {asset.domain}
+                    </a>
+                  </div>
+                )}
+
+                {asset.issuer && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500">Issuer</span>
+                    <div className="flex items-center gap-1.5">
+                      <Link
+                        href={`/account/${asset.issuer}`}
+                        className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-mono font-medium text-slate-700 transition-colors"
+                      >
+                        <div className="w-4 h-4 bg-sky-500 rounded-full flex items-center justify-center">
+                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none" />
+                          </svg>
+                        </div>
+                        {shortenAddress(asset.issuer, 4)}
+                      </Link>
+                      <button
+                        onClick={copyIssuer}
+                        className="p-1.5 hover:bg-slate-100 rounded transition-colors"
+                        title="Copy issuer address"
+                      >
+                        {copied ? (
+                          <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Holders & Trades */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span className="text-xs text-slate-500">Holders</span>
+                  <span className="font-semibold text-slate-900">{formatNumber(asset.holders)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-500">Trades (24h)</span>
+                  <span className="font-semibold text-slate-900">{formatNumber(asset.trades_24h)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Converter */}
+            <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm p-3">
+              <div className="text-xs text-slate-500 mb-2">{asset.code} to USD converter</div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+                  <span className="text-sm font-medium text-slate-700">{asset.code}</span>
+                  <input
+                    type="number"
+                    value={assetAmount}
+                    onChange={(e) => setAssetAmount(e.target.value)}
+                    className="text-right bg-transparent font-semibold text-slate-900 focus:outline-none w-24"
+                    placeholder="1"
+                  />
+                </div>
+                <div className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+                  <span className="text-sm font-medium text-slate-700">USD</span>
+                  <span className="font-semibold text-slate-900">{usdAmount}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Price Performance */}
+            <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-500">Price performance</span>
+                <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">24h</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                <span>Low</span>
+                <span>High</span>
+              </div>
+              <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden mb-1">
+                <div className="absolute inset-0 bg-gradient-to-r from-rose-500 via-slate-300 to-emerald-500" />
+                <div
+                  className="absolute w-2.5 h-2.5 bg-white rounded-full top-1/2 -translate-y-1/2 shadow-md border-2 border-slate-400"
+                  style={{ left: `${Math.min(Math.max(pricePositionPercent, 5), 95)}%`, transform: 'translate(-50%, -50%)' }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-sm font-medium text-slate-700">
+                <span>{formatPrice(asset.price_low_24h)}</span>
+                <span>{formatPrice(asset.price_high_24h)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Content Area */}
+          <div className="space-y-5 min-w-0 overflow-hidden">
+            {/* Tab Navigation */}
+            <div className="flex items-center justify-between border-b border-slate-200">
+              <div className="flex gap-6">
+                {[
+                  { id: 'chart', label: 'Chart' },
+                  { id: 'markets', label: 'Markets' },
+                  { id: 'holders', label: 'Holders' },
+                  { id: 'about', label: 'About' },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as TabType)}
+                    className={`pb-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                      activeTab === tab.id
+                        ? 'text-sky-600 border-sky-500'
+                        : 'text-slate-500 border-transparent hover:text-slate-700'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === 'chart' && (
+              <div className="space-y-4">
+                <AssetCandlestickChart asset={asset} />
+
+                {/* Order Book below chart */}
+                <AssetOrderBook asset={asset} />
+              </div>
+            )}
+
+            {activeTab === 'markets' && (
+              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-x-auto">
+                <div className="p-4 border-b border-slate-100">
+                  <h3 className="font-semibold text-slate-900">{asset.name} Markets</h3>
+                  <p className="text-xs text-slate-500 mt-1">Recent trades on Stellar DEX</p>
+                </div>
+
+                {loadingTrades ? (
+                  <div className="flex items-center justify-center py-16">
+                    <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : trades.length === 0 ? (
+                  <div className="text-center py-16 text-slate-400">
+                    No recent trades found
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/50">
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-left">#</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-left">Pair</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-right">Price</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-right">Amount</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-right">Total</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-left">Time</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {trades.slice(0, 20).map((trade, idx) => {
+                        const isBuy = trade.base_is_seller;
+                        const price = trade.price.d > 0 ? trade.price.n / trade.price.d : 0;
+                        const amount = parseFloat(trade.base_amount);
+                        const total = price * amount;
+                        const counterCode = trade.counter_asset_code || 'XLM';
+
+                        return (
+                          <tr
+                            key={trade.id}
+                            className="hover:bg-sky-50/30 transition-colors"
+                          >
+                            <td className="py-3 px-4 text-sm text-slate-500">{idx + 1}</td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                  isBuy
+                                    ? 'bg-emerald-50 text-emerald-600'
+                                    : 'bg-rose-50 text-rose-600'
+                                }`}>
+                                  {isBuy ? 'BUY' : 'SELL'}
+                                </span>
+                                <span className="text-sm font-medium text-sky-600">{asset.code}/{counterCode}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono text-sm text-slate-900">
+                              ${formatPriceShort(price * asset.price_xlm)}
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono text-sm text-slate-700">
+                              {formatNumber(amount)}
+                            </td>
+                            <td className="py-3 px-4 text-right text-sm text-slate-700">
+                              ${formatNumber(total * asset.price_xlm)}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-slate-500">
+                              {timeAgo(trade.ledger_close_time)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 )}
               </div>
-              <div className="flex items-center justify-between text-[12px] mt-1">
-                <span className="text-[var(--text-primary)] font-mono">{formatPrice(asset.price_low_24h)}</span>
-                <span className="text-[var(--text-primary)] font-mono">{formatPrice(asset.price_high_24h)}</span>
-              </div>
-            </div>
-          </div>
+            )}
 
-          {/* Market Stats */}
-          <div className="grid grid-cols-2 gap-4">
-            <StatCard
-              label="Market Cap"
-              value={`$${formatNumber(asset.market_cap)}`}
-              tooltip="Total market value"
-            />
-            <StatCard
-              label="Volume (24h)"
-              value={`$${formatNumber(asset.volume_24h)}`}
-              subValue={asset.market_cap > 0 ? `${((asset.volume_24h / asset.market_cap) * 100).toFixed(2)}% of MCap` : undefined}
-            />
-            <StatCard
-              label="Circulating Supply"
-              value={formatNumber(asset.circulating_supply)}
-              subValue={asset.code}
-            />
-            <StatCard
-              label="Total Supply"
-              value={formatNumber(asset.total_supply)}
-              subValue={asset.code}
-            />
-          </div>
-
-          {/* Additional Info */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 space-y-4 shadow-sm">
-            {asset.holders > 0 && (
-              <div className="flex items-center justify-between">
-                <span className="text-[var(--text-tertiary)] text-[13px]">Holders</span>
-                <span className="text-[var(--text-primary)] font-mono text-[13px]">{formatNumber(asset.holders)}</span>
-              </div>
-            )}
-            {asset.payments_24h > 0 && (
-              <div className="flex items-center justify-between">
-                <span className="text-[var(--text-tertiary)] text-[13px]">Payments (24h)</span>
-                <span className="text-[var(--text-primary)] font-mono text-[13px]">{formatNumber(asset.payments_24h)}</span>
-              </div>
-            )}
-            {asset.trades_24h > 0 && (
-              <div className="flex items-center justify-between">
-                <span className="text-[var(--text-tertiary)] text-[13px]">Trades (24h)</span>
-                <span className="text-[var(--text-primary)] font-mono text-[13px]">{formatNumber(asset.trades_24h)}</span>
-              </div>
-            )}
-            {asset.all_time_high && (
-              <div className="flex items-center justify-between">
-                <span className="text-[var(--text-tertiary)] text-[13px]">All-Time High</span>
-                <span className="text-[var(--text-primary)] font-mono text-[13px]">{formatPrice(asset.all_time_high)}</span>
-              </div>
-            )}
-            {asset.all_time_low && (
-              <div className="flex items-center justify-between">
-                <span className="text-[var(--text-tertiary)] text-[13px]">All-Time Low</span>
-                <span className="text-[var(--text-primary)] font-mono text-[13px]">{formatPrice(asset.all_time_low)}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Links */}
-          {(asset.domain || asset.issuer) && (
-            <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 space-y-4 shadow-sm">
-              {asset.domain && (
-                <div className="flex items-center justify-between">
-                  <span className="text-[var(--text-tertiary)] text-[13px]">Website</span>
-                  <a
-                    href={`https://${asset.domain}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-[var(--primary)] text-[13px] hover:underline"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                    </svg>
-                    {asset.domain}
-                  </a>
+            {activeTab === 'holders' && (
+              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-x-auto">
+                <div className="p-4 border-b border-slate-100">
+                  <h3 className="font-semibold text-slate-900">Top {asset.code} Holders</h3>
+                  <p className="text-xs text-slate-500 mt-1">{formatNumber(asset.holders)} total holders</p>
                 </div>
-              )}
-              {asset.issuer && (
-                <div className="flex items-center justify-between">
-                  <span className="text-[var(--text-tertiary)] text-[13px]">Issuer</span>
-                  <Link
-                    href={`/account/${asset.issuer}`}
-                    className="flex items-center gap-1.5 text-[var(--primary)] text-[13px] font-mono hover:underline"
-                  >
-                    {shortenAddress(asset.issuer, 6)}
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </Link>
+
+                {!asset.issuer ? (
+                  <div className="text-center py-16 text-slate-400">
+                    XLM holders are not tracked
+                  </div>
+                ) : loadingHolders ? (
+                  <div className="flex items-center justify-center py-16">
+                    <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : holders.length === 0 ? (
+                  <div className="text-center py-16 text-slate-400">
+                    No holders found
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/50">
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-left w-12">#</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-left">Address</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-right">Balance</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-right">% of Supply</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-right">Value (USD)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {holders.map((holder, index) => {
+                        const balance = parseFloat(holder.balance);
+                        const percentage = asset.total_supply > 0 ? (balance / asset.total_supply) * 100 : 0;
+                        const valueUSD = balance * asset.price_usd;
+
+                        return (
+                          <tr
+                            key={holder.account_id}
+                            className="hover:bg-sky-50/30 transition-colors cursor-pointer"
+                            onClick={() => router.push(`/account/${holder.account_id}`)}
+                          >
+                            <td className="py-3 px-4 text-slate-500 text-sm">{index + 1}</td>
+                            <td className="py-3 px-4">
+                              <span className="font-mono text-sm text-sky-600 hover:underline">
+                                {shortenAddress(holder.account_id, 8)}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono text-sm text-slate-900">
+                              {formatNumber(balance)}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                  <div
+                                    className="bg-sky-500 h-1.5 rounded-full"
+                                    style={{ width: `${Math.min(percentage * 2, 100)}%` }}
+                                  />
+                                </div>
+                                <span className="text-sm text-slate-600 w-14 text-right">{percentage.toFixed(2)}%</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-right text-sm text-slate-700">
+                              ${formatNumber(valueUSD)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'about' && (
+              <div className="space-y-4">
+                {asset.description ? (
+                  <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm p-5">
+                    <h3 className="font-semibold text-slate-900 mb-3">About {asset.name}</h3>
+                    <p className="text-slate-600 text-sm leading-relaxed">
+                      {asset.description}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm p-5">
+                    <h3 className="font-semibold text-slate-900 mb-3">About {asset.name}</h3>
+                    <p className="text-slate-400 text-sm">
+                      No description available for this asset.
+                    </p>
+                  </div>
+                )}
+
+                {/* Price Performance Grid */}
+                <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-slate-100">
+                    <h3 className="font-semibold text-slate-900">Price Performance</h3>
+                  </div>
+                  <div className="grid grid-cols-5 divide-x divide-slate-100">
+                    {[
+                      { label: '1 Hour', value: asset.change_1h },
+                      { label: '24 Hours', value: asset.change_24h },
+                      { label: '7 Days', value: asset.change_7d },
+                      { label: '30 Days', value: asset.change_30d || 0 },
+                      { label: '1 Year', value: asset.change_1y || 0 },
+                    ].map((item) => (
+                      <div key={item.label} className="text-center py-4 px-3">
+                        <p className="text-[11px] text-slate-400 uppercase mb-1">{item.label}</p>
+                        <p className={`text-sm font-bold ${item.value >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                          {item.value >= 0 ? '+' : ''}{item.value?.toFixed(2)}%
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              )}
-            </div>
-          )}
 
-          {/* Price Converter */}
-          <AssetConverter asset={asset} />
-        </div>
-
-        {/* Right Content - Chart */}
-        <div className="space-y-4">
-          {/* Chart Section */}
-          <div className="space-y-6">
-            <AssetCandlestickChart asset={asset} />
-            <AssetOrderBook asset={asset} />
+                {/* Additional Info */}
+                <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm p-5">
+                  <h3 className="font-semibold text-slate-900 mb-3">Asset Details</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-slate-500">Asset Code</span>
+                      <p className="font-medium text-slate-900">{asset.code}</p>
+                    </div>
+                    {asset.issuer && (
+                      <div>
+                        <span className="text-slate-500">Issuer</span>
+                        <p className="font-mono text-sky-600 text-xs">{shortenAddress(asset.issuer, 12)}</p>
+                      </div>
+                    )}
+                    {asset.domain && (
+                      <div>
+                        <span className="text-slate-500">Home Domain</span>
+                        <p className="font-medium text-slate-900">{asset.domain}</p>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-slate-500">Rating</span>
+                      <p className="font-medium text-slate-900">{asset.rating}/5</p>
+                    </div>
+                    {asset.all_time_high && (
+                      <div>
+                        <span className="text-slate-500">All-Time High</span>
+                        <p className="font-medium text-emerald-600">{formatPrice(asset.all_time_high)}</p>
+                      </div>
+                    )}
+                    {asset.all_time_low && (
+                      <div>
+                        <span className="text-slate-500">All-Time Low</span>
+                        <p className="font-medium text-rose-600">{formatPrice(asset.all_time_low)}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-
-          {/* Price Performance */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm">
-            <h3 className="text-[var(--text-primary)] font-semibold mb-4 text-sm uppercase tracking-wide">Price Performance</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-[var(--bg-tertiary)] rounded-xl">
-                <p className="text-[var(--text-tertiary)] text-[11px] uppercase mb-1">1 Hour</p>
-                <ChangeIndicator value={asset.change_1h} size="sm" />
-              </div>
-              <div className="text-center p-4 bg-[var(--bg-tertiary)] rounded-xl">
-                <p className="text-[var(--text-tertiary)] text-[11px] uppercase mb-1">24 Hours</p>
-                <ChangeIndicator value={asset.change_24h} size="sm" />
-              </div>
-              <div className="text-center p-4 bg-[var(--bg-tertiary)] rounded-xl">
-                <p className="text-[var(--text-tertiary)] text-[11px] uppercase mb-1">7 Days</p>
-                <ChangeIndicator value={asset.change_7d} size="sm" />
-              </div>
-            </div>
-          </div>
-
-          {/* About Section */}
-          {asset.description && (
-            <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm">
-              <h3 className="text-[var(--text-primary)] font-semibold mb-3">About {asset.name}</h3>
-              <p className="text-[var(--text-secondary)] text-[14px] leading-relaxed">
-                {asset.description}
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>
