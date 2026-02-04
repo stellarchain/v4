@@ -360,7 +360,7 @@ export default function LedgerDesktopView({
                 {/* Left: Ledger Details */}
                 <section className="lg:col-span-7 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                   <div className="flex items-center gap-3 px-5 pt-5 pb-3">
-                    <div className="w-9 h-9 bg-sky-50 rounded-lg flex items-center justify-center text-sky-500">
+                    <div className="w-9 h-9 bg-sky-100 dark:bg-sky-900/40 rounded-lg flex items-center justify-center text-sky-500">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                       </svg>
@@ -392,9 +392,9 @@ export default function LedgerDesktopView({
                         <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Tx Set Ops</div>
                         <div className="text-lg font-bold text-[var(--text-primary)]">{ledger.tx_set_operation_count}</div>
                       </div>
-                      <div className="p-3 rounded-xl border border-sky-100 bg-sky-50/50">
-                        <div className="text-[9px] font-bold text-sky-600/60 uppercase tracking-widest mb-1">Base Fee</div>
-                        <div className="text-lg font-bold text-sky-600">
+                      <div className="p-3 rounded-xl border border-sky-200 dark:border-sky-800/50 bg-sky-100/50 dark:bg-sky-900/30">
+                        <div className="text-[9px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest mb-1">Base Fee</div>
+                        <div className="text-lg font-bold text-sky-600 dark:text-sky-400">
                           {formatStroopsToXLM(ledger.base_fee_in_stroops)} <span className="text-xs font-medium text-[var(--text-muted)]">XLM</span>
                         </div>
                       </div>
@@ -412,7 +412,7 @@ export default function LedgerDesktopView({
                 <section className="lg:col-span-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                   <div className="flex items-center justify-between px-5 pt-5 pb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-500">
+                      <div className="w-9 h-9 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg flex items-center justify-center text-emerald-500">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
@@ -423,18 +423,18 @@ export default function LedgerDesktopView({
                   </div>
                   <div className="p-4 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 rounded-xl border border-emerald-100 bg-emerald-50/50">
-                        <div className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-widest mb-1">Successful</div>
+                      <div className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-100/50 dark:bg-emerald-900/30">
+                        <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Successful</div>
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                          <span className="text-xl font-bold text-emerald-600">{ledger.successful_transaction_count}</span>
+                          <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{ledger.successful_transaction_count}</span>
                         </div>
                       </div>
-                      <div className="p-3 rounded-xl border border-rose-100 bg-rose-50/50">
-                        <div className="text-[9px] font-bold text-rose-600/60 uppercase tracking-widest mb-1">Failed</div>
+                      <div className="p-3 rounded-xl border border-rose-200 dark:border-rose-800/50 bg-rose-100/50 dark:bg-rose-900/30">
+                        <div className="text-[9px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-1">Failed</div>
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                          <span className="text-xl font-bold text-rose-600">{ledger.failed_transaction_count}</span>
+                          <span className="text-xl font-bold text-rose-600 dark:text-rose-400">{ledger.failed_transaction_count}</span>
                         </div>
                       </div>
                     </div>
@@ -442,13 +442,13 @@ export default function LedgerDesktopView({
                       <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Operations</div>
                       <div className="text-xl font-bold text-[var(--text-primary)]">{ledger.operation_count}</div>
                     </div>
-                    <div className="p-3 rounded-xl border border-violet-100 bg-violet-50/50">
-                      <div className="text-[9px] font-bold text-violet-600/60 uppercase tracking-widest mb-1">Total Coins</div>
-                      <div className="text-lg font-bold text-violet-600">{formatXLM(ledger.total_coins)} <span className="text-xs font-medium">XLM</span></div>
+                    <div className="p-3 rounded-xl border border-violet-200 dark:border-violet-800/50 bg-violet-100/50 dark:bg-violet-900/30">
+                      <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">Total Coins</div>
+                      <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{formatXLM(ledger.total_coins)} <span className="text-xs font-medium">XLM</span></div>
                     </div>
-                    <div className="p-3 rounded-xl border border-amber-100 bg-amber-50/50">
-                      <div className="text-[9px] font-bold text-amber-600/60 uppercase tracking-widest mb-1">Fee Pool</div>
-                      <div className="text-lg font-bold text-amber-600">{formatXLM(ledger.fee_pool)} <span className="text-xs font-medium">XLM</span></div>
+                    <div className="p-3 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-100/50 dark:bg-amber-900/30">
+                      <div className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-1">Fee Pool</div>
+                      <div className="text-lg font-bold text-amber-600 dark:text-amber-400">{formatXLM(ledger.fee_pool)} <span className="text-xs font-medium">XLM</span></div>
                     </div>
                   </div>
                 </section>
