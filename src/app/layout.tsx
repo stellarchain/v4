@@ -49,8 +49,28 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Script to prevent white flash by setting theme before render
+  const themeScript = `
+    (function() {
+      try {
+        var theme = localStorage.getItem('stellarchain-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    })();
+  `;
+
   return (
-    <html lang="en" suppressHydrationWarning data-theme="light">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <style dangerouslySetInnerHTML={{ __html: `
+          html[data-theme="dark"] { background-color: #0a0f1a; }
+          html[data-theme="light"] { background-color: #f8fafc; }
+        ` }} />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen transition-colors duration-300 overflow-x-hidden`}>
         <ThemeProvider>
           <NetworkProvider>

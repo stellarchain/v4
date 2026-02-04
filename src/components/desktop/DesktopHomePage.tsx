@@ -689,11 +689,11 @@ export default function DesktopHomePage({
 
                                             // Get type colors
                                             const getTypeColors = () => {
-                                                if (op.type === 'payment' || op.type === 'create_account') return 'bg-emerald-50 text-emerald-600 border-emerald-200';
-                                                if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') return 'bg-violet-50 text-violet-600 border-violet-200';
-                                                if (['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type)) return 'bg-indigo-50 text-indigo-600 border-indigo-200';
-                                                if (op.type === 'invoke_host_function') return 'bg-amber-50 text-amber-600 border-amber-200';
-                                                if (op.type === 'change_trust') return 'bg-teal-50 text-teal-600 border-teal-200';
+                                                if (op.type === 'payment' || op.type === 'create_account') return 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50';
+                                                if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') return 'bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800/50';
+                                                if (['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type)) return 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50';
+                                                if (op.type === 'invoke_host_function') return 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/50';
+                                                if (op.type === 'change_trust') return 'bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400 border-teal-200 dark:border-teal-800/50';
                                                 return 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)]';
                                             };
 
@@ -796,7 +796,7 @@ export default function DesktopHomePage({
 
                                                     {/* Arrow */}
                                                     <td className="py-2 px-1 text-center">
-                                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-50 text-emerald-500">
+                                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-500">
                                                             <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                                             </svg>

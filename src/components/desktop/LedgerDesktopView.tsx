@@ -470,15 +470,15 @@ export default function LedgerDesktopView({
                     if (info.type === 'contract') {
                       description = info.functionName || 'Contract Call';
                       typeDisplay = 'CONTRACT';
-                      accentClass = 'text-amber-600';
-                      bgClass = 'bg-amber-50';
-                      iconBgClass = 'bg-amber-100';
+                      accentClass = 'text-amber-600 dark:text-amber-400';
+                      bgClass = 'bg-amber-100 dark:bg-amber-900/40';
+                      iconBgClass = 'bg-amber-100 dark:bg-amber-900/40';
                     } else if (info.type === 'payment') {
                       typeDisplay = info.isSwap ? 'SWAP' : 'PAYMENT';
                       description = info.isSwap ? 'Swap Tokens' : 'Payment';
-                      accentClass = info.isSwap ? 'text-violet-600' : 'text-emerald-600';
-                      bgClass = info.isSwap ? 'bg-violet-50' : 'bg-emerald-50';
-                      iconBgClass = info.isSwap ? 'bg-violet-100' : 'bg-emerald-100';
+                      accentClass = info.isSwap ? 'text-violet-600 dark:text-violet-400' : 'text-emerald-600 dark:text-emerald-400';
+                      bgClass = info.isSwap ? 'bg-violet-100 dark:bg-violet-900/40' : 'bg-emerald-100 dark:bg-emerald-900/40';
+                      iconBgClass = info.isSwap ? 'bg-violet-100 dark:bg-violet-900/40' : 'bg-emerald-100 dark:bg-emerald-900/40';
 
                       if (info.amount) {
                         valueDisplay = (
@@ -491,15 +491,15 @@ export default function LedgerDesktopView({
                     } else if (info.type === 'manage_offer') {
                       description = 'Manage Offer';
                       typeDisplay = 'OFFER';
-                      accentClass = 'text-indigo-600';
-                      bgClass = 'bg-indigo-50';
-                      iconBgClass = 'bg-indigo-100';
+                      accentClass = 'text-indigo-600 dark:text-indigo-400';
+                      bgClass = 'bg-indigo-100 dark:bg-indigo-900/40';
+                      iconBgClass = 'bg-indigo-100 dark:bg-indigo-900/40';
                     } else if (info.type === 'multi_send' || info.type === 'bulk_send') {
                       description = info.type === 'bulk_send' ? 'Bulk Send' : 'Multi Send';
                       typeDisplay = 'MULTI SEND';
-                      accentClass = 'text-cyan-600';
-                      bgClass = 'bg-cyan-50';
-                      iconBgClass = 'bg-cyan-100';
+                      accentClass = 'text-cyan-600 dark:text-cyan-400';
+                      bgClass = 'bg-cyan-100 dark:bg-cyan-900/40';
+                      iconBgClass = 'bg-cyan-100 dark:bg-cyan-900/40';
                       valueDisplay = (
                         <div className="text-right">
                           <div className="text-sm font-bold text-[var(--text-primary)]">{info.elementCount}</div>
@@ -509,9 +509,9 @@ export default function LedgerDesktopView({
                     }
 
                     if (!tx.successful) {
-                      accentClass = 'text-rose-600';
-                      bgClass = 'bg-rose-50';
-                      iconBgClass = 'bg-rose-100';
+                      accentClass = 'text-rose-600 dark:text-rose-400';
+                      bgClass = 'bg-rose-100 dark:bg-rose-900/40';
+                      iconBgClass = 'bg-rose-100 dark:bg-rose-900/40';
                     }
 
                     return (
@@ -616,45 +616,45 @@ export default function LedgerDesktopView({
                       summary = `${formatTokenAmount((op as any).amount, 2)} ${asset}`;
                       summaryLabel = (op as any).to ? `→ ${shortenAddress((op as any).to, 4)}` : '';
                       typeDisplay = 'Payment';
-                      accentClass = 'text-emerald-600';
-                      bgClass = 'bg-emerald-50';
-                      iconBgClass = 'bg-emerald-100';
+                      accentClass = 'text-emerald-600 dark:text-emerald-400';
+                      bgClass = 'bg-emerald-100 dark:bg-emerald-900/40';
+                      iconBgClass = 'bg-emerald-100 dark:bg-emerald-900/40';
                     } else if (op.type === 'create_account') {
                       summary = `${formatTokenAmount((op as any).starting_balance, 2)} XLM`;
                       summaryLabel = 'New Account';
                       typeDisplay = 'Create Account';
-                      accentClass = 'text-blue-600';
-                      bgClass = 'bg-blue-50';
-                      iconBgClass = 'bg-blue-100';
+                      accentClass = 'text-blue-600 dark:text-blue-400';
+                      bgClass = 'bg-blue-100 dark:bg-blue-900/40';
+                      iconBgClass = 'bg-blue-100 dark:bg-blue-900/40';
                     } else if (op.type === 'invoke_host_function') {
                       typeDisplay = 'Contract';
                       summary = decodeContractFunctionName(op);
-                      accentClass = 'text-amber-600';
-                      bgClass = 'bg-amber-50';
-                      iconBgClass = 'bg-amber-100';
+                      accentClass = 'text-amber-600 dark:text-amber-400';
+                      bgClass = 'bg-amber-100 dark:bg-amber-900/40';
+                      iconBgClass = 'bg-amber-100 dark:bg-amber-900/40';
                     } else if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') {
                       typeDisplay = 'Swap';
                       summary = `${formatTokenAmount((op as any).amount, 2)} ${(op as any).asset_code || 'XLM'}`;
                       summaryLabel = 'Received';
-                      accentClass = 'text-violet-600';
-                      bgClass = 'bg-violet-50';
-                      iconBgClass = 'bg-violet-100';
+                      accentClass = 'text-violet-600 dark:text-violet-400';
+                      bgClass = 'bg-violet-100 dark:bg-violet-900/40';
+                      iconBgClass = 'bg-violet-100 dark:bg-violet-900/40';
                     } else if (op.type === 'change_trust') {
                       typeDisplay = 'Trustline';
-                      accentClass = 'text-indigo-600';
-                      bgClass = 'bg-indigo-50';
-                      iconBgClass = 'bg-indigo-100';
+                      accentClass = 'text-indigo-600 dark:text-indigo-400';
+                      bgClass = 'bg-indigo-100 dark:bg-indigo-900/40';
+                      iconBgClass = 'bg-indigo-100 dark:bg-indigo-900/40';
                     } else if (op.type.includes('offer')) {
                       typeDisplay = 'Offer';
-                      accentClass = 'text-cyan-600';
-                      bgClass = 'bg-cyan-50';
-                      iconBgClass = 'bg-cyan-100';
+                      accentClass = 'text-cyan-600 dark:text-cyan-400';
+                      bgClass = 'bg-cyan-100 dark:bg-cyan-900/40';
+                      iconBgClass = 'bg-cyan-100 dark:bg-cyan-900/40';
                     }
 
                     if (!op.transaction_successful) {
-                      accentClass = 'text-rose-600';
-                      bgClass = 'bg-rose-50';
-                      iconBgClass = 'bg-rose-100';
+                      accentClass = 'text-rose-600 dark:text-rose-400';
+                      bgClass = 'bg-rose-100 dark:bg-rose-900/40';
+                      iconBgClass = 'bg-rose-100 dark:bg-rose-900/40';
                     }
 
                     return (
