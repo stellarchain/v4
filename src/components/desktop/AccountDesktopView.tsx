@@ -67,11 +67,11 @@ function formatExactNumber(value: number): string {
 }
 
 const getOperationCategory = (type: string): { label: string; color: string; bgColor: string } => {
-  if (type === 'payment' || type === 'create_account') return { label: 'Payment', color: 'text-emerald-600', bgColor: 'bg-emerald-50 border-emerald-100' };
-  if (type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') return { label: 'Swap', color: 'text-violet-600', bgColor: 'bg-violet-50 border-violet-100' };
-  if (type === 'invoke_host_function') return { label: 'Contract', color: 'text-amber-600', bgColor: 'bg-amber-50 border-amber-100' };
-  if (type.includes('offer')) return { label: 'DEX', color: 'text-indigo-600', bgColor: 'bg-indigo-50 border-indigo-100' };
-  if (type === 'change_trust' || type === 'set_trustline_flags') return { label: 'Trustline', color: 'text-sky-600', bgColor: 'bg-sky-50 border-sky-100' };
+  if (type === 'payment' || type === 'create_account') return { label: 'Payment', color: 'text-emerald-700 dark:text-emerald-400', bgColor: 'bg-emerald-50 dark:bg-emerald-900/40 border-emerald-100 dark:border-emerald-800' };
+  if (type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') return { label: 'Swap', color: 'text-violet-700 dark:text-violet-400', bgColor: 'bg-violet-50 dark:bg-violet-900/40 border-violet-100 dark:border-violet-800' };
+  if (type === 'invoke_host_function') return { label: 'Contract', color: 'text-amber-700 dark:text-amber-400', bgColor: 'bg-amber-50 dark:bg-amber-900/40 border-amber-100 dark:border-amber-800' };
+  if (type.includes('offer')) return { label: 'DEX', color: 'text-indigo-700 dark:text-indigo-400', bgColor: 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-100 dark:border-indigo-800' };
+  if (type === 'change_trust' || type === 'set_trustline_flags') return { label: 'Trustline', color: 'text-sky-700 dark:text-sky-400', bgColor: 'bg-sky-50 dark:bg-sky-900/40 border-sky-100 dark:border-sky-800' };
   if (type === 'set_options' || type === 'account_merge') return { label: 'Account', color: 'text-[var(--text-secondary)]', bgColor: 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]' };
   return { label: 'Action', color: 'text-[var(--text-secondary)]', bgColor: 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]' };
 };
@@ -514,11 +514,10 @@ export default function AccountDesktopView({ account, transactions, operations: 
               }
               setShowFavoriteModal(true);
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${
-              isCurrentFavorite
-                ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
-                : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] border-[var(--border-default)] hover:bg-[var(--bg-tertiary)] hover:text-amber-500'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${isCurrentFavorite
+              ? 'bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/60'
+              : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] border-[var(--border-default)] hover:bg-[var(--bg-tertiary)] hover:text-amber-600'
+              }`}
           >
             <svg className="w-4 h-4" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -683,11 +682,10 @@ export default function AccountDesktopView({ account, transactions, operations: 
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id as 'assets' | 'transactions' | 'operations' | 'details')}
-                  className={`px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${
-                    activeTab === tab.id
-                      ? 'text-sky-600 border-sky-500'
-                      : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-secondary)]'
-                  }`}
+                  className={`px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${activeTab === tab.id
+                    ? 'text-sky-600 border-sky-500'
+                    : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-secondary)]'
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -834,11 +832,10 @@ export default function AccountDesktopView({ account, transactions, operations: 
                           </td>
                           <td className="px-4 py-3">
                             {effectInfo && (
-                              <span className={`inline-flex items-center justify-center w-10 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                isIncoming
-                                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                                  : 'bg-amber-100 text-amber-700 border border-amber-200'
-                              }`}>
+                              <span className={`inline-flex items-center justify-center w-10 py-0.5 rounded text-[10px] font-bold uppercase ${isIncoming
+                                ? 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                                : 'bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                                }`}>
                                 {isIncoming ? 'IN' : 'OUT'}
                               </span>
                             )}
@@ -863,9 +860,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
                           </td>
                           <td className="px-4 py-3 text-right">
                             {effectInfo ? (
-                              <span className={`text-sm font-medium ${
-                                isIncoming ? 'text-emerald-600' : 'text-[var(--text-secondary)]'
-                              }`}>
+                              <span className={`text-sm font-medium ${isIncoming ? 'text-emerald-600' : 'text-[var(--text-secondary)]'
+                                }`}>
                                 {isIncoming ? '+' : '-'}{formatCompactNumber(parseFloat(effectInfo.amount))} {effectInfo.asset}
                               </span>
                             ) : (
@@ -1245,7 +1241,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                       setFavoriteLabel('');
                       setShowFavoriteModal(false);
                     }}
-                    className="py-2.5 px-4 rounded-lg bg-rose-50 text-rose-600 font-medium text-sm border border-rose-100 hover:bg-rose-100 transition-colors"
+                    className="py-2.5 px-4 rounded-lg bg-rose-50 text-rose-700 font-medium text-sm border border-rose-100 hover:bg-rose-100 transition-colors"
                   >
                     Remove
                   </button>

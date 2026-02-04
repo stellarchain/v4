@@ -200,12 +200,11 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
             <div className="h-8 w-px bg-[var(--border-default)]" />
 
             {/* Contract Icon */}
-            <div className={`w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0 ${
-              isToken ? 'bg-indigo-500' :
+            <div className={`w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0 ${isToken ? 'bg-indigo-500' :
               isNFT ? 'bg-pink-500' :
-              isVault ? 'bg-amber-500' :
-              'bg-[var(--text-secondary)]'
-            } text-white`}>
+                isVault ? 'bg-amber-500' :
+                  'bg-[var(--text-secondary)]'
+              } text-white`}>
               {getTypeIcon()}
             </div>
 
@@ -229,13 +228,13 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)] px-2 py-0.5 bg-[var(--bg-tertiary)] rounded">
                     {contract.type === 'dex' ? 'DEX' :
-                     contract.type === 'lending' ? 'Lending' :
-                     contract.type === 'nft' ? 'NFT' :
-                     contract.type === 'vault' ? 'Vault' :
-                     isToken ? 'Token' : 'Contract'}
+                      contract.type === 'lending' ? 'Lending' :
+                        contract.type === 'nft' ? 'NFT' :
+                          contract.type === 'vault' ? 'Vault' :
+                            isToken ? 'Token' : 'Contract'}
                   </span>
                   {contract.isVerified && (
-                    <span className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">
+                    <span className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
                       <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -247,7 +246,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                       href={sourceRepo}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600 hover:bg-blue-100 transition-colors"
+                      className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
                     >
                       <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -256,11 +255,10 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                     </a>
                   )}
                   {isToken && (
-                    <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
-                      contract.tokenMetadata?.isSAC
-                        ? 'bg-blue-50 text-blue-600 border-blue-200'
-                        : 'bg-purple-50 text-purple-600 border-purple-200'
-                    }`}>
+                    <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold ${contract.tokenMetadata?.isSAC
+                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                      : 'bg-purple-50 text-purple-700 border-purple-200'
+                      }`}>
                       {contract.tokenMetadata?.isSAC ? 'SAC' : 'SEP-41'}
                     </span>
                   )}
@@ -387,25 +385,24 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                 { id: 'events', label: 'Events', count: contract.events?.length },
                 { id: 'storage', label: 'Storage', count: contract.storage?.totalEntries },
               ].filter(tab => tab.id !== 'events' || (contract.events && contract.events.length > 0))
-               .filter(tab => tab.id !== 'storage' || (contract.storage && contract.storage.totalEntries > 0))
-               .filter(tab => tab.id !== 'history' || (contract.invocations && contract.invocations.length > 0))
-               .map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                  className={`pb-3 text-sm font-bold transition-all flex items-center gap-2 ${
-                    activeTab === tab.id
+                .filter(tab => tab.id !== 'storage' || (contract.storage && contract.storage.totalEntries > 0))
+                .filter(tab => tab.id !== 'history' || (contract.invocations && contract.invocations.length > 0))
+                .map(tab => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                    className={`pb-3 text-sm font-bold transition-all flex items-center gap-2 ${activeTab === tab.id
                       ? 'border-b-2 border-sky-500 text-sky-600'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                  }`}
-                >
-                  {tab.label}
-                  {tab.count !== undefined && tab.count > 0 && (
-                    <span className="rounded-full bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-tertiary)]">{tab.count}</span>
-                  )}
-                </button>
-              ))}
+                      }`}
+                  >
+                    {tab.label}
+                    {tab.count !== undefined && tab.count > 0 && (
+                      <span className="rounded-full bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-tertiary)]">{tab.count}</span>
+                    )}
+                  </button>
+                ))}
             </div>
 
             {/* Tab Content */}
@@ -439,13 +436,12 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
                         const eventContent = (
                           <div className="flex items-center gap-4">
-                            <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                              event.type === 'transfer' ? 'bg-blue-100 text-blue-600' :
-                              event.type === 'mint' ? 'bg-green-100 text-green-600' :
-                              event.type === 'burn' ? 'bg-orange-100 text-orange-600' :
-                              event.type === 'approve' ? 'bg-purple-100 text-purple-600' :
-                              'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
-                            }`}>
+                            <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${event.type === 'transfer' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400' :
+                              event.type === 'mint' ? 'bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-400' :
+                                event.type === 'burn' ? 'bg-orange-50 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400' :
+                                  event.type === 'approve' ? 'bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400' :
+                                    'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
+                              }`}>
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                               </svg>
@@ -593,8 +589,8 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                             <tr key={idx} className="hover:bg-[var(--bg-tertiary)] transition-colors">
                               <td className="px-5 py-4">
                                 <div className="flex items-center gap-3">
-                                  <div className="h-9 w-9 rounded-lg bg-sky-100 flex items-center justify-center flex-shrink-0">
-                                    <svg className="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <div className="h-9 w-9 rounded-lg bg-sky-50 dark:bg-sky-900/40 flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-4 h-4 text-sky-700 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
                                   </div>
@@ -876,11 +872,10 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                           }}
                         >
                           <div className="flex items-start gap-3">
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase flex-shrink-0 ${
-                              entry.durability === 'instance' ? 'bg-indigo-100 text-indigo-700' :
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase flex-shrink-0 ${entry.durability === 'instance' ? 'bg-indigo-100 text-indigo-700' :
                               entry.durability === 'persistent' ? 'bg-emerald-100 text-emerald-700' :
-                              'bg-amber-100 text-amber-700'
-                            }`}>
+                                'bg-amber-100 text-amber-700'
+                              }`}>
                               {entry.durability}
                             </span>
                             <div className="flex-1 min-w-0">

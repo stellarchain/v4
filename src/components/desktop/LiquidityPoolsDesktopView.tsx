@@ -79,11 +79,10 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
                         key={pageNum}
                         onClick={() => onPageChange(pageNum)}
                         disabled={loading}
-                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${
-                            currentPage === pageNum
-                                ? 'bg-sky-600 text-white shadow-sm'
-                                : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-600'
-                        }`}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${currentPage === pageNum
+                            ? 'bg-sky-600 text-white shadow-sm'
+                            : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
+                            }`}
                     >
                         {pageNum}
                     </button>
@@ -227,7 +226,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                         <div className="flex items-start gap-4 min-w-0">
                             <Link
                                 href="/"
-                                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 transition hover:bg-sky-200 dark:hover:bg-sky-900/60"
+                                className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400 transition hover:bg-sky-100 dark:hover:bg-sky-900/60"
                             >
                                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -257,13 +256,13 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Pools</div>
                                 <div className="text-lg font-bold text-[var(--text-primary)]">{stats.total.toLocaleString()}</div>
                             </div>
-                            <div className="p-3 rounded-xl bg-violet-100/70 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800/50 min-w-[100px]">
-                                <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">Total Shares</div>
-                                <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{formatShares(stats.totalShares.toString())}</div>
+                            <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800/50 min-w-[100px]">
+                                <div className="text-[9px] font-bold text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-1">Total Shares</div>
+                                <div className="text-lg font-bold text-violet-700 dark:text-violet-400">{formatShares(stats.totalShares.toString())}</div>
                             </div>
-                            <div className="p-3 rounded-xl bg-sky-100/70 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[100px]">
-                                <div className="text-[9px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest mb-1">Liquidity</div>
-                                <div className="text-lg font-bold text-sky-600 dark:text-sky-400">{formatAmount(stats.totalLiquidity.toString())}</div>
+                            <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[100px]">
+                                <div className="text-[9px] font-bold text-sky-700 dark:text-sky-400 uppercase tracking-widest mb-1">Liquidity</div>
+                                <div className="text-lg font-bold text-sky-700 dark:text-sky-400">{formatAmount(stats.totalLiquidity.toString())}</div>
                             </div>
                         </div>
                     </div>
@@ -421,14 +420,14 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
 
                                                 {/* Fee */}
                                                 <td className="py-2.5 px-3 text-center">
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-amber-50 border border-amber-100 text-[10px] font-bold text-amber-600">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-amber-50 border border-amber-100 text-[10px] font-bold text-amber-700">
                                                         {feePercent}%
                                                     </span>
                                                 </td>
 
                                                 {/* Arrow */}
                                                 <td className="py-2.5 px-4 text-center">
-                                                    <div className="w-7 h-7 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-muted)] group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors mx-auto">
+                                                    <div className="w-7 h-7 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-muted)] group-hover:bg-sky-50 group-hover:text-sky-700 transition-colors mx-auto">
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                                         </svg>

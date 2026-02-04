@@ -82,19 +82,19 @@ const formatTokenAmount = (value?: string, digits = 7) => {
 };
 
 const getOperationCategory = (type: string): { label: string; color: string } => {
-  if (type === 'payment' || type === 'create_account') return { label: 'Transfer', color: 'text-emerald-500' };
-  if (type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') return { label: 'Swap', color: 'text-sky-500' };
-  if (type === 'invoke_host_function') return { label: 'Contract', color: 'text-amber-500' };
-  if (type.includes('offer')) return { label: 'DEX', color: 'text-violet-500' };
+  if (type === 'payment' || type === 'create_account') return { label: 'Transfer', color: 'text-emerald-700 dark:text-emerald-400' };
+  if (type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') return { label: 'Swap', color: 'text-sky-700 dark:text-sky-400' };
+  if (type === 'invoke_host_function') return { label: 'Contract', color: 'text-amber-700 dark:text-amber-400' };
+  if (type.includes('offer')) return { label: 'DEX', color: 'text-violet-700 dark:text-violet-400' };
   if (type === 'change_trust' || type === 'set_trustline_flags') return { label: 'Action', color: 'text-[var(--text-muted)]' };
   return { label: 'Action', color: 'text-[var(--text-muted)]' };
 };
 
 const getEffectCategory = (type: string): { label: string; color: string } => {
-  if (type.includes('credited')) return { label: 'Credit', color: 'text-emerald-500' };
-  if (type.includes('debited')) return { label: 'Debit', color: 'text-rose-500' };
-  if (type.includes('trustline')) return { label: 'Trust', color: 'text-indigo-500' };
-  if (type.includes('trade')) return { label: 'Trade', color: 'text-violet-500' };
+  if (type.includes('credited')) return { label: 'Credit', color: 'text-emerald-700 dark:text-emerald-400' };
+  if (type.includes('debited')) return { label: 'Debit', color: 'text-rose-700 dark:text-rose-400' };
+  if (type.includes('trustline')) return { label: 'Trust', color: 'text-indigo-700 dark:text-indigo-400' };
+  if (type.includes('trade')) return { label: 'Trade', color: 'text-violet-700 dark:text-violet-400' };
   return { label: 'Effect', color: 'text-[var(--text-muted)]' };
 };
 
@@ -276,7 +276,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Transaction</span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${transaction.successful ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${transaction.successful ? 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400 border border-rose-100 dark:border-rose-800'}`}>
                   <span className={`w-1 h-1 rounded-full mr-1.5 ${transaction.successful ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                   {transaction.successful ? 'Success' : 'Failed'}
                 </span>
@@ -306,7 +306,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
           /* Contract Interaction Layout */
           <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/10 dark:bg-amber-900/40 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] dark:bg-amber-900/40 flex items-center justify-center">
                 <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
               </div>
               <div>
@@ -334,7 +334,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                 <span className="text-[8px] font-bold text-amber-500 uppercase">{contractFunctionName}</span>
               </div>
               {/* Contract */}
-              <div className="flex-1 p-3 rounded-xl bg-[var(--bg-tertiary)] dark:bg-amber-900/30 border border-[var(--border-subtle)] dark:border-amber-800/50 border-l-4 border-l-amber-500">
+              <div className="flex-1 p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center text-white text-xs font-bold shadow-sm">C</div>
                   <div className="min-w-0 flex-1">
@@ -436,7 +436,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   <div className="relative ml-auto">
                     <button
                       onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-all ${operationFilter !== 'all' ? 'bg-sky-100 text-sky-600' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'}`}
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-all ${operationFilter !== 'all' ? 'bg-sky-50 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'}`}
                     >
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -513,7 +513,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                       return (
                         <button key={ef.id} onClick={() => setSelectedEffectIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 border border-sky-100 shadow-sm' : 'hover:bg-[var(--bg-tertiary)] border border-transparent hover:border-[var(--border-default)]'}`}>
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center transition-all ${isActive ? 'bg-sky-600 text-white' : isCredit ? 'bg-emerald-100 text-emerald-600' : isDebit ? 'bg-rose-100 text-rose-600' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'}`}>
+                            <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center transition-all ${isActive ? 'bg-sky-600 text-white' : isCredit ? 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' : isDebit ? 'bg-rose-50 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'}`}>
                               {isCredit ? (
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
                               ) : isDebit ? (
@@ -619,7 +619,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                 <div className="grid grid-cols-3 gap-3">
                   <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                     <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Status</div>
-                    <div className={`flex items-center text-sm font-semibold ${selectedOp.transaction_successful ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <div className={`flex items-center text-sm font-semibold ${selectedOp.transaction_successful ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                       <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${selectedOp.transaction_successful ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                       {selectedOp.transaction_successful ? 'Success' : 'Failed'}
                     </div>
@@ -696,8 +696,8 @@ export default function TransactionDesktopView({ transaction, operations, effect
                 {selectedEffect.amount && (
                   <div className={`p-4 rounded-xl border flex items-center justify-between ${selectedEffect.type.includes('credited') ? 'bg-emerald-50/50 border-emerald-100' : selectedEffect.type.includes('debited') ? 'bg-rose-50/50 border-rose-100' : 'bg-[var(--bg-tertiary)]/50 border-[var(--border-subtle)]'}`}>
                     <div>
-                      <div className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${selectedEffect.type.includes('credited') ? 'text-emerald-600/60' : selectedEffect.type.includes('debited') ? 'text-rose-600/60' : 'text-[var(--text-muted)]'}`}>Amount</div>
-                      <div className={`text-xl font-bold ${selectedEffect.type.includes('credited') ? 'text-emerald-600' : selectedEffect.type.includes('debited') ? 'text-rose-600' : 'text-[var(--text-primary)]'}`}>
+                      <div className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${selectedEffect.type.includes('credited') ? 'text-emerald-700/60 dark:text-emerald-400/60' : selectedEffect.type.includes('debited') ? 'text-rose-700/60 dark:text-rose-400/60' : 'text-[var(--text-muted)]'}`}>Amount</div>
+                      <div className={`text-xl font-bold ${selectedEffect.type.includes('credited') ? 'text-emerald-700 dark:text-emerald-400' : selectedEffect.type.includes('debited') ? 'text-rose-700 dark:text-rose-400' : 'text-[var(--text-primary)]'}`}>
                         {selectedEffect.type.includes('credited') ? '+' : selectedEffect.type.includes('debited') ? '-' : ''}
                         {formatTokenAmount(selectedEffect.amount)} <span className="text-sm">{selectedEffect.asset_type === 'native' ? 'XLM' : (selectedEffect.asset_code || 'XLM')}</span>
                       </div>
