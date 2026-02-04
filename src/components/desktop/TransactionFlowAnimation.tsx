@@ -6,6 +6,7 @@ import { Operation } from '@/lib/stellar';
 interface TransactionFlowAnimationProps {
     operations: Operation[];
     height?: number;
+    currentLedger?: number;
 }
 
 interface Particle {
@@ -52,7 +53,8 @@ function getQuadraticBezierPoint(
 
 export default function TransactionFlowAnimation({
     operations,
-    height = 340
+    height = 340,
+    currentLedger = 0
 }: TransactionFlowAnimationProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -61,8 +63,6 @@ export default function TransactionFlowAnimation({
     const animationRef = useRef<number | undefined>(undefined);
     const spawnTimerRef = useRef<number>(0);
     const operationQueueRef = useRef<Operation[]>([]);
-    const processedCountRef = useRef<number>(0);
-    const [processedCount, setProcessedCount] = useState(0);
     const [dimensions, setDimensions] = useState({ width: 800, height });
 
     // Update dimensions on resize
@@ -368,10 +368,6 @@ export default function TransactionFlowAnimation({
 
                     if (particle.progress >= 1) {
                         particle.alive = false;
-                        processedCountRef.current++;
-                        if (processedCountRef.current % 5 === 0) {
-                            setProcessedCount(processedCountRef.current);
-                        }
                         return;
                     } else {
                         currentPos = getQuadraticBezierPoint(particle.progress, validator, controlPoint, ledger);
@@ -451,12 +447,14 @@ export default function TransactionFlowAnimation({
             <canvas ref={canvasRef} className="w-full h-full" />
 
             {/* Stats overlay - top right */}
-            <div className="absolute top-3 right-4 flex items-center gap-6 bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-slate-200">
-                <div className="text-center">
-                    <div className="text-[9px] text-slate-500 uppercase tracking-wider">Processed</div>
-                    <div className="text-lg font-bold text-sky-500">{processedCount.toLocaleString()}</div>
+            {currentLedger > 0 && (
+                <div className="absolute top-3 right-4 flex items-center gap-6 bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-slate-200">
+                    <div className="text-center">
+                        <div className="text-[9px] text-slate-500 uppercase tracking-wider">Current Ledger</div>
+                        <div className="text-lg font-bold text-sky-500">#{currentLedger.toLocaleString()}</div>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Legend */}
             <div className="absolute bottom-3 right-4 flex items-center gap-4 bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-slate-200">

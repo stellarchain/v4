@@ -1,125 +1,214 @@
-export default function Loading() {
-    const primaryColor = '#0F4C81';
+export default function LiquidityPoolLoading() {
+  return (
+    <>
+      {/* Desktop View */}
+      <div className="hidden md:block min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-[1400px] px-6 py-6">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 text-sm mb-5">
+            <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
+            <div className="h-4 w-4 bg-slate-200 rounded animate-pulse" />
+            <div className="h-4 w-32 bg-slate-200 rounded animate-pulse" />
+          </div>
 
-    return (
-        <div className="bg-[var(--bg-primary)] text-[var(--text-secondary)] min-h-screen flex flex-col font-sans pb-24">
-            {/* Header Skeleton */}
-            <header className="sticky top-0 z-10 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    {/* Back button skeleton */}
-                    <div className="w-9 h-9 rounded-full bg-[var(--bg-tertiary)] animate-pulse" />
-                    {/* Title skeleton */}
-                    <div
-                        className="h-6 w-32 rounded-md animate-pulse"
-                        style={{ backgroundColor: `${primaryColor}20` }}
-                    />
+          {/* Header Card */}
+          <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5 mb-5">
+            <div className="flex flex-wrap items-start justify-between gap-5">
+              {/* Left: Pool Identity */}
+              <div className="flex items-center gap-4">
+                <div className="flex -space-x-2">
+                  <div className="w-12 h-12 bg-slate-200 rounded-full animate-pulse" />
+                  <div className="w-12 h-12 bg-slate-200 rounded-full animate-pulse" />
                 </div>
-                {/* Search bar skeleton */}
-                <div className="flex-1 max-w-[180px] ml-auto">
-                    <div className="h-9 w-full rounded-full bg-[var(--bg-tertiary)] animate-pulse" />
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="h-3 w-20 bg-slate-200 rounded animate-pulse" />
+                    <div className="h-5 w-16 bg-sky-100 rounded animate-pulse" />
+                  </div>
+                  <div className="h-6 w-32 bg-slate-200 rounded animate-pulse mb-1" />
+                  <div className="h-4 w-48 bg-slate-200 rounded animate-pulse" />
                 </div>
-            </header>
+              </div>
 
-            <main className="px-4 pt-4 max-w-lg mx-auto w-full">
-                {/* Metadata Row Skeleton - Pool Pair, Fee, ID */}
-                <div className="flex flex-wrap items-center gap-3 mb-4">
-                    {/* Pool pair badge skeleton */}
-                    <div
-                        className="h-7 w-28 rounded-full animate-pulse"
-                        style={{ backgroundColor: `${primaryColor}15` }}
-                    />
-                    {/* Fee badge skeleton */}
-                    <div className="h-6 w-20 rounded-full bg-[var(--bg-tertiary)] animate-pulse" />
-                    {/* Pool ID skeleton */}
-                    <div className="h-6 w-24 rounded-full bg-[var(--bg-tertiary)] animate-pulse" />
+              {/* Right: Quick Stats */}
+              <div className="flex gap-3">
+                <div className="p-3 rounded-xl bg-sky-50 border border-sky-100 min-w-[100px]">
+                  <div className="h-3 w-12 bg-sky-200 rounded animate-pulse mb-2" />
+                  <div className="h-5 w-20 bg-sky-200 rounded animate-pulse" />
                 </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 min-w-[100px]">
+                  <div className="h-3 w-16 bg-slate-200 rounded animate-pulse mb-2" />
+                  <div className="h-5 w-16 bg-slate-200 rounded animate-pulse" />
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 min-w-[100px]">
+                  <div className="h-3 w-20 bg-slate-200 rounded animate-pulse mb-2" />
+                  <div className="h-5 w-12 bg-slate-200 rounded animate-pulse" />
+                </div>
+              </div>
+            </div>
+          </div>
 
-                {/* Summary Card Skeleton - Reserve Assets */}
-                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-5">
-                    {/* Pool Type and Trustlines row */}
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <div className="h-3 w-16 rounded bg-[var(--bg-tertiary)] animate-pulse mb-2" />
-                            <div className="h-5 w-32 rounded bg-[var(--bg-tertiary)] animate-pulse" />
-                        </div>
-                        <div className="text-right">
-                            <div className="h-3 w-16 rounded bg-[var(--bg-tertiary)] animate-pulse mb-2 ml-auto" />
-                            <div className="h-5 w-12 rounded bg-[var(--bg-tertiary)] animate-pulse ml-auto" />
-                        </div>
+          {/* Main Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5">
+            {/* Left: Content Area */}
+            <div className="space-y-4">
+              {/* Tabs */}
+              <div className="flex items-center gap-6 border-b border-slate-200 pb-3">
+                <div className="h-4 w-20 bg-sky-200 rounded animate-pulse" />
+                <div className="h-4 w-16 bg-slate-200 rounded animate-pulse" />
+                <div className="h-4 w-18 bg-slate-200 rounded animate-pulse" />
+              </div>
+
+              {/* Reserves Card */}
+              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm p-4">
+                <div className="h-4 w-24 bg-slate-200 rounded animate-pulse mb-4" />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-slate-200 rounded-full animate-pulse" />
+                      <div className="h-4 w-16 bg-slate-200 rounded animate-pulse" />
                     </div>
-
-                    {/* Reserve Assets Display Skeleton */}
-                    <div className="mt-4 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-2xl p-4">
-                        {/* Reserve A */}
-                        <div className="flex items-center justify-between">
-                            <div className="h-3 w-20 rounded bg-[var(--bg-secondary)] animate-pulse" />
-                            <div className="h-5 w-28 rounded bg-[var(--bg-secondary)] animate-pulse" />
-                        </div>
-
-                        {/* Divider */}
-                        <div className="my-3 border-t border-dashed border-[var(--border-subtle)]" />
-
-                        {/* Reserve B */}
-                        <div className="flex items-center justify-between">
-                            <div className="h-3 w-20 rounded bg-[var(--bg-secondary)] animate-pulse" />
-                            <div className="h-5 w-28 rounded bg-[var(--bg-secondary)] animate-pulse" />
-                        </div>
+                    <div className="h-5 w-28 bg-slate-200 rounded animate-pulse" />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-slate-200 rounded-full animate-pulse" />
+                      <div className="h-4 w-16 bg-slate-200 rounded animate-pulse" />
                     </div>
+                    <div className="h-5 w-28 bg-slate-200 rounded animate-pulse" />
+                  </div>
+                </div>
+              </div>
 
-                    {/* Exchange Rate Skeleton */}
-                    <div className="mt-4 pt-4 border-t border-[var(--border-default)]/50">
-                        <div className="flex items-center justify-between">
-                            <div className="h-4 w-24 rounded bg-[var(--bg-tertiary)] animate-pulse" />
-                            <div
-                                className="h-4 w-36 rounded animate-pulse"
-                                style={{ backgroundColor: `${primaryColor}20` }}
-                            />
-                        </div>
+              {/* Operations List */}
+              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100">
+                  <div className="h-4 w-32 bg-slate-200 rounded animate-pulse" />
+                </div>
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 last:border-b-0">
+                    <div className="w-9 h-9 bg-slate-200 rounded-lg animate-pulse" />
+                    <div className="flex-1">
+                      <div className="h-4 w-24 bg-slate-200 rounded animate-pulse mb-1" />
+                      <div className="h-3 w-32 bg-slate-200 rounded animate-pulse" />
                     </div>
+                    <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Details Sidebar */}
+            <div className="space-y-4">
+              {/* Pool Info Card */}
+              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100">
+                  <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
                 </div>
-
-                {/* Tabs Navigation Skeleton */}
-                <div className="flex gap-4 overflow-x-auto no-scrollbar border-b border-[var(--border-default)] pb-3 mb-4 -mx-4 px-4">
-                    {[1, 2, 3, 4].map((tab) => (
-                        <div key={tab} className="flex items-center gap-1.5">
-                            <div
-                                className="h-4 rounded animate-pulse"
-                                style={{
-                                    width: tab === 1 ? '48px' : tab === 2 ? '52px' : tab === 3 ? '80px' : '72px',
-                                    backgroundColor: tab === 1 ? `${primaryColor}30` : 'var(--bg-tertiary)'
-                                }}
-                            />
-                            <div className="h-4 w-6 rounded-full bg-[var(--bg-tertiary)] animate-pulse" />
-                        </div>
-                    ))}
-                </div>
-
-                {/* Content List Skeleton */}
-                <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)]">
-                    <div className="divide-y divide-[var(--border-subtle)]">
-                        {[1, 2, 3, 4, 5, 6].map((item) => (
-                            <div key={item} className="flex items-center gap-3 p-3">
-                                {/* Icon skeleton */}
-                                <div className="w-9 h-9 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
-
-                                {/* Content skeleton */}
-                                <div className="flex-1 min-w-0">
-                                    <div className="h-4 w-32 rounded bg-[var(--bg-tertiary)] animate-pulse mb-1.5" />
-                                    <div className="h-3 w-20 rounded bg-[var(--bg-tertiary)] animate-pulse" />
-                                </div>
-
-                                {/* Right side skeleton */}
-                                <div className="text-right flex-shrink-0">
-                                    <div className="h-3 w-16 rounded bg-[var(--bg-tertiary)] animate-pulse" />
-                                </div>
-
-                                {/* Chevron skeleton */}
-                                <div className="w-4 h-4 rounded bg-[var(--bg-tertiary)] animate-pulse" />
-                            </div>
-                        ))}
+                <div className="divide-y divide-slate-100">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center justify-between px-4 py-3">
+                      <div className="h-3 w-20 bg-slate-200 rounded animate-pulse" />
+                      <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
                     </div>
+                  ))}
                 </div>
-            </main>
+              </div>
+
+              {/* Exchange Rate Card */}
+              <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm p-4">
+                <div className="h-4 w-28 bg-slate-200 rounded animate-pulse mb-3" />
+                <div className="h-6 w-full bg-sky-50 rounded-lg animate-pulse" />
+              </div>
+            </div>
+          </div>
         </div>
-    );
+      </div>
+
+      {/* Mobile View */}
+      <div className="block md:hidden min-h-screen bg-slate-50 pb-24">
+        {/* Header */}
+        <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-slate-200 animate-pulse" />
+            <div className="h-6 w-28 rounded-md bg-slate-200 animate-pulse" />
+          </div>
+          <div className="h-9 w-24 rounded-full bg-slate-200 animate-pulse" />
+        </header>
+
+        {/* Main Content */}
+        <main className="px-4 pt-4">
+          {/* Meta Row */}
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="h-7 w-28 rounded-full bg-sky-100 animate-pulse" />
+            <div className="h-6 w-20 rounded-full bg-slate-200 animate-pulse" />
+          </div>
+
+          {/* Pool Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-4">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <div className="h-3 w-16 rounded bg-slate-200 animate-pulse mb-2" />
+                <div className="h-5 w-24 rounded bg-slate-200 animate-pulse" />
+              </div>
+              <div className="text-right">
+                <div className="h-3 w-16 rounded bg-slate-200 animate-pulse mb-2" />
+                <div className="h-5 w-12 rounded bg-slate-200 animate-pulse" />
+              </div>
+            </div>
+
+            {/* Reserves */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse" />
+                  <div className="h-4 w-12 rounded bg-slate-200 animate-pulse" />
+                </div>
+                <div className="h-5 w-24 rounded bg-slate-200 animate-pulse" />
+              </div>
+              <div className="border-t border-dashed border-slate-200" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse" />
+                  <div className="h-4 w-12 rounded bg-slate-200 animate-pulse" />
+                </div>
+                <div className="h-5 w-24 rounded bg-slate-200 animate-pulse" />
+              </div>
+            </div>
+
+            {/* Exchange Rate */}
+            <div className="mt-4 pt-4 border-t border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="h-3 w-24 rounded bg-slate-200 animate-pulse" />
+                <div className="h-4 w-32 rounded bg-sky-100 animate-pulse" />
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-4 border-b border-slate-200 pb-3 mb-4">
+            <div className="h-4 w-20 bg-sky-200 rounded animate-pulse" />
+            <div className="h-4 w-16 bg-slate-200 rounded animate-pulse" />
+            <div className="h-4 w-18 bg-slate-200 rounded animate-pulse" />
+          </div>
+
+          {/* Operations */}
+          <div className="space-y-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-slate-200 animate-pulse" />
+                  <div className="flex-1">
+                    <div className="h-4 w-20 rounded bg-slate-200 animate-pulse mb-1" />
+                    <div className="h-3 w-28 rounded bg-slate-200 animate-pulse" />
+                  </div>
+                  <div className="h-4 w-16 rounded bg-slate-200 animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
+      </div>
+    </>
+  );
 }

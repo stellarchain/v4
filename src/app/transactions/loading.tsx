@@ -1,62 +1,107 @@
 export default function TransactionsLoading() {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-[var(--bg-tertiary)] animate-pulse rounded-xl" />
-        <div>
-          <h1 className="text-xl font-semibold" style={{ color: '#0F4C81' }}>Transactions</h1>
-          <div className="h-4 w-48 bg-[var(--bg-tertiary)] animate-pulse rounded mt-1" />
-        </div>
-      </div>
-
-      {/* Tab Buttons Skeleton */}
-      <div className="flex gap-2">
-        <div className="h-10 w-32 bg-[var(--bg-tertiary)] animate-pulse rounded-xl" />
-        <div className="h-10 w-32 bg-[var(--bg-tertiary)] animate-pulse rounded-xl" />
-      </div>
-
-      {/* Transaction List Skeleton */}
-      <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm overflow-hidden">
-        {/* Table Header */}
-        <div className="hidden md:grid grid-cols-5 gap-4 px-6 py-4 border-b border-[var(--border-default)] bg-[var(--bg-tertiary)]/50">
-          <div className="h-4 w-20 bg-[var(--bg-tertiary)] animate-pulse rounded" />
-          <div className="h-4 w-16 bg-[var(--bg-tertiary)] animate-pulse rounded" />
-          <div className="h-4 w-24 bg-[var(--bg-tertiary)] animate-pulse rounded" />
-          <div className="h-4 w-20 bg-[var(--bg-tertiary)] animate-pulse rounded" />
-          <div className="h-4 w-16 bg-[var(--bg-tertiary)] animate-pulse rounded" />
-        </div>
-
-        {/* Transaction Row Skeletons */}
-        {[...Array(8)].map((_, i) => (
-          <div
-            key={i}
-            className="flex flex-col md:grid md:grid-cols-5 gap-2 md:gap-4 px-4 md:px-6 py-4 border-b border-[var(--border-default)] last:border-b-0"
-          >
-            {/* Hash */}
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[var(--bg-tertiary)] animate-pulse rounded-lg" />
-              <div className="h-4 w-24 md:w-32 bg-[var(--bg-tertiary)] animate-pulse rounded" />
+    <>
+      {/* Desktop View */}
+      <div className="hidden md:block min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
+          {/* Header Card */}
+          <div className="mb-5 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-5">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-slate-200 rounded-xl animate-pulse" />
+                <div>
+                  <div className="h-3 w-24 bg-slate-200 rounded animate-pulse mb-2" />
+                  <div className="h-6 w-32 bg-slate-200 rounded animate-pulse mb-1" />
+                  <div className="h-4 w-48 bg-slate-200 rounded animate-pulse" />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="p-3 rounded-xl bg-sky-50/70 border border-sky-100 min-w-[110px]">
+                  <div className="h-3 w-16 bg-sky-200 rounded animate-pulse mb-2" />
+                  <div className="h-6 w-20 bg-sky-200 rounded animate-pulse" />
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100 min-w-[110px]">
+                  <div className="h-3 w-14 bg-slate-200 rounded animate-pulse mb-2" />
+                  <div className="h-6 w-16 bg-slate-200 rounded animate-pulse" />
+                </div>
+              </div>
             </div>
-            {/* Ledger */}
-            <div className="h-4 w-16 bg-[var(--bg-tertiary)] animate-pulse rounded" />
-            {/* Operations */}
-            <div className="flex gap-1">
-              <div className="h-6 w-20 bg-[var(--bg-tertiary)] animate-pulse rounded-lg" />
-              <div className="h-6 w-16 bg-[var(--bg-tertiary)] animate-pulse rounded-lg" />
-            </div>
-            {/* Fee */}
-            <div className="h-4 w-20 bg-[var(--bg-tertiary)] animate-pulse rounded" />
-            {/* Time */}
-            <div className="h-4 w-24 bg-[var(--bg-tertiary)] animate-pulse rounded" />
           </div>
-        ))}
+
+          {/* Table */}
+          <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+            {/* Header */}
+            <div className="grid grid-cols-6 gap-4 px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
+              <div className="h-4 w-16 bg-slate-200 rounded animate-pulse" />
+              <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
+              <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
+              <div className="h-4 w-16 bg-slate-200 rounded animate-pulse" />
+              <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
+            </div>
+
+            {/* Rows */}
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className="grid grid-cols-6 gap-4 px-6 py-4 border-b border-slate-100 last:border-b-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-slate-200 rounded-lg animate-pulse" />
+                  <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
+                </div>
+                <div className="h-4 w-16 bg-slate-200 rounded animate-pulse" />
+                <div className="flex gap-1">
+                  <div className="h-6 w-16 bg-slate-200 rounded-lg animate-pulse" />
+                  <div className="h-6 w-12 bg-slate-200 rounded-lg animate-pulse" />
+                </div>
+                <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
+                <div className="h-4 w-20 bg-slate-200 rounded animate-pulse" />
+                <div className="h-4 w-16 bg-slate-200 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+
+          {/* Load More */}
+          <div className="flex justify-center mt-5">
+            <div className="h-10 w-28 bg-slate-200 rounded-xl animate-pulse" />
+          </div>
+        </div>
       </div>
 
-      {/* Load More Button Skeleton */}
-      <div className="flex justify-center">
-        <div className="h-12 w-32 bg-[var(--bg-tertiary)] animate-pulse rounded-xl" />
+      {/* Mobile View */}
+      <div className="block md:hidden bg-slate-50 min-h-screen pb-24">
+        <div className="px-4 py-4 space-y-4">
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-slate-200 animate-pulse rounded-xl" />
+            <div>
+              <div className="h-5 w-28 bg-slate-200 rounded animate-pulse mb-1" />
+              <div className="h-4 w-40 bg-slate-200 animate-pulse rounded" />
+            </div>
+          </div>
+
+          {/* Cards */}
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-200 animate-pulse rounded-lg" />
+                  <div>
+                    <div className="h-4 w-24 bg-slate-200 animate-pulse rounded mb-1" />
+                    <div className="h-3 w-16 bg-slate-200 animate-pulse rounded" />
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="h-4 w-16 bg-slate-200 animate-pulse rounded mb-1" />
+                  <div className="h-3 w-20 bg-slate-200 animate-pulse rounded" />
+                </div>
+              </div>
+              <div className="flex gap-1">
+                <div className="h-6 w-16 bg-slate-200 animate-pulse rounded-lg" />
+                <div className="h-6 w-12 bg-slate-200 animate-pulse rounded-lg" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
