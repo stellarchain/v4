@@ -6,35 +6,12 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import AssetCandlestickChart from '@/components/AssetCandlestickChart';
 import AssetOrderBook from '@/components/AssetOrderBook';
-import { AssetDetails, shortenAddress, getBaseUrl, timeAgo } from '@/lib/stellar';
+import { AssetDetails, AssetHolder, AssetTrade, AccountLabel, TradingPair, shortenAddress, timeAgo, getAssetHolders, getAssetTrades, getAccountLabels, getAssetTradingPairs, getLiquidityPoolByAssets } from '@/lib/stellar';
+import { getXLMHoldersAction } from '@/app/actions/stellar';
 
 interface AssetDesktopViewProps {
   asset: AssetDetails;
   rank: number;
-}
-
-interface Trade {
-  id: string;
-  paging_token: string;
-  ledger_close_time: string;
-  base_account: string;
-  base_amount: string;
-  base_asset_type: string;
-  base_asset_code?: string;
-  base_asset_issuer?: string;
-  counter_account: string;
-  counter_amount: string;
-  counter_asset_type: string;
-  counter_asset_code?: string;
-  counter_asset_issuer?: string;
-  base_is_seller: boolean;
-  price: { n: number; d: number };
-}
-
-interface Holder {
-  account_id: string;
-  balance: string;
-  label?: { name: string; verified: boolean };
 }
 
 function formatNumber(num: number): string {
@@ -63,15 +40,27 @@ function formatPriceShort(price: number): string {
   return price.toFixed(8);
 }
 
-type TabType = 'chart' | 'markets' | 'holders' | 'about';
+type TabType = 'chart' | 'markets' | 'trades' | 'holders' | 'about';
 
 export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('chart');
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [holders, setHolders] = useState<Holder[]>([]);
+  const [trades, setTrades] = useState<AssetTrade[]>([]);
+  const [tradesCursor, setTradesCursor] = useState<string | null>(null);
+  const [hasMoreTrades, setHasMoreTrades] = useState(false);
   const [loadingTrades, setLoadingTrades] = useState(false);
+  const [loadingMoreTrades, setLoadingMoreTrades] = useState(false);
+
+  const [holders, setHolders] = useState<AssetHolder[]>([]);
+  const [holdersCursor, setHoldersCursor] = useState<string | null>(null);
+  const [hasMoreHolders, setHasMoreHolders] = useState(false);
   const [loadingHolders, setLoadingHolders] = useState(false);
+  const [loadingMoreHolders, setLoadingMoreHolders] = useState(false);
+  const [holderLabels, setHolderLabels] = useState<Map<string, AccountLabel>>(new Map());
+
+  const [tradingPairs, setTradingPairs] = useState<TradingPair[]>([]);
+  const [loadingMarkets, setLoadingMarkets] = useState(false);
+
   const [copied, setCopied] = useState(false);
 
   // Converter state
@@ -94,26 +83,38 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
     ? (asset.circulating_supply / asset.total_supply) * 100
     : 100;
 
-  // Fetch trades when markets tab is active
+  // Pre-fetch trading pairs on mount
   useEffect(() => {
-    if (activeTab !== 'markets' || trades.length > 0) return;
+    const fetchTradingPairs = async () => {
+      setLoadingMarkets(true);
+      try {
+        const pairs = await getAssetTradingPairs(asset.code, asset.issuer);
+        setTradingPairs(pairs);
+      } catch (error) {
+        console.error('Failed to fetch trading pairs:', error);
+      }
+      setLoadingMarkets(false);
+    };
+    fetchTradingPairs();
+  }, [asset.code, asset.issuer]);
+
+  // Fetch trades when trades tab is active
+  useEffect(() => {
+    if (activeTab !== 'trades' || trades.length > 0) return;
 
     const fetchTrades = async () => {
       setLoadingTrades(true);
       try {
-        const isXLM = asset.code === 'XLM' && !asset.issuer;
-        let url: string;
-
-        if (isXLM) {
-          url = `${getBaseUrl()}/trades?base_asset_type=native&limit=50&order=desc`;
+        const PAGE_SIZE = 20;
+        const data = await getAssetTrades(asset.code, asset.issuer || undefined, PAGE_SIZE, 'desc');
+        const records = data._embedded?.records || [];
+        setTrades(records);
+        if (records.length === PAGE_SIZE) {
+          setTradesCursor(records[records.length - 1].paging_token);
+          setHasMoreTrades(true);
         } else {
-          const assetType = asset.code.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12';
-          url = `${getBaseUrl()}/trades?base_asset_type=${assetType}&base_asset_code=${asset.code}&base_asset_issuer=${asset.issuer}&limit=50&order=desc`;
+          setHasMoreTrades(false);
         }
-
-        const res = await fetch(url);
-        const data = await res.json();
-        setTrades(data._embedded?.records || []);
       } catch (error) {
         console.error('Failed to fetch trades:', error);
       }
@@ -123,32 +124,59 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
     fetchTrades();
   }, [activeTab, asset.code, asset.issuer, trades.length]);
 
+  const loadMoreTrades = async () => {
+    if (!tradesCursor || loadingMoreTrades) return;
+    setLoadingMoreTrades(true);
+    try {
+      const PAGE_SIZE = 20;
+      const data = await getAssetTrades(asset.code, asset.issuer || undefined, PAGE_SIZE, 'desc', tradesCursor);
+      const records = data._embedded?.records || [];
+      setTrades(prev => [...prev, ...records]);
+      if (records.length === PAGE_SIZE) {
+        setTradesCursor(records[records.length - 1].paging_token);
+        setHasMoreTrades(true);
+      } else {
+        setTradesCursor(null);
+        setHasMoreTrades(false);
+      }
+    } catch (error) {
+      console.error('Failed to load more trades:', error);
+    }
+    setLoadingMoreTrades(false);
+  };
+
   // Fetch holders when tab is active
   useEffect(() => {
-    if (activeTab !== 'holders' || holders.length > 0 || !asset.issuer) return;
+    if (activeTab !== 'holders' || holders.length > 0) return;
+
+    const isXLM = asset.code === 'XLM' && !asset.issuer;
 
     const fetchHolders = async () => {
       setLoadingHolders(true);
       try {
-        const url = `${getBaseUrl()}/accounts?asset=${asset.code}:${asset.issuer}&limit=25&order=desc`;
+        let holdersData: AssetHolder[];
+        let nextCursor: string | null | undefined;
 
-        const res = await fetch(url);
-        const data = await res.json();
-        const accounts = data._embedded?.records || [];
-
-        const holdersData: Holder[] = accounts.map((acc: any) => {
-          const balance = acc.balances.find((b: any) =>
-            b.asset_code === asset.code && b.asset_issuer === asset.issuer
-          );
-          return {
-            account_id: acc.id,
-            balance: balance?.balance || '0',
-          };
-        }).filter((h: Holder) => parseFloat(h.balance) > 0);
-
-        holdersData.sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance));
+        if (isXLM) {
+          const result = await getXLMHoldersAction(25);
+          holdersData = result.holders;
+          nextCursor = result.nextCursor || null;
+        } else {
+          const result = await getAssetHolders(asset.code, asset.issuer!, 25);
+          holdersData = result.holders;
+          nextCursor = result.nextCursor;
+        }
 
         setHolders(holdersData);
+        setHoldersCursor(nextCursor ?? null);
+        setHasMoreHolders(!!nextCursor);
+
+        // Fetch account labels for holders
+        if (holdersData.length > 0) {
+          const addresses = holdersData.map(h => h.account_id);
+          const labels = await getAccountLabels(addresses);
+          setHolderLabels(labels);
+        }
       } catch (error) {
         console.error('Failed to fetch holders:', error);
       }
@@ -157,6 +185,44 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
 
     fetchHolders();
   }, [activeTab, asset.code, asset.issuer, holders.length]);
+
+  const loadMoreHolders = async () => {
+    if (!holdersCursor || loadingMoreHolders) return;
+    setLoadingMoreHolders(true);
+    try {
+      const isXLM = asset.code === 'XLM' && !asset.issuer;
+      let newHolders: AssetHolder[];
+      let nextCursor: string | null | undefined;
+
+      if (isXLM) {
+        const result = await getXLMHoldersAction(25, holdersCursor);
+        newHolders = result.holders;
+        nextCursor = result.nextCursor || null;
+      } else {
+        const result = await getAssetHolders(asset.code, asset.issuer!, 25, holdersCursor);
+        newHolders = result.holders;
+        nextCursor = result.nextCursor;
+      }
+
+      setHolders(prev => [...prev, ...newHolders]);
+      setHoldersCursor(nextCursor ?? null);
+      setHasMoreHolders(!!nextCursor);
+
+      // Fetch labels for new holders
+      if (newHolders.length > 0) {
+        const addresses = newHolders.map(h => h.account_id);
+        const labels = await getAccountLabels(addresses);
+        setHolderLabels(prev => {
+          const merged = new Map(prev);
+          labels.forEach((value, key) => merged.set(key, value));
+          return merged;
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load more holders:', error);
+    }
+    setLoadingMoreHolders(false);
+  };
 
   const copyIssuer = () => {
     if (asset.issuer) {
@@ -173,37 +239,37 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
         <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-6">
           {/* Left Sidebar */}
           <div className="space-y-4">
-            {/* Asset Header */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-sky-50 rounded-full flex items-center justify-center overflow-hidden border border-sky-100">
-                {asset.image ? (
-                  <Image src={asset.image} alt={asset.code} width={40} height={40} className="w-full h-full object-cover" unoptimized />
-                ) : (
-                  <span className="text-sky-600 font-bold text-sm">{asset.code.slice(0, 2)}</span>
-                )}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-bold text-[var(--text-primary)]">{asset.name}</h1>
-                  <span className="text-[var(--text-muted)] text-sm font-medium">{asset.code}</span>
-                  {rank > 0 && (
-                    <span className="bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-[10px] font-bold px-1.5 py-0.5 rounded">
-                      #{rank}
-                    </span>
+            {/* Asset Header + Price */}
+            <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-sky-50 rounded-full flex items-center justify-center overflow-hidden border border-sky-100">
+                  {asset.image ? (
+                    <Image src={asset.image} alt={asset.code} width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                  ) : (
+                    <span className="text-sky-600 font-bold text-sm">{asset.code.slice(0, 2)}</span>
                   )}
                 </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-lg font-bold text-[var(--text-primary)]">{asset.name}</h1>
+                    <span className="text-[var(--text-muted)] text-sm font-medium">{asset.code}</span>
+                    {rank > 0 && (
+                      <span className="bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-[10px] font-bold px-1.5 py-0.5 rounded">
+                        #{rank}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-
-            {/* Price */}
-            <div>
-              <div className="flex items-baseline gap-3">
-                <span className="text-3xl font-bold text-[var(--text-primary)]">
-                  {formatPrice(asset.price_usd)}
-                </span>
-                <span className={`text-sm font-medium ${asset.change_24h >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                  {asset.change_24h >= 0 ? '▲' : '▼'} {Math.abs(asset.change_24h).toFixed(2)}% (24h)
-                </span>
+              <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+                <div className="flex items-baseline gap-3">
+                  <span className="text-3xl font-bold text-[var(--text-primary)]">
+                    {formatPrice(asset.price_usd)}
+                  </span>
+                  <span className={`text-sm font-medium ${asset.change_24h >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    {asset.change_24h >= 0 ? '▲' : '▼'} {Math.abs(asset.change_24h).toFixed(2)}% (24h)
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -317,35 +383,35 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
 
                 {asset.issuer && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-[var(--text-tertiary)]">Issuer</span>
-                    <div className="flex items-center gap-1.5">
-                      <Link
-                        href={`/account/${asset.issuer}`}
-                        className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] rounded-lg text-xs font-mono font-medium text-[var(--text-secondary)] transition-colors"
-                      >
-                        <div className="w-4 h-4 bg-sky-500 rounded-full flex items-center justify-center">
-                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none" />
-                          </svg>
-                        </div>
-                        {shortenAddress(asset.issuer, 4)}
-                      </Link>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-[var(--text-tertiary)]">Issuer</span>
                       <button
                         onClick={copyIssuer}
-                        className="p-1.5 hover:bg-[var(--bg-tertiary)] rounded transition-colors"
+                        className="p-1 hover:bg-[var(--bg-tertiary)] rounded transition-colors"
                         title="Copy issuer address"
                       >
                         {copied ? (
-                          <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
                         ) : (
-                          <svg className="w-3.5 h-3.5 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                           </svg>
                         )}
                       </button>
                     </div>
+                    <Link
+                      href={`/account/${asset.issuer}`}
+                      className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] rounded-lg text-xs font-mono font-medium text-[var(--text-secondary)] transition-colors"
+                    >
+                      <div className="w-4 h-4 bg-sky-500 rounded-full flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none" />
+                        </svg>
+                      </div>
+                      {shortenAddress(asset.issuer, 4)}
+                    </Link>
                   </div>
                 )}
 
@@ -363,22 +429,55 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
 
             {/* Converter */}
             <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-3">
-              <div className="text-xs text-[var(--text-tertiary)] mb-2">{asset.code} to USD converter</div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between bg-[var(--bg-primary)] rounded-lg px-3 py-2 border border-[var(--border-subtle)]">
-                  <span className="text-sm font-medium text-[var(--text-secondary)]">{asset.code}</span>
+              <div className="flex items-center gap-1.5 mb-3">
+                <svg className="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+                <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">{asset.code} / USD Converter</span>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider">You pay</label>
+                <div className="flex items-center bg-[var(--bg-primary)] rounded-lg px-3 py-2.5 border border-[var(--border-subtle)] focus-within:border-sky-400 focus-within:ring-1 focus-within:ring-sky-400/20 transition-all">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-6 h-6 bg-sky-50 rounded-full flex items-center justify-center flex-shrink-0 border border-sky-100">
+                      {asset.image ? (
+                        <Image src={asset.image} alt={asset.code} width={24} height={24} className="w-full h-full object-cover rounded-full" unoptimized />
+                      ) : (
+                        <span className="text-sky-600 font-bold text-[9px]">{asset.code.slice(0, 2)}</span>
+                      )}
+                    </div>
+                    <span className="text-sm font-semibold text-[var(--text-primary)]">{asset.code}</span>
+                  </div>
                   <input
                     type="number"
                     value={assetAmount}
                     onChange={(e) => setAssetAmount(e.target.value)}
-                    className="text-right bg-transparent font-semibold text-[var(--text-primary)] focus:outline-none w-24"
-                    placeholder="1"
+                    className="text-right bg-transparent font-semibold text-[var(--text-primary)] focus:outline-none flex-1 min-w-0 ml-2"
+                    placeholder="0"
                   />
                 </div>
-                <div className="flex items-center justify-between bg-[var(--bg-primary)] rounded-lg px-3 py-2 border border-[var(--border-subtle)]">
-                  <span className="text-sm font-medium text-[var(--text-secondary)]">USD</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{usdAmount}</span>
+              </div>
+              <div className="flex justify-center py-1.5">
+                <div className="w-6 h-6 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center">
+                  <svg className="w-3.5 h-3.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
                 </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider">You get</label>
+                <div className="flex items-center bg-[var(--bg-primary)] rounded-lg px-3 py-2.5 border border-[var(--border-subtle)]">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-6 h-6 bg-emerald-50 rounded-full flex items-center justify-center flex-shrink-0 border border-emerald-100">
+                      <span className="text-emerald-600 font-bold text-[9px]">$</span>
+                    </div>
+                    <span className="text-sm font-semibold text-[var(--text-primary)]">USD</span>
+                  </div>
+                  <span className="text-right font-semibold text-[var(--text-primary)] flex-1 ml-2">{usdAmount}</span>
+                </div>
+              </div>
+              <div className="mt-2 text-center">
+                <span className="text-[10px] text-[var(--text-muted)]">1 {asset.code} = {formatPrice(asset.price_usd)}</span>
               </div>
             </div>
 
@@ -409,18 +508,19 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
           {/* Right Content Area */}
           <div className="space-y-5 min-w-0 overflow-hidden">
             {/* Tab Navigation */}
-            <div className="flex items-center justify-between border-b border-[var(--border-default)]">
-              <div className="flex gap-6">
+            <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm px-4">
+              <div className="flex gap-1">
                 {[
                   { id: 'chart', label: 'Chart' },
                   { id: 'markets', label: 'Markets' },
+                  { id: 'trades', label: 'Trades' },
                   { id: 'holders', label: 'Holders' },
                   { id: 'about', label: 'About' },
                 ].map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as TabType)}
-                    className={`pb-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                    className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
                       activeTab === tab.id
                         ? 'text-sky-600 border-sky-500'
                         : 'text-[var(--text-tertiary)] border-transparent hover:text-[var(--text-secondary)]'
@@ -446,6 +546,87 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
               <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm overflow-x-auto">
                 <div className="p-4 border-b border-[var(--border-subtle)]">
                   <h3 className="font-semibold text-[var(--text-primary)]">{asset.name} Markets</h3>
+                  <p className="text-xs text-[var(--text-tertiary)] mt-1">Trading pairs on Stellar DEX</p>
+                </div>
+
+                {loadingMarkets ? (
+                  <div className="flex items-center justify-center py-16">
+                    <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : tradingPairs.length === 0 ? (
+                  <div className="text-center py-16 text-[var(--text-muted)]">
+                    No trading pairs found
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">#</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Pair</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">Price</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">24h Volume</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">24h Trades</th>
+                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">24h Change</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--bg-primary)]">
+                      {tradingPairs.map((pair, idx) => {
+                        const handleClick = async () => {
+                          const baseAsset = { code: asset.code, issuer: asset.issuer };
+                          const counterAsset = { code: pair.counterAsset.code, issuer: pair.counterAsset.issuer };
+                          const pool = await getLiquidityPoolByAssets(baseAsset, counterAsset);
+                          if (pool) {
+                            router.push(`/liquidity-pool/${pool.id}`);
+                          } else {
+                            const poolReversed = await getLiquidityPoolByAssets(counterAsset, baseAsset);
+                            if (poolReversed) {
+                              router.push(`/liquidity-pool/${poolReversed.id}`);
+                            }
+                          }
+                        };
+
+                        return (
+                          <tr
+                            key={`${pair.counterAsset.code}-${pair.counterAsset.issuer || 'native'}`}
+                            className="hover:bg-sky-50/30 transition-colors cursor-pointer"
+                            onClick={handleClick}
+                          >
+                            <td className="py-3 px-4 text-sm text-[var(--text-tertiary)]">{idx + 1}</td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-sky-600">{asset.code} / {pair.counterAsset.code}</span>
+                                {pair.counterAsset.issuer && (
+                                  <span className="text-[10px] text-[var(--text-muted)] font-mono">{shortenAddress(pair.counterAsset.issuer, 4)}</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono text-sm text-[var(--text-primary)]">
+                              {formatPriceShort(pair.price)} {pair.counterAsset.code}
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono text-sm text-[var(--text-secondary)]">
+                              {formatNumber(pair.baseVolume24h)} {asset.code}
+                            </td>
+                            <td className="py-3 px-4 text-right text-sm text-[var(--text-secondary)]">
+                              {pair.tradeCount24h.toLocaleString()}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <span className={`text-sm font-medium ${pair.priceChange24h >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                {pair.priceChange24h >= 0 ? '+' : ''}{pair.priceChange24h.toFixed(2)}%
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'trades' && (
+              <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm overflow-x-auto">
+                <div className="p-4 border-b border-[var(--border-subtle)]">
+                  <h3 className="font-semibold text-[var(--text-primary)]">{asset.name} Trades</h3>
                   <p className="text-xs text-[var(--text-tertiary)] mt-1">Recent trades on Stellar DEX</p>
                 </div>
 
@@ -458,33 +639,45 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                     No recent trades found
                   </div>
                 ) : (
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
-                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">#</th>
-                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Pair</th>
-                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">Price</th>
-                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">Amount</th>
-                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">Total</th>
-                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Time</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--bg-primary)]">
-                      {trades.slice(0, 20).map((trade, idx) => {
-                        const isBuy = trade.base_is_seller;
-                        const price = trade.price.d > 0 ? trade.price.n / trade.price.d : 0;
-                        const amount = parseFloat(trade.base_amount);
-                        const total = price * amount;
-                        const counterCode = trade.counter_asset_code || 'XLM';
+                  <>
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
+                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">#</th>
+                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Type</th>
+                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Pair</th>
+                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">{asset.code} Amount</th>
+                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">Counter Amount</th>
+                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">Price</th>
+                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Time</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--bg-primary)]">
+                        {trades.map((trade, idx) => {
+                          const baseCode = trade.base_asset_type === 'native' ? 'XLM' : (trade.base_asset_code || 'Unknown');
+                          const counterCode = trade.counter_asset_type === 'native' ? 'XLM' : (trade.counter_asset_code || 'Unknown');
+                          const baseAmount = parseFloat(trade.base_amount);
+                          const counterAmount = parseFloat(trade.counter_amount);
 
-                        return (
-                          <tr
-                            key={trade.id}
-                            className="hover:bg-sky-50/30 transition-colors"
-                          >
-                            <td className="py-3 px-4 text-sm text-[var(--text-tertiary)]">{idx + 1}</td>
-                            <td className="py-3 px-4">
-                              <div className="flex items-center gap-2">
+                          // Determine if our asset is base or counter in this trade
+                          const isBaseAsset = baseCode === asset.code;
+                          const assetAmt = isBaseAsset ? baseAmount : counterAmount;
+                          const counterAmt = isBaseAsset ? counterAmount : baseAmount;
+                          const otherCode = isBaseAsset ? counterCode : baseCode;
+
+                          // Price: how much of the counter asset per 1 unit of our asset
+                          const pricePerUnit = assetAmt > 0 ? counterAmt / assetAmt : 0;
+
+                          // Buy = someone bought our asset (base_is_seller means base sold, so our asset was bought if we are base)
+                          const isBuy = isBaseAsset ? trade.base_is_seller : !trade.base_is_seller;
+
+                          return (
+                            <tr
+                              key={trade.id}
+                              className="hover:bg-sky-50/30 transition-colors"
+                            >
+                              <td className="py-3 px-4 text-sm text-[var(--text-tertiary)]">{idx + 1}</td>
+                              <td className="py-3 px-4">
                                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${
                                   isBuy
                                     ? 'bg-emerald-50 text-emerald-600'
@@ -492,26 +685,46 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                                 }`}>
                                   {isBuy ? 'BUY' : 'SELL'}
                                 </span>
-                                <span className="text-sm font-medium text-sky-600">{asset.code}/{counterCode}</span>
-                              </div>
-                            </td>
-                            <td className="py-3 px-4 text-right font-mono text-sm text-[var(--text-primary)]">
-                              ${formatPriceShort(price * asset.price_xlm)}
-                            </td>
-                            <td className="py-3 px-4 text-right font-mono text-sm text-[var(--text-secondary)]">
-                              {formatNumber(amount)}
-                            </td>
-                            <td className="py-3 px-4 text-right text-sm text-[var(--text-secondary)]">
-                              ${formatNumber(total * asset.price_xlm)}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-[var(--text-tertiary)]">
-                              {timeAgo(trade.ledger_close_time)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                              </td>
+                              <td className="py-3 px-4">
+                                <span className="text-sm font-medium text-sky-600">{asset.code}/{otherCode}</span>
+                              </td>
+                              <td className="py-3 px-4 text-right font-mono text-sm text-[var(--text-primary)]">
+                                {formatNumber(assetAmt)}
+                              </td>
+                              <td className="py-3 px-4 text-right font-mono text-sm text-[var(--text-secondary)]">
+                                {formatNumber(counterAmt)} {otherCode}
+                              </td>
+                              <td className="py-3 px-4 text-right font-mono text-sm text-[var(--text-secondary)]">
+                                {formatPriceShort(pricePerUnit)} {otherCode}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-[var(--text-tertiary)]">
+                                {timeAgo(trade.ledger_close_time)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {hasMoreTrades && (
+                      <div className="p-4 border-t border-[var(--border-subtle)] flex justify-center">
+                        <button
+                          onClick={loadMoreTrades}
+                          disabled={loadingMoreTrades}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-sky-600 hover:bg-sky-50 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {loadingMoreTrades ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            'Load More Trades'
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -536,56 +749,93 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                     No holders found
                   </div>
                 ) : (
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
-                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left w-12">#</th>
-                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Address</th>
-                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">Balance</th>
-                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">% of Supply</th>
-                        <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">Value (USD)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--border-subtle)]">
-                      {holders.map((holder, index) => {
-                        const balance = parseFloat(holder.balance);
-                        const percentage = asset.total_supply > 0 ? (balance / asset.total_supply) * 100 : 0;
-                        const valueUSD = balance * asset.price_usd;
+                  <>
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
+                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left w-12">#</th>
+                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Address</th>
+                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">Balance</th>
+                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">% of Supply</th>
+                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">Value (USD)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border-subtle)]">
+                        {holders.map((holder, index) => {
+                          const balance = parseFloat(holder.balance);
+                          const percentage = asset.total_supply > 0 ? (balance / asset.total_supply) * 100 : 0;
+                          const valueUSD = balance * asset.price_usd;
+                          const label = holderLabels.get(holder.account_id);
 
-                        return (
-                          <tr
-                            key={holder.account_id}
-                            className="hover:bg-sky-50/30 transition-colors cursor-pointer"
-                            onClick={() => router.push(`/account/${holder.account_id}`)}
-                          >
-                            <td className="py-3 px-4 text-[var(--text-tertiary)] text-sm">{index + 1}</td>
-                            <td className="py-3 px-4">
-                              <span className="font-mono text-sm text-sky-600 hover:underline">
-                                {shortenAddress(holder.account_id, 8)}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-right font-mono text-sm text-[var(--text-primary)]">
-                              {formatNumber(balance)}
-                            </td>
-                            <td className="py-3 px-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <div className="w-16 bg-[var(--bg-tertiary)] rounded-full h-1.5 overflow-hidden">
-                                  <div
-                                    className="bg-sky-500 h-1.5 rounded-full"
-                                    style={{ width: `${Math.min(percentage * 2, 100)}%` }}
-                                  />
+                          return (
+                            <tr
+                              key={holder.account_id}
+                              className="hover:bg-sky-50/30 transition-colors cursor-pointer"
+                              onClick={() => router.push(`/account/${holder.account_id}`)}
+                            >
+                              <td className="py-3 px-4 text-[var(--text-tertiary)] text-sm">{index + 1}</td>
+                              <td className="py-3 px-4">
+                                {label ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-sm font-medium text-sky-600 hover:underline">
+                                      {label.name}
+                                    </span>
+                                    {label.verified && (
+                                      <svg className="w-3.5 h-3.5 text-sky-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                      </svg>
+                                    )}
+                                    {label.org_name && (
+                                      <span className="text-xs text-[var(--text-muted)]">({label.org_name})</span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="font-mono text-sm text-sky-600 hover:underline">
+                                    {shortenAddress(holder.account_id, 8)}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-right font-mono text-sm text-[var(--text-primary)]">
+                                {formatNumber(balance)}
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <div className="w-16 bg-[var(--bg-tertiary)] rounded-full h-1.5 overflow-hidden">
+                                    <div
+                                      className="bg-sky-500 h-1.5 rounded-full"
+                                      style={{ width: `${Math.min(percentage * 2, 100)}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-sm text-[var(--text-secondary)] w-14 text-right">{percentage.toFixed(2)}%</span>
                                 </div>
-                                <span className="text-sm text-[var(--text-secondary)] w-14 text-right">{percentage.toFixed(2)}%</span>
-                              </div>
-                            </td>
-                            <td className="py-3 px-4 text-right text-sm text-[var(--text-secondary)]">
-                              ${formatNumber(valueUSD)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                              </td>
+                              <td className="py-3 px-4 text-right text-sm text-[var(--text-secondary)]">
+                                ${formatNumber(valueUSD)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {hasMoreHolders && (
+                      <div className="p-4 border-t border-[var(--border-subtle)] flex justify-center">
+                        <button
+                          onClick={loadMoreHolders}
+                          disabled={loadingMoreHolders}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-sky-600 hover:bg-sky-50 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {loadingMoreHolders ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            'Load More Holders'
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

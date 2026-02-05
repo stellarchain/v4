@@ -670,8 +670,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
         </div>
 
         {/* Tabs Row */}
-        <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-4 border-b border-[var(--border-subtle)]">
+        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm px-4">
+          <div className="flex items-center justify-between">
             <div className="flex gap-1">
               {[
                 { id: 'assets', label: 'Assets' },

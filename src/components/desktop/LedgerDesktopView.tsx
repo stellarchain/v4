@@ -328,27 +328,29 @@ export default function LedgerDesktopView({
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-4 px-1 border-b border-[var(--border-default)] pb-2 mb-5">
-          {[
-            { id: 'overview', label: 'Overview' },
-            { id: 'transactions', label: 'Transactions', count: totalTx },
-            { id: 'operations', label: 'Operations', count: ledger.operation_count },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${activeTab === tab.id
-                  ? 'text-sky-600 border-b-2 border-sky-600'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                }`}
-            >
-              {tab.label}
-              {'count' in tab && (
-                <span className={activeTab === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>{tab.count}</span>
-              )}
-            </button>
-          ))}
+        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm px-4 mb-5">
+          <div className="flex gap-1">
+            {[
+              { id: 'overview', label: 'Overview' },
+              { id: 'transactions', label: 'Transactions', count: totalTx },
+              { id: 'operations', label: 'Operations', count: ledger.operation_count },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-widest border-b-2 transition-all ${activeTab === tab.id
+                    ? 'text-sky-600 border-sky-600'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] border-transparent'
+                  }`}
+              >
+                {tab.label}
+                {'count' in tab && (
+                  <span className={activeTab === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>{tab.count}</span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex-1 w-full space-y-5">

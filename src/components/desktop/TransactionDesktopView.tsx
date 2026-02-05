@@ -417,41 +417,43 @@ export default function TransactionDesktopView({ transaction, operations, effect
           <div className="lg:col-span-4">
             <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
               {/* Tabs Header */}
-              <div className="flex items-center gap-4 border-b border-[var(--border-default)] pb-3 mb-3">
-                <button
-                  onClick={() => setListTab('operations')}
-                  className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[11px] transition-colors ${listTab === 'operations' ? 'text-sky-600 border-b-2 border-sky-600' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
-                >
-                  Operations <span className={listTab === 'operations' ? 'text-sky-500' : 'text-[var(--text-muted)]'}>{filteredOperations.length}</span>
-                </button>
-                <button
-                  onClick={() => setListTab('effects')}
-                  className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[11px] transition-colors ${listTab === 'effects' ? 'text-sky-600 border-b-2 border-sky-600' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
-                >
-                  Effects <span className={listTab === 'effects' ? 'text-sky-500' : 'text-[var(--text-muted)]'}>{effects.length}</span>
-                </button>
+              <div className="flex items-center gap-4 border-b border-[var(--border-subtle)] mb-3">
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setListTab('operations')}
+                    className={`text-[10px] font-bold uppercase tracking-widest px-3 py-3 border-b-2 -mb-px transition-colors ${listTab === 'operations' ? 'text-sky-600 border-sky-600' : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-secondary)]'}`}
+                  >
+                    Operations <span className={listTab === 'operations' ? 'text-sky-500' : 'text-[var(--text-muted)]'}>{filteredOperations.length}</span>
+                  </button>
+                  <button
+                    onClick={() => setListTab('effects')}
+                    className={`text-[10px] font-bold uppercase tracking-widest px-3 py-3 border-b-2 -mb-px transition-colors ${listTab === 'effects' ? 'text-sky-600 border-sky-600' : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-secondary)]'}`}
+                  >
+                    Effects <span className={listTab === 'effects' ? 'text-sky-500' : 'text-[var(--text-muted)]'}>{effects.length}</span>
+                  </button>
+                </div>
 
                 {/* Filter Dropdown - Only show when operations tab is active */}
                 {listTab === 'operations' && (
                   <div className="relative ml-auto">
                     <button
                       onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-all ${operationFilter !== 'all' ? 'bg-sky-50 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'}`}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border ${operationFilter !== 'all' ? 'bg-sky-50 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 border-sky-200 dark:border-sky-800' : 'text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--border-default)] hover:text-[var(--text-secondary)]'}`}
                     >
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                       </svg>
-                      {operationFilter === 'all' ? 'Filter' : operationFilter}
-                      <svg className={`w-3 h-3 transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      {operationFilter === 'all' ? 'All' : operationFilter}
+                      <svg className={`w-2.5 h-2.5 transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
 
                     {showFilterDropdown && (
-                      <div className="absolute right-0 mt-1 w-32 bg-[var(--bg-secondary)] rounded-lg shadow-lg border border-[var(--border-default)] py-1 z-50">
+                      <div className="absolute right-0 mt-1 w-36 bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-default)] py-1.5 z-50">
                         <button
                           onClick={() => { setOperationFilter('all'); setShowFilterDropdown(false); setSelectedOpIndex(0); }}
-                          className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-[var(--bg-tertiary)] ${operationFilter === 'all' ? 'text-sky-600 font-medium bg-sky-50' : 'text-[var(--text-secondary)]'}`}
+                          className={`w-full px-3 py-1.5 text-left text-[10px] font-medium uppercase tracking-wider hover:bg-[var(--bg-tertiary)] transition-colors ${operationFilter === 'all' ? 'text-sky-600 bg-sky-50 dark:bg-sky-900/40 dark:text-sky-400' : 'text-[var(--text-secondary)]'}`}
                         >
                           All Types
                         </button>
@@ -459,7 +461,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                           <button
                             key={cat}
                             onClick={() => { setOperationFilter(cat); setShowFilterDropdown(false); setSelectedOpIndex(0); }}
-                            className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-[var(--bg-tertiary)] ${operationFilter === cat ? 'text-sky-600 font-medium bg-sky-50' : 'text-[var(--text-secondary)]'}`}
+                            className={`w-full px-3 py-1.5 text-left text-[10px] font-medium uppercase tracking-wider hover:bg-[var(--bg-tertiary)] transition-colors ${operationFilter === cat ? 'text-sky-600 bg-sky-50 dark:bg-sky-900/40 dark:text-sky-400' : 'text-[var(--text-secondary)]'}`}
                           >
                             {cat}
                           </button>
@@ -482,7 +484,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                       const isActive = idx === selectedOpIndex;
                       const originalIdx = operations.findIndex(o => o.id === op.id);
                       return (
-                        <button key={op.id} onClick={() => setSelectedOpIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 border border-sky-100 shadow-sm' : 'hover:bg-[var(--bg-tertiary)] border border-transparent hover:border-[var(--border-default)]'}`}>
+                        <button key={op.id} onClick={() => setSelectedOpIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800 shadow-sm' : 'hover:bg-[var(--bg-tertiary)] border border-transparent hover:border-[var(--border-default)]'}`}>
                           <div className="flex items-center gap-3">
                             <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-[9px] font-black transition-all ${isActive ? 'bg-sky-600 text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] group-hover:bg-[var(--bg-tertiary)]'}`}>OP{originalIdx + 1}</div>
                             <div className="flex-1 min-w-0">
@@ -511,7 +513,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                       const isCredit = ef.type.includes('credited');
                       const isDebit = ef.type.includes('debited');
                       return (
-                        <button key={ef.id} onClick={() => setSelectedEffectIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 border border-sky-100 shadow-sm' : 'hover:bg-[var(--bg-tertiary)] border border-transparent hover:border-[var(--border-default)]'}`}>
+                        <button key={ef.id} onClick={() => setSelectedEffectIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800 shadow-sm' : 'hover:bg-[var(--bg-tertiary)] border border-transparent hover:border-[var(--border-default)]'}`}>
                           <div className="flex items-center gap-3">
                             <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center transition-all ${isActive ? 'bg-sky-600 text-white' : isCredit ? 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' : isDebit ? 'bg-rose-50 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'}`}>
                               {isCredit ? (
@@ -549,7 +551,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                 {/* Op Header */}
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-sky-50 rounded-xl flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/40 rounded-xl flex items-center justify-center shrink-0">
                       <svg className="w-6 h-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         {selectedOp.type === 'payment' || selectedOp.type === 'create_account' ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /> : selectedOp.type === 'invoke_host_function' ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />}
                       </svg>
@@ -602,7 +604,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
 
                 {/* Amount */}
                 {(selectedOp.amount || (selectedOp as any).starting_balance) && (
-                  <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-100 flex items-center justify-between">
+                  <div className="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 flex items-center justify-between">
                     <div>
                       <div className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-widest mb-1">Amount</div>
                       <div className="text-xl font-bold text-emerald-600">{formatTokenAmount(selectedOp.amount || (selectedOp as any).starting_balance)} <span className="text-sm">{selectedOp.asset_type === 'native' ? 'XLM' : (selectedOp.asset_code || 'XLM')}</span></div>
@@ -658,7 +660,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
               <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-5 space-y-5">
                 {/* Effect Header */}
                 <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${selectedEffect.type.includes('credited') ? 'bg-emerald-50' : selectedEffect.type.includes('debited') ? 'bg-rose-50' : 'bg-[var(--bg-tertiary)]'}`}>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${selectedEffect.type.includes('credited') ? 'bg-emerald-50 dark:bg-emerald-900/40' : selectedEffect.type.includes('debited') ? 'bg-rose-50 dark:bg-rose-900/40' : 'bg-[var(--bg-tertiary)]'}`}>
                     {selectedEffect.type.includes('credited') ? (
                       <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
                     ) : selectedEffect.type.includes('debited') ? (
@@ -694,7 +696,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
 
                 {/* Amount */}
                 {selectedEffect.amount && (
-                  <div className={`p-4 rounded-xl border flex items-center justify-between ${selectedEffect.type.includes('credited') ? 'bg-emerald-50/50 border-emerald-100' : selectedEffect.type.includes('debited') ? 'bg-rose-50/50 border-rose-100' : 'bg-[var(--bg-tertiary)]/50 border-[var(--border-subtle)]'}`}>
+                  <div className={`p-4 rounded-xl border flex items-center justify-between ${selectedEffect.type.includes('credited') ? 'bg-emerald-50/50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/50' : selectedEffect.type.includes('debited') ? 'bg-rose-50/50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-800/50' : 'bg-[var(--bg-tertiary)]/50 border-[var(--border-subtle)]'}`}>
                     <div>
                       <div className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${selectedEffect.type.includes('credited') ? 'text-emerald-700/60 dark:text-emerald-400/60' : selectedEffect.type.includes('debited') ? 'text-rose-700/60 dark:text-rose-400/60' : 'text-[var(--text-muted)]'}`}>Amount</div>
                       <div className={`text-xl font-bold ${selectedEffect.type.includes('credited') ? 'text-emerald-700 dark:text-emerald-400' : selectedEffect.type.includes('debited') ? 'text-rose-700 dark:text-rose-400' : 'text-[var(--text-primary)]'}`}>

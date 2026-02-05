@@ -352,41 +352,43 @@ export default function ContractsDesktopView({
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex items-center gap-4 px-1 border-b border-[var(--border-default)] pb-2 mb-5">
-          {[
-            { id: 'all', label: 'All Contracts', count: pagination.total },
-            { id: 'verified', label: 'Verified', count: currentStats.verified },
-            { id: 'token', label: 'Tokens', count: currentStats.tokens },
-            { id: 'dex', label: 'DEX', count: currentStats.dex },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setFilter(tab.id)}
-              className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${filter === tab.id
-                  ? 'text-sky-600 border-b-2 border-sky-600'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                }`}
-            >
-              {tab.label}
-              <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>
-                {tab.count.toLocaleString()}
-              </span>
-            </button>
-          ))}
-          {categories.slice(0, 3).map(cat => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => setFilter(cat.id)}
-              className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${filter === cat.id
-                  ? 'text-sky-600 border-b-2 border-sky-600'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                }`}
-            >
-              {cat.name}
-            </button>
-          ))}
+        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm px-4 flex items-center mb-5">
+          <div className="flex gap-1">
+            {[
+              { id: 'all', label: 'All Contracts', count: pagination.total },
+              { id: 'verified', label: 'Verified', count: currentStats.verified },
+              { id: 'token', label: 'Tokens', count: currentStats.tokens },
+              { id: 'dex', label: 'DEX', count: currentStats.dex },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFilter(tab.id)}
+                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-widest transition-all ${filter === tab.id
+                    ? 'text-sky-600 border-b-2 border-sky-600'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                  }`}
+              >
+                {tab.label}
+                <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>
+                  {tab.count.toLocaleString()}
+                </span>
+              </button>
+            ))}
+            {categories.slice(0, 3).map(cat => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setFilter(cat.id)}
+                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-widest transition-all ${filter === cat.id
+                    ? 'text-sky-600 border-b-2 border-sky-600'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                  }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Loading overlay */}

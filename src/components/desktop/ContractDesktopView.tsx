@@ -378,31 +378,33 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
             )}
 
             {/* Tabs */}
-            <div className="w-full border-b border-[var(--border-default)] flex gap-8 px-2">
-              {[
-                { id: 'overview', label: 'Overview' },
-                { id: 'history', label: 'History', count: contract.invocations?.length },
-                { id: 'events', label: 'Events', count: contract.events?.length },
-                { id: 'storage', label: 'Storage', count: contract.storage?.totalEntries },
-              ].filter(tab => tab.id !== 'events' || (contract.events && contract.events.length > 0))
-                .filter(tab => tab.id !== 'storage' || (contract.storage && contract.storage.totalEntries > 0))
-                .filter(tab => tab.id !== 'history' || (contract.invocations && contract.invocations.length > 0))
-                .map(tab => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                    className={`pb-3 text-sm font-bold transition-all flex items-center gap-2 ${activeTab === tab.id
-                      ? 'border-b-2 border-sky-500 text-sky-600'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                      }`}
-                  >
-                    {tab.label}
-                    {tab.count !== undefined && tab.count > 0 && (
-                      <span className="rounded-full bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-tertiary)]">{tab.count}</span>
-                    )}
-                  </button>
-                ))}
+            <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm px-4 w-full flex justify-between">
+              <div className="flex gap-1">
+                {[
+                  { id: 'overview', label: 'Overview' },
+                  { id: 'history', label: 'History', count: contract.invocations?.length },
+                  { id: 'events', label: 'Events', count: contract.events?.length },
+                  { id: 'storage', label: 'Storage', count: contract.storage?.totalEntries },
+                ].filter(tab => tab.id !== 'events' || (contract.events && contract.events.length > 0))
+                  .filter(tab => tab.id !== 'storage' || (contract.storage && contract.storage.totalEntries > 0))
+                  .filter(tab => tab.id !== 'history' || (contract.invocations && contract.invocations.length > 0))
+                  .map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                      className={`px-4 py-3 text-sm font-bold transition-all flex items-center gap-2 ${activeTab === tab.id
+                        ? 'border-b-2 border-sky-500 text-sky-600'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                        }`}
+                    >
+                      {tab.label}
+                      {tab.count !== undefined && tab.count > 0 && (
+                        <span className="rounded-full bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-tertiary)]">{tab.count}</span>
+                      )}
+                    </button>
+                  ))}
+              </div>
             </div>
 
             {/* Tab Content */}
