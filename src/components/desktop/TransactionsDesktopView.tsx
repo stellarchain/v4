@@ -86,7 +86,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1 || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 dark:hover:bg-sky-900/40 hover:border-sky-200 dark:hover:border-sky-800 hover:text-sky-700 dark:hover:text-sky-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -111,7 +111,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
             disabled={loading}
             className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${currentPage === pageNum
               ? 'bg-sky-600 text-white shadow-sm'
-              : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-600'
+              : 'text-[var(--text-muted)] hover:bg-sky-50 dark:hover:bg-sky-900/40 hover:text-sky-700 dark:hover:text-sky-400'
               }`}
           >
             {pageNum}
@@ -126,7 +126,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={(currentPage >= totalPages && !hasMore) || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 dark:hover:bg-sky-900/40 hover:border-sky-200 dark:hover:border-sky-800 hover:text-sky-700 dark:hover:text-sky-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -492,25 +492,27 @@ export default function TransactionsDesktopView({
         </div>
 
         {/* Filters Row */}
-        <div className="flex items-center gap-4 px-1 border-b border-[var(--border-default)] pb-2 mb-5">
-          {[
-            { id: 'all', label: 'All Activity', count: stats.total },
-            { id: 'transfers', label: 'Payments', count: stats.payments },
-            { id: 'contracts', label: 'Smart Contracts', count: stats.contracts },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setFilter(tab.id as FilterType)}
-              className={`text-[10px] font-bold uppercase tracking-widest pb-2 -mb-[9px] transition-all ${filter === tab.id
-                ? 'text-sky-600 border-b-2 border-sky-600'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                }`}
-            >
-              {tab.label}
-              <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>{tab.count}</span>
-            </button>
-          ))}
+        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm px-4 mb-5">
+          <div className="flex gap-1">
+            {[
+              { id: 'all', label: 'All Activity', count: stats.total },
+              { id: 'transfers', label: 'Payments', count: stats.payments },
+              { id: 'contracts', label: 'Smart Contracts', count: stats.contracts },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFilter(tab.id as FilterType)}
+                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-widest transition-all ${filter === tab.id
+                  ? 'text-sky-600 border-b-2 border-sky-600'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                  }`}
+              >
+                {tab.label}
+                <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>{tab.count}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Transactions Table */}

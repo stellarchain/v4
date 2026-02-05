@@ -245,32 +245,34 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                     {/* Right Column - Tabs */}
                     <div className="col-span-8">
                         {/* Tabs */}
-                        <div className="flex gap-6 border-b border-[var(--border-default)] mb-6">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`pb-3 text-sm font-semibold transition-all flex items-center gap-2 ${
-                                        activeTab === tab.id
-                                            ? 'border-b-2'
-                                            : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                                    }`}
-                                    style={activeTab === tab.id ? { color: primaryColor, borderColor: primaryColor } : {}}
-                                >
-                                    {tab.label}
-                                    {'count' in tab && tab.count > 0 && (
-                                        <span
-                                            className="px-1.5 py-0.5 text-xs rounded-full"
-                                            style={activeTab === tab.id
-                                                ? { backgroundColor: `${primaryColor}15`, color: primaryColor }
-                                                : { backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-muted)' }
-                                            }
-                                        >
-                                            {tab.count}
-                                        </span>
-                                    )}
-                                </button>
-                            ))}
+                        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm px-4 mb-6">
+                            <div className="flex gap-1">
+                                {tabs.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`px-4 py-3 text-sm font-semibold transition-all flex items-center gap-2 ${
+                                            activeTab === tab.id
+                                                ? 'border-b-2'
+                                                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                                        }`}
+                                        style={activeTab === tab.id ? { color: primaryColor, borderColor: primaryColor } : {}}
+                                    >
+                                        {tab.label}
+                                        {'count' in tab && tab.count > 0 && (
+                                            <span
+                                                className="px-1.5 py-0.5 text-xs rounded-full"
+                                                style={activeTab === tab.id
+                                                    ? { backgroundColor: `${primaryColor}15`, color: primaryColor }
+                                                    : { backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-muted)' }
+                                                }
+                                            >
+                                                {tab.count}
+                                            </span>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Tab Content */}
