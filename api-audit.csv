@@ -1,0 +1,88 @@
+Provider,Category,Function/File,Endpoint,Purpose,Source
+Stellar Horizon,Liquidity Pools,getLiquidityPools,/liquidity_pools,Fetches paginated list of liquidity pools,stellar.ts
+Stellar Horizon,Liquidity Pools,getLiquidityPool,/liquidity_pools/{poolId},Gets details for a specific liquidity pool,stellar.ts
+Stellar Horizon,Liquidity Pools,getLiquidityPoolByAssets,/liquidity_pools?reserves=...,Finds liquidity pool for two assets,stellar.ts
+Stellar Horizon,Liquidity Pools,getLiquidityPoolOperations,/liquidity_pools/{poolId}/operations,Gets operations for a pool,stellar.ts
+Stellar Horizon,Liquidity Pools,getLiquidityPoolTransactions,/liquidity_pools/{poolId}/transactions,Gets transactions for a pool,stellar.ts
+Stellar Horizon,Liquidity Pools,getLiquidityPoolTrades,/liquidity_pools/{poolId}/trades,Gets trades executed in a pool,stellar.ts
+Stellar Horizon,Liquidity Pools,getLiquidityPoolEffects,/liquidity_pools/{poolId}/effects,Gets effects from a pool,stellar.ts
+Stellar Horizon,Ledgers,getLedgers,/ledgers,Gets paginated list of ledgers,stellar.ts
+Stellar Horizon,Ledgers,getLedger,/ledgers/{sequence},Gets a specific ledger,stellar.ts
+Stellar Horizon,Ledgers,getLedgerTransactions,/ledgers/{sequence}/transactions,Gets transactions in a ledger,stellar.ts
+Stellar Horizon,Ledgers,getLedgerOperations,/ledgers/{sequence}/operations,Gets operations in a ledger,stellar.ts
+Stellar Horizon,Ledgers,getLedgerTransactionsWithDisplayInfo,/ledgers/{sequence}/transactions + operations,Combines ledger transactions with display info,stellar.ts
+Stellar Horizon,Transactions,getTransactions,/transactions,Gets paginated list of transactions,stellar.ts
+Stellar Horizon,Transactions,getTransaction,/transactions/{hash},Gets a specific transaction,stellar.ts
+Stellar Horizon,Transactions,getTransactionOperations,/transactions/{hash}/operations,Gets operations in a transaction,stellar.ts
+Stellar Horizon,Transactions,getTransactionEffects,/transactions/{hash}/effects,Gets effects from a transaction,stellar.ts
+Stellar Horizon,Transactions,getTransactionsWithDisplayInfo,/transactions + operations,Combines transactions with operations display info,stellar.ts
+Stellar Horizon,Accounts,getAccount,/accounts/{accountId},Gets account details,stellar.ts
+Stellar Horizon,Accounts,getAccountTransactions,/accounts/{accountId}/transactions,Gets account transactions,stellar.ts
+Stellar Horizon,Accounts,getAccountOperations,/accounts/{accountId}/operations,Gets account operations,stellar.ts
+Stellar Horizon,Accounts,getAccountPayments,/accounts/{accountId}/payments,Gets account payments,stellar.ts
+Stellar Horizon,Accounts,getAccountEffects,/accounts/{accountId}/effects,Gets effects on account,stellar.ts
+Stellar Horizon,Operations,getOperations,/operations,Gets paginated list of operations,stellar.ts
+Stellar Horizon,Operations,getOperation,/operations/{id},Gets a specific operation,stellar.ts
+Stellar Horizon,Operations,getActiveContracts,/operations?type=invoke_host_function,Gets most active smart contracts,stellar.ts
+Stellar Horizon,Operations,getContractInvocations,/operations (scanned),Scans operations to find contract invocations,stellar.ts
+Stellar Horizon,Payments,getPayments,/payments,Gets all payment operations,stellar.ts
+Stellar Horizon,Payments,getPaymentTransactions,/payments,Gets payment operations as transactions,stellar.ts
+Stellar Horizon,Effects,getEffects,/effects,Gets paginated list of effects,stellar.ts
+Stellar Horizon,Assets,getAssets,/assets,Gets paginated list of assets,stellar.ts
+Stellar Horizon,Assets,getAssetsByCode,/assets?asset_code=...,Gets assets by code,stellar.ts
+Stellar Horizon,Assets,getAssetsByIssuer,/assets?asset_issuer=...,Gets assets by issuer,stellar.ts
+Stellar Horizon,Assets,getAssetHolders,/accounts?asset=...,Gets accounts holding an asset,stellar.ts
+Stellar Horizon,Assets,getAssetTradingPairs,/trades,Gets all trading pairs for an asset,stellar.ts
+Stellar Horizon,Trading,getAssetTrades,/trades,Gets all trades for a specific asset pair,stellar.ts
+Stellar Horizon,Trading,getOrderBook,/order_book,Gets order book for an asset pair,stellar.ts
+Stellar Horizon,Trading,getTradeAggregations,/trade_aggregations,Gets OHLC data for trading pairs,stellar.ts
+Stellar Horizon,Trading,getXLMUSDPriceFromHorizon,/trade_aggregations (XLM/USDC),Gets XLM/USD price from trade data,stellar.ts
+Stellar Horizon,Trading,getAssetPriceFromHorizon,/trade_aggregations,Gets asset prices in USD and XLM,stellar.ts
+Stellar Horizon,Trading,getTradeTransactionHash,Operation link -> tx hash,Fetches transaction hash for a trade,stellar.ts
+Stellar Horizon,Trading,getAssetTradeTransactionHash,Operation link -> tx hash,Gets transaction hash from asset trade,stellar.ts
+Stellar Horizon,Trading,enrichTradesWithTransactionHashes,Batch operation links,Batch fetches tx hashes for multiple trades,stellar.ts
+Stellar Horizon,Stats,getNetworkStats,/ledgers + /fee_stats,Gets network statistics and fees,stellar.ts
+Stellar Horizon,Stats,fetchLedgerStats,/ledgers (calculated),Calculates TPS/OPS from ledger data,stellar.ts
+Stellar Horizon,Stats,getStatistics,Combined endpoints,Aggregates CoinGecko + Expert + ledger + supply,stellar.ts
+Stellar Horizon,Direct Fetch,TransactionPageClient.tsx,/transactions + /payments + /effects,Transaction page data,component
+Stellar Horizon,Direct Fetch,LiveLedgerFeed.tsx,/ledgers,Live ledger feed,component
+Stellar Horizon,Direct Fetch,LedgersPageClient.tsx,/ledgers + /ledgers/{id},Paginated ledger list,component
+Stellar Horizon,Direct Fetch,LiveTransactionFeed.tsx,/payments + /transactions,Live transaction/payment feeds,component
+Stellar Horizon,Direct Fetch,LiveOperationFeed.tsx,/operations,Live operations feed,component
+Stellar Horizon,Direct Fetch,LedgersDesktopView.tsx,/ledgers,Desktop ledger display,component
+Stellar Horizon,Direct Fetch,TransactionsDesktopView.tsx,/transactions,Desktop transaction display,component
+Stellar Horizon,Direct Fetch,LiquidityPoolsDesktopView.tsx,/liquidity_pools (paginated),Liquidity pool pagination,component
+Stellar Horizon,Direct Fetch,DesktopHomePage.tsx,/ledgers + /operations + /payments,Home page dashboard data,component
+Stellar Horizon,Direct Fetch,AccountDesktopView.tsx,/operations/{id}/effects,Account operation effects,component
+Stellar Horizon,Direct Fetch,AccountMobileView.tsx,/operations/{id}/effects,Mobile account operation effects,component
+Stellar Horizon,Direct Fetch,StatsCards.tsx,/ledgers,Mobile statistics cards,component
+Stellar Horizon,Direct Fetch,MobileLiquidityPools.tsx,/liquidity_pools (paginated),Mobile liquidity pool pagination,component
+Stellar Horizon,Direct Fetch,TransactionDesktopView.tsx,/api/transaction-meta?hash={hash},Transaction metadata (internal route),component
+Stellar Horizon,Direct Fetch,TransactionMobileView.tsx,/api/transaction-meta?hash={hash},Mobile transaction metadata (internal route),component
+Stellar Horizon,Direct Fetch,MobileHeader.tsx,/trade_aggregations (XLM/USDC),XLM price for header,component
+Stellar Horizon,Direct Fetch,stellar_graph.ts,/accounts/{addr}/transactions + /transactions/{hash}/operations,Address graph BFS traversal,lib
+CoinGecko,Price Data,getCoinGeckoXLMData,/api/v3/simple/price?ids=stellar,XLM price + market cap + 24h volume/change,stellar.ts
+CoinGecko,Price Data,fetchCoinGeckoData,/api/v3/coins/stellar,Detailed XLM data with sparkline,stellar.ts
+CoinGecko,Market Data,getXLMMarketData,/api/v3/global,Global crypto market data,stellar.ts
+CoinGecko,Direct Fetch,AccountDesktopView.tsx,/api/v3/simple/price?ids=stellar,XLM price for account balances,component
+CoinGecko,Direct Fetch,AccountMobileView.tsx,/api/v3/simple/price?ids=stellar,Mobile XLM price for balances,component
+CoinGecko,Direct Fetch,MobileHeader.tsx,/api/v3/simple/price?ids=stellar,Header XLM price display,component
+Stellar Expert,Price Data,getXLMPrice,/explorer/public/xlm-price,Current XLM price,stellar.ts
+Stellar Expert,Assets,getMarketAssets,/explorer/public/asset?sort=rating,Top 200 assets by rating,stellar.ts
+Stellar Expert,Assets,getAssetDetails,/explorer/public/asset/{assetId},Detailed asset information + price,stellar.ts
+Stellar Expert,Network Stats,fetchStellarExpertStats,/explorer/public/network-stats,Blockchain network statistics,stellar.ts
+Stellar Expert,Direct Fetch,AssetChart.tsx,/explorer/public/xlm-price or /asset/{id}/price,Asset price chart data,component
+StellarChain.io,Assets,getAssetDetails,/v1/assets/{id}/show,Asset details,stellar.ts
+StellarChain.io,Accounts,getXLMHolders / getRichList,/v1/accounts/top,Top XLM holders / rich list,stellar.ts
+StellarChain.io,Accounts,fetchLabeledAccounts,/v1/accounts?labels[]=undefined,Known/verified accounts,stellar.ts
+StellarChain.io,Accounts,fetchAllLabeledAccounts,/v1/accounts (all pages),All labeled accounts with pagination,stellar.ts
+StellarChain.io,Accounts,getAccountLabels,Batch account endpoints,Batch label lookup for multiple accounts,stellar.ts
+StellarChain.io,Contracts,fetchContracts,/v1/contracts/env/public,Soroban contracts list,stellar.ts
+StellarChain.io,Direct Fetch,KnownAccountsClient.tsx,/v1/accounts?labels[]=undefined,Known accounts page,component
+StellarChain.io,Direct Fetch,KnownAccountsDesktopView.tsx,/v1/accounts?labels[]=undefined,Desktop known accounts view,component
+StellarChain.io,Direct Fetch,ContractsClient.tsx,/v1/contracts/env/public,Contracts page,component
+StellarChain.io,Direct Fetch,ContractsDesktopView.tsx,/v1/contracts/env/public,Desktop contracts view,component
+Stellar Dashboard,Supply Data,fetchSupplyData,/api/v2/lumens,Total XLM supply and circulating data,stellar.ts
+Exchange Rate API,Currency,AccountMobileView.tsx,/v4/latest/USD,USD exchange rates for currency conversion,component
+GitHub API,Verification,contractVerification.ts,/repos/{owner}/{repo}/attestations/sha256:{hash},Verify contract WASM against GitHub attestations,lib
+Internal API,Transaction Meta,/api/transaction-meta (route.ts),/api/transaction-meta?hash={hash},Transaction result metadata and XDR data,api-route
