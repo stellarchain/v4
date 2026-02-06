@@ -59,6 +59,8 @@ async function fetchAllLedgerOps(sequence: number): Promise<string[]> {
 
 const TILE_GAP = 1;
 const GRID_SIDE = 18;
+const TILE_PX = 5;
+const GRID_PX = GRID_SIDE * TILE_PX + (GRID_SIDE - 1) * TILE_GAP; // 107px
 
 function seededShuffle<T>(arr: T[], seed: number): T[] {
     const out = [...arr];
@@ -81,29 +83,6 @@ function LedgerBlock({ ledger, realOps, failedOps, txCount, isNewest, index, the
     theme: string;
     timeAgo: string;
 }) {
-    const mosaicRef = useRef<HTMLDivElement>(null);
-    const [mosaicSize, setMosaicSize] = useState(0);
-
-    useEffect(() => {
-        const el = mosaicRef.current;
-        if (!el) return;
-
-        const measure = () => {
-            const w = el.clientWidth;
-            const h = el.clientHeight;
-            if (w > 0 && h > 0) setMosaicSize(Math.min(w, h));
-        };
-
-        measure();
-        const observer = new ResizeObserver(measure);
-        observer.observe(el);
-        return () => observer.disconnect();
-    }, []);
-
-    const tileSize = mosaicSize > 0
-        ? Math.max(1, Math.floor((mosaicSize - (GRID_SIDE - 1) * TILE_GAP) / GRID_SIDE))
-        : 0;
-    const gridPx = GRID_SIDE * tileSize + (GRID_SIDE - 1) * TILE_GAP;
 
     const totalCells = GRID_SIDE * GRID_SIDE;
     const successOps = ledger.operation_count;
@@ -160,32 +139,31 @@ function LedgerBlock({ ledger, realOps, failedOps, txCount, isNewest, index, the
                 )}
             </div>
 
-            <div ref={mosaicRef} className="flex-1 flex items-center justify-center mx-1 mb-0.5 overflow-hidden">
-                {tileSize > 0 && (
-                    <div
-                        style={{
-                            display: 'grid',
-                            gridTemplateColumns: `repeat(${GRID_SIDE}, ${tileSize}px)`,
-                            gridTemplateRows: `repeat(${GRID_SIDE}, ${tileSize}px)`,
-                            gap: `${TILE_GAP}px`,
-                            width: gridPx,
-                            height: gridPx,
-                        }}
-                    >
-                        {shuffledTiles.map((tile, i) => (
-                            <div
-                                key={i}
-                                style={{
-                                    width: tileSize,
-                                    height: tileSize,
-                                    backgroundColor: tile.color,
-                                    opacity: theme === 'dark' ? 0.85 : 0.75,
-                                    borderRadius: 1,
-                                }}
-                            />
-                        ))}
-                    </div>
-                )}
+            <div className="flex-1 flex items-center justify-center mx-1 mb-0.5 overflow-hidden">
+                <div
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: `repeat(${GRID_SIDE}, ${TILE_PX}px)`,
+                        gridTemplateRows: `repeat(${GRID_SIDE}, ${TILE_PX}px)`,
+                        gap: `${TILE_GAP}px`,
+                        width: GRID_PX,
+                        height: GRID_PX,
+                        flexShrink: 0,
+                    }}
+                >
+                    {shuffledTiles.map((tile, i) => (
+                        <div
+                            key={i}
+                            style={{
+                                width: TILE_PX,
+                                height: TILE_PX,
+                                backgroundColor: tile.color,
+                                opacity: theme === 'dark' ? 0.85 : 0.75,
+                                borderRadius: 1,
+                            }}
+                        />
+                    ))}
+                </div>
             </div>
 
             <div className="px-2 pt-0.5 pb-1">
@@ -440,9 +418,8 @@ export default function TransactionFlowAnimation({
                             ref={setBlockRef(ledger.sequence)}
                             className={isNew ? 'ledger-slot-new' : undefined}
                             style={{
-                                flex: '1 1 0%',
-                                minWidth: 100,
-                                maxWidth: 140,
+                                width: 130,
+                                flexShrink: 0,
                                 overflow: 'hidden',
                             }}
                         >
@@ -474,11 +451,11 @@ export default function TransactionFlowAnimation({
                 @keyframes slotReveal {
                     from {
                         max-width: 0;
-                        min-width: 0;
+                        width: 0;
                     }
                     to {
-                        max-width: 140px;
-                        min-width: 100px;
+                        max-width: 130px;
+                        width: 130px;
                     }
                 }
                 .ledger-slot-new {
