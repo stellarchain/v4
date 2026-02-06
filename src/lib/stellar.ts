@@ -2327,10 +2327,16 @@ export async function fetchContracts(
   try {
     const url = `https://api.stellarchain.io/v1/contracts/env/public?page=${page}&paginate=${perPage}`;
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     const response = await fetch(url, {
       headers: { 'Accept': 'application/json' },
       next: { revalidate: 60 }, // Cache for 1 minute
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch contracts: ${response.status}`);
@@ -2975,13 +2981,19 @@ async function fetchStellarExpertStats(): Promise<{
   operationsHistory: number[];
 }> {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch(
       'https://api.stellar.expert/explorer/public/network-stats',
       {
         headers: { 'Accept': 'application/json' },
         next: { revalidate: 60 },
+        signal: controller.signal,
       }
     );
+
+    clearTimeout(timeout);
 
     if (!response.ok) throw new Error('StellarExpert API error');
 
