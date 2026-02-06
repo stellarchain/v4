@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { shortenAddress, timeAgo } from '@/lib/stellar';
 import { StrKey } from '@stellar/stellar-sdk';
+import GliderTabs from '@/components/ui/GliderTabs';
 
 // Convert hex contract ID to StrKey format (C...)
 function hexToContractStrKey(hexId: string): string {
@@ -274,6 +275,14 @@ export default function ContractsDesktopView({
     active: contracts.filter(c => c.operationCount > 0).length,
   }), [contracts, pagination.total]);
 
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const c of contracts) {
+      counts[c.type] = (counts[c.type] ?? 0) + 1;
+    }
+    return counts;
+  }, [contracts]);
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
@@ -352,43 +361,22 @@ export default function ContractsDesktopView({
         </div>
 
         {/* Filter Tabs */}
-        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm px-4 flex items-center mb-5">
-          <div className="flex gap-1">
-            {[
-              { id: 'all', label: 'All Contracts', count: pagination.total },
+        <div className="mb-5 max-w-full">
+          <GliderTabs
+            size="sm"
+            className="border-[var(--border-default)]"
+            tabs={[
+              { id: 'all', label: 'All', count: pagination.total },
               { id: 'verified', label: 'Verified', count: currentStats.verified },
-              { id: 'token', label: 'Tokens', count: currentStats.tokens },
-              { id: 'dex', label: 'DEX', count: currentStats.dex },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setFilter(tab.id)}
-                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-widest transition-all ${filter === tab.id
-                    ? 'text-sky-600 border-b-2 border-sky-600'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                  }`}
-              >
-                {tab.label}
-                <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>
-                  {tab.count.toLocaleString()}
-                </span>
-              </button>
-            ))}
-            {categories.slice(0, 3).map(cat => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setFilter(cat.id)}
-                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-widest transition-all ${filter === cat.id
-                    ? 'text-sky-600 border-b-2 border-sky-600'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                  }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
+              ...categories.map((cat) => ({
+                id: cat.id,
+                label: cat.name,
+                count: (typeCounts[cat.id] ?? 0) > 0 ? (typeCounts[cat.id] ?? 0) : undefined,
+              })),
+            ]}
+            activeId={filter}
+            onChange={setFilter}
+          />
         </div>
 
         {/* Loading overlay */}
@@ -428,12 +416,12 @@ export default function ContractsDesktopView({
                       <tr
                         key={contract.id}
                         className="hover:bg-sky-50/30 transition-colors group cursor-pointer"
-                        onClick={() => window.location.href = `/contract/${contract.id}`}
+                        onClick={() => window.location.href = `/contracts/${contract.id}`}
                       >
                         {/* Contract ID */}
                         <td className="py-3 px-4">
                           <Link
-                            href={`/contract/${contract.id}`}
+                            href={`/contracts/${contract.id}`}
                             className="font-mono text-[12px] text-sky-600 hover:text-sky-700 hover:underline"
                             onClick={(e) => e.stopPropagation()}
                           >

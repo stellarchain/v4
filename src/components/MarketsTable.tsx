@@ -4,6 +4,10 @@ import { useState, useMemo } from 'react';
 import { MarketAsset } from '@/lib/stellar';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import { assetRoute } from '@/lib/routes';
 
 interface MarketsTableProps {
   initialAssets: MarketAsset[];
@@ -116,10 +120,7 @@ function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
 }
 
 function getAssetUrl(asset: MarketAsset): string {
-  if (asset.code === 'XLM' && !asset.issuer) {
-    return '/asset/XLM';
-  }
-  return `/asset/${encodeURIComponent(asset.code)}${asset.issuer ? `?issuer=${encodeURIComponent(asset.issuer)}` : ''}`;
+  return assetRoute(asset.code, asset.issuer);
 }
 
 export default function MarketsTable({ initialAssets }: MarketsTableProps) {
@@ -210,9 +211,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Markets</h1>
-            <span className="px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[10px] font-medium text-[#777]">
-              Directory
-            </span>
+            <Badge>Directory</Badge>
           </div>
           <p className="text-[var(--text-muted)] text-xs">
             Stellar network assets ranked by market capitalization
@@ -265,17 +264,22 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
           </select>
 
           {/* Columns button (visual only for now) */}
-          <button className="bg-[var(--bg-tertiary)] rounded-xl px-4 py-3 text-[var(--text-muted)] text-sm hover:text-[var(--text-primary)] transition-colors flex items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            className="bg-[var(--bg-tertiary)] border-0 shadow-none px-4 py-3 text-[var(--text-muted)] text-sm hover:text-[var(--text-primary)] flex items-center gap-2"
+          >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h18M3 8h18M3 12h18M3 16h18M3 20h18" />
             </svg>
             <span className="hidden sm:inline">Columns</span>
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden lg:block bg-[var(--bg-secondary)] rounded-2xl shadow-sm overflow-hidden">
+      <div className="hidden lg:block">
+        <Card className="shadow-sm">
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--border-subtle)]">
@@ -385,10 +389,12 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
             })}
           </tbody>
         </table>
+        </Card>
       </div>
 
       {/* Tablet Table (simplified) */}
-      <div className="hidden md:block lg:hidden bg-[var(--bg-secondary)] rounded-2xl shadow-sm overflow-hidden">
+      <div className="hidden md:block lg:hidden">
+        <Card className="shadow-sm">
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--border-subtle)]">
@@ -427,6 +433,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
             ))}
           </tbody>
         </table>
+        </Card>
       </div>
 
       {/* Mobile Cards */}
@@ -470,7 +477,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
 
       {/* Empty State */}
       {filteredAndSortedAssets.length === 0 && (
-        <div className="text-center py-20 bg-[var(--bg-secondary)] rounded-2xl shadow-sm">
+        <Card className="text-center py-20 shadow-sm">
           <div className="w-16 h-16 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -478,7 +485,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
           </div>
           <h3 className="text-[var(--text-primary)] font-medium mb-1">No assets found</h3>
           <p className="text-[var(--text-muted)] text-sm">No assets found matching &quot;{searchQuery}&quot;</p>
-        </div>
+        </Card>
       )}
 
       {/* Footer Info */}

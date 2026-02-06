@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Project } from '@/lib/projects';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
 
 interface ProjectListProps {
     initialProjects: Project[];
@@ -28,7 +31,7 @@ export default function ProjectList({ initialProjects }: ProjectListProps) {
     return (
         <div className="space-y-6">
             {/* Search and Filters */}
-            <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm space-y-4">
+            <Card className="p-6 shadow-sm space-y-4">
                 <div className="relative">
                     <input
                         type="text"
@@ -44,31 +47,27 @@ export default function ProjectList({ initialProjects }: ProjectListProps) {
 
                 {/* Category Filter */}
                 <div className="flex flex-wrap gap-2">
-                    <button
+                    <Button
+                        type="button"
                         onClick={() => setSelectedCategory(null)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                            !selectedCategory
-                                ? 'bg-[var(--primary)] text-white'
-                                : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                        }`}
+                        variant="pill"
+                        className={`rounded-lg text-xs font-medium transition-all ${!selectedCategory ? 'bg-[var(--info)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
                     >
                         All
-                    </button>
+                    </Button>
                     {categories.map(category => (
-                        <button
+                        <Button
+                            type="button"
                             key={category}
                             onClick={() => setSelectedCategory(category)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                selectedCategory === category
-                                    ? 'bg-[var(--primary)] text-white'
-                                    : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                            }`}
+                            variant="pill"
+                            className={`rounded-lg text-xs font-medium transition-all ${selectedCategory === category ? 'bg-[var(--info)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
                         >
                             {category}
-                        </button>
+                        </Button>
                     ))}
                 </div>
-            </div>
+            </Card>
 
             {/* Results Count */}
             <div className="text-sm text-[var(--text-muted)]">
@@ -95,9 +94,7 @@ export default function ProjectList({ initialProjects }: ProjectListProps) {
                                     <h3 className="text-[var(--text-primary)] font-medium group-hover:text-[var(--primary)] transition-colors line-clamp-1">
                                         {project.name}
                                     </h3>
-                                    <span className="inline-block px-2 py-0.5 rounded-md bg-[var(--bg-tertiary)] text-[10px] text-[var(--text-muted)]">
-                                        {project.category}
-                                    </span>
+                                    <Badge className="rounded-md">{project.category}</Badge>
                                 </div>
                             </div>
                         </div>

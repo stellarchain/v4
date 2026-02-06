@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Transaction, Operation, Effect, shortenAddress, formatXLM, AccountLabel, getBaseUrl } from '@/lib/stellar';
 import { containers, colors, coreColors, tabs, badges } from '@/lib/design-system';
+import GliderTabs from '@/components/ui/GliderTabs';
 import { QRCodeSVG } from 'qrcode.react';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { assetRoute } from '@/lib/routes';
 
 function formatCompactNumber(value: number): string {
   if (value === 0) return '0';
@@ -70,9 +72,9 @@ interface AccountMobileViewProps {
 }
 
 function getAssetUrl(code: string | undefined, issuer: string | undefined): string {
-  if (!code || code === 'native') return '/asset/XLM';
-  if (code === 'XLM' && !issuer) return '/asset/XLM';
-  return `/asset/${encodeURIComponent(code)}${issuer ? `?issuer=${encodeURIComponent(issuer)}` : ''}`;
+  if (!code || code === 'native') return assetRoute('XLM', null);
+  if (code === 'XLM' && !issuer) return assetRoute('XLM', null);
+  return assetRoute(code, issuer);
 }
 
 export default function AccountMobileView({ account, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel }: AccountMobileViewProps) {
@@ -288,10 +290,10 @@ export default function AccountMobileView({ account, transactions, operations: i
   useEffect(() => {
     const fetchXlmChange = async () => {
       try {
-        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd&include_24hr_change=true');
+        const res = await fetch('/api/coingecko/xlm', { cache: 'force-cache' });
         const data = await res.json();
-        if (data.stellar?.usd_24h_change) {
-          setXlmChange24h(data.stellar.usd_24h_change);
+        if (typeof data?.usd_24h_change === 'number') {
+          setXlmChange24h(data.usd_24h_change);
         }
       } catch {
         // Ignore
@@ -780,47 +782,15 @@ export default function AccountMobileView({ account, transactions, operations: i
         </div>
 
         {/* Tabs - Glider Style */}
-        {(() => {
-          const tabs = [
+        <GliderTabs
+          tabs={[
             { id: 'assets', label: 'Assets' },
             { id: 'activity', label: 'Activity' },
             { id: 'details', label: 'Details' },
-          ];
-          const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab);
-          const tabCount = tabs.length;
-
-          return (
-            <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)]">
-              {/* Glider Background */}
-              <div
-                className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
-                style={{
-                  left: '4px',
-                  width: `calc((100% - 8px) / ${tabCount})`,
-                  transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
-                  opacity: activeTabIndex >= 0 ? 1 : 0
-                }}
-              />
-
-              {tabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => handleTabChange(tab.id as 'assets' | 'activity' | 'details')}
-                    className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center ${
-                      isActive
-                        ? 'text-[var(--primary-blue)] font-bold'
-                        : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          );
-        })()}
+          ]}
+          activeId={activeTab}
+          onChange={(id) => handleTabChange(id)}
+        />
       </header>
 
       {/* Main Content */}
@@ -934,8 +904,24 @@ export default function AccountMobileView({ account, transactions, operations: i
                 const valueUSD = priceData ? amount * priceData.price : 0;
                 const pnlPercent = priceData?.change24h || 0;
 
-                const bgColors = ['bg-blue-500/10', 'bg-purple-500/10', 'bg-[var(--success)]/10', 'bg-orange-500/10', 'bg-pink-500/10', 'bg-indigo-500/10', 'bg-violet-500/10'];
-                const textColors = ['text-blue-400', 'text-purple-400', 'text-[var(--success)]', 'text-orange-400', 'text-pink-400', 'text-indigo-400', 'text-violet-400'];
+                const bgColors = [
+                  'bg-[var(--info-muted)]',
+                  'bg-[var(--purple-muted)]',
+                  'bg-[var(--success-muted)]',
+                  'bg-[var(--warning-muted)]',
+                  'bg-[var(--pink-muted)]',
+                  'bg-[var(--indigo-muted)]',
+                  'bg-[var(--violet-muted)]'
+                ];
+                const textColors = [
+                  'text-[var(--info)]',
+                  'text-[var(--purple)]',
+                  'text-[var(--success)]',
+                  'text-[var(--warning)]',
+                  'text-[var(--pink)]',
+                  'text-[var(--indigo)]',
+                  'text-[var(--violet)]'
+                ];
                 const colorIdx = (balance.asset_code || '').length % bgColors.length;
 
                 return (
@@ -1184,8 +1170,8 @@ export default function AccountMobileView({ account, transactions, operations: i
                     const isSwapDisplay = typeDisplay.toLowerCase() === 'swap';
 
                     const colorIdx = (isSwapOrOffer || isSwapDisplay) ? 2 : (isContract ? 3 : (isReceive ? 0 : 1));
-                    const bgColors = ['bg-[var(--success)]/10', 'bg-[var(--error)]/10', 'bg-blue-500/10', 'bg-purple-500/10', 'bg-orange-500/10'];
-                    const textColors = ['text-[var(--success)]', 'text-[var(--error)]', 'text-blue-400', 'text-purple-400', 'text-orange-400'];
+                    const bgColors = ['bg-[var(--success-muted)]', 'bg-[var(--error-muted)]', 'bg-[var(--info-muted)]', 'bg-[var(--purple-muted)]', 'bg-[var(--warning-muted)]'];
+                    const textColors = ['text-[var(--success)]', 'text-[var(--error)]', 'text-[var(--info)]', 'text-[var(--purple)]', 'text-[var(--warning)]'];
 
                     const timeStr = new Date(op.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
@@ -1333,7 +1319,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400">
+                  <div className="w-8 h-8 rounded-full bg-[var(--info-muted)] flex items-center justify-center text-[var(--info)]">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                     </svg>
@@ -1344,7 +1330,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400">
+                  <div className="w-8 h-8 rounded-full bg-[var(--purple-muted)] flex items-center justify-center text-[var(--purple)]">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
@@ -1429,15 +1415,15 @@ export default function AccountMobileView({ account, transactions, operations: i
               <div className="grid grid-cols-2 gap-2">
                 <div className={`rounded-xl p-3 border ${account.flags.auth_required ? 'bg-amber-500/10 border-amber-500/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_required ? 'bg-amber-500' : 'bg-[var(--text-muted)]'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_required ? 'text-amber-400' : 'text-[var(--text-muted)]'}`}>Auth Required</span>
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_required ? 'bg-[var(--warning)]' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account.flags.auth_required ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>Auth Required</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)]">Requires authorization for trustlines</p>
                 </div>
-                <div className={`rounded-xl p-3 border ${account.flags.auth_revocable ? 'bg-orange-500/10 border-orange-500/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
+                <div className={`rounded-xl p-3 border ${account.flags.auth_revocable ? 'bg-[var(--warning-muted)] border-[var(--warning)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_revocable ? 'bg-orange-500' : 'bg-[var(--text-muted)]'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_revocable ? 'text-orange-400' : 'text-[var(--text-muted)]'}`}>Auth Revocable</span>
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_revocable ? 'bg-[var(--warning)]' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account.flags.auth_revocable ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>Auth Revocable</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)]">Can revoke trustlines</p>
                 </div>
@@ -1448,10 +1434,10 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)]">Flags cannot be changed</p>
                 </div>
-                <div className={`rounded-xl p-3 border ${account.flags.auth_clawback_enabled ? 'bg-purple-500/10 border-purple-500/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
+                <div className={`rounded-xl p-3 border ${account.flags.auth_clawback_enabled ? 'bg-[var(--purple-muted)] border-[var(--purple)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_clawback_enabled ? 'bg-purple-500' : 'bg-[var(--text-muted)]'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_clawback_enabled ? 'text-purple-400' : 'text-[var(--text-muted)]'}`}>Clawback</span>
+                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_clawback_enabled ? 'bg-[var(--purple)]' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account.flags.auth_clawback_enabled ? 'text-[var(--purple)]' : 'text-[var(--text-muted)]'}`}>Clawback</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)]">Can clawback assets</p>
                 </div>

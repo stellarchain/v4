@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { getRouteFromSearchQuery } from '@/lib/searchRouting';
 
 const navItems = [
   { name: 'Network Explorer', href: '/', icon: 'explore' },
@@ -31,84 +32,53 @@ const icons: Record<string, React.ReactNode> = {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    // Check initial theme
-    if (document.documentElement.classList.contains('dark')) {
-      setIsDark(true);
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    document.documentElement.classList.toggle('dark');
-    setIsDark(!isDark);
-  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const query = searchQuery.trim();
-    if (!query) return;
+    const route = getRouteFromSearchQuery(searchQuery);
+    if (!route) return;
 
-    const upperQuery = query.toUpperCase();
-
-    // Contract ID (starts with C, 56 chars) - case insensitive
-    if (query.length === 56 && upperQuery.startsWith('C')) {
-      window.location.href = `/contract/${upperQuery}`;
-    }
-    // Account ID (starts with G, 56 chars) - case insensitive
-    else if (query.length === 56 && upperQuery.startsWith('G')) {
-      window.location.href = `/account/${upperQuery}`;
-    }
-    // Transaction hash (64 chars hex)
-    else if (query.length === 64) {
-      window.location.href = `/transaction/${query.toLowerCase()}`;
-    }
-    // Ledger sequence (all digits)
-    else if (/^\d+$/.test(query)) {
-      window.location.href = `/ledger/${query}`;
-    }
-    // Default to account search
-    else {
-      window.location.href = `/account/${query}`;
-    }
+    router.push(route);
     setSearchQuery('');
   };
 
   return (
-    <aside className="w-64 bg-[#0A111E] flex flex-col flex-shrink-0 h-screen border-r border-[#1E293B] shadow-2xl transition-all font-sans sticky top-0">
+    <aside className="w-64 sidebar-container flex flex-col flex-shrink-0 h-screen shadow-2xl transition-all font-sans sticky top-0">
       <div className="p-6">
         <Link href="/" className="flex items-center space-x-3 mb-2 group">
-          <div className="w-9 h-9 bg-[#10b981]/10 border border-[#10b981]/20 rounded-lg flex items-center justify-center text-[#10b981]">
+          <div className="w-9 h-9 bg-[var(--info-muted)] border border-[var(--border-subtle)] rounded-lg flex items-center justify-center text-[var(--primary-blue)]">
             {icons.analytics}
           </div>
           <div>
-            <h1 className="font-sans font-bold text-sm text-[#F8FAFC] tracking-wider uppercase">STELLARCHAIN</h1>
-            <p className="text-[10px] text-[#94A3B8] font-mono tracking-[0.15em]">Blockchain Explorer</p>
+            <h1 className="font-sans font-bold text-sm text-[var(--text-primary)] tracking-wider uppercase">STELLARCHAIN</h1>
+            <p className="text-[10px] text-[var(--text-tertiary)] font-mono tracking-[0.15em]">Blockchain Explorer</p>
           </div>
         </Link>
 
         {/* Divider */}
-        <div className="h-px w-full bg-[#1E293B] my-6"></div>
+        <div className="h-px w-full bg-[var(--border-subtle)] my-6"></div>
 
         {/* Search */}
-        <form onSubmit={handleSearch} className="relative group">
-          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#94A3B8]">
-            {icons.search}
-          </span>
-          <input
-            className="w-full py-2 pl-10 pr-3 text-xs font-mono rounded-md border border-[#1E293B] bg-[#141C2B] text-[#F8FAFC] placeholder-[#94A3B8]/50 focus:ring-1 focus:ring-[#10b981]/50 focus:border-[#10b981]/50 outline-none transition-all"
-            placeholder="0x_address_or_hash"
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <form onSubmit={handleSearch} className="search-box group">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-muted)]">
+              {icons.search}
+            </span>
+            <input
+              className="w-full py-2 pl-10 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70 outline-none"
+              placeholder="address_hash_or_ledger"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </form>
       </div>
 
       <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
-        <div className="px-4 mb-3 mt-2 text-[10px] font-bold text-[#94A3B8]/60 uppercase tracking-[0.2em] font-sans">System Hub</div>
+        <div className="px-4 mb-3 mt-2 text-[10px] font-bold text-[var(--text-muted)]/70 uppercase tracking-[0.2em] font-sans">System Hub</div>
 
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
@@ -116,12 +86,9 @@ export default function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center px-4 py-2.5 text-sm font-sans font-medium rounded-md transition-all group tracking-wide ${isActive
-                ? 'bg-white/5 border-l-2 border-[#10b981] text-[#F8FAFC]'
-                : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-white/5'
-                }`}
+              className={`flex items-center px-4 py-2.5 text-sm font-sans font-medium rounded-md transition-all group tracking-wide ${isActive ? 'nav-item-active' : 'nav-item text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
             >
-              <span className={`mr-3 opacity-70 group-hover:opacity-100 ${isActive ? 'text-[#10b981]' : ''}`}>
+              <span className={`mr-3 opacity-70 group-hover:opacity-100 ${isActive ? 'text-[var(--primary-blue)]' : ''}`}>
                 {icons[item.icon]}
               </span>
               {item.name}
@@ -130,14 +97,14 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 bg-[#141C2B]/40 border-t border-[#1E293B]">
+      <div className="p-4 bg-[var(--bg-tertiary)]/40 border-t border-[var(--border-subtle)]">
         {/* Network Status */}
-        <div className="bg-[#0A111E] border border-[#1E293B] rounded-md p-3 flex items-center justify-between">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-md p-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse shadow-[0_0_8px_#10b981]"></div>
-            <span className="text-[10px] font-mono text-[#F8FAFC] uppercase tracking-widest">Mainnet_01</span>
+            <div className="live-indicator" />
+            <span className="text-[10px] font-mono text-[var(--text-primary)] uppercase tracking-widest">Mainnet</span>
           </div>
-          <span className="text-[9px] font-mono font-bold text-[#10b981]">SYNCHRONIZED</span>
+          <span className="text-[9px] font-mono font-bold text-[var(--success)]">SYNCHRONIZED</span>
         </div>
       </div>
     </aside>

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { StatisticsData, StatItem } from '@/lib/stellar';
 import StatCard from '@/components/StatCard';
 import DetailedChart from '@/components/DetailedChart';
+import Badge from '@/components/ui/Badge';
+import Card from '@/components/ui/Card';
 
 interface StatisticsViewProps {
     stats: StatisticsData;
@@ -24,9 +26,7 @@ export default function StatisticsView({ stats }: StatisticsViewProps) {
                 <div>
                     <div className="flex items-center gap-2">
                         <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Statistics</h1>
-                        <span className="px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[10px] font-medium text-[#777]">
-                            Live
-                        </span>
+                        <Badge>Live</Badge>
                     </div>
                     <p className="text-[var(--text-muted)] text-xs">Real-time Stellar network metrics and market data</p>
                 </div>
@@ -36,7 +36,7 @@ export default function StatisticsView({ stats }: StatisticsViewProps) {
             <section>
                 <div className="flex items-center gap-2 mb-4">
                     <div className="w-1 h-4 bg-[var(--primary)] rounded-full" />
-                    <h2 className="text-sm font-medium text-[#777] uppercase tracking-wider">Market</h2>
+                    <h2 className="text-sm font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Market</h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                     <StatCard stat={stats.market.price} onClick={() => setSelectedStat(stats.market.price)} />
@@ -50,8 +50,8 @@ export default function StatisticsView({ stats }: StatisticsViewProps) {
             {/* Blockchain Section */}
             <section>
                 <div className="flex items-center gap-2 mb-4">
-                    <div className="w-1 h-4 bg-blue-400 rounded-full" />
-                    <h2 className="text-sm font-medium text-[#777] uppercase tracking-wider">Blockchain</h2>
+                    <div className="w-1 h-4 bg-[var(--info)] rounded-full" />
+                    <h2 className="text-sm font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Blockchain</h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                     <StatCard stat={stats.blockchain.totalLedgers} onClick={() => setSelectedStat(stats.blockchain.totalLedgers)} />
@@ -65,8 +65,8 @@ export default function StatisticsView({ stats }: StatisticsViewProps) {
             {/* Network Section */}
             <section>
                 <div className="flex items-center gap-2 mb-4">
-                    <div className="w-1 h-4 bg-purple-400 rounded-full" />
-                    <h2 className="text-sm font-medium text-[#777] uppercase tracking-wider">Network</h2>
+                    <div className="w-1 h-4 bg-[var(--purple)] rounded-full" />
+                    <h2 className="text-sm font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Network</h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                     <StatCard stat={stats.network.totalAccounts} onClick={() => setSelectedStat(stats.network.totalAccounts)} />
@@ -78,7 +78,7 @@ export default function StatisticsView({ stats }: StatisticsViewProps) {
             </section>
 
             {/* Info Card */}
-            <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm">
+            <Card className="p-4 shadow-sm">
                 <div className="flex items-start gap-3">
                     <div className="w-8 h-8 bg-[var(--bg-tertiary)] rounded-xl flex items-center justify-center flex-shrink-0">
                         <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,7 +92,7 @@ export default function StatisticsView({ stats }: StatisticsViewProps) {
                         </p>
                     </div>
                 </div>
-            </div>
+            </Card>
 
             {/* Detail Modal */}
             {selectedStat && (

@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { shortenAddress, timeAgo } from '@/lib/stellar';
 import { StrKey } from '@stellar/stellar-sdk';
 import ContractsDesktopView from '@/components/desktop/ContractsDesktopView';
+import GliderTabs from '@/components/ui/GliderTabs';
+
+type ContractFilter = 'all' | 'verified' | 'token' | 'active';
 
 // Convert hex contract ID to StrKey format (C...)
 function hexToContractStrKey(hexId: string): string {
@@ -70,7 +73,7 @@ import verifiedContracts from '@/data/verified-contracts.json';
 export default function ContractsClient({ contracts: initialContracts, stats, categories, pagination: initialPagination }: ContractsClientProps) {
   const [contracts, setContracts] = useState<EnhancedContract[]>(initialContracts);
   const [pagination, setPagination] = useState(initialPagination);
-  const [filter, setFilter] = useState<string>('all');
+  const [filter, setFilter] = useState<ContractFilter>('all');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'activity' | 'name' | 'recent'>('recent');
   const [isLoading, setIsLoading] = useState(false);
@@ -201,47 +204,16 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
             </div>
 
             {/* Mobile Filter Tabs - Glider Style */}
-            {(() => {
-              const filterTabs = [
+            <GliderTabs
+              className="mb-3"
+              tabs={[
                 { id: 'all', label: 'All' },
                 { id: 'verified', label: 'Verified' },
                 { id: 'token', label: 'Tokens' },
-              ];
-              const activeTabIndex = filterTabs.findIndex(tab => tab.id === filter);
-              const tabCount = filterTabs.length;
-
-              return (
-                <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)] mb-3">
-                  {/* Glider Background */}
-                  <div
-                    className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
-                    style={{
-                      left: '4px',
-                      width: `calc((100% - 8px) / ${tabCount})`,
-                      transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
-                      opacity: activeTabIndex >= 0 ? 1 : 0
-                    }}
-                  />
-
-                  {filterTabs.map((tab) => {
-                    const isActive = filter === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setFilter(tab.id)}
-                        className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center ${
-                          isActive
-                            ? 'text-[var(--primary-blue)] font-bold'
-                            : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
-                        }`}
-                      >
-                        {tab.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })()}
+              ]}
+              activeId={filter}
+              onChange={setFilter}
+            />
           </div>
 
           {/* Loading overlay */}
@@ -267,7 +239,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
               {filteredContracts.map((contract) => (
                 <Link
                   key={contract.id}
-                  href={`/contract/${contract.id}`}
+                  href={`/contracts/${contract.id}`}
                   className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
                 >
                   <div className="px-3 py-3 flex items-center justify-between">

@@ -20,6 +20,7 @@ function hexToContractStrKey(hexId: string): string {
 }
 
 export const revalidate = 60; // Revalidate every minute
+export const dynamic = 'force-dynamic';
 
 // Enhanced contract interface for display
 export interface EnhancedContract {

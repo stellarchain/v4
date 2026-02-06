@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { Operation, shortenAddress, timeAgo, getOperationTypeLabel, formatXLM } from '@/lib/stellar';
 import { forwardRef } from 'react';
+import { cn } from '@/lib/design-system';
+import { txRoute } from '@/lib/routes';
 
 interface CompactOperationRowProps {
   operation: Operation;
@@ -78,23 +80,27 @@ const CompactOperationRow = forwardRef<HTMLAnchorElement, CompactOperationRowPro
     return (
       <Link
         ref={ref}
-        href={`/transaction/${operation.transaction_hash}`}
-        className="flex items-center justify-between py-4 px-5 bg-white border border-gray-100 rounded-2xl shadow-[0_2px_8px_rgb(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgb(0,0,0,0.06)] hover:border-gray-200 transition-all duration-300 group text-[13px]"
+        href={txRoute(operation.transaction_hash)}
+        className="flex items-center justify-between py-4 px-5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:border-[var(--border-default)] transition-all duration-300 group text-[13px]"
       >
         <div className="flex items-center gap-4">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${operation.transaction_successful
-            ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
-            : 'bg-red-50 border-red-100 text-red-600'
-            }`}>
+          <div
+            className={cn(
+              'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border',
+              operation.transaction_successful
+                ? 'bg-[var(--success-muted)] border-[var(--success)]/30 text-[var(--success)]'
+                : 'bg-[var(--error-muted)] border-[var(--error)]/30 text-[var(--error)]'
+            )}
+          >
             {getOperationIcon(operation.type)}
           </div>
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-gray-900 font-bold tracking-tight group-hover:text-black transition-colors capitalize">
+              <span className="text-[var(--text-primary)] font-bold tracking-tight group-hover:text-[var(--primary-blue)] transition-colors capitalize">
                 {getOperationTypeLabel(operation.type)}
               </span>
             </div>
-            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+            <div className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider">
               {timeAgo(operation.created_at)}
             </div>
           </div>
@@ -102,16 +108,16 @@ const CompactOperationRow = forwardRef<HTMLAnchorElement, CompactOperationRowPro
         <div className="flex items-center gap-5">
           {amount && (
             <div className="text-right">
-              <span className="text-gray-900 font-bold font-mono">{formatXLM((amount || '').split(' ')[0])}</span>
-              <span className="text-gray-400 ml-1 text-[10px] uppercase font-bold tracking-wider">XLM</span>
+              <span className="text-[var(--text-primary)] font-bold font-mono">{formatXLM((amount || '').split(' ')[0])}</span>
+              <span className="text-[var(--text-muted)] ml-1 text-[10px] uppercase font-bold tracking-wider">XLM</span>
             </div>
           )}
           <div className="text-right hidden sm:block">
-            <span className="text-gray-500 font-mono text-[12px] font-medium">
+            <span className="text-[var(--text-tertiary)] font-mono text-[12px] font-medium">
               {shortenAddress(operation.source_account, 4)}
             </span>
           </div>
-          <svg className="w-4 h-4 text-gray-300 group-hover:text-black group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </div>

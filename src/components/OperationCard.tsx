@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Operation, shortenAddress, timeAgo, getOperationTypeLabel, formatXLM } from '@/lib/stellar';
+import { txRoute } from '@/lib/routes';
 
 interface OperationCardProps {
   operation: Operation;
@@ -33,7 +34,7 @@ export default function OperationCard({ operation }: OperationCardProps) {
 
   return (
     <Link
-      href={`/transaction/${operation.transaction_hash}`}
+      href={txRoute(operation.transaction_hash)}
       className="block bg-[var(--bg-secondary)] rounded-xl p-4 hover:bg-[var(--bg-tertiary)] transition-all group"
     >
       <div className="flex items-center justify-between gap-4">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { LiquidityPool, Operation, Transaction, LiquidityPoolTrade, LiquidityPoolEffect, shortenAddress, timeAgo, enrichTradesWithTransactionHashes } from '@/lib/stellar';
+import GliderTabs from '@/components/ui/GliderTabs';
 
 interface LiquidityPoolDesktopViewProps {
     pool: LiquidityPool;
@@ -253,29 +254,14 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
 
                     {/* Right Column - Tabs + Content */}
                     <div className="space-y-5 min-w-0 overflow-hidden">
-                        {/* Tab Bar */}
-                        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] px-4">
-                            <div className="flex gap-1">
-                                {tabs.map((tab) => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${
-                                            activeTab === tab.id
-                                                ? 'text-sky-600 border-sky-500'
-                                                : 'text-[var(--text-tertiary)] border-transparent hover:text-[var(--text-secondary)]'
-                                        }`}
-                                    >
-                                        {tab.label}
-                                        {'count' in tab && tab.count > 0 && (
-                                            <span className="bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-[10px] font-bold px-1.5 py-0.5 rounded">
-                                                {tab.count}
-                                            </span>
-                                        )}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+	                        {/* Tab Bar */}
+	                        <GliderTabs
+	                            size="md"
+	                            className="border-[var(--border-default)]"
+	                            tabs={tabs as any}
+	                            activeId={activeTab as any}
+	                            onChange={(id) => setActiveTab(id as any)}
+	                        />
 
                         {/* Tab Content */}
                         {activeTab === 'overview' && (

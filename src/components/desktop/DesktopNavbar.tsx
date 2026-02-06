@@ -8,6 +8,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useNetwork, NETWORK_CONFIGS, NetworkType } from '@/contexts/NetworkContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { shortenAddress } from '@/lib/stellar';
+import { getRouteFromSearchQuery } from '@/lib/searchRouting';
 import DonationModal from '@/components/DonationModal';
 
 interface MenuItem {
@@ -33,6 +34,7 @@ export default function DesktopNavbar() {
     const [showNetworkDropdown, setShowNetworkDropdown] = useState(false);
     const [showFavoritesDropdown, setShowFavoritesDropdown] = useState(false);
     const [showDonationModal, setShowDonationModal] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const dropdownRef = useRef<HTMLDivElement>(null);
     const networkRef = useRef<HTMLDivElement>(null);
     const favoritesRef = useRef<HTMLDivElement>(null);
@@ -49,8 +51,8 @@ export default function DesktopNavbar() {
 
     const accountsItems: MenuItem[] = isMainnet ? [
         { name: 'Top Accounts', href: '/accounts', description: 'Ranked by XLM holdings' },
-        { name: 'Known Accounts', href: '/known-accounts', description: 'Labeled accounts directory' },
-        { name: 'Add Label', href: '/add-label', description: 'Submit a label for an account' },
+        { name: 'Known Accounts', href: '/accounts/directory', description: 'Labeled accounts directory' },
+        { name: 'Add Label', href: '/accounts/directory/update', description: 'Submit a label for an account' },
     ] : [];
 
     const navItems = [
@@ -93,6 +95,14 @@ export default function DesktopNavbar() {
         return items.some(item => isActive(item.href));
     };
 
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        const route = getRouteFromSearchQuery(searchQuery);
+        if (!route) return;
+        router.push(route);
+        setSearchQuery('');
+    };
+
     return (
         <>
             <nav className="hidden md:block bg-[var(--bg-secondary)] border-b border-[var(--border-default)] sticky top-0 z-50">
@@ -111,52 +121,51 @@ export default function DesktopNavbar() {
                         </Link>
 
                         {/* Navigation Links */}
-                        <div className="flex items-center gap-1" ref={dropdownRef}>
+                        <div className="flex items-center gap-1 px-3" ref={dropdownRef}>
                             {navItems.map((item) => {
                                 if ('dropdown' in item && item.dropdown) {
                                     const isOpen = openDropdown === item.name;
                                     const active = isDropdownActive(item.dropdown);
 
                                     return (
-                                        <div key={item.name} className="relative">
+                                        <div
+                                            key={item.name}
+                                            className="relative"
+                                            onMouseEnter={() => setOpenDropdown(item.name)}
+                                            onMouseLeave={() => setOpenDropdown(null)}
+                                        >
                                             <button
                                                 onClick={() => setOpenDropdown(isOpen ? null : item.name)}
-                                                className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${active
+                                                className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center transition-colors ${active
                                                     ? 'text-[var(--text-primary)] bg-[var(--bg-tertiary)]'
                                                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)]'
                                                     }`}
                                             >
                                                 {item.name}
-                                                <svg
-                                                    className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
                                             </button>
 
                                             {/* Dropdown Menu */}
                                             {isOpen && (
-                                                <div className="absolute top-full left-0 mt-1 w-64 bg-[var(--bg-secondary)] rounded-xl shadow-xl border border-[var(--border-default)] py-2 z-50">
-                                                    {item.dropdown.map((subItem) => (
-                                                        <Link
-                                                            key={subItem.href}
-                                                            href={subItem.href}
-                                                            className={`flex flex-col px-4 py-2.5 transition-colors ${isActive(subItem.href)
-                                                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30'
-                                                                : 'hover:bg-[var(--bg-primary)]'
-                                                                }`}
-                                                        >
-                                                            <span className={`text-sm font-medium ${isActive(subItem.href) ? 'text-blue-600' : 'text-[var(--text-primary)]'}`}>
-                                                                {subItem.name}
-                                                            </span>
-                                                            {subItem.description && (
-                                                                <span className="text-xs text-[var(--text-tertiary)]">{subItem.description}</span>
-                                                            )}
-                                                        </Link>
-                                                    ))}
+                                                <div className="absolute top-full left-0 z-50 pt-1">
+                                                    <div className="w-64 bg-[var(--bg-secondary)] rounded-xl shadow-xl border border-[var(--border-default)] py-2">
+                                                        {item.dropdown.map((subItem) => (
+                                                            <Link
+                                                                key={subItem.href}
+                                                                href={subItem.href}
+                                                                className={`flex flex-col px-4 py-2.5 transition-colors ${isActive(subItem.href)
+                                                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30'
+                                                                    : 'hover:bg-[var(--bg-primary)]'
+                                                                    }`}
+                                                            >
+                                                                <span className={`text-sm font-medium ${isActive(subItem.href) ? 'text-blue-600' : 'text-[var(--text-primary)]'}`}>
+                                                                    {subItem.name}
+                                                                </span>
+                                                                {subItem.description && (
+                                                                    <span className="text-xs text-[var(--text-tertiary)]">{subItem.description}</span>
+                                                                )}
+                                                            </Link>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -180,13 +189,32 @@ export default function DesktopNavbar() {
 
                         {/* Right Section */}
                         <div className="flex items-center gap-3">
+                            {/* Search (Desktop) */}
+                            <form onSubmit={handleSearch} className="search-box group hidden lg:block w-56 xl:w-80">
+                                <div className="relative">
+                                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-muted)]">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </span>
+                                    <input
+                                        className="w-full py-2 pl-10 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70 outline-none"
+                                        placeholder="address_hash_or_ledger"
+                                        type="search"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        aria-label="Search by address, hash, contract, or ledger"
+                                    />
+                                </div>
+                            </form>
+
                             {/* Favorites/Watchlist */}
                             {favorites.length > 0 && (
                                 <div className="relative" ref={favoritesRef}>
                                     <button
                                         onClick={() => {
                                             if (favorites.length === 1) {
-                                                router.push(`/account/${favorites[0].address}`);
+                                                router.push(`/address/${favorites[0].address}`);
                                             } else {
                                                 setShowFavoritesDropdown(!showFavoritesDropdown);
                                             }
@@ -232,7 +260,7 @@ export default function DesktopNavbar() {
                                                     return (
                                                         <Link
                                                             key={fav.address}
-                                                            href={`/account/${fav.address}`}
+                                                            href={`/address/${fav.address}`}
                                                             onClick={() => setShowFavoritesDropdown(false)}
                                                             className="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-primary)] transition-colors"
                                                         >

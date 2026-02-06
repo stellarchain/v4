@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { shortenAddress, timeAgo, ContractInvocation } from '@/lib/stellar';
+import GliderTabs from '@/components/ui/GliderTabs';
 import type { TokenRegistryEntry, ContractVerification } from '@/lib/types/token';
 import type { ContractMetadataResult, ContractAccessControlResult, ContractSpecResult } from '@/lib/contractMetadata';
 import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
@@ -183,13 +184,20 @@ export default function ContractMobileView({ contract, operations }: ContractMob
     return 'unknown';
   };
 
-  const tabs = [
+  type ContractTabId = 'overview' | 'history' | 'operations' | 'interface' | 'details';
+  type ContractTab = { id: ContractTabId; label: string; count?: number; hide?: boolean };
+
+  const tabs: ContractTab[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'history', label: 'History', count: contract.invocations?.length || 0, hide: !contract.invocations || contract.invocations.length === 0 },
     { id: 'operations', label: 'Events', count: contract.events?.length || 0 },
     { id: 'interface', label: 'Interface' },
     { id: 'details', label: 'Details' },
-  ].filter(tab => !tab.hide) as { id: string; label: string; count?: number }[];
+  ];
+
+  const visibleTabs = tabs
+    .filter(tab => !tab.hide)
+    .map(({ hide, ...tab }) => tab);
 
   return (
     <div className="bg-[var(--bg-primary)] text-[var(--text-secondary)] min-h-screen flex flex-col font-sans pb-24">
@@ -418,42 +426,12 @@ export default function ContractMobileView({ contract, operations }: ContractMob
         </div>
 
         {/* Tabs - Glider Style */}
-        {(() => {
-          const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab);
-          const tabCount = tabs.length;
-
-          return (
-            <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)] mt-3 mb-1">
-              {/* Glider Background */}
-              <div
-                className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
-                style={{
-                  left: '4px',
-                  width: `calc((100% - 8px) / ${tabCount})`,
-                  transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
-                  opacity: activeTabIndex >= 0 ? 1 : 0
-                }}
-              />
-
-              {tabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center ${
-                      isActive
-                        ? 'text-[var(--primary-blue)] font-bold'
-                        : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          );
-        })()}
+        <GliderTabs
+          className="mt-3 mb-1"
+          tabs={visibleTabs}
+          activeId={activeTab}
+          onChange={setActiveTab}
+        />
 
         {/* Tab Content */}
         <div className="min-h-[200px]">

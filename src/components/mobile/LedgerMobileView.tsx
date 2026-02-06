@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/design-system';
+import GliderTabs from '@/components/ui/GliderTabs';
 import {
     Ledger,
     Transaction,
@@ -279,52 +280,24 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                 </div>
 
                 {/* Tabs - Glider Style */}
-                {(() => {
-                    const totalTransactions = ledger.successful_transaction_count + ledger.failed_transaction_count;
-                    const tabs = [
-                        { id: 'overview', label: 'Overview' },
-                        { id: 'transactions', label: 'Transactions', count: totalTransactions > 0 ? totalTransactions : undefined },
-                        { id: 'operations', label: 'Operations', count: ledger.operation_count > 0 ? ledger.operation_count : undefined },
-                    ];
-                    const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab);
-                    const tabCount = tabs.length;
-
-                    return (
-                        <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)] mb-2">
-                            {/* Glider Background */}
-                            <div
-                                className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
-                                style={{
-                                    left: '4px',
-                                    width: `calc((100% - 8px) / ${tabCount})`,
-                                    transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
-                                    opacity: activeTabIndex >= 0 ? 1 : 0
-                                }}
-                            />
-
-                            {tabs.map((tab) => {
-                                const isActive = activeTab === tab.id;
-                                return (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id as any)}
-                                        className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center flex items-center justify-center gap-1 ${isActive
-                                            ? 'text-[var(--primary-blue)] font-bold'
-                                            : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
-                                            }`}
-                                    >
-                                        {tab.label}
-                                        {tab.count !== undefined && (
-                                            <span className="text-[10px] px-1.5 h-[18px] rounded-full flex items-center justify-center bg-[var(--primary-blue)] text-white font-bold min-w-[18px]">
-                                                {tab.count}
-                                            </span>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    );
-                })()}
+                <GliderTabs
+                  className="mb-2"
+                  tabs={[
+                    { id: 'overview', label: 'Overview' },
+                    {
+                      id: 'transactions',
+                      label: 'Transactions',
+                      count: ledger.successful_transaction_count + ledger.failed_transaction_count || undefined,
+                    },
+                    {
+                      id: 'operations',
+                      label: 'Operations',
+                      count: ledger.operation_count || undefined,
+                    },
+                  ]}
+                  activeId={activeTab}
+                  onChange={setActiveTab}
+                />
 
                 {/* Tab Content */}
                 <div className="min-h-[200px]">

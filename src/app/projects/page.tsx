@@ -1,6 +1,7 @@
 
 import { fetchProjects } from '@/lib/projects';
 import ProjectList from '@/components/ProjectList';
+import Badge from '@/components/ui/Badge';
 
 export const revalidate = 3600;
 
@@ -19,9 +20,7 @@ export default async function ProjectsPage() {
                 <div>
                     <div className="flex items-center gap-2">
                         <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Ecosystem Projects</h1>
-                        <span className="px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[10px] font-medium text-[#777]">
-                            Directory
-                        </span>
+                        <Badge>Directory</Badge>
                     </div>
                     <p className="text-[var(--text-muted)] text-xs">Discover applications and services built on Stellar</p>
                 </div>

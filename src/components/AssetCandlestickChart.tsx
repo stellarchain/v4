@@ -64,6 +64,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
 
     useEffect(() => {
         if (!chartContainerRef.current) return;
+        let cancelled = false;
 
         // Initialize Chart
         const chart = createChart(chartContainerRef.current, {
@@ -133,6 +134,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
             setLoading(true);
             try {
                 const xlmUsdPrice = await getXLMUSDPriceFromHorizon();
+                if (cancelled) return;
 
                 const isXLM = asset.code === 'XLM';
                 const counterAsset = isXLM
@@ -145,6 +147,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                     resolution,
                     200
                 );
+                if (cancelled) return;
 
                 const processedData = data.reverse().map(item => {
                     let close = parseFloat(item.close);
@@ -175,6 +178,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                     };
                 });
 
+                if (cancelled) return;
                 candlestickSeries.setData(processedData.map(d => ({
                     time: d.time,
                     open: d.open,
@@ -197,6 +201,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                     avgPrice: (d.open + d.close) / 2,
                     priceChange: ((d.close - d.open) / d.open) * 100,
                 }));
+                if (cancelled) return;
                 setVolumeData(volumePoints);
 
                 const volumes = processedData.map(d => d.volume).filter(v => v > 0);
@@ -214,13 +219,14 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
             } catch (error) {
                 console.error("Failed to fetch candlestick data", error);
             }
-            setLoading(false);
+            if (!cancelled) setLoading(false);
         };
 
         fetchData();
 
         // Subscribe to crosshair for OHLC tooltip
-        chart.subscribeCrosshairMove((param) => {
+        const crosshairHandler = (param: any) => {
+            if (cancelled) return;
             if (!param.time || !param.seriesData.size) {
                 setTooltipData(null);
                 return;
@@ -243,7 +249,9 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                     time: timeStr,
                 });
             }
-        });
+        };
+
+        chart.subscribeCrosshairMove(crosshairHandler);
 
         const handleResize = () => {
             if (chartContainerRef.current) {
@@ -254,7 +262,9 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
         window.addEventListener('resize', handleResize);
 
         return () => {
+            cancelled = true;
             window.removeEventListener('resize', handleResize);
+            chart.unsubscribeCrosshairMove(crosshairHandler);
             chart.remove();
         };
     }, [asset, resolution]);
