@@ -276,7 +276,7 @@ export default function ContractsDesktopView({
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
+      <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
         {/* Header Card */}
         <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-5">

@@ -182,7 +182,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
+      <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
         {/* Header Card */}
         <div className="mb-6 rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] px-5 py-4">
           <div className="flex items-center gap-4">

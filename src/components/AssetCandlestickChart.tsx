@@ -24,6 +24,13 @@ function formatVolume(value: number): string {
     return value.toFixed(2);
 }
 
+function formatTooltipPrice(price: number): string {
+    if (price < 0.0001) return '$' + price.toFixed(8);
+    if (price < 0.01) return '$' + price.toFixed(6);
+    if (price < 1) return '$' + price.toFixed(4);
+    return '$' + price.toFixed(2);
+}
+
 function formatTimeLabel(timestamp: number, resolution: number): string {
     const date = new Date(timestamp);
     if (resolution >= 86400000) {
@@ -46,6 +53,14 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
         low: 0,
         totalTrades: 0,
     });
+    const [tooltipData, setTooltipData] = useState<{
+        open: number;
+        high: number;
+        low: number;
+        close: number;
+        volume: number;
+        time: string;
+    } | null>(null);
 
     useEffect(() => {
         if (!chartContainerRef.current) return;
@@ -204,6 +219,32 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
 
         fetchData();
 
+        // Subscribe to crosshair for OHLC tooltip
+        chart.subscribeCrosshairMove((param) => {
+            if (!param.time || !param.seriesData.size) {
+                setTooltipData(null);
+                return;
+            }
+
+            const candleData = param.seriesData.get(candlestickSeries);
+            const volData = param.seriesData.get(volumeSeries);
+            if (candleData && 'open' in candleData) {
+                const date = new Date((param.time as number) * 1000);
+                const timeStr = resolution >= 86400000
+                    ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+
+                setTooltipData({
+                    open: candleData.open,
+                    high: candleData.high,
+                    low: candleData.low,
+                    close: candleData.close,
+                    volume: volData && 'value' in volData ? (volData as any).value : 0,
+                    time: timeStr,
+                });
+            }
+        });
+
         const handleResize = () => {
             if (chartContainerRef.current) {
                 chart.applyOptions({ width: chartContainerRef.current.clientWidth });
@@ -280,15 +321,15 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
     }, [viewMode, volumeData]);
 
     return (
-        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5 overflow-hidden">
+        <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm p-5 overflow-hidden">
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-4">
-                    <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                    <div className="flex gap-1 bg-[var(--bg-tertiary)] p-1 rounded-lg">
                         <button
                             onClick={() => setViewMode('price')}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'price'
-                                ? 'bg-white text-slate-900 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
+                                ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm'
+                                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                                 }`}
                         >
                             Price
@@ -296,18 +337,18 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                         <button
                             onClick={() => setViewMode('volume')}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'volume'
-                                ? 'bg-white text-slate-900 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
+                                ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm'
+                                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                                 }`}
                         >
                             Volume
                         </button>
                     </div>
-                    <span className="text-sm text-slate-500">
+                    <span className="text-sm text-[var(--text-tertiary)]">
                         {asset.code}/USD
                     </span>
                 </div>
-                <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                <div className="flex gap-1 bg-[var(--bg-tertiary)] p-1 rounded-lg">
                     {[
                         { label: '15m', value: 900000 },
                         { label: '1h', value: 3600000 },
@@ -318,8 +359,8 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                             key={opt.label}
                             onClick={() => setResolution(opt.value)}
                             className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${resolution === opt.value
-                                ? 'bg-white text-slate-900 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
+                                ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm'
+                                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                                 }`}
                         >
                             {opt.label}
@@ -330,13 +371,39 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
 
             {/* Price Chart View */}
             {viewMode === 'price' && (
-                <div
-                    ref={chartContainerRef}
-                    className="w-full h-[400px] relative rounded-lg overflow-hidden"
-                >
-                    {loading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20 backdrop-blur-sm">
-                            <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="relative">
+                    <div
+                        ref={chartContainerRef}
+                        className="w-full h-[400px] relative rounded-lg overflow-hidden"
+                    >
+                        {loading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-secondary)]/80 z-20 backdrop-blur-sm">
+                                <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        )}
+                    </div>
+                    {/* OHLC Tooltip */}
+                    {tooltipData && !loading && (
+                        <div className="absolute top-2 left-2 z-30 bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-primary)] text-[11px] rounded-lg px-3 py-2 shadow-lg pointer-events-none">
+                            <div className="text-[var(--text-muted)] mb-1.5 font-medium">{tooltipData.time}</div>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                                <span className="text-[var(--text-muted)]">O</span>
+                                <span className="font-mono text-right">{formatTooltipPrice(tooltipData.open)}</span>
+                                <span className="text-[var(--text-muted)]">H</span>
+                                <span className="font-mono text-right text-emerald-400">{formatTooltipPrice(tooltipData.high)}</span>
+                                <span className="text-[var(--text-muted)]">L</span>
+                                <span className="font-mono text-right text-rose-400">{formatTooltipPrice(tooltipData.low)}</span>
+                                <span className="text-[var(--text-muted)]">C</span>
+                                <span className={`font-mono text-right ${tooltipData.close >= tooltipData.open ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {formatTooltipPrice(tooltipData.close)}
+                                </span>
+                                {tooltipData.volume > 0 && (
+                                    <>
+                                        <span className="text-[var(--text-muted)]">Vol</span>
+                                        <span className="font-mono text-right">{formatVolume(tooltipData.volume)}</span>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -347,33 +414,33 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                 <div className="space-y-4">
                     {/* Volume Stats Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Total Volume</div>
-                            <div className="text-lg font-semibold text-slate-900">
+                        <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)]">
+                            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-bold mb-1">Total Volume</div>
+                            <div className="text-lg font-semibold text-[var(--text-primary)]">
                                 {formatVolume(volumeStats.total)}
                             </div>
                         </div>
-                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Avg Volume</div>
-                            <div className="text-lg font-semibold text-slate-900">
+                        <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)]">
+                            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-bold mb-1">Avg Volume</div>
+                            <div className="text-lg font-semibold text-[var(--text-primary)]">
                                 {formatVolume(volumeStats.average)}
                             </div>
                         </div>
-                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">High</div>
+                        <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)]">
+                            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-bold mb-1">High</div>
                             <div className="text-lg font-semibold text-emerald-600">
                                 {formatVolume(volumeStats.high)}
                             </div>
                         </div>
-                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Low</div>
+                        <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)]">
+                            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-bold mb-1">Low</div>
                             <div className="text-lg font-semibold text-rose-600">
                                 {formatVolume(volumeStats.low)}
                             </div>
                         </div>
-                        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Total Trades</div>
-                            <div className="text-lg font-semibold text-slate-900">
+                        <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)]">
+                            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-bold mb-1">Total Trades</div>
+                            <div className="text-lg font-semibold text-[var(--text-primary)]">
                                 {volumeStats.totalTrades.toLocaleString()}
                             </div>
                         </div>
@@ -385,15 +452,15 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                         className="w-full h-[250px] relative rounded-lg overflow-hidden"
                     >
                         {loading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20 backdrop-blur-sm">
+                            <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-secondary)]/80 z-20 backdrop-blur-sm">
                                 <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
                             </div>
                         )}
                     </div>
 
                     {/* Volume Data Table */}
-                    <div className="bg-slate-50 rounded-xl overflow-hidden border border-slate-100">
-                        <div className="grid grid-cols-5 gap-2 p-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200">
+                    <div className="bg-[var(--bg-tertiary)] rounded-xl overflow-hidden border border-[var(--border-subtle)]">
+                        <div className="grid grid-cols-5 gap-2 p-3 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider border-b border-[var(--border-default)]">
                             <div>Time</div>
                             <div className="text-right">Volume</div>
                             <div className="text-right">Trades</div>
@@ -401,35 +468,26 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                             <div className="text-right">Change</div>
                         </div>
                         <div className="max-h-[200px] overflow-y-auto">
-                            {[...volumeData].reverse().slice(0, 20).map((item, idx) => {
-                                const formatPriceDisplay = (price: number) => {
-                                    if (price < 0.0001) return '$' + price.toFixed(8);
-                                    if (price < 0.01) return '$' + price.toFixed(6);
-                                    if (price < 1) return '$' + price.toFixed(4);
-                                    return '$' + price.toFixed(2);
-                                };
-
-                                return (
+                            {[...volumeData].reverse().slice(0, 20).map((item, idx) => (
                                     <div
                                         key={idx}
-                                        className="grid grid-cols-5 gap-2 p-3 text-sm border-b border-slate-100 last:border-0 hover:bg-white transition-colors"
+                                        className="grid grid-cols-5 gap-2 p-3 text-sm border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors"
                                     >
-                                        <div className="text-slate-500">{item.timestamp}</div>
-                                        <div className="text-right font-medium text-slate-900">
+                                        <div className="text-[var(--text-tertiary)]">{item.timestamp}</div>
+                                        <div className="text-right font-medium text-[var(--text-primary)]">
                                             {formatVolume(item.volume)}
                                         </div>
-                                        <div className="text-right text-slate-500">
+                                        <div className="text-right text-[var(--text-tertiary)]">
                                             {item.tradeCount.toLocaleString()}
                                         </div>
-                                        <div className="text-right text-slate-900">
-                                            {formatPriceDisplay(item.avgPrice)}
+                                        <div className="text-right text-[var(--text-primary)]">
+                                            {formatTooltipPrice(item.avgPrice)}
                                         </div>
                                         <div className={`text-right font-medium ${item.priceChange >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                                             {item.priceChange >= 0 ? '+' : ''}{item.priceChange.toFixed(2)}%
                                         </div>
                                     </div>
-                                );
-                            })}
+                                ))}
                         </div>
                     </div>
                 </div>

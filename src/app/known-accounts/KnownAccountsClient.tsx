@@ -44,7 +44,7 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-20 pt-1 md:pt-6">
-      <div className="max-w-[1600px] mx-auto px-3 md:px-6">
+      <div className="max-w-[1400px] mx-auto px-3 md:px-6">
         {/* Mobile Header */}
         <div className="md:hidden">
           <div className="flex items-center justify-between py-3">

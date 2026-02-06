@@ -132,7 +132,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
+      <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
         {/* Loading Overlay */}
         {isLoading && (
           <div className="fixed inset-0 bg-[var(--text-primary)]/20 z-50 flex items-center justify-center backdrop-blur-sm">
