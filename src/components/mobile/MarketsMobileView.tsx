@@ -293,7 +293,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search assets..."
-              className="w-full h-10 pl-9 pr-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm font-medium placeholder-[var(--text-muted)] text-[var(--text-primary)] outline-none"
+              className="w-full h-10 pl-4 pr-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm font-medium placeholder-[var(--text-muted)] text-[var(--text-primary)] outline-none"
             />
           </div>
           <div className="relative">
@@ -343,7 +343,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
         {/* Column Headers */}
         <div className="flex items-center px-3 py-2">
           <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold w-7">#</span>
-          <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold flex-1 pl-9">Asset</span>
+          <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold flex-1 pl-4">Asset</span>
           <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold w-20 text-center">Price</span>
           <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-bold w-16 text-right">Change</span>
         </div>
@@ -454,7 +454,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
         {/* No More Items Message */}
         {!hasMoreItems && totalItems > ASSETS_PER_PAGE && (
-          <div className="flex items-center justify-center py-4 pb-6">
+          <div className="flex items-center justify-center py-4 pb-4">
             <span className="text-xs font-medium text-[var(--text-muted)]">
               All {totalItems} assets displayed
             </span>
@@ -463,7 +463,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
         {/* Empty State */}
         {filteredAndSortedAssets.length === 0 && (
-          <div className="text-center py-12 bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)]">
+          <div className="text-center py-4 bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)]">
             <div className="w-12 h-12 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center mx-auto mb-3 border border-[var(--border-subtle)]">
               <svg className="w-6 h-6 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

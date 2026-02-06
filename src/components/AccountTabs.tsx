@@ -34,7 +34,7 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
         {activeTab === 'transactions' && (
           <div className="space-y-2">
             {transactions.length === 0 ? (
-              <p className="text-[var(--text-muted)] text-center py-8">No transactions found</p>
+              <p className="text-[var(--text-muted)] text-center py-4">No transactions found</p>
             ) : (
               transactions.map((tx) => (
                 <div
@@ -101,7 +101,7 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
         {activeTab === 'operations' && (
           <div className="space-y-2">
             {operations.length === 0 ? (
-              <p className="text-[var(--text-muted)] text-center py-8">No operations found</p>
+              <p className="text-[var(--text-muted)] text-center py-4">No operations found</p>
             ) : (
               operations.map((op) => (
                 <div

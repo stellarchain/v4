@@ -643,7 +643,7 @@ export default function AccountMobileView({ account, transactions, operations: i
   return (
     <div className={containers.page}>
       {/* Header */}
-      <header className="pt-8 px-3 pb-2 sticky top-0 z-20 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-default)]">
+      <header className="pt-4 px-3 pb-2 sticky top-0 z-20 bg-[var(--bg-primary)]/95 backdrop-blur-md border-b border-[var(--border-default)]">
         {/* Title Row with symmetric buttons */}
         <div className="flex items-center justify-between mb-2">
           {/* QR Code Button - Left */}
@@ -766,7 +766,7 @@ export default function AccountMobileView({ account, transactions, operations: i
         </div>
 
         {/* Total Balance Section - Centered */}
-        <div className="text-center mb-5">
+        <div className="text-center mb-4">
           <div className="text-sm text-[var(--text-tertiary)] mb-1">
             Total Balance
           </div>
@@ -1057,7 +1057,7 @@ export default function AccountMobileView({ account, transactions, operations: i
             </div>
 
             {currentDataSource.length === 0 ? (
-              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] text-center py-8 text-[var(--text-muted)]">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] text-center py-4 text-[var(--text-muted)]">
                 <p className="text-xs font-medium">No activity found</p>
               </div>
             ) : (
@@ -1454,7 +1454,7 @@ export default function AccountMobileView({ account, transactions, operations: i
           onClick={() => setShowQrModal(false)}
         >
           <div
-            className="bg-[var(--bg-primary)] rounded-3xl p-6 mx-4 max-w-sm w-full shadow-2xl border border-[var(--border-default)]"
+            className="bg-[var(--bg-primary)] rounded-3xl p-4 mx-4 max-w-sm w-full shadow-2xl border border-[var(--border-default)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center mb-4">
@@ -1522,7 +1522,7 @@ export default function AccountMobileView({ account, transactions, operations: i
           onClick={() => setShowFavoriteModal(false)}
         >
           <div
-            className="bg-[var(--bg-primary)] rounded-3xl p-6 mx-4 max-w-sm w-full shadow-2xl border border-[var(--border-default)]"
+            className="bg-[var(--bg-primary)] rounded-3xl p-4 mx-4 max-w-sm w-full shadow-2xl border border-[var(--border-default)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center mb-4">
@@ -1606,16 +1606,16 @@ export default function AccountMobileView({ account, transactions, operations: i
           onClick={() => setShowBadgeModal(false)}
         >
           <div
-            className="bg-[var(--bg-primary)] rounded-3xl p-6 mx-4 max-w-sm w-full shadow-2xl border border-[var(--border-default)]"
+            className="bg-[var(--bg-primary)] rounded-3xl p-4 mx-4 max-w-sm w-full shadow-2xl border border-[var(--border-default)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-center mb-5">
+            <div className="text-center mb-4">
               <h3 className="text-lg font-bold text-[var(--text-primary)]">Account Status</h3>
               <p className="text-sm text-[var(--text-muted)] mt-1">Learn about account badges</p>
             </div>
 
             {/* Badge Types */}
-            <div className="space-y-3 mb-5">
+            <div className="space-y-3 mb-4">
               {/* Verified */}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
                 <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" fill="#1D9BF0">

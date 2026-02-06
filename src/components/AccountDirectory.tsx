@@ -9,7 +9,7 @@ interface AccountDirectoryProps {
 
 export default function AccountDirectory({ initialAccounts }: AccountDirectoryProps) {
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {/* Results Count */}
             <div className="text-sm text-[var(--text-muted)]">
                 Showing {initialAccounts.length} accounts
@@ -18,7 +18,7 @@ export default function AccountDirectory({ initialAccounts }: AccountDirectoryPr
             {/* Account List */}
             <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm overflow-hidden">
                 {/* Table Header */}
-                <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider">
+                <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)] text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider">
                     <div className="col-span-1 text-center">#</div>
                     <div className="col-span-5">Account</div>
                     <div className="col-span-3 text-right">Balance</div>
@@ -37,7 +37,7 @@ export default function AccountDirectory({ initialAccounts }: AccountDirectoryPr
                             <Link
                                 href={`/address/${account.address}`}
                                 key={account.address}
-                                className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-[var(--bg-tertiary)] transition-all group"
+                                className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-[var(--bg-tertiary)] transition-all group"
                             >
                                 {/* Rank */}
                                 <div className="col-span-1 flex items-center justify-center">

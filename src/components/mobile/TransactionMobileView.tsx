@@ -754,7 +754,7 @@ export default function TransactionMobileView({ transaction, operations, effects
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..."
-              className="w-full pl-10 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all"
+              className="w-full pl-4 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all"
             />
           </form>
         </div>
@@ -794,7 +794,7 @@ export default function TransactionMobileView({ transaction, operations, effects
         {isContractCall ? (
           <>
 
-            <div className={`${containers.cardCompact} p-4 mb-5`}>
+            <div className={`${containers.cardCompact} p-4 mb-4`}>
               <div className="flex justify-between items-start">
                 <div>
                   <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Transaction Type</div>
@@ -857,7 +857,7 @@ export default function TransactionMobileView({ transaction, operations, effects
               {/* Smart Contract Summary Card */}
               <div className="mt-4 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-2xl p-4 relative overflow-hidden transition-all duration-300">
                 {/* Decorative glow effect */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary-blue)]/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary-blue)]/10 rounded-full blur-2xl -mr-4 -mt-4 pointer-events-none"></div>
                 {contractEffectType === 'both' ? (
                   <div className="relative z-10">
                     <div className="space-y-4">
@@ -1160,7 +1160,7 @@ export default function TransactionMobileView({ transaction, operations, effects
               /* Visual Flow for transfer transactions - Deep Ocean Design */
               <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden mb-4 relative">
                 {/* Decorative glow effect */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary-blue)]/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary-blue)]/10 rounded-full blur-2xl -mr-4 -mt-4 pointer-events-none"></div>
                 {/* Header for Swap Transactions - matches contract card style */}
                 {isSwap && (
                   <div className="p-4 pb-0">
@@ -1199,7 +1199,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                   </div>
                 )}
                 {/* FROM Section */}
-                <div className={`p-4 pb-6 relative ${isSwap ? 'pt-0' : 'bg-gradient-to-br from-[var(--bg-tertiary)] to-[var(--bg-secondary)]'}`}>
+                <div className={`p-4 pb-4 relative ${isSwap ? 'pt-0' : 'bg-gradient-to-br from-[var(--bg-tertiary)] to-[var(--bg-secondary)]'}`}>
                   <div className="flex justify-between items-start">
                     <div className="flex gap-3">
                       <div className="w-10 h-10 rounded-xl bg-[var(--success-muted)] flex items-center justify-center text-[var(--success)] shadow-sm">
@@ -1262,7 +1262,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                 </div>
 
                 {/* TO Section */}
-                <div className="p-4 pt-6 bg-[var(--bg-secondary)]">
+                <div className="p-4 pt-4 bg-[var(--bg-secondary)]">
                   <div className="flex justify-between items-start">
                     <div className="flex gap-3">
                       <div className="w-10 h-10 rounded-xl bg-[var(--info-muted)] flex items-center justify-center shadow-sm" style={{ color: primaryColor }}>
@@ -1726,7 +1726,7 @@ export default function TransactionMobileView({ transaction, operations, effects
           {activeTab === 'effects' && (
             <div className="space-y-3" ref={effectsContainerRef}>
               {effects.length === 0 ? (
-                <div className="text-center py-8 text-[var(--text-muted)] text-sm">
+                <div className="text-center py-4 text-[var(--text-muted)] text-sm">
                   No effects found for this transaction.
                 </div>
               ) : (
@@ -2126,7 +2126,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                 <div className="p-4">
                   {/* Loading state */}
                   {isDecodingXdr && (
-                    <div className="flex items-center justify-center py-8">
+                    <div className="flex items-center justify-center py-4">
                       <div className="animate-spin rounded-full h-6 w-6 border-2 border-[var(--accent)] border-t-transparent"></div>
                       <span className="ml-2 text-xs text-[var(--text-tertiary)]">Decoding XDR...</span>
                     </div>

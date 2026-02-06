@@ -637,8 +637,8 @@ export default function TransactionPageClient({
   const primaryColor = 'var(--text-primary)';
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] pb-20 pt-1 md:pt-6">
-      <div className="max-w-[1400px] mx-auto px-3 md:px-6">
+    <div className="min-h-screen bg-[var(--bg-primary)] pb-20 pt-1 md:pt-4">
+      <div className="max-w-[1400px] mx-auto px-3 md:px-4">
         <div className="flex flex-col bg-[var(--bg-primary)] md:bg-[var(--bg-secondary)] md:rounded-xl md:shadow-[var(--shadow-md)] overflow-hidden">
           {/* Header & Tabs */}
           <div className="flex flex-col flex-shrink-0">
@@ -680,7 +680,7 @@ export default function TransactionPageClient({
 
           {/* Desktop Table - Hidden on mobile */}
           <div className="hidden md:block flex-1 overflow-auto" ref={containerRef}>
-            <table className="w-full text-left border-collapse">
+            <table className="w-full sc-table text-left border-collapse">
               <thead className="sticky top-0 bg-[var(--bg-secondary)] text-[11px] text-[var(--text-muted)] uppercase font-bold tracking-wider z-20 shadow-sm">
                 <tr>
                   <th className="px-4 py-3 border-b border-[var(--border-subtle)]">Time</th>
@@ -753,7 +753,7 @@ export default function TransactionPageClient({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-4 py-12 text-center text-[var(--text-muted)] italic">
+                    <td colSpan={4} className="px-4 py-4 text-center text-[var(--text-muted)] italic">
                       No transactions found
                     </td>
                   </tr>
@@ -894,7 +894,7 @@ export default function TransactionPageClient({
                 )}
               </div>
             ) : (
-              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4 text-center text-[var(--text-muted)] italic text-sm">
                 No transactions found
               </div>
             )}

@@ -3,10 +3,10 @@ export default function StatisticsLoading() {
     <>
       {/* Desktop View */}
       <div className="hidden md:block min-h-screen bg-[var(--bg-primary)]">
-        <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+        <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
           {/* Header Card */}
-          <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 bg-[var(--border-default)] rounded-xl animate-pulse" />
                 <div>
@@ -24,9 +24,9 @@ export default function StatisticsLoading() {
           </div>
 
           {/* Main Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-5 shadow-sm">
+              <div key={i} className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-8 h-8 bg-[var(--info-muted)] rounded-lg animate-pulse" />
                   <div className="h-3 w-20 bg-[var(--border-default)] rounded animate-pulse" />
@@ -38,9 +38,9 @@ export default function StatisticsLoading() {
           </div>
 
           {/* Secondary Stats Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-5 shadow-sm">
+              <div key={i} className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-[var(--border-default)] rounded-lg animate-pulse" />
@@ -68,7 +68,7 @@ export default function StatisticsLoading() {
           </div>
 
           {/* Large Chart Section */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-6 shadow-sm">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="h-5 w-32 bg-[var(--border-default)] rounded animate-pulse" />
               <div className="flex gap-2">

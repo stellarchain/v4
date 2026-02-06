@@ -362,13 +362,13 @@ export default function DesktopHomePage({
                     <div className="absolute top-[10%] right-[15%] w-[400px] h-[400px] bg-[var(--indigo-muted)] rounded-full filter blur-3xl opacity-60"></div>
                 </div>
 
-                <div className="max-w-[1400px] mx-auto px-6 relative z-10 text-center">
-                    <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold mb-10 text-[var(--text-primary)] tracking-tight leading-tight">
+                <div className="max-w-[1400px] mx-auto px-4 relative z-10 text-center">
+                    <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold mb-4 text-[var(--text-primary)] tracking-tight leading-tight">
                         Blockchain Explorer
                     </h1>
 
                     {/* Search Bar */}
-                    <div className="max-w-2xl mx-auto relative mb-8 group">
+                    <div className="max-w-2xl mx-auto relative mb-4 group">
                         <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
                             <svg className="w-5 h-5 text-[var(--text-muted)] group-focus-within:text-[var(--info)] transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -422,8 +422,8 @@ export default function DesktopHomePage({
             </section>
 
             {/* Stats Section - Compact Grid */}
-            <section className="pb-8">
-                <div className="max-w-[1400px] mx-auto px-6">
+            <section className="pb-4">
+                <div className="max-w-[1400px] mx-auto px-4">
                     {/* Top Row - Market Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
                         <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
@@ -620,18 +620,18 @@ export default function DesktopHomePage({
             </section>
 
                     {/* Transaction Flow Animation */}
-            <section className="pb-6">
-                <div className="max-w-[1400px] mx-auto px-6">
+            <section className="pb-4">
+                <div className="max-w-[1400px] mx-auto px-4">
                     <TransactionFlowAnimation operations={operations} height={380} currentLedger={liveStats.ledger_count} />
                 </div>
             </section>
 
             {/* Live Network Activity Section */}
-            <section className="pb-12">
-                <div className="max-w-[1400px] mx-auto px-6">
+            <section className="pb-4">
+                <div className="max-w-[1400px] mx-auto px-4">
                     <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-sm">
                         {/* Header with tabs */}
-                        <div className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
+                        <div className="px-4 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2 uppercase tracking-wider">
                                     <span className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse"></span>
@@ -662,7 +662,7 @@ export default function DesktopHomePage({
 
                         {/* Activity Table */}
                         <div className="overflow-x-auto">
-                            <table className="w-full">
+                            <table className="w-full sc-table">
                                 <thead>
                                     <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                                         <th className="py-2.5 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Txn Hash</th>
@@ -677,7 +677,7 @@ export default function DesktopHomePage({
                                 <tbody className="divide-y divide-[var(--border-subtle)]">
                                     {filteredOperations.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="text-center py-12 text-[var(--text-muted)] text-sm">
+                                            <td colSpan={7} className="text-center py-4 text-[var(--text-muted)] text-sm">
                                                 No {activeTab === 'All Activity' ? 'activity' : activeTab.toLowerCase()} found
                                             </td>
                                         </tr>
@@ -854,7 +854,7 @@ export default function DesktopHomePage({
                         </div>
 
                         {/* Footer */}
-                        <div className="px-5 py-3 bg-[var(--bg-tertiary)] border-t border-[var(--border-subtle)] text-center">
+                        <div className="px-4 py-3 bg-[var(--bg-tertiary)] border-t border-[var(--border-subtle)] text-center">
                             <Link href="/transactions" className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--info)] transition-colors uppercase tracking-tight">
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

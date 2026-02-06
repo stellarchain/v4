@@ -25,7 +25,7 @@ export default async function GraphPage({ params }: PageProps) {
   }
 
   return (
-    <div className="space-y-6 max-w-full overflow-x-hidden">
+    <div className="space-y-4 max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -63,7 +63,7 @@ export default async function GraphPage({ params }: PageProps) {
 
       {/* Legend */}
       <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm">
-        <div className="flex items-center gap-6 flex-wrap text-xs">
+        <div className="flex items-center gap-4 flex-wrap text-xs">
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full bg-[var(--primary)]" />
             <span className="text-[var(--text-muted)]">Source</span>
@@ -87,7 +87,7 @@ export default async function GraphPage({ params }: PageProps) {
 
       {/* Graph Visualization */}
       {error ? (
-        <div className="bg-[var(--bg-secondary)] rounded-2xl p-12 text-center shadow-sm">
+        <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 text-center shadow-sm">
           <div className="w-16 h-16 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -101,7 +101,7 @@ export default async function GraphPage({ params }: PageProps) {
           <AddressGraph data={graphData} />
         </div>
       ) : (
-        <div className="bg-[var(--bg-secondary)] rounded-2xl p-12 text-center shadow-sm">
+        <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 text-center shadow-sm">
           <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-[var(--text-muted)] text-sm">Building transaction graph...</p>
         </div>

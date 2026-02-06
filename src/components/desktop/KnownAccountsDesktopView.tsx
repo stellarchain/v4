@@ -132,11 +132,11 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+      <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
         {/* Loading Overlay */}
         {isLoading && (
           <div className="fixed inset-0 bg-[var(--text-primary)]/20 z-50 flex items-center justify-center backdrop-blur-sm">
-            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-xl p-6 flex items-center gap-3">
+            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-xl p-4 flex items-center gap-3">
               <svg className="animate-spin h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -147,8 +147,8 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
         )}
 
         {/* Header Card */}
-        <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-5">
+        <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
               <Link
@@ -199,7 +199,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
         </div>
 
         {/* Filters Row */}
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-4">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -210,7 +210,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name or address..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 pl-11 text-sm shadow-sm"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 pl-4 text-sm shadow-sm"
             />
           </div>
 
@@ -232,7 +232,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
 
         {/* Table */}
         <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
-          <table className="w-full">
+          <table className="w-full sc-table">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
                 <HeaderCell label="#" field="rank" className="w-16" />
@@ -365,7 +365,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
+            <div className="flex items-center justify-center gap-1.5 px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
               <button
                 onClick={() => fetchPage(currentPage - 1)}
                 disabled={currentPage === 1 || isLoading}

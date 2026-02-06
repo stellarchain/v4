@@ -471,7 +471,7 @@ export default function TransactionFlowAnimation({
 
             {/* Stats overlay - top right */}
             {currentLedger > 0 && (
-                <div className="absolute top-3 right-4 flex items-center gap-6 bg-[var(--bg-secondary)]/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-[var(--border-default)]">
+                <div className="absolute top-3 right-4 flex items-center gap-4 bg-[var(--bg-secondary)]/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-[var(--border-default)]">
                     <div className="text-center">
                         <div className="text-[9px] text-[var(--text-tertiary)] uppercase tracking-wider">Current Ledger</div>
                         <div className="text-lg font-bold text-sky-500">#{currentLedger.toLocaleString()}</div>

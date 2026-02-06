@@ -60,9 +60,9 @@ export default function MobileHeader() {
 
   // Same header for all pages (with stats)
   return (
-    <header className="bg-[var(--header-bg)] text-white pt-6 pb-6 px-4 rounded-b-3xl shadow-lg relative z-10 md:hidden">
+    <header className="bg-[var(--header-bg)] text-white pt-4 pb-4 px-4 rounded-b-3xl shadow-lg relative z-10 md:hidden">
       {/* Top Bar: Logo + Network Badge */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <Link href="/">
           <Image
             src="/stellarchain-logo.svg"
@@ -87,7 +87,7 @@ export default function MobileHeader() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-400 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+            className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-400 rounded-xl py-3 pl-4 pr-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
             placeholder="Search hash, ledger, account..."
           />
         </form>

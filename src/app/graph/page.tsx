@@ -18,7 +18,7 @@ export default function WalletTrackPage() {
     const showcaseAddress = 'GDUY7J7A33TQWOSOQGDO776GGLM3UQERL4J3SPT56F6YS4ID7MLDERI4';
 
     return (
-        <div className="max-w-3xl mx-auto space-y-8">
+        <div className="max-w-3xl mx-auto space-y-4">
             {/* Header */}
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 rounded-xl flex items-center justify-center">
@@ -36,7 +36,7 @@ export default function WalletTrackPage() {
             </div>
 
             {/* Search Card */}
-            <Card className="p-6 shadow-sm">
+            <Card className="p-4 shadow-sm">
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2 block">
@@ -65,7 +65,7 @@ export default function WalletTrackPage() {
 
             {/* Showcase Card */}
             <div
-                className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
+                className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
                 onClick={() => window.location.href = `/graph/${showcaseAddress}`}
             >
                 <div className="flex items-start justify-between">

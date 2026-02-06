@@ -104,9 +104,9 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
 
     return (
         <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-            <div className="mx-auto max-w-[1400px] px-6 py-6">
+            <div className="mx-auto max-w-[1400px] px-4 py-4">
                 {/* Header */}
-                <div className="mb-5">
+                <div className="mb-4">
                     <div className="flex items-center gap-4 mb-3">
                         <Link
                             href="/liquidity-pools"
@@ -144,7 +144,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-4">
                     {/* Left Column */}
                     <div className="space-y-4">
                         {/* Reserve Assets Card */}
@@ -253,7 +253,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                     </div>
 
                     {/* Right Column - Tabs + Content */}
-                    <div className="space-y-5 min-w-0 overflow-hidden">
+                    <div className="space-y-4 min-w-0 overflow-hidden">
 	                        {/* Tab Bar */}
 	                        <GliderTabs
 	                            size="md"
@@ -305,7 +305,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                         No trades found
                                     </div>
                                 ) : (
-                                    <table className="w-full">
+                                    <table className="w-full sc-table">
                                         <thead>
                                             <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                                                 <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">#</th>
@@ -377,7 +377,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                         No effects found
                                     </div>
                                 ) : (
-                                    <table className="w-full">
+                                    <table className="w-full sc-table">
                                         <thead>
                                             <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                                                 <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Type</th>
@@ -440,7 +440,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                         No transactions found
                                     </div>
                                 ) : (
-                                    <table className="w-full">
+                                    <table className="w-full sc-table">
                                         <thead>
                                             <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                                                 <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Hash</th>
@@ -492,7 +492,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                         No operations found
                                     </div>
                                 ) : (
-                                    <table className="w-full">
+                                    <table className="w-full sc-table">
                                         <thead>
                                             <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                                                 <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Type</th>

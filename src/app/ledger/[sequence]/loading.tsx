@@ -3,10 +3,10 @@ export default function LedgerLoading() {
     <>
       {/* Desktop View */}
       <div className="hidden md:block min-h-screen bg-[var(--bg-primary)] ">
-        <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+        <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
           {/* Header Card */}
-          <div className="mb-5 rounded-2xl border border-[var(--border-default)]  bg-[var(--bg-secondary)]  p-5 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="mb-4 rounded-2xl border border-[var(--border-default)]  bg-[var(--bg-secondary)]  p-4 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               {/* Left: Title & Meta */}
               <div className="flex items-start gap-4 min-w-0">
                 <div className="w-10 h-10 bg-[var(--info-muted)]  rounded-xl animate-pulse" />
@@ -38,7 +38,7 @@ export default function LedgerLoading() {
           </div>
 
           {/* Navigation */}
-          <div className="mb-5 grid grid-cols-2 gap-3">
+          <div className="mb-4 grid grid-cols-2 gap-3">
             <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)]  border border-[var(--border-default)] ">
               <div className="w-8 h-8 bg-[var(--bg-tertiary)]  rounded-lg animate-pulse" />
               <div>
@@ -56,7 +56,7 @@ export default function LedgerLoading() {
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-4 px-1 border-b border-[var(--border-default)]  pb-2 mb-5">
+          <div className="flex items-center gap-4 px-1 border-b border-[var(--border-default)]  pb-2 mb-4">
             <div className="h-4 w-16 bg-[var(--info-muted)] rounded animate-pulse" />
             <div className="h-4 w-24 bg-[var(--border-default)]  rounded animate-pulse" />
             <div className="h-4 w-20 bg-[var(--border-default)]  rounded animate-pulse" />
@@ -66,7 +66,7 @@ export default function LedgerLoading() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* Left: Ledger Details */}
             <div className="lg:col-span-7 rounded-2xl border border-[var(--border-default)]  bg-[var(--bg-secondary)]  shadow-sm">
-              <div className="flex items-center gap-3 px-5 pt-5 pb-3">
+              <div className="flex items-center gap-3 px-4 pt-4 pb-3">
                 <div className="w-9 h-9 bg-[var(--info-muted)]  rounded-lg animate-pulse" />
                 <div>
                   <div className="h-4 w-28 bg-[var(--border-default)]  rounded animate-pulse mb-1" />
@@ -98,7 +98,7 @@ export default function LedgerLoading() {
 
             {/* Right: Ledger Activity */}
             <div className="lg:col-span-5 rounded-2xl border border-[var(--border-default)]  bg-[var(--bg-secondary)]  shadow-sm">
-              <div className="flex items-center justify-between px-5 pt-5 pb-3">
+              <div className="flex items-center justify-between px-4 pt-4 pb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-[var(--success-muted)] rounded-lg animate-pulse" />
                   <div className="h-4 w-28 bg-[var(--border-default)]  rounded animate-pulse" />

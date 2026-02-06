@@ -57,7 +57,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
 }) => {
   if (totalPages <= 1) return null;
   return (
-    <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
+    <div className="flex items-center justify-center gap-1.5 px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1 || loading}
@@ -206,10 +206,10 @@ export default function LedgerDesktopView({
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+      <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
         {/* Header Card */}
-        <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-5">
+        <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
               <Link
@@ -297,7 +297,7 @@ export default function LedgerDesktopView({
         </div>
 
         {/* Navigation */}
-        <div className="mb-5 grid grid-cols-2 gap-3">
+        <div className="mb-4 grid grid-cols-2 gap-3">
           <Link
             href={`/ledger/${ledger.sequence - 1}`}
             className="group flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] hover:border-sky-200 hover:bg-sky-50/50 transition-all"
@@ -329,7 +329,7 @@ export default function LedgerDesktopView({
         </div>
 
 	        {/* Tabs */}
-	        <div className="mb-5">
+	        <div className="mb-4">
 	          <GliderTabs
 	            size="md"
 	            className="border-[var(--border-default)]"
@@ -343,13 +343,13 @@ export default function LedgerDesktopView({
 	          />
 	        </div>
 
-        <div className="flex-1 w-full space-y-5">
+        <div className="flex-1 w-full space-y-4">
 
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               {/* Left: Ledger Details */}
               <section className="lg:col-span-7 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
-                <div className="flex items-center gap-3 px-5 pt-5 pb-3">
+                <div className="flex items-center gap-3 px-4 pt-4 pb-3">
                   <div className="w-9 h-9 bg-sky-100 dark:bg-sky-900/40 rounded-lg flex items-center justify-center text-sky-500">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -400,7 +400,7 @@ export default function LedgerDesktopView({
 
               {/* Right: Ledger Activity */}
               <section className="lg:col-span-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
-                <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 bg-[var(--bg-tertiary)] rounded-lg flex items-center justify-center text-[var(--text-muted)]">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -508,7 +508,7 @@ export default function LedgerDesktopView({
                     <Link
                       href={`/transaction/${tx.hash}`}
                       key={tx.id}
-                      className="flex items-center gap-4 px-5 py-4 hover:bg-[var(--bg-primary)]/80 transition-colors group"
+                      className="flex items-center gap-4 px-4 py-4 hover:bg-[var(--bg-primary)]/80 transition-colors group"
                     >
                       {/* Index with icon */}
                       <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center ${iconBgClass} ${accentClass} transition-colors`}>
@@ -576,7 +576,7 @@ export default function LedgerDesktopView({
                 })}
               </div>
               {paginatedTx.length === 0 && (
-                <div className="text-center py-12 text-[var(--text-muted)] text-sm">
+                <div className="text-center py-4 text-[var(--text-muted)] text-sm">
                   No transactions found in this ledger.
                 </div>
               )}
@@ -651,7 +651,7 @@ export default function LedgerDesktopView({
                     <Link
                       href={`/transaction/${op.transaction_hash}?tab=operations&op=${op.id}`}
                       key={op.id}
-                      className="flex items-center gap-4 px-5 py-4 hover:bg-[var(--bg-primary)]/80 transition-colors group"
+                      className="flex items-center gap-4 px-4 py-4 hover:bg-[var(--bg-primary)]/80 transition-colors group"
                     >
                       {/* Icon */}
                       <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center ${iconBgClass} ${accentClass} transition-colors`}>
@@ -729,7 +729,7 @@ export default function LedgerDesktopView({
                 })}
               </div>
               {paginatedOps.length === 0 && (
-                <div className="text-center py-12 text-[var(--text-muted)] text-sm">
+                <div className="text-center py-4 text-[var(--text-muted)] text-sm">
                   No operations found in this ledger.
                 </div>
               )}

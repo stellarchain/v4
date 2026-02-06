@@ -5,10 +5,10 @@ export default function TransactionsLoading() {
     <>
       {/* Desktop View */}
       <div className="hidden md:block min-h-screen bg-[var(--bg-primary)] ">
-        <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+        <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
           {/* Header Card */}
-          <div className="mb-5 rounded-2xl border border-[var(--border-default)]  bg-[var(--bg-secondary)]  p-5 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="mb-4 rounded-2xl border border-[var(--border-default)]  bg-[var(--bg-secondary)]  p-4 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex items-start gap-4">
                 <SkeletonBlock className="w-10 h-10" rounded="xl" />
                 <div>
@@ -33,7 +33,7 @@ export default function TransactionsLoading() {
           {/* Table */}
           <div className="rounded-2xl border border-[var(--border-default)]  bg-[var(--bg-secondary)]  shadow-sm overflow-hidden">
             {/* Header */}
-            <div className="grid grid-cols-6 gap-4 px-6 py-4 border-b border-[var(--border-subtle)]  bg-[var(--bg-primary)]/50">
+            <div className="grid grid-cols-6 gap-4 px-4 py-4 border-b border-[var(--border-subtle)]  bg-[var(--bg-primary)]/50">
               <SkeletonBlock className="h-4 w-20" />
               <SkeletonBlock className="h-4 w-16" />
               <SkeletonBlock className="h-4 w-24" />
@@ -44,7 +44,7 @@ export default function TransactionsLoading() {
 
             {/* Rows */}
             {[...Array(10)].map((_, i) => (
-              <div key={i} className="grid grid-cols-6 gap-4 px-6 py-4 border-b border-[var(--border-subtle)]  last:border-b-0">
+              <div key={i} className="grid grid-cols-6 gap-4 px-4 py-4 border-b border-[var(--border-subtle)]  last:border-b-0">
                 <div className="flex items-center gap-2">
                   <SkeletonBlock className="w-8 h-8" rounded="lg" />
                   <SkeletonBlock className="h-4 w-24" />
@@ -62,7 +62,7 @@ export default function TransactionsLoading() {
           </div>
 
           {/* Load More */}
-          <div className="flex justify-center mt-5">
+          <div className="flex justify-center mt-4">
             <SkeletonBlock className="h-10 w-28" rounded="xl" />
           </div>
         </div>

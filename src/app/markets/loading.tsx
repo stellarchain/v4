@@ -3,10 +3,10 @@ export default function MarketsLoading() {
     <>
       {/* Desktop View */}
       <div className="hidden md:block min-h-screen bg-[var(--bg-primary)]">
-        <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+        <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
           {/* Header Card */}
-          <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 bg-[var(--info-muted)] rounded-xl animate-pulse" />
                 <div>
@@ -36,7 +36,7 @@ export default function MarketsLoading() {
           </div>
 
           {/* Search */}
-          <div className="flex gap-4 items-center mb-5">
+          <div className="flex gap-4 items-center mb-4">
             <div className="h-12 flex-1 max-w-md bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl animate-pulse" />
             <div className="h-5 w-32 bg-[var(--border-default)] rounded animate-pulse" />
           </div>
@@ -44,7 +44,7 @@ export default function MarketsLoading() {
           {/* Table */}
           <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
             {/* Header */}
-            <div className="grid grid-cols-10 gap-4 px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
+            <div className="grid grid-cols-10 gap-4 px-4 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
               <div className="w-8" />
               <div className="h-4 w-8 bg-[var(--border-default)] rounded animate-pulse" />
               <div className="h-4 w-16 bg-[var(--border-default)] rounded animate-pulse col-span-2" />
@@ -58,7 +58,7 @@ export default function MarketsLoading() {
 
             {/* Rows */}
             {[...Array(12)].map((_, i) => (
-              <div key={i} className="grid grid-cols-10 gap-4 px-6 py-4 border-b border-[var(--border-subtle)] last:border-b-0 items-center">
+              <div key={i} className="grid grid-cols-10 gap-4 px-4 py-4 border-b border-[var(--border-subtle)] last:border-b-0 items-center">
                 <div className="w-4 h-4 bg-[var(--border-default)] rounded animate-pulse" />
                 <div className="h-4 w-8 bg-[var(--border-default)] rounded animate-pulse" />
                 <div className="flex items-center gap-3 col-span-2">

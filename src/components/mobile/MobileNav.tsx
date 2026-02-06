@@ -232,7 +232,7 @@ export default function MobileNav() {
       {showMore && (
         <div className="fixed inset-0 bottom-[60px] z-40 md:hidden bg-[var(--bg-primary)] flex flex-col">
           {/* Header matching home page style */}
-          <header className="bg-[var(--header-bg)] text-white pt-6 pb-4 px-4 rounded-b-3xl shadow-lg flex-shrink-0">
+          <header className="bg-[var(--header-bg)] text-white pt-4 pb-4 px-4 rounded-b-3xl shadow-lg flex-shrink-0">
             <div className="flex items-center justify-between">
               <Link href="/" onClick={() => setShowMore(false)} className="flex items-center space-x-2">
                 <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
@@ -363,7 +363,7 @@ export default function MobileNav() {
             </div>
 
             {/* Footer */}
-            <div className="px-4 mt-8 pb-8 text-center">
+            <div className="px-4 mt-4 pb-4 text-center">
               <span className="text-2xl">❤️</span>
             </div>
           </div>

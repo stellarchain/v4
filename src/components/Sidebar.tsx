@@ -46,7 +46,7 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 sidebar-container flex flex-col flex-shrink-0 h-screen shadow-2xl transition-all font-sans sticky top-0">
-      <div className="p-6">
+      <div className="p-4">
         <Link href="/" className="flex items-center space-x-3 mb-2 group">
           <div className="w-9 h-9 bg-[var(--info-muted)] border border-[var(--border-subtle)] rounded-lg flex items-center justify-center text-[var(--primary-blue)]">
             {icons.analytics}
@@ -58,7 +58,7 @@ export default function Sidebar() {
         </Link>
 
         {/* Divider */}
-        <div className="h-px w-full bg-[var(--border-subtle)] my-6"></div>
+        <div className="h-px w-full bg-[var(--border-subtle)] my-4"></div>
 
         {/* Search */}
         <form onSubmit={handleSearch} className="search-box group">
@@ -67,7 +67,7 @@ export default function Sidebar() {
               {icons.search}
             </span>
             <input
-              className="w-full py-2 pl-10 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70 outline-none"
+              className="w-full py-2 pl-4 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70 outline-none"
               placeholder="Search by address, hash, contract, or ledger"
               type="text"
               value={searchQuery}

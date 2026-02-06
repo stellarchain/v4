@@ -277,7 +277,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <main className="mx-auto max-w-[1400px] px-4 lg:px-6 py-6 space-y-4">
+      <main className="mx-auto max-w-[1400px] px-4 lg:px-4 py-4 space-y-4">
         {/* Header */}
         <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
           <div className="flex items-start gap-3">
@@ -488,7 +488,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
               {listTab === 'operations' && (
                 <div className="space-y-1.5 overflow-y-auto max-h-[500px] pr-1" style={{ scrollbarWidth: 'thin' }}>
                   {filteredOperations.length === 0 ? (
-                    <div className="text-center py-8 text-[var(--text-muted)] text-sm">No operations matching filter.</div>
+                    <div className="text-center py-4 text-[var(--text-muted)] text-sm">No operations matching filter.</div>
                   ) : (
                     filteredOperations.map((op, idx) => {
                       const { title } = getOpInfo(op);
@@ -516,7 +516,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
               {listTab === 'effects' && (
                 <div className="space-y-1.5 overflow-y-auto max-h-[500px] pr-1" style={{ scrollbarWidth: 'thin' }}>
                   {effects.length === 0 ? (
-                    <div className="text-center py-8 text-[var(--text-muted)] text-sm">No effects found.</div>
+                    <div className="text-center py-4 text-[var(--text-muted)] text-sm">No effects found.</div>
                   ) : (
                     effects.map((ef, idx) => {
                       const { title } = getEffectInfo(ef);
@@ -559,7 +559,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
           <div className="lg:col-span-8">
             {/* Operation Details */}
             {listTab === 'operations' && selectedOp && (
-              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-5 space-y-5">
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 space-y-4">
                 {/* Op Header */}
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
@@ -669,7 +669,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
 
             {/* Effect Details */}
             {listTab === 'effects' && selectedEffect && (
-              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-5 space-y-5">
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 space-y-4">
                 {/* Effect Header */}
                 <div className="flex items-start gap-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${selectedEffect.type.includes('credited') ? 'bg-emerald-50 dark:bg-emerald-900/40' : selectedEffect.type.includes('debited') ? 'bg-rose-50 dark:bg-rose-900/40' : 'bg-[var(--bg-tertiary)]'}`}>
@@ -751,7 +751,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
 
             {/* Empty state for effects when no effects */}
             {listTab === 'effects' && effects.length === 0 && (
-              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-8 text-center">
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 text-center">
                 <div className="text-[var(--text-muted)] text-sm">No effects found for this transaction.</div>
               </div>
             )}

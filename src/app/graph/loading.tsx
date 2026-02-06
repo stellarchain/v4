@@ -3,9 +3,9 @@ export default function GraphLoading() {
     <>
       {/* Desktop View */}
       <div className="hidden md:block min-h-screen bg-[var(--bg-primary)]">
-        <div className="mx-auto max-w-3xl px-6 py-6">
+        <div className="mx-auto max-w-3xl px-4 py-4">
           {/* Header */}
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-[var(--border-default)] rounded-xl animate-pulse" />
             <div>
               <div className="flex items-center gap-2">
@@ -17,7 +17,7 @@ export default function GraphLoading() {
           </div>
 
           {/* Search Card */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-6 shadow-sm mb-6">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm mb-4">
             <div className="space-y-4">
               <div>
                 <div className="h-3 w-24 bg-[var(--border-default)] rounded animate-pulse mb-2" />
@@ -28,7 +28,7 @@ export default function GraphLoading() {
           </div>
 
           {/* Showcase Card */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-6 shadow-sm mb-6">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm mb-4">
             <div className="flex items-start justify-between">
               <div className="space-y-3 flex-1">
                 <div className="h-5 w-20 bg-[var(--info-muted)] rounded-md animate-pulse" />

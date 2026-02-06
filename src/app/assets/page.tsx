@@ -9,7 +9,7 @@ export default async function AssetsPage() {
   const assets = res._embedded.records;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-6 py-8">
+    <div className="max-w-[1400px] mx-auto px-4 py-4">
       <div className="flex items-end justify-between gap-4 mb-4">
         <div>
           <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Assets</h1>
@@ -26,7 +26,7 @@ export default async function AssetsPage() {
             <Link
               key={`${a.asset_code}:${a.asset_issuer}`}
               href={assetRoute(a.asset_code, a.asset_issuer)}
-              className="px-5 py-3 border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-tertiary)] transition-colors"
+              className="px-4 py-3 border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-tertiary)] transition-colors"
             >
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">

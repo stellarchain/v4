@@ -331,7 +331,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
     }, [viewMode, volumeData]);
 
     return (
-        <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm p-5 overflow-hidden">
+        <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm p-4 overflow-hidden">
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-4">
                     <div className="flex gap-1 bg-[var(--bg-tertiary)] p-1 rounded-lg">

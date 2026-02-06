@@ -224,7 +224,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..."
-              className="w-full pl-10 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all"
+              className="w-full pl-4 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all"
             />
           </form>
         </div>
@@ -277,7 +277,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
         </div>
 
         {/* Summary Card */}
-        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-5">
+        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-4">
           {/* Header: Name and Admin/Owner */}
           <div className="flex justify-between items-start">
             <div className="min-w-0 flex-1">
@@ -460,7 +460,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     ))}
                   </div>
                 ) : !contract.events || contract.events.length === 0 ? (
-                  <div className="text-center py-6 text-[var(--text-muted)] text-sm">No recent activity found</div>
+                  <div className="text-center py-4 text-[var(--text-muted)] text-sm">No recent activity found</div>
                 ) : (
                   <div className="divide-y divide-[var(--border-subtle)]">
                     {contract.events.slice(0, 5).map((event, idx) => {
@@ -553,7 +553,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     ))}
                   </div>
                 ) : !contract.storage || contract.storage.entries.length === 0 ? (
-                  <div className="text-center py-6 text-[var(--text-muted)] text-sm">No storage data found</div>
+                  <div className="text-center py-4 text-[var(--text-muted)] text-sm">No storage data found</div>
                 ) : (
                   <div className="divide-y divide-[var(--border-subtle)]">
                     {contract.storage.entries.map((entry, idx) => (
@@ -589,7 +589,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
           {activeTab === 'history' && (
             <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
               {!contract.invocations || contract.invocations.length === 0 ? (
-                <div className="text-center py-8 text-[var(--text-muted)] text-sm">No transaction history found</div>
+                <div className="text-center py-4 text-[var(--text-muted)] text-sm">No transaction history found</div>
               ) : (
                 <div className="divide-y divide-[var(--border-subtle)]">
                   {contract.invocations.map((invocation, idx) => {
@@ -670,7 +670,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
           {activeTab === 'operations' && (
             <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
               {!contract.events || contract.events.length === 0 ? (
-                <div className="text-center py-8 text-[var(--text-muted)] text-sm">No events found</div>
+                <div className="text-center py-4 text-[var(--text-muted)] text-sm">No events found</div>
               ) : (
                 <div className="divide-y divide-[var(--border-subtle)]">
                   {contract.events.map((event, idx) => {
@@ -761,15 +761,15 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                     </button>
                   </div>
 
-                  <div className="px-5 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-tertiary)]">
+                  <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-tertiary)]">
                     <span className="font-bold text-[var(--text-muted)] text-[11px] uppercase tracking-wider">Contract Interface</span>
                     <span className="text-[10px] text-[var(--text-muted)] font-medium px-2 py-0.5 rounded bg-[var(--bg-primary)]">Rust / WASM</span>
                   </div>
-                  <div className="p-5 overflow-x-auto custom-scrollbar">
+                  <div className="p-4 overflow-x-auto custom-scrollbar">
                     <pre id="contract-interface-code" className="whitespace-pre font-mono text-[11px] leading-relaxed">
                       <span className="text-[var(--text-tertiary)] italic block mb-4">// Protocol version: 20 (Soroban)</span>
                       {contract.spec.functions.map((fn, idx) => (
-                        <div key={idx} className="mb-6 last:mb-0 group/fn">
+                        <div key={idx} className="mb-4 last:mb-0 group/fn">
                           {fn.doc && (
                             <div className="text-[var(--text-tertiary)] italic mb-1">
                               {fn.doc.split('\n').map((line, i) => (
@@ -805,17 +805,17 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                         </div>
                       ))}
                       {contract.spec.udts.length > 0 && (
-                        <div className="mt-8 pt-8 border-t border-[var(--border-subtle)]">
+                        <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
                           <div className="text-[var(--text-muted)] uppercase text-[10px] tracking-widest font-bold mb-4">// Types</div>
                           {contract.spec.udts.map((udt, idx) => (
-                            <div key={idx} className="mb-6">
+                            <div key={idx} className="mb-4">
                               <div className="text-[var(--text-tertiary)] italic mb-1">/// {udt.doc}</div>
                               <div>
                                 <span className="text-[#c678dd] mr-2">{udt.type}</span>
                                 <span className="text-[#e5c07b] font-bold">{udt.name}</span>
                                 <span className="text-[var(--text-muted)] ml-2">{'{'}</span>
                               </div>
-                              <div className="pl-6 border-l-2 border-[var(--border-subtle)] ml-1 my-1">
+                              <div className="pl-4 border-l-2 border-[var(--border-subtle)] ml-1 my-1">
                                 {udt.fields.map((field, fIdx) => (
                                   <div key={fIdx}>
                                     <span className="text-[#e06c75]">{field.name}</span>
@@ -838,7 +838,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                   </div>
                 </div>
               ) : (
-                <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-default)] p-12 flex flex-col items-center justify-center text-center">
+                <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-default)] p-4 flex flex-col items-center justify-center text-center">
                   <div className="w-16 h-16 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center mb-4">
                     <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />

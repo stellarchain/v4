@@ -20,9 +20,9 @@ export default async function OperationDetailsPage({ params }: PageProps) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10 space-y-4">
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-2xl p-6">
-        <div className="flex items-start justify-between gap-6">
+    <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-2xl p-4">
+        <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-lg font-semibold text-[var(--text-primary)]">Operation</h1>
             <div className="mt-1 text-sm text-[var(--text-tertiary)] font-mono break-all">{op.id}</div>
@@ -44,7 +44,7 @@ export default async function OperationDetailsPage({ params }: PageProps) {
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
           <div className="bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl p-3">
             <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Type</div>
             <div className="mt-1 font-mono text-[var(--text-primary)]">{op.type}</div>
@@ -59,7 +59,7 @@ export default async function OperationDetailsPage({ params }: PageProps) {
           </div>
         </div>
 
-        <details className="mt-6">
+        <details className="mt-4">
           <summary className="cursor-pointer text-sm font-semibold text-[var(--text-secondary)]">
             Raw JSON
           </summary>

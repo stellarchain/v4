@@ -52,7 +52,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
 }) => {
     if (totalPages <= 1) return null;
     return (
-        <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+        <div className="flex items-center justify-center gap-1.5 px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
             <button
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1 || loading}
@@ -218,10 +218,10 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
 
     return (
         <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-            <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+            <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
                 {/* Header Card */}
-                <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
-                    <div className="flex flex-wrap items-start justify-between gap-5">
+                <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
                         {/* Left: Title & Meta */}
                         <div className="flex items-start gap-4 min-w-0">
                             <Link
@@ -269,7 +269,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                 </div>
 
                 {/* Search / Filters Row */}
-                <div className="mb-5 flex items-center justify-between gap-4">
+                <div className="mb-4 flex items-center justify-between gap-4">
                     <div className="relative flex-1 max-w-md">
                         <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -282,7 +282,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                 setSearchQuery(e.target.value);
                                 setCurrentPage(1);
                             }}
-                            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100 transition-all"
+                            className="w-full pl-4 pr-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100 transition-all"
                         />
                         {searchQuery && (
                             <button
@@ -304,7 +304,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                 {/* Pools Table */}
                 <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full sc-table">
                             <thead>
                                 <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                                     <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Pool</th>
@@ -438,7 +438,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan={8} className="text-center py-12 text-[var(--text-muted)] text-sm">
+                                        <td colSpan={8} className="text-center py-4 text-[var(--text-muted)] text-sm">
                                             {searchQuery ? 'No pools found matching your search.' : 'No liquidity pools found.'}
                                         </td>
                                     </tr>

@@ -185,7 +185,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
     return (
         <div className="bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-[calc(100vh+1px)] flex flex-col font-sans pb-24">
             {/* Main Content Area */}
-            <main className="flex-1 px-3 pt-2 pb-8 max-w-lg mx-auto w-full">
+            <main className="flex-1 px-3 pt-2 pb-4 max-w-lg mx-auto w-full">
 
                 {/* Header / Back Link */}
                 <div className="flex items-center justify-between mb-4 mt-1">
@@ -423,7 +423,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 );
                             })}
                             {transactions.length === 0 && (
-                                <div className="text-center py-8 text-[var(--text-muted)] text-sm">
+                                <div className="text-center py-4 text-[var(--text-muted)] text-sm">
                                     No transactions found in this ledger.
                                 </div>
                             )}
@@ -544,7 +544,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 );
                             })}
                             {operations.length === 0 && (
-                                <div className="text-center py-8 text-[var(--text-muted)] text-sm">
+                                <div className="text-center py-4 text-[var(--text-muted)] text-sm">
                                     No operations found in this ledger.
                                 </div>
                             )}

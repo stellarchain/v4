@@ -3,17 +3,17 @@ export default function AccountLoading() {
     <>
       {/* Desktop View */}
       <div className="hidden md:block min-h-screen bg-[var(--bg-primary)] ">
-        <div className="mx-auto max-w-[1400px] px-6 py-6">
+        <div className="mx-auto max-w-[1400px] px-4 py-4">
           {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-sm mb-5">
+          <div className="flex items-center gap-2 text-sm mb-4">
             <div className="h-4 w-20 bg-[var(--border-default)]  rounded animate-pulse" />
             <div className="h-4 w-4 bg-[var(--border-default)]  rounded animate-pulse" />
             <div className="h-4 w-24 bg-[var(--border-default)]  rounded animate-pulse" />
           </div>
 
           {/* Header Card */}
-          <div className="bg-[var(--bg-secondary)]  rounded-2xl border border-[var(--border-default)]  shadow-sm p-5 mb-5">
-            <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="bg-[var(--bg-secondary)]  rounded-2xl border border-[var(--border-default)]  shadow-sm p-4 mb-4">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               {/* Left: Account Identity */}
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-[var(--border-default)]  rounded-full animate-pulse" />
@@ -35,21 +35,21 @@ export default function AccountLoading() {
           </div>
 
           {/* Stats Cards Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* Total Value Card */}
-            <div className="bg-[var(--bg-secondary)]  rounded-2xl border border-[var(--border-default)]  p-5 shadow-sm">
+            <div className="bg-[var(--bg-secondary)]  rounded-2xl border border-[var(--border-default)]  p-4 shadow-sm">
               <div className="h-3 w-24 bg-[var(--border-default)]  rounded animate-pulse mb-3" />
               <div className="h-10 w-36 bg-[var(--border-default)]  rounded-lg animate-pulse mb-2" />
               <div className="h-4 w-40 bg-[var(--success-muted)] rounded animate-pulse" />
             </div>
             {/* XLM Balance Card */}
-            <div className="bg-[var(--bg-secondary)]  rounded-2xl border border-[var(--border-default)]  p-5 shadow-sm">
+            <div className="bg-[var(--bg-secondary)]  rounded-2xl border border-[var(--border-default)]  p-4 shadow-sm">
               <div className="h-3 w-20 bg-[var(--border-default)]  rounded animate-pulse mb-3" />
               <div className="h-10 w-32 bg-[var(--border-default)]  rounded-lg animate-pulse mb-2" />
               <div className="h-4 w-28 bg-[var(--border-default)]  rounded animate-pulse" />
             </div>
             {/* Assets Count Card */}
-            <div className="bg-[var(--bg-secondary)]  rounded-2xl border border-[var(--border-default)]  p-5 shadow-sm">
+            <div className="bg-[var(--bg-secondary)]  rounded-2xl border border-[var(--border-default)]  p-4 shadow-sm">
               <div className="h-3 w-16 bg-[var(--border-default)]  rounded animate-pulse mb-3" />
               <div className="h-10 w-20 bg-[var(--border-default)]  rounded-lg animate-pulse mb-2" />
               <div className="h-4 w-32 bg-[var(--border-default)]  rounded animate-pulse" />
@@ -57,7 +57,7 @@ export default function AccountLoading() {
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-6 border-b border-[var(--border-default)]  pb-3 mb-5">
+          <div className="flex items-center gap-4 border-b border-[var(--border-default)]  pb-3 mb-4">
             <div className="h-4 w-16 bg-[var(--info-muted)] rounded animate-pulse" />
             <div className="h-4 w-20 bg-[var(--border-default)]  rounded animate-pulse" />
             <div className="h-4 w-16 bg-[var(--border-default)]  rounded animate-pulse" />
@@ -107,7 +107,7 @@ export default function AccountLoading() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-6 border-t border-[var(--border-default)]  pt-3">
+          <div className="flex gap-4 border-t border-[var(--border-default)]  pt-3">
             <div className="h-4 w-14 bg-[var(--info-muted)] rounded animate-pulse" />
             <div className="h-4 w-16 bg-[var(--border-default)]  rounded animate-pulse" />
             <div className="h-4 w-14 bg-[var(--border-default)]  rounded animate-pulse" />

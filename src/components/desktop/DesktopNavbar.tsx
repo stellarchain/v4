@@ -106,7 +106,7 @@ export default function DesktopNavbar() {
     return (
         <>
             <nav className="hidden md:block bg-[var(--bg-secondary)] border-b border-[var(--border-default)] sticky top-0 z-50">
-                <div className="max-w-[1400px] mx-auto px-6">
+                <div className="max-w-[1400px] mx-auto px-4">
                     <div className="flex items-center justify-between h-16">
                         {/* Logo */}
                         <Link href="/" className="flex items-center">
@@ -198,7 +198,7 @@ export default function DesktopNavbar() {
                                         </svg>
                                     </span>
                                     <input
-                                        className="w-full py-2 pl-10 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70 outline-none"
+                                        className="w-full py-2 pl-4 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70 outline-none"
                                         placeholder="Search by address, hash, contract, or ledger"
                                         type="search"
                                         value={searchQuery}

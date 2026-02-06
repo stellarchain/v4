@@ -8,7 +8,7 @@ export default async function EffectsPage() {
   const effects = res._embedded.records;
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10">
+    <div className="max-w-4xl mx-auto px-4 py-4">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-semibold text-[var(--text-primary)]">Effects</h1>
         <span className="text-xs text-[var(--text-muted)]">Latest</span>
@@ -20,7 +20,7 @@ export default async function EffectsPage() {
             <Link
               key={e.id}
               href={`/effects/${e.id}`}
-              className="block px-5 py-3 hover:bg-[var(--bg-tertiary)] transition-colors"
+              className="block px-4 py-3 hover:bg-[var(--bg-tertiary)] transition-colors"
             >
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">

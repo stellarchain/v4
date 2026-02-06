@@ -143,10 +143,10 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+      <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
         {/* Header Card */}
-        <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-5">
+        <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
               <Link
@@ -198,7 +198,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
         </div>
 
         {/* Filters Row */}
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-4">
           {/* Category Tabs */}
           <div className="w-full sm:w-auto sm:min-w-[520px] max-w-full">
             <GliderTabs
@@ -226,17 +226,17 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search news..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 pl-10 text-sm shadow-sm"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 pl-4 text-sm shadow-sm"
             />
           </div>
         </div>
 
         {/* Main Content - Master/Detail Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left: News Table */}
           <div className="lg:col-span-7">
             <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
-              <table className="w-full">
+              <table className="w-full sc-table">
                 <thead>
                   <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                     <HeaderCell label="Title" className="min-w-[280px]" />
@@ -309,7 +309,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={5} className="text-center py-12 text-[var(--text-muted)] text-sm">
+                      <td colSpan={5} className="text-center py-4 text-[var(--text-muted)] text-sm">
                         No news articles found matching your criteria.
                       </td>
                     </tr>
@@ -324,7 +324,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
             {selectedNews ? (
               <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden sticky top-6">
                 {/* Detail Header */}
-                <div className="p-5 border-b border-[var(--border-subtle)]">
+                <div className="p-4 border-b border-[var(--border-subtle)]">
                   <div className="flex items-start gap-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${categoryConfig[selectedNews.category].bgColor}`}>
                       <svg className={`w-6 h-6 ${categoryConfig[selectedNews.category].color}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -345,7 +345,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                 </div>
 
                 {/* Detail Body */}
-                <div className="p-5 space-y-4">
+                <div className="p-4 space-y-4">
                   {/* Meta Info */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
@@ -402,7 +402,7 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm p-12 text-center">
+              <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm p-4 text-center">
                 <div className="w-14 h-14 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <svg className="w-7 h-7 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
