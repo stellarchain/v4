@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Transaction, shortenAddress, timeAgo } from '@/lib/stellar';
+import { txRoute } from '@/lib/routes';
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -8,7 +9,7 @@ interface TransactionCardProps {
 export default function TransactionCard({ transaction }: TransactionCardProps) {
   return (
     <Link
-      href={`/transaction/${transaction.hash}`}
+      href={txRoute(transaction.hash)}
       className="data-row block p-4 group"
     >
       <div className="flex items-center justify-between gap-4">

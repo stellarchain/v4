@@ -6,6 +6,7 @@ import CompactTransactionRow from './CompactTransactionRow';
 import { Transaction, getTransactionDisplayInfo, Operation, getTransactionOperations, getBaseUrl, getNetwork } from '@/lib/stellar';
 import { containers, interactive, spacing } from '@/lib/design-system';
 import { useNetwork } from '@/contexts/NetworkContext';
+import GliderTabs from '@/components/ui/GliderTabs';
 
 type FilterType = 'all' | 'transfers' | 'contracts';
 
@@ -649,47 +650,15 @@ export default function TransactionPageClient({
             </div>
             {/* Mobile Glider Tabs */}
             <div className="md:hidden mb-2">
-              {(() => {
-                const filterTabs = [
+              <GliderTabs
+                tabs={[
                   { id: 'all', label: 'All Activity' },
                   { id: 'transfers', label: 'Payments' },
                   { id: 'contracts', label: 'Contracts' },
-                ];
-                const activeTabIndex = filterTabs.findIndex(tab => tab.id === filter);
-                const tabCount = filterTabs.length;
-
-                return (
-                  <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)]">
-                    {/* Glider Background */}
-                    <div
-                      className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
-                      style={{
-                        left: '4px',
-                        width: `calc((100% - 8px) / ${tabCount})`,
-                        transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
-                        opacity: activeTabIndex >= 0 ? 1 : 0
-                      }}
-                    />
-
-                    {filterTabs.map((tab) => {
-                      const isActive = filter === tab.id;
-                      return (
-                        <button
-                          key={tab.id}
-                          onClick={() => setFilter(tab.id as FilterType)}
-                          className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center ${
-                            isActive
-                              ? 'text-[var(--primary-blue)] font-bold'
-                              : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
+                ]}
+                activeId={filter}
+                onChange={(id) => setFilter(id as FilterType)}
+              />
             </div>
 
             {/* Desktop Tabs */}

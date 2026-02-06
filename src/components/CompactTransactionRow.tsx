@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Transaction, shortenAddress, timeAgo } from '@/lib/stellar';
 import { forwardRef } from 'react';
 import { interactive, spacing, getPrimaryColor } from '@/lib/design-system';
+import { txRoute } from '@/lib/routes';
 
 interface CompactTransactionRowProps {
   transaction: Transaction;
@@ -36,7 +37,7 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
     return (
       <Link
         ref={ref}
-        href={`/transaction/${transaction.hash}`}
+        href={txRoute(transaction.hash)}
         className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
       >
         <div className="flex items-center justify-between px-3 py-3">

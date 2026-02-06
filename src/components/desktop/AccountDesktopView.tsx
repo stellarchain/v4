@@ -8,6 +8,8 @@ import type { AccountLabel } from '@/lib/stellar';
 import AccountBadges from '@/components/AccountBadges';
 import { QRCodeSVG } from 'qrcode.react';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { addressRoute, assetRoute, txRoute } from '@/lib/routes';
+import GliderTabs from '@/components/ui/GliderTabs';
 
 interface Balance {
   asset_type: string;
@@ -47,9 +49,9 @@ interface AccountDesktopViewProps {
 }
 
 function getAssetUrl(code: string | undefined, issuer: string | undefined): string {
-  if (!code || code === 'native') return '/asset/XLM';
-  if (code === 'XLM' && !issuer) return '/asset/XLM';
-  return `/asset/${encodeURIComponent(code)}${issuer ? `?issuer=${encodeURIComponent(issuer)}` : ''}`;
+  if (!code || code === 'native') return assetRoute('XLM', null);
+  if (code === 'XLM' && !issuer) return assetRoute('XLM', null);
+  return assetRoute(code, issuer);
 }
 
 function formatCompactNumber(value: number): string {
@@ -195,10 +197,10 @@ export default function AccountDesktopView({ account, transactions, operations: 
   useEffect(() => {
     const fetchXlmChange = async () => {
       try {
-        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd&include_24hr_change=true');
+        const res = await fetch('/api/coingecko/xlm', { cache: 'force-cache' });
         const data = await res.json();
-        if (data.stellar?.usd_24h_change) {
-          setXlmChange24h(data.stellar.usd_24h_change);
+        if (typeof data?.usd_24h_change === 'number') {
+          setXlmChange24h(data.usd_24h_change);
         }
       } catch {
         // Ignore
@@ -669,32 +671,25 @@ export default function AccountDesktopView({ account, transactions, operations: 
           </div>
         </div>
 
-        {/* Tabs Row */}
-        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm px-4">
-          <div className="flex items-center justify-between">
-            <div className="flex gap-1">
-              {[
-                { id: 'assets', label: 'Assets' },
-                { id: 'transactions', label: 'Transactions' },
-                { id: 'operations', label: 'Operations' },
-                { id: 'details', label: 'Details' },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id as 'assets' | 'transactions' | 'operations' | 'details')}
-                  className={`px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 -mb-px transition-colors ${activeTab === tab.id
-                    ? 'text-sky-600 border-sky-500'
-                    : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-secondary)]'
-                    }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
+	        {/* Tabs Row */}
+	        <div className="mb-4">
+	          <GliderTabs
+	            size="md"
+	            className="border-[var(--border-default)]"
+	            tabs={[
+	              { id: 'assets', label: 'Assets' },
+	              { id: 'transactions', label: 'Transactions' },
+	              { id: 'operations', label: 'Operations' },
+	              { id: 'details', label: 'Details' },
+	            ] as const}
+	            activeId={activeTab}
+	            onChange={(id) => handleTabChange(id)}
+	          />
+	        </div>
 
           {/* Tab Content */}
-          <div className="p-0">
+          <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm overflow-hidden">
+            <div className="p-0">
             {/* Transactions Tab - Placeholder */}
             {activeTab === 'transactions' && (
               <div>
@@ -1130,8 +1125,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
                 </div>
               </div>
             )}
+            </div>
           </div>
-        </div>
       </div>
 
       {/* QR Code Modal */}

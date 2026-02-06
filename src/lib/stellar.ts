@@ -2934,6 +2934,16 @@ async function fetchCoinGeckoData(): Promise<{
   priceChange1y?: number;
   sparkline: number[];
 }> {
+  const fallback = {
+    price: 0.12,
+    rank: 25,
+    marketCap: 3500000000,
+    volume: 150000000,
+    circulatingSupply: 29000000000,
+    priceChange24h: 2.5,
+    sparkline: [] as number[],
+  };
+
   try {
     const response = await fetch(
       'https://api.coingecko.com/api/v3/coins/stellar?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=true',
@@ -2943,7 +2953,12 @@ async function fetchCoinGeckoData(): Promise<{
       }
     );
 
-    if (!response.ok) throw new Error('CoinGecko API error');
+    if (!response.ok) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('CoinGecko fetch warning:', response.status, response.statusText);
+      }
+      return fallback;
+    }
 
     const data = await response.json();
 
@@ -2959,16 +2974,10 @@ async function fetchCoinGeckoData(): Promise<{
       sparkline: data.market_data?.sparkline_7d?.price?.slice(-24) || [],
     };
   } catch (error) {
-    console.error('CoinGecko fetch error:', error);
-    return {
-      price: 0.12,
-      rank: 25,
-      marketCap: 3500000000,
-      volume: 150000000,
-      circulatingSupply: 29000000000,
-      priceChange24h: 2.5,
-      sparkline: [],
-    };
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('CoinGecko fetch warning:', error);
+    }
+    return fallback;
   }
 }
 
@@ -2980,6 +2989,14 @@ async function fetchStellarExpertStats(): Promise<{
   trades24h: number;
   operationsHistory: number[];
 }> {
+  const fallback = {
+    totalAccounts: 8500000,
+    totalAssets: 75000,
+    payments24h: 2500000,
+    trades24h: 450000,
+    operationsHistory: [] as number[],
+  };
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
@@ -2995,7 +3012,13 @@ async function fetchStellarExpertStats(): Promise<{
 
     clearTimeout(timeout);
 
-    if (!response.ok) throw new Error('StellarExpert API error');
+    if (!response.ok) {
+      // This endpoint is occasionally flaky; avoid noisy production build logs.
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('StellarExpert stats fetch warning:', response.status, response.statusText);
+      }
+      return fallback;
+    }
 
     const data = await response.json();
 
@@ -3007,14 +3030,10 @@ async function fetchStellarExpertStats(): Promise<{
       operationsHistory: data.operations_history?.slice(-24) || [],
     };
   } catch (error) {
-    console.error('StellarExpert stats fetch error:', error);
-    return {
-      totalAccounts: 8500000,
-      totalAssets: 75000,
-      payments24h: 2500000,
-      trades24h: 450000,
-      operationsHistory: [].map(v => v * 100000),
-    };
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('StellarExpert stats fetch warning:', error);
+    }
+    return fallback;
   }
 }
 
@@ -3374,7 +3393,9 @@ export async function getXLMUSDPriceFromHorizon(): Promise<number> {
       return parseFloat(aggregations[0].close);
     }
   } catch (error) {
-    console.error('Failed to fetch XLM/USD price from Horizon:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Failed to fetch XLM/USD price from Horizon:', error);
+    }
   }
 
   // Fallback price if API fails

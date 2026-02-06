@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import GliderTabs from '@/components/ui/GliderTabs';
 
 interface NewsItem {
   id: string;
@@ -199,30 +200,20 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
         {/* Filters Row */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
           {/* Category Tabs */}
-          <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm px-4">
-            <div className="flex gap-1">
-              {[
-                { id: 'all', label: 'All News', count: stats.total },
+          <div className="w-full sm:w-auto sm:min-w-[520px] max-w-full">
+            <GliderTabs
+              size="sm"
+              className="border-[var(--border-default)]"
+              tabs={[
+                { id: 'all', label: 'All', count: stats.total },
                 { id: 'stellar', label: 'Stellar', count: stats.stellar },
                 { id: 'crypto', label: 'Crypto', count: stats.crypto },
                 { id: 'defi', label: 'DeFi', count: stats.defi },
                 { id: 'regulation', label: 'Regulation', count: stats.regulation },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setFilter(tab.id as FilterType)}
-                  className={`text-[10px] font-bold uppercase tracking-widest px-4 py-3 transition-all ${
-                    filter === tab.id
-                      ? 'text-sky-600 border-b-2 border-sky-600'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                  }`}
-                >
-                  {tab.label}
-                  <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>{tab.count}</span>
-                </button>
-              ))}
-            </div>
+              ] as const}
+              activeId={filter}
+              onChange={setFilter}
+            />
           </div>
 
           {/* Search */}

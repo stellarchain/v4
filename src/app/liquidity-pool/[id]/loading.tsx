@@ -81,7 +81,7 @@ export default function LiquidityPoolLoading() {
               {/* Tab Bar */}
               <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] px-4">
                 <div className="flex items-center gap-1 py-3">
-                  <div className="h-4 w-20 bg-sky-100 rounded animate-pulse" />
+                  <div className="h-4 w-20 bg-[var(--info-muted)] rounded animate-pulse" />
                   <div className="h-4 w-16 bg-[var(--bg-tertiary)] rounded animate-pulse ml-4" />
                   <div className="h-4 w-16 bg-[var(--bg-tertiary)] rounded animate-pulse ml-4" />
                   <div className="h-4 w-24 bg-[var(--bg-tertiary)] rounded animate-pulse ml-4" />
@@ -164,7 +164,7 @@ export default function LiquidityPoolLoading() {
           </div>
 
           <div className="flex gap-4 border-b border-[var(--border-subtle)] pb-3 mb-4">
-            <div className="h-4 w-20 bg-sky-100 rounded animate-pulse" />
+            <div className="h-4 w-20 bg-[var(--info-muted)] rounded animate-pulse" />
             <div className="h-4 w-16 bg-[var(--bg-tertiary)] rounded animate-pulse" />
             <div className="h-4 w-18 bg-[var(--bg-tertiary)] rounded animate-pulse" />
           </div>

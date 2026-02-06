@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Transaction, Operation, shortenAddress, timeAgo, getOperationTypeLabel } from '@/lib/stellar';
+import GliderTabs from '@/components/ui/GliderTabs';
 
 interface AccountTabsProps {
   transactions: Transaction[];
@@ -16,49 +17,16 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
     <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl overflow-hidden">
       {/* Tab Headers - Glider Style */}
       <div className="p-2">
-        {(() => {
-          const tabs = [
+        <GliderTabs
+          size="md"
+          className="bg-[var(--bg-tertiary)] shadow-none border-0"
+          tabs={[
             { id: 'transactions', label: 'Transactions', count: transactions.length },
             { id: 'operations', label: 'Operations', count: operations.length },
-          ];
-          const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab);
-          const tabCount = tabs.length;
-
-          return (
-            <div className="relative flex items-center bg-[var(--bg-tertiary)] p-1 rounded-xl">
-              {/* Glider Background */}
-              <div
-                className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
-                style={{
-                  left: '4px',
-                  width: `calc((100% - 8px) / ${tabCount})`,
-                  transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
-                  opacity: activeTabIndex >= 0 ? 1 : 0
-                }}
-              />
-
-              {tabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as 'transactions' | 'operations')}
-                    className={`relative z-10 flex-1 py-2 text-sm rounded-lg transition-colors duration-200 text-center flex items-center justify-center gap-2 ${
-                      isActive
-                        ? 'text-[var(--primary-blue)] font-bold'
-                        : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    {tab.label}
-                    <span className={`text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center bg-[var(--primary-blue)] text-white`}>
-                      {tab.count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          );
-        })()}
+          ]}
+          activeId={activeTab}
+          onChange={(id) => setActiveTab(id)}
+        />
       </div>
 
       {/* Tab Content */}

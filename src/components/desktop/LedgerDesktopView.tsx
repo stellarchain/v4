@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import GliderTabs from '@/components/ui/GliderTabs';
 import {
   Ledger,
   Transaction,
@@ -327,31 +328,20 @@ export default function LedgerDesktopView({
           </Link>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm px-4 mb-5">
-          <div className="flex gap-1">
-            {[
-              { id: 'overview', label: 'Overview' },
-              { id: 'transactions', label: 'Transactions', count: totalTx },
-              { id: 'operations', label: 'Operations', count: ledger.operation_count },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-widest border-b-2 transition-all ${activeTab === tab.id
-                    ? 'text-sky-600 border-sky-600'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] border-transparent'
-                  }`}
-              >
-                {tab.label}
-                {'count' in tab && (
-                  <span className={activeTab === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>{tab.count}</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
+	        {/* Tabs */}
+	        <div className="mb-5">
+	          <GliderTabs
+	            size="md"
+	            className="border-[var(--border-default)]"
+	            tabs={[
+	              { id: 'overview', label: 'Overview' },
+	              { id: 'transactions', label: 'Transactions', count: totalTx },
+	              { id: 'operations', label: 'Operations', count: ledger.operation_count },
+	            ] as const}
+	            activeId={activeTab}
+	            onChange={(id) => setActiveTab(id)}
+	          />
+	        </div>
 
         <div className="flex-1 w-full space-y-5">
 

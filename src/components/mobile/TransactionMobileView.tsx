@@ -8,6 +8,7 @@ import type { AccountLabel } from '@/lib/stellar';
 import type { ContractFunctionType } from '@/lib/types/token';
 import AccountBadges from '@/components/AccountBadges';
 import { containers, spacing } from '@/lib/design-system';
+import GliderTabs, { type GliderTab } from '@/components/ui/GliderTabs';
 import { decodeTransactionMeta, decodeTransactionResources, type DecodedTransactionMeta, type SorobanMetrics } from '@/lib/xdrDecoder';
 
 interface Operation {
@@ -35,6 +36,8 @@ interface Effect {
   asset_code?: string;
   asset_issuer?: string;
 }
+
+type TxTabId = 'operations' | 'effects' | 'trace' | 'details';
 
 interface TransactionData {
   hash: string;
@@ -1364,50 +1367,24 @@ export default function TransactionMobileView({ transaction, operations, effects
         {/* Tabs Navigation - Glider Style */}
         <div className="mt-3 mb-1">
           {(() => {
-            const tabs = [
-              { id: 'operations', label: 'Operations', count: operationFilter === 'all' ? transaction.operation_count : filteredOperations.length },
+            const navTabs: GliderTab<TxTabId>[] = [
+              {
+                id: 'operations',
+                label: 'Operations',
+                count: operationFilter === 'all' ? transaction.operation_count : filteredOperations.length,
+              },
               { id: 'effects', label: 'Effects', count: effects.length > 0 ? effects.length : undefined },
-              ...(isContractCall ? [{ id: 'trace', label: 'Trace' }] : []),
               { id: 'details', label: 'Details' },
             ];
 
-            const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab);
-            const tabCount = tabs.length;
+            if (isContractCall) navTabs.splice(2, 0, { id: 'trace', label: 'Trace' });
 
             return (
-              <div className="relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)]">
-                {/* Glider Background */}
-                <div
-                  className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
-                  style={{
-                    left: '4px',
-                    width: `calc((100% - 8px) / ${tabCount})`,
-                    transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
-                    opacity: activeTabIndex >= 0 ? 1 : 0
-                  }}
-                />
-
-                {tabs.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
-                      className={`relative z-10 flex-1 py-1.5 text-[11px] rounded-lg transition-colors duration-200 text-center flex items-center justify-center gap-1 ${isActive
-                          ? 'text-[var(--primary-blue)] font-bold'
-                          : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]'
-                        }`}
-                    >
-                      {tab.label}
-                      {tab.count !== undefined && (
-                        <span className="text-[10px] px-1.5 h-[18px] rounded-full flex items-center justify-center bg-[var(--primary-blue)] text-white font-bold min-w-[18px]">
-                          {tab.count}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+              <GliderTabs<TxTabId>
+                tabs={navTabs}
+                activeId={(activeTab ?? 'operations') as TxTabId}
+                onChange={(id) => setActiveTab(id)}
+              />
             );
           })()}
         </div>

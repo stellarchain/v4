@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
 
 export default function WalletTrackPage() {
     const [address, setAddress] = useState('');
@@ -26,16 +29,14 @@ export default function WalletTrackPage() {
                 <div>
                     <div className="flex items-center gap-2">
                         <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Wallet Track</h1>
-                        <span className="px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[10px] font-medium text-[#777]">
-                            Beta
-                        </span>
+                        <Badge>Beta</Badge>
                     </div>
                     <p className="text-[var(--text-muted)] text-xs">Visualize transaction flows and account connections</p>
                 </div>
             </div>
 
             {/* Search Card */}
-            <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm">
+            <Card className="p-6 shadow-sm">
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider mb-2 block">
@@ -51,15 +52,16 @@ export default function WalletTrackPage() {
                             />
                         </div>
                     </div>
-                    <button
+                    <Button
                         type="submit"
                         disabled={address.length !== 56}
-                        className="w-full bg-[var(--primary)] text-white font-medium py-3 rounded-xl hover:bg-[var(--primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                        variant="primary"
+                        className="w-full py-3 text-sm"
                     >
                         Visualize Graph
-                    </button>
+                    </Button>
                 </form>
-            </div>
+            </Card>
 
             {/* Showcase Card */}
             <div

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { MarketAsset } from '@/lib/stellar';
 import { containers } from '@/lib/design-system';
+import { assetRoute } from '@/lib/routes';
 
 interface MarketsMobileViewProps {
   initialAssets: MarketAsset[];
@@ -111,10 +112,7 @@ function ChangeIndicator({ value }: { value: number }) {
 }
 
 function getAssetUrl(asset: MarketAsset): string {
-  if (asset.code === 'XLM' && !asset.issuer) {
-    return '/asset/XLM';
-  }
-  return `/asset/${encodeURIComponent(asset.code)}${asset.issuer ? `?issuer=${encodeURIComponent(asset.issuer)}` : ''}`;
+  return assetRoute(asset.code, asset.issuer);
 }
 
 const ASSETS_PER_PAGE = 50;

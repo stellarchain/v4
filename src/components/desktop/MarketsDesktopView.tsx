@@ -5,6 +5,7 @@ import { MarketAsset } from '@/lib/stellar';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { assetRoute } from '@/lib/routes';
 
 interface MarketsDesktopViewProps {
   initialAssets: MarketAsset[];
@@ -121,10 +122,7 @@ function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
 }
 
 function getAssetUrl(asset: MarketAsset): string {
-  if (asset.code === 'XLM' && !asset.issuer) {
-    return '/asset/XLM';
-  }
-  return `/asset/${encodeURIComponent(asset.code)}${asset.issuer ? `?issuer=${encodeURIComponent(asset.issuer)}` : ''}`;
+  return assetRoute(asset.code, asset.issuer);
 }
 
 export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsDesktopViewProps) {

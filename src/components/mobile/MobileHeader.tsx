@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { NetworkBadge } from '@/components/NetworkSwitcher';
 import { getBaseUrl } from '@/lib/stellar';
+import { getRouteFromSearchQuery } from '@/lib/searchRouting';
 
 export default function MobileHeader() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,12 +18,12 @@ export default function MobileHeader() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch XLM Price and 24h change from CoinGecko
-        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd&include_24hr_change=true');
+        // Cached server-side proxy (avoids CoinGecko rate limits in the client).
+        const res = await fetch('/api/coingecko/xlm', { cache: 'force-cache' });
         const data = await res.json();
-        if (data.stellar) {
-          setXlmPrice(data.stellar.usd || 0);
-          setXlmChange24h(data.stellar.usd_24h_change || 0);
+        if (typeof data?.usd === 'number') {
+          setXlmPrice(data.usd || 0);
+          setXlmChange24h(data.usd_24h_change || 0);
         }
       } catch (e) {
         console.error('Failed to fetch header stats', e);
@@ -43,40 +44,18 @@ export default function MobileHeader() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const query = searchQuery.trim();
-    if (!query) return;
-
-    const upperQuery = query.toUpperCase();
-
-    // Contract ID (starts with C, 56 chars) - case insensitive
-    if (query.length === 56 && upperQuery.startsWith('C')) {
-      window.location.href = `/contract/${upperQuery}`;
-    }
-    // Account ID (starts with G, 56 chars) - case insensitive
-    else if (query.length === 56 && upperQuery.startsWith('G')) {
-      window.location.href = `/account/${upperQuery}`;
-    }
-    // Transaction hash (64 chars hex)
-    else if (query.length === 64) {
-      window.location.href = `/transaction/${query.toLowerCase()}`;
-    }
-    // Ledger sequence (all digits)
-    else if (/^\d+$/.test(query)) {
-      window.location.href = `/ledger/${query}`;
-    }
-    // Default to account search
-    else {
-      window.location.href = `/account/${query}`;
-    }
+    const route = getRouteFromSearchQuery(searchQuery);
+    if (!route) return;
+    window.location.href = route;
     setSearchQuery('');
   };
 
   // Hide header on pages that have their own custom header
-  if (pathname?.startsWith('/account/')) return null;
+  if (pathname?.startsWith('/address/')) return null;
   if (pathname?.startsWith('/markets')) return null;
-  if (pathname?.startsWith('/asset/')) return null;
-  if (pathname?.startsWith('/transaction/')) return null;
-  if (pathname?.startsWith('/contract/')) return null;
+  if (pathname?.startsWith('/assets/')) return null;
+  if (pathname?.startsWith('/tx/')) return null;
+  if (pathname?.startsWith('/contracts/')) return null;
   if (pathname?.startsWith('/liquidity-pool/')) return null;
 
   // Same header for all pages (with stats)

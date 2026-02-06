@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Transaction, getTransactionDisplayInfo, Operation, getBaseUrl, shortenAddress, getTransactionOperations } from '@/lib/stellar';
 import { useNetwork } from '@/contexts/NetworkContext';
+import GliderTabs from '@/components/ui/GliderTabs';
 
 type FilterType = 'all' | 'transfers' | 'contracts';
 
@@ -492,27 +493,18 @@ export default function TransactionsDesktopView({
         </div>
 
         {/* Filters Row */}
-        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm px-4 mb-5">
-          <div className="flex gap-1">
-            {[
-              { id: 'all', label: 'All Activity', count: stats.total },
+        <div className="mb-5 max-w-full">
+          <GliderTabs
+            size="sm"
+            className="border-[var(--border-default)] max-w-[520px]"
+            tabs={[
+              { id: 'all', label: 'All', count: stats.total },
               { id: 'transfers', label: 'Payments', count: stats.payments },
-              { id: 'contracts', label: 'Smart Contracts', count: stats.contracts },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setFilter(tab.id as FilterType)}
-                className={`px-4 py-3 text-[10px] font-bold uppercase tracking-widest transition-all ${filter === tab.id
-                  ? 'text-sky-600 border-b-2 border-sky-600'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                  }`}
-              >
-                {tab.label}
-                <span className={filter === tab.id ? 'text-sky-500 ml-1' : 'text-[var(--text-muted)] ml-1'}>{tab.count}</span>
-              </button>
-            ))}
-          </div>
+              { id: 'contracts', label: 'Contracts', count: stats.contracts },
+            ] as const}
+            activeId={filter}
+            onChange={setFilter}
+          />
         </div>
 
         {/* Transactions Table */}

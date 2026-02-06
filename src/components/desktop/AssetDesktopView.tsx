@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import AssetCandlestickChart from '@/components/AssetCandlestickChart';
 import AssetOrderBook from '@/components/AssetOrderBook';
+import GliderTabs from '@/components/ui/GliderTabs';
 import { AssetDetails, AssetHolder, AssetTrade, AccountLabel, TradingPair, shortenAddress, timeAgo, getAssetHolders, getAssetTrades, getAccountLabels, getAssetTradingPairs, getLiquidityPoolByAssets } from '@/lib/stellar';
 import { getXLMHoldersAction } from '@/app/actions/stellar';
 
@@ -504,29 +505,19 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
           {/* Right Content Area */}
           <div className="space-y-5 min-w-0 overflow-hidden">
             {/* Tab Navigation */}
-            <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm px-4">
-              <div className="flex gap-1">
-                {[
-                  { id: 'chart', label: 'Chart' },
-                  { id: 'markets', label: 'Markets' },
-                  { id: 'trades', label: 'Trades' },
-                  { id: 'holders', label: 'Holders' },
-                  { id: 'about', label: 'About' },
-                ].map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as TabType)}
-                    className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                      activeTab === tab.id
-                        ? 'text-sky-600 border-sky-500'
-                        : 'text-[var(--text-tertiary)] border-transparent hover:text-[var(--text-secondary)]'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <GliderTabs
+              size="md"
+              className="border-[var(--border-default)]"
+              tabs={[
+                { id: 'chart', label: 'Chart' },
+                { id: 'markets', label: 'Markets' },
+                { id: 'trades', label: 'Trades' },
+                { id: 'holders', label: 'Holders' },
+                { id: 'about', label: 'About' },
+              ] as const}
+              activeId={activeTab}
+              onChange={setActiveTab}
+            />
 
             {/* Tab Content */}
             {activeTab === 'chart' && (

@@ -3,10 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import gsap from 'gsap';
 import { Ledger, NetworkStats, Transaction, formatXLM, shortenAddress, timeAgo, Operation, getBaseUrl } from '@/lib/stellar';
 import InfoTooltip from '../InfoTooltip';
 import TransactionFlowAnimation from './TransactionFlowAnimation';
+import { getOperationColors } from '@/lib/design-system';
+import { getRouteFromSearchQuery } from '@/lib/searchRouting';
+import GliderTabs from '@/components/ui/GliderTabs';
 
 interface XLMMarketData {
     price: number;
@@ -42,6 +46,7 @@ export default function DesktopHomePage({
     xlmVolume,
     xlmMarketData
 }: DesktopHomePageProps) {
+    const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
     const [liveStats, setLiveStats] = useState(stats);
     const [operations, setOperations] = useState<Operation[]>(initialOperations);
@@ -130,6 +135,17 @@ export default function DesktopHomePage({
 
     // Poll for latest stats AND operations based on active tab
     useEffect(() => {
+        const dedupeById = (items: Operation[]) => {
+            const seen = new Set<string>();
+            const out: Operation[] = [];
+            for (const item of items) {
+                if (seen.has(item.id)) continue;
+                seen.add(item.id);
+                out.push(item);
+            }
+            return out;
+        };
+
         const fetchStats = async () => {
             try {
                 const ledgersRes = await fetch(`${getBaseUrl()}/ledgers?limit=1&order=desc`);
@@ -171,11 +187,11 @@ export default function DesktopHomePage({
                     const merged = [...ops, ...uniquePayments].sort((a, b) =>
                         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
                     );
-                    setOperations(merged);
+                    setOperations(dedupeById(merged));
                 } else if (activeTab === 'Payments') {
                     const res = await fetch(`${getBaseUrl()}/payments?limit=50&order=desc`);
                     const data = await res.json();
-                    if (data._embedded?.records) setOperations(data._embedded.records);
+                    if (data._embedded?.records) setOperations(dedupeById(data._embedded.records));
                 } else if (activeTab === 'Swaps') {
                     // Fetch more operations to find swaps (they're less common)
                     const res = await fetch(`${getBaseUrl()}/operations?limit=200&order=desc&include_failed=false`);
@@ -185,13 +201,13 @@ export default function DesktopHomePage({
                         const swaps = data._embedded.records.filter((op: Operation) =>
                             op.type.includes('path_payment') || op.type.includes('offer')
                         );
-                        setOperations(swaps.length > 0 ? swaps : data._embedded.records);
+                        setOperations(dedupeById(swaps.length > 0 ? swaps : data._embedded.records));
                     }
                 } else {
                     // Smart Contracts tab
                     const res = await fetch(`${getBaseUrl()}/operations?limit=100&order=desc&include_failed=false`);
                     const data = await res.json();
-                    if (data._embedded?.records) setOperations(data._embedded.records);
+                    if (data._embedded?.records) setOperations(dedupeById(data._embedded.records));
                 }
             } catch (e) {
                 console.error('Failed to fetch initial tab data', e);
@@ -215,15 +231,23 @@ export default function DesktopHomePage({
                     const newPayments: Operation[] = paymentsData._embedded?.records || [];
 
                     setOperations(prevOps => {
-                        const existingIds = new Set(prevOps.map(op => op.id));
-                        const uniqueOps = newOps.filter(op => !existingIds.has(op.id));
-                        const uniquePayments = newPayments.filter(p => !existingIds.has(p.id));
+                        const seen = new Set(prevOps.map(op => op.id));
+                        const uniqueOps = newOps.filter(op => {
+                            if (seen.has(op.id)) return false;
+                            seen.add(op.id);
+                            return true;
+                        });
+                        const uniquePayments = newPayments.filter(p => {
+                            if (seen.has(p.id)) return false;
+                            seen.add(p.id);
+                            return true;
+                        });
                         const allNew = [...uniqueOps, ...uniquePayments];
 
                         if (allNew.length > 0) {
-                            return [...allNew, ...prevOps]
+                            return dedupeById([...allNew, ...prevOps]
                                 .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                                .slice(0, 500);
+                                .slice(0, 500));
                         }
                         return prevOps;
                     });
@@ -240,7 +264,7 @@ export default function DesktopHomePage({
                         const uniqueNewOps = newOps.filter(op => !existingIds.has(op.id));
 
                         if (uniqueNewOps.length > 0) {
-                            return [...uniqueNewOps, ...prevOps].slice(0, 500);
+                            return dedupeById([...uniqueNewOps, ...prevOps]).slice(0, 500);
                         }
                         return prevOps;
                     });
@@ -262,22 +286,9 @@ export default function DesktopHomePage({
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        const query = searchQuery.trim();
-        if (!query) return;
-
-        const upperQuery = query.toUpperCase();
-
-        if (query.length === 56 && upperQuery.startsWith('C')) {
-            window.location.href = `/contract/${upperQuery}`;
-        } else if (query.length === 56 && upperQuery.startsWith('G')) {
-            window.location.href = `/account/${upperQuery}`;
-        } else if (query.length === 64) {
-            window.location.href = `/transaction/${query.toLowerCase()}`;
-        } else if (/^\d+$/.test(query)) {
-            window.location.href = `/ledger/${query}`;
-        } else {
-            window.location.href = `/account/${query}`;
-        }
+        const route = getRouteFromSearchQuery(searchQuery);
+        if (!route) return;
+        router.push(route);
     };
 
     const formattedVolume = new Intl.NumberFormat('en-US', {
@@ -302,11 +313,12 @@ export default function DesktopHomePage({
 
     const getOpStyle = (typePath: string) => {
         const type = String(typePath);
-        if (type === 'payment' || type === 'create_account') return { color: 'text-orange-500', bg: 'bg-orange-500', label: 'PAYMENT' };
-        if (type.includes('offer') || type.includes('swap') || type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') return { color: 'text-blue-500', bg: 'bg-blue-500', label: 'SWAP' };
-        if (type === 'invoke_host_function' || type.toLowerCase().includes('invokecontract') || type.toLowerCase().includes('hostfunction')) return { color: 'text-purple-500', bg: 'bg-purple-500', label: 'CONTRACT CALL' };
-        if (type === 'change_trust') return { color: 'text-emerald-500', bg: 'bg-emerald-500', label: 'TRUSTLINE' };
-        return { color: 'text-[var(--text-primary)]', bg: 'bg-[var(--text-muted)]', label: type.replace(/_/g, ' ').toUpperCase() };
+        const colors = getOperationColors(type);
+        if (type === 'payment' || type === 'create_account') return { color: colors.text, bg: colors.bg, label: 'PAYMENT' };
+        if (type.includes('offer') || type.includes('swap') || type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') return { color: colors.text, bg: colors.bg, label: 'SWAP' };
+        if (type === 'invoke_host_function' || type.toLowerCase().includes('invokecontract') || type.toLowerCase().includes('hostfunction')) return { color: colors.text, bg: colors.bg, label: 'CONTRACT CALL' };
+        if (type === 'change_trust') return { color: colors.text, bg: colors.bg, label: 'TRUSTLINE' };
+        return { color: 'text-[var(--text-primary)]', bg: 'bg-[var(--bg-tertiary)]', label: type.replace(/_/g, ' ').toUpperCase() };
     };
 
     const decodeContractFunctionName = (op: Operation): string => {
@@ -331,9 +343,9 @@ export default function DesktopHomePage({
     // Trending tokens data
     const trendingTokens = [
         { symbol: 'XLM', logo: 'https://stellar.org/favicon.ico', fallbackColor: 'bg-[var(--text-primary)]' },
-        { symbol: 'USDC', logo: 'https://www.centre.io/images/usdc/usdc-icon-86074d9d49.png', fallbackColor: 'bg-blue-500' },
-        { symbol: 'yXLM', logo: null, fallbackColor: 'bg-indigo-500' },
-        { symbol: 'AQUA', logo: 'https://aqua.network/assets/img/aqua-logo.png', fallbackColor: 'bg-purple-500' },
+        { symbol: 'USDC', logo: 'https://www.centre.io/images/usdc/usdc-icon-86074d9d49.png', fallbackColor: 'bg-[var(--info)]' },
+        { symbol: 'yXLM', logo: null, fallbackColor: 'bg-[var(--indigo)]' },
+        { symbol: 'AQUA', logo: 'https://aqua.network/assets/img/aqua-logo.png', fallbackColor: 'bg-[var(--purple)]' },
     ];
 
     // Track failed images
@@ -345,8 +357,8 @@ export default function DesktopHomePage({
             <section className="relative pt-16 pb-20 overflow-hidden">
                 {/* Background Blobs */}
                 <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-                    <div className="absolute top-[-10%] left-[10%] w-[500px] h-[500px] bg-[#e0f2fe] dark:bg-[rgba(12,74,110,0.2)] rounded-full filter blur-3xl opacity-60 dark:opacity-30 animate-pulse"></div>
-                    <div className="absolute top-[10%] right-[15%] w-[400px] h-[400px] bg-[#e0e7ff] dark:bg-[rgba(49,46,129,0.2)] rounded-full filter blur-3xl opacity-60 dark:opacity-30"></div>
+                    <div className="absolute top-[-10%] left-[10%] w-[500px] h-[500px] bg-[var(--info-muted)] rounded-full filter blur-3xl opacity-60 animate-pulse"></div>
+                    <div className="absolute top-[10%] right-[15%] w-[400px] h-[400px] bg-[var(--indigo-muted)] rounded-full filter blur-3xl opacity-60"></div>
                 </div>
 
                 <div className="max-w-[1400px] mx-auto px-6 relative z-10 text-center">
@@ -357,7 +369,7 @@ export default function DesktopHomePage({
                     {/* Search Bar */}
                     <div className="max-w-2xl mx-auto relative mb-8 group">
                         <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-                            <svg className="w-5 h-5 text-[var(--text-muted)] group-focus-within:text-blue-500 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-5 h-5 text-[var(--text-muted)] group-focus-within:text-[var(--info)] transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
@@ -366,7 +378,7 @@ export default function DesktopHomePage({
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full py-4 pl-14 pr-16 bg-[var(--bg-secondary)] border-2 border-[var(--border-subtle)] rounded-2xl shadow-xl focus:outline-none focus:border-blue-500 focus:ring-0 text-lg text-[var(--text-secondary)] placeholder-[var(--text-muted)] transition"
+                                className="w-full py-4 pl-14 pr-16 bg-[var(--bg-secondary)] border-2 border-[var(--border-subtle)] rounded-2xl shadow-xl focus:outline-none focus:border-[var(--info)] focus:ring-0 text-lg text-[var(--text-secondary)] placeholder-[var(--text-muted)] transition"
                                 placeholder="Search anything on Stellar"
                             />
                         </form>
@@ -382,7 +394,7 @@ export default function DesktopHomePage({
                             <Link
                                 key={token.symbol}
                                 href={`/markets`}
-                                className="group flex items-center bg-[var(--bg-secondary)] hover:border-sky-300 px-3 py-1.5 rounded-full shadow-sm border border-[var(--border-default)] transition"
+                                className="group flex items-center bg-[var(--bg-secondary)] hover:border-[var(--info)]/30 px-3 py-1.5 rounded-full shadow-sm border border-[var(--border-default)] transition"
                             >
                                 <div className="w-5 h-5 rounded-full overflow-hidden mr-2 group-hover:scale-110 transition flex-shrink-0">
                                     {token.logo && !failedImages.has(token.symbol) ? (
@@ -401,7 +413,7 @@ export default function DesktopHomePage({
                                         </div>
                                     )}
                                 </div>
-                                <span className="text-[var(--text-secondary)] group-hover:text-sky-600 transition">{token.symbol}</span>
+                                <span className="text-[var(--text-secondary)] group-hover:text-[var(--info)] transition">{token.symbol}</span>
                             </Link>
                         ))}
                     </div>
@@ -418,7 +430,7 @@ export default function DesktopHomePage({
                                 <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Market Cap</span>} content="Total value of all XLM in circulation" />
                             </div>
                             <div className="text-lg font-bold text-[var(--text-primary)]">${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(marketCap)}</div>
-                            <div className={`text-xs font-medium ${marketCapChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            <div className={`text-xs font-medium ${marketCapChange >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
                                 {marketCapChange >= 0 ? '+' : ''}{marketCapChange.toFixed(2)}%
                             </div>
                         </div>
@@ -455,7 +467,7 @@ export default function DesktopHomePage({
                             <div className="text-lg font-bold text-[var(--text-primary)]">${xlmPrice.toFixed(4)}</div>
                             <div className="flex items-center gap-1">
                                 <span className="text-[10px] text-[var(--text-muted)]">24H</span>
-                                <span className={`text-xs font-medium ${priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                <span className={`text-xs font-medium ${priceChange24h >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
                                     {priceChange24h >= 0 ? '+' : ''}{priceChange24h.toFixed(2)}%
                                 </span>
                             </div>
@@ -481,35 +493,35 @@ export default function DesktopHomePage({
 
                     {/* Second Row - Network Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                        <Link href={`/ledger/${liveStats.ledger_count}`} className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)] hover:border-blue-200 transition-all group">
+                        <Link href={`/ledger/${liveStats.ledger_count}`} className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)] hover:border-[var(--info)]/25 transition-all group">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Current Ledger</span>} content="Latest confirmed ledger on Stellar network" />
                                     </div>
-                                    <div ref={ledgerCountRef} className="text-xl font-bold text-blue-500">{liveStats.ledger_count.toLocaleString()}</div>
+                                    <div ref={ledgerCountRef} className="text-xl font-bold text-[var(--info)]">{liveStats.ledger_count.toLocaleString()}</div>
                                     <div className="flex items-center gap-2 mt-1">
                                         <div className="w-12 bg-[var(--bg-tertiary)] rounded-full h-1.5 overflow-hidden">
-                                            <div ref={progressBarRef} className="bg-green-500 h-1.5 rounded-full transition-all duration-100 ease-linear" style={{ width: `${ledgerProgress}%` }} />
+                                            <div ref={progressBarRef} className="bg-[var(--success)] h-1.5 rounded-full transition-all duration-100 ease-linear" style={{ width: `${ledgerProgress}%` }} />
                                         </div>
                                         <span className="text-[10px] text-[var(--text-muted)]">~{Math.max(0, Math.round((100 - ledgerProgress) / 100 * 5))}s</span>
                                     </div>
                                 </div>
-                                <div className="w-9 h-9 bg-[#eff6ff] dark:bg-[rgba(30,58,138,0.4)] rounded-lg flex items-center justify-center text-[#1d4ed8] group-hover:bg-[#3b82f6] group-hover:text-white transition-colors">
+                                <div className="w-9 h-9 bg-[var(--info-muted)] rounded-lg flex items-center justify-center text-[var(--info)] group-hover:bg-[var(--info)] group-hover:text-white transition-colors">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                                 </div>
                             </div>
                         </Link>
-                        <Link href="/transactions" className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)] hover:border-blue-200 transition-all group">
+                        <Link href="/transactions" className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)] hover:border-[var(--info)]/25 transition-all group">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">TPS Current</span>} content="Transactions per second" />
                                     </div>
-                                    <div className="text-xl font-bold text-blue-500">{tps}</div>
-                                    <div className="text-[10px] text-green-500 font-medium">{txCount} tx/ledger</div>
+                                    <div className="text-xl font-bold text-[var(--info)]">{tps}</div>
+                                    <div className="text-[10px] text-[var(--success)] font-medium">{txCount} tx/ledger</div>
                                 </div>
-                                <div className="w-9 h-9 bg-[#eff6ff] dark:bg-[rgba(30,58,138,0.4)] rounded-lg flex items-center justify-center text-[#1d4ed8] group-hover:bg-[#3b82f6] group-hover:text-white transition-colors">
+                                <div className="w-9 h-9 bg-[var(--info-muted)] rounded-lg flex items-center justify-center text-[var(--info)] group-hover:bg-[var(--info)] group-hover:text-white transition-colors">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                 </div>
                             </div>
@@ -523,7 +535,7 @@ export default function DesktopHomePage({
                                     <div className="text-xl font-bold text-[var(--text-primary)]">{liveStats.ledger_capacity_usage ? `${(liveStats.ledger_capacity_usage * 100).toFixed(0)}%` : '—'}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">capacity used</div>
                                 </div>
-                                <div className="w-9 h-9 bg-[#fffbeb] dark:bg-[rgba(120,53,15,0.4)] rounded-lg flex items-center justify-center text-[#b45309]">
+                                <div className="w-9 h-9 bg-[var(--warning-muted)] rounded-lg flex items-center justify-center text-[var(--warning)]">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                                 </div>
                             </div>
@@ -537,7 +549,7 @@ export default function DesktopHomePage({
                                     <div className="text-xl font-bold text-[var(--text-primary)]">{liveStats.protocol_version}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">version</div>
                                 </div>
-                                <div className="w-9 h-9 bg-[#f5f3ff] dark:bg-[rgba(76,29,149,0.4)] rounded-lg flex items-center justify-center text-[#6d28d9]">
+                                <div className="w-9 h-9 bg-[var(--purple-muted)] rounded-lg flex items-center justify-center text-[var(--purple)]">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                 </div>
                             </div>
@@ -552,10 +564,10 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Burned Lumens</span>} content="XLM permanently removed from circulation" />
                                     </div>
-                                    <div className="text-xl font-bold text-rose-500">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.burnedLumens)}</div>
+                                    <div className="text-xl font-bold text-[var(--error)]">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.burnedLumens)}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">XLM burned</div>
                                 </div>
-                                <div className="w-9 h-9 bg-[#fff1f2] dark:bg-[rgba(136,19,55,0.4)] rounded-lg flex items-center justify-center text-[#be123c]">
+                                <div className="w-9 h-9 bg-[var(--error-muted)] rounded-lg flex items-center justify-center text-[var(--error)]">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" /></svg>
                                 </div>
                             </div>
@@ -566,10 +578,10 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">SDF Mandate</span>} content="Lumens held by Stellar Development Foundation" />
                                     </div>
-                                    <div className="text-xl font-bold text-indigo-500">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.sdfMandate)}</div>
+                                    <div className="text-xl font-bold text-[var(--indigo)]">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.sdfMandate)}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">XLM held</div>
                                 </div>
-                                <div className="w-9 h-9 bg-[#eef2ff] dark:bg-[rgba(49,46,129,0.4)] rounded-lg flex items-center justify-center text-[#4338ca]">
+                                <div className="w-9 h-9 bg-[var(--indigo-muted)] rounded-lg flex items-center justify-center text-[var(--indigo)]">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                                 </div>
                             </div>
@@ -580,10 +592,10 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Fee Pool</span>} content="Accumulated network transaction fees" />
                                     </div>
-                                    <div className="text-xl font-bold text-emerald-500">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.feePool)}</div>
+                                    <div className="text-xl font-bold text-[var(--success)]">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.feePool)}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">XLM in fees</div>
                                 </div>
-                                <div className="w-9 h-9 bg-[#ecfdf5] dark:bg-[rgba(6,78,59,0.4)] rounded-lg flex items-center justify-center text-[#047857]">
+                                <div className="w-9 h-9 bg-[var(--success-muted)] rounded-lg flex items-center justify-center text-[var(--success)]">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 </div>
                             </div>
@@ -606,7 +618,7 @@ export default function DesktopHomePage({
                 </div>
             </section>
 
-            {/* Transaction Flow Animation */}
+                    {/* Transaction Flow Animation */}
             <section className="pb-6">
                 <div className="max-w-[1400px] mx-auto px-6">
                     <TransactionFlowAnimation operations={operations} height={380} currentLedger={liveStats.ledger_count} />
@@ -621,28 +633,25 @@ export default function DesktopHomePage({
                         <div className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2 uppercase tracking-wider">
-                                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                    <span className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse"></span>
                                     Live Activity
                                 </h3>
-                                <div className="flex items-center gap-1">
-                                    {['All', 'Payments', 'Swaps', 'Contracts'].map(tab => {
-                                        const tabMap: Record<string, string> = { 'All': 'All Activity', 'Payments': 'Payments', 'Swaps': 'Swaps', 'Contracts': 'Smart Contracts' };
-                                        return (
-                                            <button
-                                                key={tab}
-                                                onClick={() => setActiveTab(tabMap[tab])}
-                                                className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-tight whitespace-nowrap transition-colors ${activeTab === tabMap[tab]
-                                                    ? 'bg-sky-500 text-white'
-                                                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-                                                    }`}
-                                            >
-                                                {tab}
-                                            </button>
-                                        );
-                                    })}
+                                <div className="w-[420px] max-w-full">
+                                    <GliderTabs
+                                        size="sm"
+                                        className="bg-[var(--bg-tertiary)] shadow-none border-0"
+                                        tabs={[
+                                            { id: 'All Activity', label: 'All' },
+                                            { id: 'Payments', label: 'Payments' },
+                                            { id: 'Swaps', label: 'Swaps' },
+                                            { id: 'Smart Contracts', label: 'Contracts' },
+                                        ] as const}
+                                        activeId={activeTab as 'All Activity' | 'Payments' | 'Swaps' | 'Smart Contracts'}
+                                        onChange={(id) => setActiveTab(id)}
+                                    />
                                 </div>
                             </div>
-                            <Link href="/transactions" className="text-xs text-sky-500 hover:text-sky-600 font-medium flex items-center gap-1 transition">
+                            <Link href="/transactions" className="text-xs text-[var(--info)] hover:text-[var(--info)] font-medium flex items-center gap-1 transition">
                                 View All
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -689,11 +698,11 @@ export default function DesktopHomePage({
 
                                             // Get type colors
                                             const getTypeColors = () => {
-                                                if (op.type === 'payment' || op.type === 'create_account') return 'bg-[#ecfdf5] dark:bg-[rgba(6,78,59,0.4)] text-[#047857] dark:text-[#34d399] border-[#a7f3d0] dark:border-[rgba(6,95,70,0.5)]';
-                                                if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') return 'bg-[#f5f3ff] dark:bg-[rgba(76,29,149,0.4)] text-[#6d28d9] dark:text-[#a78bfa] border-[#ddd6fe] dark:border-[rgba(91,33,182,0.5)]';
-                                                if (['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type)) return 'bg-[#eef2ff] dark:bg-[rgba(49,46,129,0.4)] text-[#4338ca] dark:text-[#818cf8] border-[#c7d2fe] dark:border-[rgba(55,48,163,0.5)]';
-                                                if (op.type === 'invoke_host_function') return 'bg-[#fffbeb] dark:bg-[rgba(120,53,15,0.4)] text-[#b45309] dark:text-[#fbbf24] border-[#fde68a] dark:border-[rgba(146,64,14,0.5)]';
-                                                if (op.type === 'change_trust') return 'bg-[#f0fdfa] dark:bg-[rgba(19,78,74,0.4)] text-[#0f766e] dark:text-[#2dd4bf] border-[#99f6e4] dark:border-[rgba(17,94,89,0.5)]';
+                                                if (op.type === 'payment' || op.type === 'create_account') return 'bg-[var(--success-muted)] text-[var(--success)] border-[var(--success)]/20';
+                                                if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') return 'bg-[var(--info-muted)] text-[var(--info)] border-[var(--info)]/20';
+                                                if (['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type)) return 'bg-[var(--purple-muted)] text-[var(--purple)] border-[var(--purple)]/20';
+                                                if (op.type === 'invoke_host_function') return 'bg-[var(--warning-muted)] text-[var(--warning)] border-[var(--warning)]/20';
+                                                if (op.type === 'change_trust') return 'bg-[var(--indigo-muted)] text-[var(--indigo)] border-[var(--indigo)]/20';
                                                 return 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-default)]';
                                             };
 
@@ -709,21 +718,21 @@ export default function DesktopHomePage({
                                                 if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') {
                                                     const srcAsset = (op as any).source_asset_code || ((op as any).source_asset_type === 'native' ? 'XLM' : '?');
                                                     const destAsset = op.asset_code || 'XLM';
-                                                    return { text: `${srcAsset} → ${destAsset}`, isAddress: false, color: 'text-violet-600' };
+                                                    return { text: `${srcAsset} → ${destAsset}`, isAddress: false, color: 'text-[var(--violet)]' };
                                                 }
                                                 if (['manage_sell_offer', 'manage_buy_offer', 'create_passive_sell_offer'].includes(op.type)) {
                                                     const selling = (op as any).selling_asset_code || ((op as any).selling_asset_type === 'native' ? 'XLM' : '?');
                                                     const buying = (op as any).buying_asset_code || ((op as any).buying_asset_type === 'native' ? 'XLM' : '?');
-                                                    return { text: `${selling} → ${buying}`, isAddress: false, color: 'text-indigo-600' };
+                                                    return { text: `${selling} → ${buying}`, isAddress: false, color: 'text-[var(--indigo)]' };
                                                 }
                                                 if (op.type === 'invoke_host_function') {
                                                     const fn = decodeContractFunctionName(op);
-                                                    return { text: `${fn}()`, isAddress: false, color: 'text-amber-600' };
+                                                    return { text: `${fn}()`, isAddress: false, color: 'text-[var(--warning)]' };
                                                 }
                                                 if (op.type === 'change_trust') {
                                                     const asset = (op as any).asset_code || 'Asset';
                                                     const limit = (op as any).limit;
-                                                    return { text: limit === '0' ? `Remove ${asset}` : `Add ${asset}`, isAddress: false, color: 'text-teal-600' };
+                                                    return { text: limit === '0' ? `Remove ${asset}` : `Add ${asset}`, isAddress: false, color: 'text-[var(--success)]' };
                                                 }
                                                 if (op.type === 'account_merge') {
                                                     const into = (op as any).into;
@@ -754,17 +763,17 @@ export default function DesktopHomePage({
                                             const details = getDetails();
                                             const amount = getAmount();
 
-                                            return (
-                                                <tr
-                                                    key={op.id}
-                                                    className="hover:bg-sky-50/30 transition-colors group cursor-pointer"
-                                                    onClick={() => window.location.href = `/transaction/${op.transaction_hash}`}
+	                                            return (
+	                                                <tr
+	                                                    key={`${op.id}:${op.transaction_hash}`}
+	                                                    className="hover:bg-[var(--info-muted)]/30 transition-colors group cursor-pointer"
+                                                    onClick={() => router.push(`/tx/${op.transaction_hash}`)}
                                                 >
                                                     {/* Txn Hash */}
                                                     <td className="py-2 px-4">
                                                         <Link
-                                                            href={`/transaction/${op.transaction_hash}`}
-                                                            className="font-mono text-[11px] text-sky-600 hover:text-sky-700 hover:underline"
+                                                            href={`/tx/${op.transaction_hash}`}
+                                                            className="font-mono text-[11px] text-[var(--info)] hover:text-[var(--info)] hover:underline"
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
                                                             {shortenAddress(op.transaction_hash, 5)}
@@ -786,8 +795,8 @@ export default function DesktopHomePage({
                                                     {/* From */}
                                                     <td className="py-2 px-3">
                                                         <Link
-                                                            href={`/account/${op.source_account}`}
-                                                            className="font-mono text-[11px] text-[var(--text-secondary)] hover:text-sky-600 hover:underline"
+                                                            href={`/address/${op.source_account}`}
+                                                            className="font-mono text-[11px] text-[var(--text-secondary)] hover:text-[var(--info)] hover:underline"
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
                                                             {shortenAddress(op.source_account, 4)}
@@ -796,7 +805,7 @@ export default function DesktopHomePage({
 
                                                     {/* Arrow */}
                                                     <td className="py-2 px-1 text-center">
-                                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#ecfdf5] dark:bg-[rgba(6,78,59,0.4)] text-[#047857]">
+                                                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--info-muted)] text-[var(--info)]">
                                                             <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                                             </svg>
@@ -807,8 +816,8 @@ export default function DesktopHomePage({
                                                     <td className="py-2 px-3">
                                                         {details.isAddress && details.address ? (
                                                             <Link
-                                                                href={`/account/${details.address}`}
-                                                                className="font-mono text-[11px] text-[var(--text-secondary)] hover:text-sky-600 hover:underline"
+                                                                href={`/address/${details.address}`}
+                                                                className="font-mono text-[11px] text-[var(--text-secondary)] hover:text-[var(--info)] hover:underline"
                                                                 onClick={(e) => e.stopPropagation()}
                                                             >
                                                                 {details.text}
@@ -845,7 +854,7 @@ export default function DesktopHomePage({
 
                         {/* Footer */}
                         <div className="px-5 py-3 bg-[var(--bg-tertiary)] border-t border-[var(--border-subtle)] text-center">
-                            <Link href="/transactions" className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] hover:text-sky-500 transition-colors uppercase tracking-tight">
+                            <Link href="/transactions" className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--info)] transition-colors uppercase tracking-tight">
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>

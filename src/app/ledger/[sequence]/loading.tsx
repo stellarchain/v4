@@ -2,25 +2,25 @@ export default function LedgerLoading() {
   return (
     <>
       {/* Desktop View */}
-      <div className="hidden md:block min-h-screen bg-slate-50 dark:bg-[#0a0f1a]">
+      <div className="hidden md:block min-h-screen bg-[var(--bg-primary)] ">
         <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
           {/* Header Card */}
-          <div className="mb-5 rounded-2xl border border-slate-200 dark:border-gray-800/60 bg-white dark:bg-[#111827] p-5 shadow-sm">
+          <div className="mb-5 rounded-2xl border border-[var(--border-default)]  bg-[var(--bg-secondary)]  p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-5">
               {/* Left: Title & Meta */}
               <div className="flex items-start gap-4 min-w-0">
-                <div className="w-10 h-10 bg-sky-100 dark:bg-sky-900/30 rounded-xl animate-pulse" />
+                <div className="w-10 h-10 bg-[var(--info-muted)]  rounded-xl animate-pulse" />
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <div className="h-3 w-12 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
-                    <div className="h-5 w-10 bg-sky-200 dark:bg-sky-800/50 rounded animate-pulse" />
-                    <div className="h-4 w-16 bg-emerald-100 dark:bg-emerald-900/30 rounded animate-pulse" />
+                    <div className="h-3 w-12 bg-[var(--border-default)]  rounded animate-pulse" />
+                    <div className="h-5 w-10 bg-[var(--info-muted)] rounded animate-pulse" />
+                    <div className="h-4 w-16 bg-[var(--success-muted)] rounded animate-pulse" />
                   </div>
-                  <div className="h-7 w-36 bg-slate-200 dark:bg-gray-800 rounded animate-pulse mb-2" />
+                  <div className="h-7 w-36 bg-[var(--border-default)]  rounded animate-pulse mb-2" />
                   <div className="flex items-center gap-3">
-                    <div className="h-4 w-32 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
-                    <div className="h-4 w-20 bg-sky-100 dark:bg-sky-900/30 rounded animate-pulse" />
-                    <div className="h-4 w-28 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
+                    <div className="h-4 w-32 bg-[var(--border-default)]  rounded animate-pulse" />
+                    <div className="h-4 w-20 bg-[var(--info-muted)]  rounded animate-pulse" />
+                    <div className="h-4 w-28 bg-[var(--border-default)]  rounded animate-pulse" />
                   </div>
                 </div>
               </div>
@@ -28,9 +28,9 @@ export default function LedgerLoading() {
               {/* Right: Quick Stats */}
               <div className="flex gap-3">
                 {['Transactions', 'Operations', 'Base Fee', 'Reserve'].map((_, i) => (
-                  <div key={i} className="p-3 rounded-xl bg-slate-50 dark:bg-[#0a0f1a]/70 border border-slate-100 dark:border-gray-800 min-w-[90px]">
-                    <div className="h-3 w-16 bg-slate-200 dark:bg-gray-800 rounded animate-pulse mb-2" />
-                    <div className="h-6 w-12 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
+                  <div key={i} className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)]  min-w-[90px]">
+                    <div className="h-3 w-16 bg-[var(--border-default)]  rounded animate-pulse mb-2" />
+                    <div className="h-6 w-12 bg-[var(--border-default)]  rounded animate-pulse" />
                   </div>
                 ))}
               </div>
@@ -39,57 +39,57 @@ export default function LedgerLoading() {
 
           {/* Navigation */}
           <div className="mb-5 grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800/60">
-              <div className="w-8 h-8 bg-slate-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)]  border border-[var(--border-default)] ">
+              <div className="w-8 h-8 bg-[var(--bg-tertiary)]  rounded-lg animate-pulse" />
               <div>
-                <div className="h-3 w-12 bg-slate-200 dark:bg-gray-800 rounded animate-pulse mb-1" />
-                <div className="h-5 w-24 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
+                <div className="h-3 w-12 bg-[var(--border-default)]  rounded animate-pulse mb-1" />
+                <div className="h-5 w-24 bg-[var(--border-default)]  rounded animate-pulse" />
               </div>
             </div>
-            <div className="flex items-center justify-end gap-3 p-3 rounded-xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800/60">
+            <div className="flex items-center justify-end gap-3 p-3 rounded-xl bg-[var(--bg-secondary)]  border border-[var(--border-default)] ">
               <div className="text-right">
-                <div className="h-3 w-8 bg-slate-200 dark:bg-gray-800 rounded animate-pulse mb-1 ml-auto" />
-                <div className="h-5 w-24 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
+                <div className="h-3 w-8 bg-[var(--border-default)]  rounded animate-pulse mb-1 ml-auto" />
+                <div className="h-5 w-24 bg-[var(--border-default)]  rounded animate-pulse" />
               </div>
-              <div className="w-8 h-8 bg-slate-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+              <div className="w-8 h-8 bg-[var(--bg-tertiary)]  rounded-lg animate-pulse" />
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-4 px-1 border-b border-slate-200 dark:border-gray-800/60 pb-2 mb-5">
-            <div className="h-4 w-16 bg-sky-200 dark:bg-sky-800/50 rounded animate-pulse" />
-            <div className="h-4 w-24 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
-            <div className="h-4 w-20 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
+          <div className="flex items-center gap-4 px-1 border-b border-[var(--border-default)]  pb-2 mb-5">
+            <div className="h-4 w-16 bg-[var(--info-muted)] rounded animate-pulse" />
+            <div className="h-4 w-24 bg-[var(--border-default)]  rounded animate-pulse" />
+            <div className="h-4 w-20 bg-[var(--border-default)]  rounded animate-pulse" />
           </div>
 
           {/* Overview Content */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* Left: Ledger Details */}
-            <div className="lg:col-span-7 rounded-2xl border border-slate-200 dark:border-gray-800/60 bg-white dark:bg-[#111827] shadow-sm">
+            <div className="lg:col-span-7 rounded-2xl border border-[var(--border-default)]  bg-[var(--bg-secondary)]  shadow-sm">
               <div className="flex items-center gap-3 px-5 pt-5 pb-3">
-                <div className="w-9 h-9 bg-sky-100 dark:bg-sky-900/30 rounded-lg animate-pulse" />
+                <div className="w-9 h-9 bg-[var(--info-muted)]  rounded-lg animate-pulse" />
                 <div>
-                  <div className="h-4 w-28 bg-slate-200 dark:bg-gray-800 rounded animate-pulse mb-1" />
-                  <div className="h-3 w-12 bg-emerald-100 dark:bg-emerald-900/30 rounded animate-pulse" />
+                  <div className="h-4 w-28 bg-[var(--border-default)]  rounded animate-pulse mb-1" />
+                  <div className="h-3 w-12 bg-[var(--success-muted)] rounded animate-pulse" />
                 </div>
               </div>
               <div className="p-4 space-y-3">
                 {/* Hash */}
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0a0f1a]/70 border border-slate-100 dark:border-gray-800">
-                  <div className="h-3 w-10 bg-slate-200 dark:bg-gray-800 rounded animate-pulse mb-2" />
-                  <div className="h-4 w-full bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
+                <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] ">
+                  <div className="h-3 w-10 bg-[var(--border-default)]  rounded animate-pulse mb-2" />
+                  <div className="h-4 w-full bg-[var(--border-default)]  rounded animate-pulse" />
                 </div>
                 {/* Previous Hash */}
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0a0f1a]/70 border border-slate-100 dark:border-gray-800">
-                  <div className="h-3 w-20 bg-slate-200 dark:bg-gray-800 rounded animate-pulse mb-2" />
-                  <div className="h-4 w-full bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
+                <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] ">
+                  <div className="h-3 w-20 bg-[var(--border-default)]  rounded animate-pulse mb-2" />
+                  <div className="h-4 w-full bg-[var(--border-default)]  rounded animate-pulse" />
                 </div>
                 {/* Grid Stats */}
                 <div className="grid grid-cols-2 gap-3">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className={`p-3 rounded-xl border ${i === 3 ? 'border-sky-100 bg-sky-50/50 dark:bg-sky-900/20' : 'border-slate-100 dark:border-gray-800 bg-white dark:bg-[#111827]'}`}>
-                      <div className="h-3 w-16 bg-slate-200 dark:bg-gray-800 rounded animate-pulse mb-2" />
-                      <div className="h-6 w-20 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
+                    <div key={i} className={`p-3 rounded-xl border ${i === 3 ? 'border-[var(--info)]/20 bg-[var(--info-muted)] ' : 'border-[var(--border-subtle)]  bg-[var(--bg-secondary)] '}`}>
+                      <div className="h-3 w-16 bg-[var(--border-default)]  rounded animate-pulse mb-2" />
+                      <div className="h-6 w-20 bg-[var(--border-default)]  rounded animate-pulse" />
                     </div>
                   ))}
                 </div>
@@ -97,40 +97,40 @@ export default function LedgerLoading() {
             </div>
 
             {/* Right: Ledger Activity */}
-            <div className="lg:col-span-5 rounded-2xl border border-slate-200 dark:border-gray-800/60 bg-white dark:bg-[#111827] shadow-sm">
+            <div className="lg:col-span-5 rounded-2xl border border-[var(--border-default)]  bg-[var(--bg-secondary)]  shadow-sm">
               <div className="flex items-center justify-between px-5 pt-5 pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg animate-pulse" />
-                  <div className="h-4 w-28 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
+                  <div className="w-9 h-9 bg-[var(--success-muted)] rounded-lg animate-pulse" />
+                  <div className="h-4 w-28 bg-[var(--border-default)]  rounded animate-pulse" />
                 </div>
-                <div className="h-5 w-12 bg-slate-100 dark:bg-gray-800 rounded animate-pulse" />
+                <div className="h-5 w-12 bg-[var(--bg-tertiary)]  rounded animate-pulse" />
               </div>
               <div className="p-4 space-y-3">
                 {/* Successful / Failed */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl border border-emerald-100 dark:border-emerald-800/30 bg-emerald-50/50 dark:bg-emerald-900/20">
-                    <div className="h-3 w-16 bg-emerald-200 dark:bg-emerald-800/50 rounded animate-pulse mb-2" />
-                    <div className="h-6 w-8 bg-emerald-200 dark:bg-emerald-800/50 rounded animate-pulse" />
+                  <div className="p-3 rounded-xl border border-[var(--success)]/20 bg-[var(--success-muted)]/50">
+                    <div className="h-3 w-16 bg-[var(--success-muted)] rounded animate-pulse mb-2" />
+                    <div className="h-6 w-8 bg-[var(--success-muted)] rounded animate-pulse" />
                   </div>
-                  <div className="p-3 rounded-xl border border-rose-100 dark:border-rose-800/30 bg-rose-50/50 dark:bg-rose-900/20">
-                    <div className="h-3 w-12 bg-rose-200 dark:bg-rose-800/50 rounded animate-pulse mb-2" />
-                    <div className="h-6 w-6 bg-rose-200 dark:bg-rose-800/50 rounded animate-pulse" />
+                  <div className="p-3 rounded-xl border border-[var(--error)]/20 bg-[var(--error-muted)]/50">
+                    <div className="h-3 w-12 bg-[var(--error-muted)] rounded animate-pulse mb-2" />
+                    <div className="h-6 w-6 bg-[var(--error-muted)] rounded animate-pulse" />
                   </div>
                 </div>
                 {/* Operations */}
-                <div className="p-3 rounded-xl border border-slate-100 dark:border-gray-800 bg-slate-50 dark:bg-[#0a0f1a]/70">
-                  <div className="h-3 w-20 bg-slate-200 dark:bg-gray-800 rounded animate-pulse mb-2" />
-                  <div className="h-6 w-10 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
+                <div className="p-3 rounded-xl border border-[var(--border-subtle)]  bg-[var(--bg-primary)]/70">
+                  <div className="h-3 w-20 bg-[var(--border-default)]  rounded animate-pulse mb-2" />
+                  <div className="h-6 w-10 bg-[var(--border-default)]  rounded animate-pulse" />
                 </div>
                 {/* Total Coins */}
-                <div className="p-3 rounded-xl border border-violet-100 dark:border-violet-800/30 bg-violet-50/50 dark:bg-violet-900/20">
-                  <div className="h-3 w-16 bg-violet-200 dark:bg-violet-800/50 rounded animate-pulse mb-2" />
-                  <div className="h-6 w-32 bg-violet-200 dark:bg-violet-800/50 rounded animate-pulse" />
+                <div className="p-3 rounded-xl border border-[var(--violet)]/20 bg-[var(--violet-muted)]/50">
+                  <div className="h-3 w-16 bg-[var(--violet-muted)] rounded animate-pulse mb-2" />
+                  <div className="h-6 w-32 bg-[var(--violet-muted)] rounded animate-pulse" />
                 </div>
                 {/* Fee Pool */}
-                <div className="p-3 rounded-xl border border-amber-100 dark:border-amber-800/30 bg-amber-50/50 dark:bg-amber-900/20">
-                  <div className="h-3 w-14 bg-amber-200 dark:bg-amber-800/50 rounded animate-pulse mb-2" />
-                  <div className="h-6 w-28 bg-amber-200 dark:bg-amber-800/50 rounded animate-pulse" />
+                <div className="p-3 rounded-xl border border-[var(--warning)]/20 bg-[var(--warning-muted)]/50">
+                  <div className="h-3 w-14 bg-[var(--warning-muted)] rounded animate-pulse mb-2" />
+                  <div className="h-6 w-28 bg-[var(--warning-muted)] rounded animate-pulse" />
                 </div>
               </div>
             </div>
@@ -139,30 +139,30 @@ export default function LedgerLoading() {
       </div>
 
       {/* Mobile View */}
-      <div className="block md:hidden min-h-screen bg-slate-50 dark:bg-[#0a0f1a] pb-24">
+      <div className="block md:hidden min-h-screen bg-[var(--bg-primary)]  pb-24">
         {/* Header */}
-        <header className="sticky top-0 z-10 bg-white dark:bg-[#111827] border-b border-slate-200 dark:border-gray-800 px-4 py-3">
+        <header className="sticky top-0 z-10 bg-[var(--bg-secondary)]  border-b border-[var(--border-default)]  px-4 py-3">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-sky-100 dark:bg-sky-900/30 animate-pulse rounded-lg" />
+              <div className="w-8 h-8 bg-[var(--info-muted)]  animate-pulse rounded-lg" />
               <div>
-                <div className="w-12 h-3 bg-slate-200 dark:bg-gray-800 animate-pulse rounded mb-1" />
-                <div className="w-24 h-5 bg-slate-200 dark:bg-gray-800 animate-pulse rounded" />
+                <div className="w-12 h-3 bg-[var(--border-default)]  animate-pulse rounded mb-1" />
+                <div className="w-24 h-5 bg-[var(--border-default)]  animate-pulse rounded" />
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-16 h-6 bg-emerald-100 dark:bg-emerald-900/30 animate-pulse rounded-full" />
+              <div className="w-16 h-6 bg-[var(--success-muted)] animate-pulse rounded-full" />
             </div>
           </div>
           {/* Navigation */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-slate-200 dark:bg-gray-800 animate-pulse rounded-lg" />
-              <div className="w-20 h-4 bg-slate-200 dark:bg-gray-800 animate-pulse rounded" />
+              <div className="w-7 h-7 bg-[var(--border-default)]  animate-pulse rounded-lg" />
+              <div className="w-20 h-4 bg-[var(--border-default)]  animate-pulse rounded" />
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-20 h-4 bg-slate-200 dark:bg-gray-800 animate-pulse rounded" />
-              <div className="w-7 h-7 bg-slate-200 dark:bg-gray-800 animate-pulse rounded-lg" />
+              <div className="w-20 h-4 bg-[var(--border-default)]  animate-pulse rounded" />
+              <div className="w-7 h-7 bg-[var(--border-default)]  animate-pulse rounded-lg" />
             </div>
           </div>
         </header>
@@ -172,38 +172,38 @@ export default function LedgerLoading() {
           {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-2 mb-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-xl p-3">
-                <div className="w-16 h-3 bg-slate-200 dark:bg-gray-800 animate-pulse rounded mb-2" />
-                <div className="w-12 h-5 bg-slate-200 dark:bg-gray-800 animate-pulse rounded" />
+              <div key={i} className="bg-[var(--bg-secondary)]  border border-[var(--border-default)]  rounded-xl p-3">
+                <div className="w-16 h-3 bg-[var(--border-default)]  animate-pulse rounded mb-2" />
+                <div className="w-12 h-5 bg-[var(--border-default)]  animate-pulse rounded" />
               </div>
             ))}
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-4 border-b border-slate-200 dark:border-gray-800 pb-3 mb-4">
-            <div className="h-4 w-16 bg-sky-200 dark:bg-sky-800/50 rounded animate-pulse" />
-            <div className="h-4 w-24 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
-            <div className="h-4 w-20 bg-slate-200 dark:bg-gray-800 rounded animate-pulse" />
+          <div className="flex gap-4 border-b border-[var(--border-default)]  pb-3 mb-4">
+            <div className="h-4 w-16 bg-[var(--info-muted)] rounded animate-pulse" />
+            <div className="h-4 w-24 bg-[var(--border-default)]  rounded animate-pulse" />
+            <div className="h-4 w-20 bg-[var(--border-default)]  rounded animate-pulse" />
           </div>
 
           {/* Content Card */}
-          <div className="bg-white dark:bg-[#111827] rounded-2xl shadow-sm border border-slate-200 dark:border-gray-800 p-4 space-y-3">
+          <div className="bg-[var(--bg-secondary)]  rounded-2xl shadow-sm border border-[var(--border-default)]  p-4 space-y-3">
             {/* Hash */}
-            <div className="p-3 bg-slate-50 dark:bg-[#0a0f1a] rounded-xl">
-              <div className="w-10 h-3 bg-slate-200 dark:bg-gray-800 animate-pulse rounded mb-2" />
-              <div className="w-full h-4 bg-slate-200 dark:bg-gray-800 animate-pulse rounded" />
+            <div className="p-3 bg-[var(--bg-primary)]  rounded-xl">
+              <div className="w-10 h-3 bg-[var(--border-default)]  animate-pulse rounded mb-2" />
+              <div className="w-full h-4 bg-[var(--border-default)]  animate-pulse rounded" />
             </div>
             {/* Previous Hash */}
-            <div className="p-3 bg-slate-50 dark:bg-[#0a0f1a] rounded-xl">
-              <div className="w-20 h-3 bg-slate-200 dark:bg-gray-800 animate-pulse rounded mb-2" />
-              <div className="w-full h-4 bg-slate-200 dark:bg-gray-800 animate-pulse rounded" />
+            <div className="p-3 bg-[var(--bg-primary)]  rounded-xl">
+              <div className="w-20 h-3 bg-[var(--border-default)]  animate-pulse rounded mb-2" />
+              <div className="w-full h-4 bg-[var(--border-default)]  animate-pulse rounded" />
             </div>
             {/* Grid Stats */}
             <div className="grid grid-cols-2 gap-2">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="p-3 bg-slate-50 dark:bg-[#0a0f1a] rounded-xl">
-                  <div className="w-14 h-3 bg-slate-200 dark:bg-gray-800 animate-pulse rounded mb-2" />
-                  <div className="w-16 h-5 bg-slate-200 dark:bg-gray-800 animate-pulse rounded" />
+                <div key={i} className="p-3 bg-[var(--bg-primary)]  rounded-xl">
+                  <div className="w-14 h-3 bg-[var(--border-default)]  animate-pulse rounded mb-2" />
+                  <div className="w-16 h-5 bg-[var(--border-default)]  animate-pulse rounded" />
                 </div>
               ))}
             </div>
