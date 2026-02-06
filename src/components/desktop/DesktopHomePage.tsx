@@ -50,6 +50,7 @@ export default function DesktopHomePage({
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
     const [liveStats, setLiveStats] = useState(stats);
+    const [liveLedgers, setLiveLedgers] = useState<Ledger[]>(initialLedgers);
     const [operations, setOperations] = useState<Operation[]>(initialOperations);
     const [activeTab, setActiveTab] = useState('All Activity');
     const [ledgerProgress, setLedgerProgress] = useState(0);
@@ -149,9 +150,10 @@ export default function DesktopHomePage({
 
         const fetchStats = async () => {
             try {
-                const ledgersRes = await fetch(`${getBaseUrl()}/ledgers?limit=1&order=desc`);
+                const ledgersRes = await fetch(`${getBaseUrl()}/ledgers?limit=8&order=desc`);
                 const ledgersData = await ledgersRes.json();
-                const latest: Ledger = ledgersData._embedded.records[0];
+                const records: Ledger[] = ledgersData._embedded.records;
+                const latest = records[0];
 
                 if (latest.sequence > liveStats.ledger_count) {
                     setLiveStats(prev => ({
@@ -163,6 +165,8 @@ export default function DesktopHomePage({
                     if (ledgerCountRef.current) gsap.fromTo(ledgerCountRef.current, { scale: 1.1 }, { scale: 1, duration: 0.5, ease: 'power2.out' });
                     if (tpsRef.current) gsap.fromTo(tpsRef.current, { scale: 1.1 }, { scale: 1, duration: 0.5, ease: 'power2.out' });
                 }
+
+                setLiveLedgers(records);
             } catch (e) {
                 console.error('Failed to fetch stats', e);
             }
@@ -173,7 +177,7 @@ export default function DesktopHomePage({
                 if (activeTab === 'All Activity') {
                     // Fetch both operations and payments for variety
                     const [opsRes, paymentsRes] = await Promise.all([
-                        fetch(`${getBaseUrl()}/operations?limit=30&order=desc&include_failed=false`),
+                        fetch(`${getBaseUrl()}/operations?limit=200&order=desc&include_failed=true`),
                         fetch(`${getBaseUrl()}/payments?limit=20&order=desc`)
                     ]);
                     const opsData = await opsRes.json();
@@ -222,7 +226,7 @@ export default function DesktopHomePage({
                 if (activeTab === 'All Activity') {
                     // Poll both for variety
                     const [opsRes, paymentsRes] = await Promise.all([
-                        fetch(`${getBaseUrl()}/operations?limit=10&order=desc&include_failed=false`),
+                        fetch(`${getBaseUrl()}/operations?limit=200&order=desc&include_failed=true`),
                         fetch(`${getBaseUrl()}/payments?limit=10&order=desc`)
                     ]);
                     const opsData = await opsRes.json();
@@ -622,7 +626,7 @@ export default function DesktopHomePage({
                     {/* Transaction Flow Animation */}
             <section className="pb-4">
                 <div className="max-w-[1400px] mx-auto px-4">
-                    <TransactionFlowAnimation operations={operations} height={380} currentLedger={liveStats.ledger_count} />
+                    <TransactionFlowAnimation operations={operations} ledgers={liveLedgers} height={240} currentLedger={liveStats.ledger_count} ledgerProgress={ledgerProgress} />
                 </div>
             </section>
 
