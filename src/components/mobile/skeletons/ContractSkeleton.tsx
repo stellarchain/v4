@@ -20,7 +20,7 @@ export function ContractHeaderSkeleton() {
         </div>
 
         {/* Summary Card Skeleton */}
-        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-5">
+        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-4">
           <div className="flex justify-between items-start">
             <div className="flex-1">
               <div className="h-6 w-40 bg-[var(--bg-tertiary)] animate-pulse rounded mb-2" />

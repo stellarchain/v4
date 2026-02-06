@@ -3,9 +3,9 @@ export default function LiquidityPoolLoading() {
     <>
       {/* Desktop View */}
       <div className="hidden md:block min-h-screen bg-[var(--bg-primary)]">
-        <div className="mx-auto max-w-[1400px] px-6 py-6">
+        <div className="mx-auto max-w-[1400px] px-4 py-4">
           {/* Header */}
-          <div className="mb-5">
+          <div className="mb-4">
             <div className="flex items-center gap-4 mb-3">
               <div className="h-9 w-9 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-default)] animate-pulse" />
               <div>
@@ -20,7 +20,7 @@ export default function LiquidityPoolLoading() {
             <div className="h-10 w-full bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] animate-pulse" />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-4">
             {/* Left Column */}
             <div className="space-y-4">
               {/* Reserve Assets Card */}
@@ -77,7 +77,7 @@ export default function LiquidityPoolLoading() {
             </div>
 
             {/* Right Column */}
-            <div className="space-y-5 min-w-0">
+            <div className="space-y-4 min-w-0">
               {/* Tab Bar */}
               <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] px-4">
                 <div className="flex items-center gap-1 py-3">

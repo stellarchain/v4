@@ -239,7 +239,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search assets..."
-            className="w-full bg-[var(--bg-tertiary)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all pl-11 shadow-inner text-sm"
+            className="w-full bg-[var(--bg-tertiary)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all pl-4 shadow-inner text-sm"
           />
         </div>
 
@@ -252,7 +252,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
               setSortField(field);
               setSortOrder(order);
             }}
-            className="bg-[var(--bg-tertiary)] rounded-xl px-4 py-3 text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 appearance-none cursor-pointer pr-10"
+            className="bg-[var(--bg-tertiary)] rounded-xl px-4 py-3 text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 appearance-none cursor-pointer pr-4"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
           >
             <option value="market_cap-desc">Market Cap</option>
@@ -280,7 +280,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
       {/* Desktop Table */}
       <div className="hidden lg:block">
         <Card className="shadow-sm">
-        <table className="w-full">
+        <table className="w-full sc-table">
           <thead>
             <tr className="border-b border-[var(--border-subtle)]">
               <th className="py-2 px-2 w-6"></th>
@@ -395,7 +395,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
       {/* Tablet Table (simplified) */}
       <div className="hidden md:block lg:hidden">
         <Card className="shadow-sm">
-        <table className="w-full">
+        <table className="w-full sc-table">
           <thead>
             <tr className="border-b border-[var(--border-subtle)]">
               <HeaderCell label="#" field="rank" className="w-12" />
@@ -441,7 +441,7 @@ export default function MarketsTable({ initialAssets }: MarketsTableProps) {
         {filteredAndSortedAssets.map((asset) => (
           <div
             key={`mobile-${asset.code}-${asset.issuer || asset.rank}`}
-            className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+            className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
             onClick={() => handleRowClick(asset)}
           >
             <div className="flex items-center justify-between mb-3">

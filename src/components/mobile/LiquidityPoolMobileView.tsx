@@ -134,7 +134,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search..."
-                            className="w-full pl-10 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all"
+                            className="w-full pl-4 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all"
                         />
                     </form>
                 </div>
@@ -169,7 +169,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                 </div>
 
                 {/* Summary Card - Reserve Assets */}
-                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-5">
+                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4 mb-4">
                     <div className="flex justify-between items-start">
                         <div>
                             <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Pool Type</div>
@@ -224,7 +224,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                 {activeTab === 'transactions' && (
                     <div className="space-y-2 mt-2">
                         {transactions.length === 0 ? (
-                            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
+                            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 text-center text-[var(--text-muted)] text-sm">
                                 No transactions found
                             </div>
                         ) : (
@@ -272,7 +272,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                 {activeTab === 'trades' && (
                     <div className="space-y-2 mt-2">
                         {trades.length === 0 ? (
-                            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
+                            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 text-center text-[var(--text-muted)] text-sm">
                                 No trades found
                             </div>
                         ) : (
@@ -344,7 +344,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                 {activeTab === 'effects' && (
                     <div className="space-y-2 mt-2">
                         {effects.length === 0 ? (
-                            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
+                            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 text-center text-[var(--text-muted)] text-sm">
                                 No effects found
                             </div>
                         ) : (
@@ -406,7 +406,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                 {activeTab === 'operations' && (
                     <div className="space-y-2 mt-2">
                         {operations.length === 0 ? (
-                            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
+                            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 text-center text-[var(--text-muted)] text-sm">
                                 No operations found
                             </div>
                         ) : (

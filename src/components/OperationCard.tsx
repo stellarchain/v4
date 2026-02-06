@@ -61,7 +61,7 @@ export default function OperationCard({ operation }: OperationCardProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 sm:gap-6 text-sm shrink-0">
+        <div className="flex items-center gap-4 sm:gap-4 text-sm shrink-0">
           {details.detail && (
             <div className="text-right">
               <p className="text-[var(--text-muted)] text-xs">Amount</p>

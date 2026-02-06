@@ -43,8 +43,8 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] pb-20 pt-1 md:pt-6">
-      <div className="max-w-[1400px] mx-auto px-3 md:px-6">
+    <div className="min-h-screen bg-[var(--bg-primary)] pb-20 pt-1 md:pt-4">
+      <div className="max-w-[1400px] mx-auto px-3 md:px-4">
         {/* Mobile Header */}
         <div className="md:hidden">
           <div className="flex items-center justify-between py-3">
@@ -60,7 +60,7 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
         </div>
 
         {/* Desktop Header */}
-        <div className="hidden md:block mb-6">
+        <div className="hidden md:block mb-4">
           <div className="flex items-center gap-4 mb-4">
             <Link
               href="/"
@@ -82,7 +82,7 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
         {/* Loading Overlay */}
         {isLoading && (
           <div className="fixed inset-0 bg-[var(--bg-primary)]/50 z-50 flex items-center justify-center">
-            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-xl p-6 flex items-center gap-3">
+            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-xl p-4 flex items-center gap-3">
               <svg className="animate-spin h-5 w-5 text-[var(--primary-blue)]" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -95,7 +95,7 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
         {/* Mobile List View - Compact Cards */}
         <div className="md:hidden">
           {accounts.length === 0 ? (
-            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
+            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4 text-center text-[var(--text-muted)] italic text-sm">
               No accounts found
             </div>
           ) : (
@@ -157,11 +157,11 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
         {/* Desktop Table View */}
         <div className="hidden md:block bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] overflow-hidden">
           {accounts.length === 0 ? (
-            <div className="px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
+            <div className="px-4 py-4 text-center text-[var(--text-muted)] italic text-sm">
               No accounts found
             </div>
           ) : (
-            <table className="w-full">
+            <table className="w-full sc-table">
               <thead>
                 <tr className="border-b border-[var(--border-subtle)]">
                   <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Account</th>

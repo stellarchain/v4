@@ -44,9 +44,9 @@ export default function AddLabelPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[800px] p-6 lg:p-8">
+      <div className="mx-auto max-w-[800px] p-4 lg:p-4">
         {/* Header Card */}
-        <div className="mb-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5">
+        <div className="mb-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
           <div className="flex items-start gap-4">
             <Link
               href="/known-accounts"
@@ -72,8 +72,8 @@ export default function AddLabelPage() {
         </div>
 
         {/* Form Card */}
-        <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Account ID Field */}
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">
@@ -187,7 +187,7 @@ export default function AddLabelPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-sky-600 text-white font-semibold rounded-xl hover:bg-sky-700 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-sky-600 text-white font-semibold rounded-xl hover:bg-sky-700 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -203,7 +203,7 @@ export default function AddLabelPage() {
         </div>
 
         {/* Info Cards */}
-        <div className="mt-5 space-y-3">
+        <div className="mt-4 space-y-3">
           {/* Process Info */}
           <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
             <div className="flex items-start gap-3">

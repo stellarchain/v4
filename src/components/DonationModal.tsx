@@ -42,7 +42,7 @@ export default function DonationModal({ isOpen, onClose }: DonationModalProps) {
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-4 animate-in fade-in zoom-in-95 duration-200">
         {/* Close button */}
         <button
           onClick={handleClose}
@@ -71,7 +71,7 @@ export default function DonationModal({ isOpen, onClose }: DonationModalProps) {
         </h2>
 
         {/* Subtitle */}
-        <p className="text-gray-500 text-center mb-6">
+        <p className="text-gray-500 text-center mb-4">
           Buy us a coffee and share the love
         </p>
 

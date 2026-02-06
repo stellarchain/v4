@@ -35,7 +35,7 @@ export default function TopAccountsMobileList({ initialAccounts }: TopAccountsMo
 
                 {/* Accounts List - Compact Cards */}
                 {accounts.length === 0 ? (
-                    <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-12 text-center text-[var(--text-muted)] italic text-sm">
+                    <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4 text-center text-[var(--text-muted)] italic text-sm">
                         No accounts found
                     </div>
                 ) : (

@@ -3,10 +3,10 @@ export default function LedgersLoading() {
     <>
       {/* Desktop View */}
       <div className="hidden md:block min-h-screen bg-[var(--bg-primary)] ">
-        <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+        <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
           {/* Header Card */}
-          <div className="mb-5 rounded-2xl border border-[var(--border-default)]  bg-[var(--bg-secondary)]  p-5 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="mb-4 rounded-2xl border border-[var(--border-default)]  bg-[var(--bg-secondary)]  p-4 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 bg-[var(--border-default)]  rounded-xl animate-pulse" />
                 <div>
@@ -31,7 +31,7 @@ export default function LedgersLoading() {
           {/* Table */}
           <div className="rounded-2xl border border-[var(--border-default)]  bg-[var(--bg-secondary)]  shadow-sm overflow-hidden">
             {/* Header */}
-            <div className="grid grid-cols-6 gap-4 px-6 py-4 border-b border-[var(--border-subtle)]  bg-[var(--bg-primary)]/50">
+            <div className="grid grid-cols-6 gap-4 px-4 py-4 border-b border-[var(--border-subtle)]  bg-[var(--bg-primary)]/50">
               <div className="h-4 w-16 bg-[var(--border-default)]  rounded animate-pulse" />
               <div className="h-4 w-20 bg-[var(--border-default)]  rounded animate-pulse" />
               <div className="h-4 w-24 bg-[var(--border-default)]  rounded animate-pulse" />
@@ -42,7 +42,7 @@ export default function LedgersLoading() {
 
             {/* Rows */}
             {[...Array(10)].map((_, i) => (
-              <div key={i} className="grid grid-cols-6 gap-4 px-6 py-4 border-b border-[var(--border-subtle)]  last:border-b-0">
+              <div key={i} className="grid grid-cols-6 gap-4 px-4 py-4 border-b border-[var(--border-subtle)]  last:border-b-0">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-[var(--border-default)]  rounded-lg animate-pulse" />
                   <div className="h-5 w-20 bg-[var(--border-default)]  rounded animate-pulse" />
@@ -57,7 +57,7 @@ export default function LedgersLoading() {
           </div>
 
           {/* Load More */}
-          <div className="flex justify-center mt-5">
+          <div className="flex justify-center mt-4">
             <div className="h-10 w-28 bg-[var(--border-default)]  rounded-xl animate-pulse" />
           </div>
         </div>

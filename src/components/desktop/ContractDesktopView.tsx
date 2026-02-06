@@ -183,9 +183,9 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+      <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
         {/* Header Card */}
-        <div className="mb-6 rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] px-5 py-4">
+        <div className="mb-4 rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] px-4 py-4">
           <div className="flex items-center gap-4">
             {/* Back Button */}
             <Link
@@ -298,8 +298,8 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
         </div>
 
         {/* Main Content */}
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-          <div className="flex-1 space-y-6">
+        <div className="flex flex-col lg:flex-row gap-4 items-start">
+          <div className="flex-1 space-y-4">
             {/* Token Stats (if token) */}
             {isToken && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -394,10 +394,10 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
             {/* Tab Content */}
             {activeTab === 'overview' && (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {/* Description */}
                 {contract.verifiedContract?.description && (
-                  <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-sm">
+                  <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                     <h3 className="text-sm font-bold text-[var(--text-primary)] mb-3">About</h3>
                     <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{contract.verifiedContract.description}</p>
                   </div>
@@ -405,13 +405,13 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
                 {/* Recent Activity - Events for Contracts */}
                 <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
-                  <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                  <div className="flex items-center justify-between px-4 pt-4 pb-3">
                     <h3 className="text-sm font-bold text-[var(--text-primary)]">Recent Activity</h3>
                     <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">{contract.events?.length || 0} events</span>
                   </div>
                   <div className="divide-y divide-[var(--border-subtle)]">
                     {!contract.events || contract.events.length === 0 ? (
-                      <div className="p-6 text-center text-sm text-[var(--text-muted)]">No recent activity found</div>
+                      <div className="p-4 text-center text-sm text-[var(--text-muted)]">No recent activity found</div>
                     ) : (
                       contract.events.slice(0, 10).map((event, idx) => {
                         // Get display name - use raw event name for custom events
@@ -495,24 +495,24 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
             {/* History Tab - Contract Invocations */}
             {activeTab === 'history' && (
               <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
-                <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">Transaction History</h3>
                   <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
                     {contract.invocations?.length || 0} transactions
                   </span>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full sc-table">
                     <thead>
                       <tr className="border-b border-[var(--border-subtle)]">
-                        <th className="px-5 py-3 text-left text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Transaction</th>
-                        <th className="px-5 py-3 text-right text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Date</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Transaction</th>
+                        <th className="px-4 py-3 text-right text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Date</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--border-subtle)]">
                       {!contract.invocations || contract.invocations.length === 0 ? (
                         <tr>
-                          <td colSpan={2} className="p-6 text-center text-sm text-[var(--text-muted)]">No transaction history found</td>
+                          <td colSpan={2} className="p-4 text-center text-sm text-[var(--text-muted)]">No transaction history found</td>
                         </tr>
                       ) : (
                         contract.invocations.map((invocation, idx) => {
@@ -574,7 +574,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
                           return (
                             <tr key={idx} className="hover:bg-[var(--bg-tertiary)] transition-colors">
-                              <td className="px-5 py-4">
+                              <td className="px-4 py-4">
                                 <div className="flex items-center gap-3">
                                   <div className="h-9 w-9 rounded-lg bg-sky-50 dark:bg-sky-900/40 flex items-center justify-center flex-shrink-0">
                                     <svg className="w-4 h-4 text-sky-700 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -602,7 +602,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-5 py-4 text-right">
+                              <td className="px-4 py-4 text-right">
                                 <span className="text-xs text-[var(--text-tertiary)]">
                                   {new Date(invocation.createdAt).toLocaleString('en-US', {
                                     year: 'numeric',
@@ -627,7 +627,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
             {/* Events Tab */}
             {activeTab === 'events' && (
               <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
-                <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract Events</h3>
                   <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
                     {contract.events?.length || 0}
@@ -635,7 +635,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                 </div>
                 <div className="divide-y divide-[var(--border-subtle)]">
                   {!contract.events || contract.events.length === 0 ? (
-                    <div className="p-6 text-center text-sm text-[var(--text-muted)]">No events found</div>
+                    <div className="p-4 text-center text-sm text-[var(--text-muted)]">No events found</div>
                   ) : (
                     contract.events.map((event, idx) => {
                       const getEventBadgeColor = (type: string) => {
@@ -835,7 +835,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                   <p className="text-xs text-[var(--text-tertiary)]">{contract.storage?.totalEntries || 0} entries</p>
                 </div>
                 {!contract.storage || contract.storage.entries.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-[var(--text-muted)]">No storage entries found</div>
+                  <div className="p-4 text-center text-sm text-[var(--text-muted)]">No storage entries found</div>
                 ) : (
                   <div className="divide-y divide-[var(--border-subtle)]">
                     {contract.storage.entries.map((entry, idx) => {
@@ -895,9 +895,9 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
           </div>
 
           {/* Sidebar */}
-          <div className="w-full lg:w-80 space-y-6 flex-shrink-0">
+          <div className="w-full lg:w-80 space-y-4 flex-shrink-0">
             {/* Contract Details */}
-            <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-sm">
+            <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
               <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Contract Details</h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
@@ -1008,7 +1008,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
             {/* Build Verification Section */}
             {contract.verification && (
-              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-sm">
+              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                 <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Build Verification</h3>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
@@ -1103,7 +1103,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
             {/* Access Control Section */}
             {contract.accessControl && (contract.accessControl.admin || contract.accessControl.owner || contract.accessControl.pendingOwner || contract.accessControl.isPaused) && (
-              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-sm">
+              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                 <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Access Control</h3>
                 <div className="space-y-3">
                   {contract.accessControl.admin && (
@@ -1152,7 +1152,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
 
             {/* Contract Metadata Section */}
             {contract.contractMetadata && (contract.contractMetadata.homeDomain || contract.contractMetadata.sourceRepo || contract.contractMetadata.customMeta) && (
-              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-sm">
+              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                 <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Contract Metadata</h3>
                 <div className="space-y-3">
                   {contract.contractMetadata.homeDomain && (
@@ -1200,7 +1200,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
             )}
 
             {/* External Links */}
-            <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6 shadow-sm">
+            <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
               <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">External Links</h3>
               <div className="space-y-2">
                 <a

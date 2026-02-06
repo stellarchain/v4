@@ -29,16 +29,16 @@ export default function ProjectList({ initialProjects }: ProjectListProps) {
     });
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {/* Search and Filters */}
-            <Card className="p-6 shadow-sm space-y-4">
+            <Card className="p-4 shadow-sm space-y-4">
                 <div className="relative">
                     <input
                         type="text"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search projects by name, category, or description..."
-                        className="w-full bg-[var(--bg-tertiary)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all pl-11 shadow-inner"
+                        className="w-full bg-[var(--bg-tertiary)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all pl-4 shadow-inner"
                     />
                     <svg className="w-5 h-5 text-[var(--text-muted)] absolute left-4 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -75,15 +75,15 @@ export default function ProjectList({ initialProjects }: ProjectListProps) {
             </div>
 
             {/* Results Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filteredProjects.map((project) => (
                     <Link
                         href={`/projects/${project.slug}`}
                         key={project.id}
-                        className="block bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden"
+                        className="block bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden"
                     >
                         {/* Background glow effect */}
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--primary)]/5 blur-3xl rounded-full -mr-10 -mt-10 group-hover:bg-[var(--primary)]/10 transition-colors" />
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--primary)]/5 blur-3xl rounded-full -mr-4 -mt-4 group-hover:bg-[var(--primary)]/10 transition-colors" />
 
                         <div className="flex items-start justify-between mb-3 relative z-10">
                             <div className="flex items-center gap-3">

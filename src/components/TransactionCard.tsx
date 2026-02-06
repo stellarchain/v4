@@ -37,7 +37,7 @@ export default function TransactionCard({ transaction }: TransactionCardProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 sm:gap-6 text-[13px] shrink-0">
+        <div className="flex items-center gap-4 sm:gap-4 text-[13px] shrink-0">
           <div className="text-right hidden sm:block">
             <p className="data-label">From</p>
             <p className="text-[var(--text-primary)] font-mono text-[12px]">

@@ -327,7 +327,7 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
           />
         ))
       ) : (
-        <div className="py-8 text-center text-[var(--text-muted)] text-sm">
+        <div className="py-4 text-center text-[var(--text-muted)] text-sm">
           No transactions found
         </div>
       )}

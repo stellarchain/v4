@@ -213,7 +213,7 @@ export default function FloatingBottomNav() {
             className="fixed inset-0 bottom-[76px] z-40 md:hidden bg-[var(--bg-primary)] flex flex-col"
           >
             {/* Header */}
-            <header className="bg-[var(--header-bg)] text-white pt-6 pb-4 px-4 rounded-b-3xl shadow-lg flex-shrink-0">
+            <header className="bg-[var(--header-bg)] text-white pt-4 pb-4 px-4 rounded-b-3xl shadow-lg flex-shrink-0">
               <div className="flex items-center justify-between">
                 <Link href="/" onClick={() => setIsMoreOpen(false)}>
                   <Image
@@ -300,7 +300,7 @@ export default function FloatingBottomNav() {
               </nav>
 
               {/* Settings Section */}
-              <div className="px-4 mt-6 space-y-2">
+              <div className="px-4 mt-4 space-y-2">
                 {/* Network Switcher */}
                 <div className="relative">
                   <button
@@ -435,7 +435,7 @@ export default function FloatingBottomNav() {
               </div>
 
               {/* Footer */}
-              <div className="px-4 mt-8 pb-8 text-center">
+              <div className="px-4 mt-4 pb-4 text-center">
                 <span className="text-2xl">❤️</span>
               </div>
             </div>

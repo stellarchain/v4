@@ -8,7 +8,7 @@ export default async function OperationsPage() {
   const operations = operationsResponse._embedded.records;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 bg-gradient-to-br from-[var(--info)]/20 to-[var(--info)]/5 rounded-xl flex items-center justify-center">
           <svg className="w-5 h-5 text-[var(--info)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -29,7 +29,7 @@ export default async function OperationsPage() {
       </div>
 
       <div className="flex justify-center">
-        <button className="px-6 py-3 bg-[var(--bg-secondary)] rounded-xl shadow-sm text-[var(--text-primary)] font-medium text-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+        <button className="px-4 py-3 bg-[var(--bg-secondary)] rounded-xl shadow-sm text-[var(--text-primary)] font-medium text-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
           Load More
         </button>
       </div>

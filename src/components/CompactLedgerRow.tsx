@@ -14,7 +14,7 @@ const CompactLedgerRow = forwardRef<HTMLAnchorElement, CompactLedgerRowProps>(
       <Link
         ref={ref}
         href={`/ledger/${ledger.sequence}`}
-        className="flex items-center justify-between py-4 px-5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm hover:shadow-md hover:border-[var(--border-default)] transition-all duration-300 group text-[13px]"
+        className="flex items-center justify-between py-4 px-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm hover:shadow-md hover:border-[var(--border-default)] transition-all duration-300 group text-[13px]"
       >
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] shrink-0">
@@ -33,7 +33,7 @@ const CompactLedgerRow = forwardRef<HTMLAnchorElement, CompactLedgerRowProps>(
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4">
           <div className="text-right hidden sm:block">
             <span className="text-[var(--text-primary)] font-bold font-mono">{ledger.successful_transaction_count}</span>
             <span className="text-[var(--text-muted)] ml-1 text-[10px] uppercase font-bold tracking-wider">TXS</span>

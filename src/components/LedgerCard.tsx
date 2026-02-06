@@ -26,7 +26,7 @@ export default function LedgerCard({ ledger }: LedgerCardProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-8 text-[13px]">
+        <div className="flex items-center gap-4 text-[13px]">
           <div className="text-center">
             <p className="data-label">Transactions</p>
             <p className="text-[var(--text-primary)] font-mono">

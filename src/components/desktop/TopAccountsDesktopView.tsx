@@ -106,10 +106,10 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+      <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
         {/* Header Card */}
-        <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-5">
+        <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
               <Link
@@ -160,7 +160,7 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
         </div>
 
         {/* Filters Row */}
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-4">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,7 +171,7 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name or address..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 pl-11 text-sm shadow-sm"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 pl-4 text-sm shadow-sm"
             />
           </div>
 
@@ -193,7 +193,7 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
 
         {/* Table */}
         <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
-          <table className="w-full">
+          <table className="w-full sc-table">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                 <HeaderCell label="#" field="rank" className="w-16" />

@@ -236,7 +236,7 @@ body {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-default);
   border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: none;
 }
 
 /* Refined border effect - subtle glow */
@@ -324,7 +324,7 @@ body {
   height: 6px;
   background: var(--primary);
   border-radius: 50%;
-  box-shadow: 0 0 6px var(--primary);
+  box-shadow: none;
   animation: pulse-soft 3s ease-in-out infinite;
 }
 
@@ -347,7 +347,48 @@ body {
 .search-box:focus-within {
   background: var(--bg-elevated);
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-muted);
+  box-shadow: none;
+}
+
+/* Flat Design: disable all Tailwind shadow utilities across the app */
+.shadow,
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl,
+.shadow-2xl,
+.shadow-inner,
+.shadow-none {
+  box-shadow: none !important;
+}
+
+/* Tailwind drop-shadow utilities use CSS filter */
+.drop-shadow,
+.drop-shadow-sm,
+.drop-shadow-md,
+.drop-shadow-lg,
+.drop-shadow-xl,
+.drop-shadow-2xl,
+.drop-shadow-none {
+  filter: none !important;
+}
+
+/* Standard table rhythm (desktop): consistent cell padding + hover across pages */
+@layer components {
+  @media (min-width: 768px) {
+    .sc-table th,
+    .sc-table td {
+      padding: 16px !important;
+    }
+
+    .sc-table tbody tr {
+      transition: background-color 150ms ease;
+    }
+
+    .sc-table tbody tr:hover {
+      background: var(--bg-tertiary);
+    }
+  }
 }
 
 /* Active Nav Item */

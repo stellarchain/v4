@@ -563,7 +563,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1400px] px-4 py-6">
+      <div className="mx-auto max-w-[1400px] px-4 py-4">
         {/* Header Row */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -614,9 +614,9 @@ export default function AccountDesktopView({ account, transactions, operations: 
         </div>
 
         {/* Overview Cards Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Card 1 - Overview */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm p-5">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm p-4">
             <h3 className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-bold mb-3 pb-2 border-b border-[var(--border-subtle)]">Overview</h3>
 
             <div className="space-y-3">
@@ -679,7 +679,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
           </div>
 
           {/* Card 2 - More Info */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm p-5">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm p-4">
             <h3 className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-bold mb-3 pb-2 border-b border-[var(--border-subtle)]">More Info</h3>
 
             <div className="space-y-3">
@@ -734,7 +734,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
           </div>
 
           {/* Card 3 - Account Details */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm p-5">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm p-4">
             <h3 className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-bold mb-3 pb-2 border-b border-[var(--border-subtle)]">Account Details</h3>
 
             <div className="space-y-3">
@@ -778,48 +778,48 @@ export default function AccountDesktopView({ account, transactions, operations: 
             {/* Transactions Tab - Placeholder */}
             {activeTab === 'transactions' && (
               <div>
-                <div className="px-4 py-3 text-xs text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
+                <div className="px-4 py-4 text-xs text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
                   Showing {allTransactions.length.toLocaleString()} latest transactions
                 </div>
-                <table className="w-full">
+                <table className="w-full sc-table">
                   <thead>
                     <tr className="border-b border-[var(--border-subtle)]">
                       <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left">Txn Hash</th>
-                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left">Ledger</th>
-                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left">Age</th>
-                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left">Source</th>
-                      <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right">Operations</th>
+                      <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left">Ledger</th>
+                      <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left">Age</th>
+                      <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left">Source</th>
+                      <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right">Operations</th>
                       <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right">Fee</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border-subtle)]">
                     {allTransactions.map((tx) => (
-                      <tr key={tx.hash} className="hover:bg-[var(--bg-tertiary)]/50 transition-colors">
+                      <tr key={tx.hash} className="hover:bg-[var(--bg-tertiary)] transition-colors">
                         <td className="py-3 px-4">
                           <Link href={`/transaction/${tx.hash}`} className="font-mono text-[13px] text-sky-600 hover:text-sky-700 hover:underline">
                             {shortenAddress(tx.hash, 8)}
                           </Link>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-3">
                           <Link href={`/ledger/${tx.ledger}`} className="text-[13px] text-sky-600 hover:underline">
                             {tx.ledger.toLocaleString()}
                           </Link>
                         </td>
-                        <td className="py-3 px-4 text-[13px] text-[var(--text-tertiary)]">{timeAgo(tx.created_at)}</td>
-                        <td className="py-3 px-4">
-                          <Link href={`/account/${tx.source_account}`} className="font-mono text-[13px] text-[var(--text-secondary)] hover:text-sky-600 flex items-center gap-1">
+                        <td className="py-3 px-3 text-[13px] text-[var(--text-tertiary)]">{timeAgo(tx.created_at)}</td>
+                        <td className="py-3 px-3">
+                          <Link href={`/account/${tx.source_account}`} className="font-mono text-[13px] text-[var(--text-secondary)] hover:text-sky-600 flex items-center gap-2">
                             <AccountBadges address={tx.source_account} labels={accountLabels} size="sm" />
                             {shortenAddress(tx.source_account, 6)}
                           </Link>
                         </td>
-                        <td className="py-3 px-4 text-[13px] text-[var(--text-secondary)] text-right">{tx.operation_count}</td>
+                        <td className="py-3 px-3 text-[13px] text-[var(--text-secondary)] text-right">{tx.operation_count}</td>
                         <td className="py-3 px-4 text-[13px] text-[var(--text-tertiary)] text-right font-mono">{(parseInt(tx.fee_charged) / 10000000).toFixed(7)} XLM</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
 
-                <div className="px-4 py-3 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+                <div className="px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-[var(--text-tertiary)]">
                       {loadingMoreTx ? 'Loading more...' : hasMoreTransactions ? 'Scroll to load more...' : allTransactions.length > 0 ? 'End of results' : ''}
@@ -843,10 +843,10 @@ export default function AccountDesktopView({ account, transactions, operations: 
             {/* Operations Tab */}
             {activeTab === 'operations' && (
               <div>
-                <div className="px-4 py-3 text-xs text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
+                <div className="px-4 py-4 text-xs text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
                   Showing {allOperations.length.toLocaleString()} latest operations
                 </div>
-                <table className="w-full">
+                <table className="w-full sc-table">
                   <thead>
                     <tr className="border-b border-[var(--border-subtle)]">
                       <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left">Operation Hash</th>
@@ -973,7 +973,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                   </tbody>
                 </table>
 
-                <div className="px-4 py-3 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+                <div className="px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-[var(--text-tertiary)]">
                       {loadingMore ? 'Loading more...' : hasMoreToFetch ? 'Scroll to load more...' : allOperations.length > 0 ? 'End of results' : ''}
@@ -997,7 +997,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
             {/* Assets Tab */}
             {activeTab === 'assets' && (
               <div>
-                <table className="w-full">
+                <table className="w-full sc-table">
                   <thead>
                     <tr className="border-b border-[var(--border-subtle)]">
                       <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left">Asset</th>
@@ -1109,20 +1109,20 @@ export default function AccountDesktopView({ account, transactions, operations: 
             {/* Details Tab */}
             {activeTab === 'details' && (
               <div className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Thresholds */}
                   <div>
                     <h3 className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider font-medium mb-3">Thresholds</h3>
                     <div className="bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-default)] divide-y divide-[var(--border-default)]">
-                      <div className="flex justify-between px-4 py-3">
+                      <div className="flex justify-between px-4 py-4">
                         <span className="text-sm text-[var(--text-secondary)]">Low Threshold</span>
                         <span className="text-sm font-medium text-[var(--text-primary)]">{account.thresholds.low_threshold}</span>
                       </div>
-                      <div className="flex justify-between px-4 py-3">
+                      <div className="flex justify-between px-4 py-4">
                         <span className="text-sm text-[var(--text-secondary)]">Medium Threshold</span>
                         <span className="text-sm font-medium text-[var(--text-primary)]">{account.thresholds.med_threshold}</span>
                       </div>
-                      <div className="flex justify-between px-4 py-3">
+                      <div className="flex justify-between px-4 py-4">
                         <span className="text-sm text-[var(--text-secondary)]">High Threshold</span>
                         <span className="text-sm font-medium text-[var(--text-primary)]">{account.thresholds.high_threshold}</span>
                       </div>
@@ -1131,10 +1131,10 @@ export default function AccountDesktopView({ account, transactions, operations: 
 
                   {/* Flags */}
                   <div>
-                    <h3 className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider font-medium mb-3">Flags</h3>
-                    <div className="bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-default)] divide-y divide-[var(--border-default)]">
+                      <h3 className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider font-medium mb-3">Flags</h3>
+                      <div className="bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-default)] divide-y divide-[var(--border-default)]">
                       {Object.entries(account.flags).map(([flag, enabled]) => (
-                        <div key={flag} className="flex justify-between px-4 py-3">
+                        <div key={flag} className="flex justify-between px-4 py-4">
                           <span className="text-sm text-[var(--text-secondary)] capitalize">{flag.replace('auth_', '').replace(/_/g, ' ')}</span>
                           <span className={`text-sm font-medium ${enabled ? 'text-emerald-600' : 'text-[var(--text-muted)]'}`}>
                             {enabled ? 'Enabled' : 'Disabled'}
@@ -1148,7 +1148,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                   <div className="md:col-span-2">
                     <h3 className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider font-medium mb-3">Signers ({account.signers.length})</h3>
                     <div className="bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-default)] overflow-hidden">
-                      <table className="w-full">
+                      <table className="w-full sc-table">
                         <thead>
                           <tr className="text-left text-xs text-[var(--text-tertiary)] uppercase tracking-wider border-b border-[var(--border-default)]">
                             <th className="px-4 py-2 font-medium">Key</th>
@@ -1204,7 +1204,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
           onClick={() => setShowQrModal(false)}
         >
           <div
-            className="bg-[var(--bg-secondary)] rounded-lg p-6 mx-4 max-w-sm w-full shadow-2xl border border-[var(--border-default)]"
+            className="bg-[var(--bg-secondary)] rounded-lg p-4 mx-4 max-w-sm w-full shadow-2xl border border-[var(--border-default)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center mb-4">
@@ -1258,7 +1258,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
           onClick={() => setShowFavoriteModal(false)}
         >
           <div
-            className="bg-[var(--bg-secondary)] rounded-lg p-6 mx-4 max-w-sm w-full shadow-2xl border border-[var(--border-default)]"
+            className="bg-[var(--bg-secondary)] rounded-lg p-4 mx-4 max-w-sm w-full shadow-2xl border border-[var(--border-default)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center mb-4">

@@ -235,9 +235,9 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1400px] px-6 py-6">
+      <div className="mx-auto max-w-[1400px] px-4 py-4">
         {/* Main Grid: Left Sidebar + Right Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-4">
           {/* Left Sidebar */}
           <div className="space-y-4">
             {/* Asset Header + Price */}
@@ -503,7 +503,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
           </div>
 
           {/* Right Content Area */}
-          <div className="space-y-5 min-w-0 overflow-hidden">
+          <div className="space-y-4 min-w-0 overflow-hidden">
             {/* Tab Navigation */}
             <GliderTabs
               size="md"
@@ -545,7 +545,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                     No trading pairs found
                   </div>
                 ) : (
-                  <table className="w-full">
+                  <table className="w-full sc-table">
                     <thead>
                       <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                         <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">#</th>
@@ -627,7 +627,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                   </div>
                 ) : (
                   <>
-                    <table className="w-full">
+                    <table className="w-full sc-table">
                       <thead>
                         <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                           <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">#</th>
@@ -737,7 +737,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                   </div>
                 ) : (
                   <>
-                    <table className="w-full">
+                    <table className="w-full sc-table">
                       <thead>
                         <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                           <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left w-12">#</th>
@@ -830,14 +830,14 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
             {activeTab === 'about' && (
               <div className="space-y-4">
                 {asset.description ? (
-                  <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-5">
+                  <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-4">
                     <h3 className="font-semibold text-[var(--text-primary)] mb-3">About {asset.name}</h3>
                     <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
                       {asset.description}
                     </p>
                   </div>
                 ) : (
-                  <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-5">
+                  <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-4">
                     <h3 className="font-semibold text-[var(--text-primary)] mb-3">About {asset.name}</h3>
                     <p className="text-[var(--text-muted)] text-sm">
                       No description available for this asset.
@@ -869,7 +869,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                 </div>
 
                 {/* Additional Info */}
-                <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-5">
+                <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-4">
                   <h3 className="font-semibold text-[var(--text-primary)] mb-3">Asset Details</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>

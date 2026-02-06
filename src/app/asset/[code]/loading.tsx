@@ -3,9 +3,9 @@ export default function AssetLoading() {
     <>
       {/* Desktop View */}
       <div className="hidden md:block min-h-screen bg-[var(--bg-primary)]">
-        <div className="mx-auto max-w-[1400px] px-6 py-6">
+        <div className="mx-auto max-w-[1400px] px-4 py-4">
           {/* Main Grid: Left Sidebar + Right Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-4">
             {/* Left Sidebar */}
             <div className="space-y-4">
               {/* Asset Header */}
@@ -115,9 +115,9 @@ export default function AssetLoading() {
             </div>
 
             {/* Right Content Area */}
-            <div className="space-y-5 min-w-0">
+            <div className="space-y-4 min-w-0">
               {/* Tab Navigation */}
-              <div className="flex items-center gap-6 border-b border-[var(--border-default)] pb-3">
+              <div className="flex items-center gap-4 border-b border-[var(--border-default)] pb-3">
                 <div className="h-4 w-12 bg-[var(--info-muted)] rounded animate-pulse" />
                 <div className="h-4 w-16 bg-[var(--border-default)] rounded animate-pulse" />
                 <div className="h-4 w-14 bg-[var(--border-default)] rounded animate-pulse" />
@@ -125,7 +125,7 @@ export default function AssetLoading() {
               </div>
 
               {/* Chart Skeleton */}
-              <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm p-5">
+              <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm p-4">
                 {/* Chart Header */}
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-4">

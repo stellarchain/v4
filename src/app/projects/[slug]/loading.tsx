@@ -3,13 +3,13 @@ export default function ProjectDetailLoading() {
     <>
       {/* Desktop View */}
       <div className="hidden md:block min-h-screen bg-[var(--bg-primary)]">
-        <div className="mx-auto max-w-4xl px-6 py-6">
+        <div className="mx-auto max-w-4xl px-4 py-4">
           {/* Back Link */}
-          <div className="h-5 w-32 bg-[var(--border-default)] rounded animate-pulse mb-5" />
+          <div className="h-5 w-32 bg-[var(--border-default)] rounded animate-pulse mb-4" />
 
           {/* Header Card */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-8 shadow-sm mb-5">
-            <div className="flex items-start gap-6">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm mb-4">
+            <div className="flex items-start gap-4">
               {/* Logo */}
               <div className="w-20 h-20 bg-[var(--border-default)] rounded-2xl shrink-0 animate-pulse" />
 
@@ -36,7 +36,7 @@ export default function ProjectDetailLoading() {
           </div>
 
           {/* SCF Award Card */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-6 shadow-sm mb-5">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm mb-4">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-5 h-5 bg-[var(--warning-muted)] rounded animate-pulse" />
               <div className="h-5 w-48 bg-[var(--border-default)] rounded animate-pulse" />
@@ -53,7 +53,7 @@ export default function ProjectDetailLoading() {
           </div>
 
           {/* Team Card */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-6 shadow-sm mb-5">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm mb-4">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-5 h-5 bg-[var(--border-default)] rounded animate-pulse" />
               <div className="h-5 w-24 bg-[var(--border-default)] rounded animate-pulse" />
@@ -80,7 +80,7 @@ export default function ProjectDetailLoading() {
           </div>
 
           {/* Resources Card */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-6 shadow-sm">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-5 h-5 bg-[var(--border-default)] rounded animate-pulse" />
               <div className="h-5 w-36 bg-[var(--border-default)] rounded animate-pulse" />

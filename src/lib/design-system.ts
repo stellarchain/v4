@@ -105,7 +105,7 @@ export const containers = {
   cardCompact: 'bg-[var(--bg-secondary)] rounded-2xl shadow-[var(--shadow-md)] border border-[var(--border-subtle)] overflow-hidden',
 
   // Card container (full width - edge to edge, no rounded corners)
-  cardFullWidth: 'bg-[var(--bg-secondary)] shadow-[var(--shadow-md)] border-y border-[var(--border-subtle)] overflow-hidden -mx-6',
+  cardFullWidth: 'bg-[var(--bg-secondary)] shadow-[var(--shadow-md)] border-y border-[var(--border-subtle)] overflow-hidden -mx-4',
 
   // Card with list dividers (default for lists)
   cardList: 'bg-[var(--bg-secondary)] rounded-2xl shadow-[var(--shadow-md)] border border-[var(--border-subtle)] overflow-hidden divide-y divide-[var(--border-subtle)]',
@@ -255,11 +255,11 @@ export const typography = {
 export const spacing = {
   // Page padding
   pagePadding: 'px-4',
-  pagePaddingLarge: 'px-6',
+  pagePaddingLarge: 'px-4',
 
   // Card padding
   cardPadding: 'p-4',
-  cardPaddingLarge: 'p-5',
+  cardPaddingLarge: 'p-4',
 
   // Row padding
   rowPadding: 'px-4 py-4',
@@ -311,7 +311,7 @@ export const tabs = {
   container: 'border-b border-[var(--border-subtle)]',
 
   // Nav wrapper
-  nav: 'flex gap-6 overflow-x-auto',
+  nav: 'flex gap-4 overflow-x-auto',
 
   // Tab button base
   tab: 'whitespace-nowrap pb-3 border-b-2 font-semibold text-sm flex items-center gap-2 transition-colors',
@@ -329,7 +329,7 @@ export const tabs = {
 
 export const inputs = {
   // Search input
-  search: 'w-full pl-10 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all',
+  search: 'w-full pl-4 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all',
 
   // Standard input
   input: 'w-full px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all',
@@ -365,10 +365,10 @@ export const transferFlow = {
   card: 'bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden',
 
   // FROM section
-  fromSection: 'p-5 pb-8 relative bg-[var(--bg-tertiary)]',
+  fromSection: 'p-4 pb-4 relative bg-[var(--bg-tertiary)]',
 
   // TO section
-  toSection: 'p-5 pt-8 bg-[var(--bg-secondary)]',
+  toSection: 'p-4 pt-4 bg-[var(--bg-secondary)]',
 
   // Connector circle
   connector: 'w-8 h-8 rounded-full bg-[var(--bg-secondary)] shadow-md border border-[var(--border-subtle)] flex items-center justify-center',
@@ -377,7 +377,7 @@ export const transferFlow = {
   dashedLine: 'border-t-2 border-dashed border-[var(--border-default)]',
 
   // Fee footer
-  feeFooter: 'flex justify-between items-center px-5 py-3 bg-[var(--info-muted)]/50 border-t border-[var(--border-subtle)]',
+  feeFooter: 'flex justify-between items-center px-4 py-3 bg-[var(--info-muted)]/50 border-t border-[var(--border-subtle)]',
 } as const;
 
 // =============================================================================

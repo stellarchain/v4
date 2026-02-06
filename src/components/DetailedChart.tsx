@@ -75,12 +75,12 @@ export default function DetailedChart({ stat, onClose }: DetailedChartProps) {
             {/* Modal */}
             <div
                 ref={modalRef}
-                className="relative w-full max-w-3xl bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-2xl opacity-0 overflow-hidden"
+                className="relative w-full max-w-3xl bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-2xl opacity-0 overflow-hidden"
             >
                 {/* Holographic Border Effect */}
                 <div className="absolute inset-0 pointer-events-none rounded-2xl border border-white/5" />
 
-                <div className="flex justify-between items-start mb-8">
+                <div className="flex justify-between items-start mb-4">
                     <div>
                         <h3 className="text-[var(--text-tertiary)] text-sm uppercase tracking-wider font-medium mb-2">{stat.label}</h3>
                         <div className="flex items-baseline gap-3">

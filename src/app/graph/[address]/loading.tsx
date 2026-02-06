@@ -3,9 +3,9 @@ export default function GraphAddressLoading() {
     <>
       {/* Desktop View */}
       <div className="hidden md:block min-h-screen bg-[var(--bg-primary)]">
-        <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+        <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
           {/* Header */}
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[var(--border-default)] rounded-xl animate-pulse" />
               <div>
@@ -28,8 +28,8 @@ export default function GraphAddressLoading() {
           </div>
 
           {/* Legend */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm mb-5">
-            <div className="flex items-center gap-6 flex-wrap">
+          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm mb-4">
+            <div className="flex items-center gap-4 flex-wrap">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className={`w-3 h-3 rounded-full animate-pulse ${

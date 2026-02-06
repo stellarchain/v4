@@ -3,17 +3,17 @@ export default function ContractLoading() {
     <>
       {/* Desktop View */}
       <div className="hidden md:block min-h-screen bg-[var(--bg-primary)] ">
-        <div className="mx-auto max-w-[1400px] px-6 py-6">
+        <div className="mx-auto max-w-[1400px] px-4 py-4">
           {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-sm mb-5">
+          <div className="flex items-center gap-2 text-sm mb-4">
             <div className="h-4 w-20 bg-[var(--border-default)]  rounded animate-pulse" />
             <div className="h-4 w-4 bg-[var(--border-default)]  rounded animate-pulse" />
             <div className="h-4 w-32 bg-[var(--border-default)]  rounded animate-pulse" />
           </div>
 
           {/* Header Card */}
-          <div className="bg-[var(--bg-secondary)]  rounded-2xl border border-[var(--border-default)]  shadow-sm p-5 mb-5">
-            <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="bg-[var(--bg-secondary)]  rounded-2xl border border-[var(--border-default)]  shadow-sm p-4 mb-4">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               {/* Left: Contract Identity */}
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-[var(--border-default)]  rounded-xl animate-pulse" />
@@ -46,11 +46,11 @@ export default function ContractLoading() {
           </div>
 
           {/* Main Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
             {/* Left: Content Area */}
             <div className="space-y-4">
               {/* Tabs */}
-              <div className="flex items-center gap-6 border-b border-[var(--border-default)]  pb-3">
+              <div className="flex items-center gap-4 border-b border-[var(--border-default)]  pb-3">
                 <div className="h-4 w-16 bg-[var(--info-muted)] rounded animate-pulse" />
                 <div className="h-4 w-20 bg-[var(--border-default)]  rounded animate-pulse" />
                 <div className="h-4 w-16 bg-[var(--border-default)]  rounded animate-pulse" />

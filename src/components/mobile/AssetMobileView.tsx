@@ -619,7 +619,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   return (
     <div className="w-full bg-[var(--bg-primary)] min-h-screen pb-24 font-sans relative">
       {/* Header - CoinGecko Style */}
-      <header className="sticky top-0 z-20 bg-[var(--header-bg)] text-white px-4 pt-4 pb-5 rounded-b-3xl shadow-lg relative overflow-hidden">
+      <header className="sticky top-0 z-20 bg-[var(--header-bg)] text-white px-4 pt-4 pb-4 rounded-b-3xl shadow-lg relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute inset-0 pointer-events-none">
           {/* Subtle gradient orb */}
@@ -995,7 +995,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
             </div>
           ) : (
             /* No data state */
-            <div className="py-8 text-center text-[var(--text-muted)] text-xs">
+            <div className="py-4 text-center text-[var(--text-muted)] text-xs">
               No order book data available
             </div>
           )}
@@ -1207,7 +1207,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 )}
               </>
             ) : (
-              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 text-center text-[var(--text-muted)] text-sm">
                 No recent trades
               </div>
             )}
@@ -1295,7 +1295,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 })}
               </>
             ) : (
-              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 text-center text-[var(--text-muted)] text-sm">
                 No active trading pairs found
               </div>
             )}
@@ -1400,7 +1400,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 )}
               </>
             ) : (
-              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-12 text-center text-[var(--text-muted)] text-sm">
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 text-center text-[var(--text-muted)] text-sm">
                 No holders found
               </div>
             )}

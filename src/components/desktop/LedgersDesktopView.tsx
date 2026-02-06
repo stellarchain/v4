@@ -193,10 +193,10 @@ export default function LedgersDesktopView({
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+      <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
         {/* Header Card */}
-        <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-5">
+        <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
               <Link
@@ -254,7 +254,7 @@ export default function LedgersDesktopView({
         {/* Ledgers Table */}
         <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full sc-table">
               <thead>
                 <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Ledger</th>
@@ -347,7 +347,7 @@ export default function LedgersDesktopView({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-[var(--text-muted)] text-sm">
+                    <td colSpan={7} className="text-center py-4 text-[var(--text-muted)] text-sm">
                       No ledgers found.
                     </td>
                   </tr>
@@ -355,7 +355,7 @@ export default function LedgersDesktopView({
               </tbody>
             </table>
           </div>
-          <div className="px-5 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
+          <div className="px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
             <div className="flex items-center justify-between">
               <div className="text-xs text-[var(--text-tertiary)]">
                 {isLoadingMore ? 'Loading more...' : hasMore ? 'Scroll to load more...' : 'End of results'}

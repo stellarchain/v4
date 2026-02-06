@@ -30,7 +30,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     }
 
     return (
-        <div className="space-y-8 max-w-4xl mx-auto">
+        <div className="space-y-4 max-w-4xl mx-auto">
             {/* Back Link */}
             <Link
                 href="/projects"
@@ -43,8 +43,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </Link>
 
             {/* Header */}
-            <div className="bg-[var(--bg-secondary)] rounded-2xl p-8 shadow-sm">
-                <div className="flex items-start gap-6">
+            <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm">
+                <div className="flex items-start gap-4">
                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 flex items-center justify-center text-3xl font-bold text-[var(--primary)] shrink-0">
                         {project.name.charAt(0)}
                     </div>
@@ -91,7 +91,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
 
             {/* SCF Award Info */}
-            <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm">
+            <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm">
                 <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                     <svg className="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -116,7 +116,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
             {/* Team */}
             {project.team.length > 0 && (
-                <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm">
+                <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm">
                     <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                         <svg className="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -168,7 +168,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
             {/* Resources */}
             {(project.resources.video || project.resources.pitchDeck || project.resources.technicalDocs || Object.keys(project.socials).length > 0) && (
-                <div className="bg-[var(--bg-secondary)] rounded-2xl p-6 shadow-sm">
+                <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm">
                     <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                         <svg className="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />

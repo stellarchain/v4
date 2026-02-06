@@ -83,7 +83,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
 }) => {
   if (totalPages <= 1) return null;
   return (
-    <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50">
+    <div className="flex items-center justify-center gap-1.5 px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1 || loading}
@@ -436,10 +436,10 @@ export default function TransactionsDesktopView({
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
+      <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
         {/* Header Card */}
-        <div className="mb-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-5">
+        <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
               <Link
@@ -493,7 +493,7 @@ export default function TransactionsDesktopView({
         </div>
 
         {/* Filters Row */}
-        <div className="mb-5 max-w-full">
+        <div className="mb-4 max-w-full">
           <GliderTabs
             size="sm"
             className="border-[var(--border-default)] max-w-[520px]"
@@ -510,7 +510,7 @@ export default function TransactionsDesktopView({
         {/* Transactions Table */}
         <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full sc-table">
               <thead>
                 <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50">
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Txn Hash</th>
@@ -679,7 +679,7 @@ export default function TransactionsDesktopView({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={9} className="text-center py-12 text-[var(--text-muted)] text-sm">
+                    <td colSpan={9} className="text-center py-4 text-[var(--text-muted)] text-sm">
                       No transactions found matching your filter.
                     </td>
                   </tr>

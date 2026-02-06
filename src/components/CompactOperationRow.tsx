@@ -81,7 +81,7 @@ const CompactOperationRow = forwardRef<HTMLAnchorElement, CompactOperationRowPro
       <Link
         ref={ref}
         href={txRoute(operation.transaction_hash)}
-        className="flex items-center justify-between py-4 px-5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:border-[var(--border-default)] transition-all duration-300 group text-[13px]"
+        className="flex items-center justify-between py-4 px-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:border-[var(--border-default)] transition-all duration-300 group text-[13px]"
       >
         <div className="flex items-center gap-4">
           <div
@@ -105,7 +105,7 @@ const CompactOperationRow = forwardRef<HTMLAnchorElement, CompactOperationRowPro
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4">
           {amount && (
             <div className="text-right">
               <span className="text-[var(--text-primary)] font-bold font-mono">{formatXLM((amount || '').split(' ')[0])}</span>

@@ -39,7 +39,7 @@ export default function AssetConverter({ asset }: AssetConverterProps) {
   };
 
   return (
-    <div className="bg-white border border-slate-200/60 rounded-2xl shadow-sm p-5">
+    <div className="bg-white border border-slate-200/60 rounded-2xl shadow-sm p-4">
       <h3 className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-4 pb-2 border-b border-slate-100">
         {asset.code} to USD Converter
       </h3>
