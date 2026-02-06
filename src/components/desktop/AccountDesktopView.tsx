@@ -107,8 +107,19 @@ export default function AccountDesktopView({ account, transactions, operations: 
   const [lastCursor, setLastCursor] = useState<string | null>(
     initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
   );
-  const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 25;
+
+  // Transactions state for infinite scroll
+  const TX_PAGE_SIZE = 50;
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>(() => {
+    return [...transactions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  });
+  const [loadingMoreTx, setLoadingMoreTx] = useState(false);
+  const [hasMoreTransactions, setHasMoreTransactions] = useState(transactions.length >= TX_PAGE_SIZE);
+  const [lastTxCursor, setLastTxCursor] = useState<string | null>(
+    transactions.length > 0 ? transactions[transactions.length - 1].paging_token : null
+  );
+  const txLoadMoreRef = useRef<HTMLDivElement | null>(null);
+  const opsLoadMoreRef = useRef<HTMLDivElement | null>(null);
 
   // Update URL when tab changes
   const handleTabChange = (tab: 'assets' | 'transactions' | 'operations' | 'details') => {
@@ -134,6 +145,15 @@ export default function AccountDesktopView({ account, transactions, operations: 
       initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
     );
   }, [initialOperations]);
+
+  useEffect(() => {
+    const sortedTxs = [...transactions].sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    setAllTransactions(sortedTxs);
+    setHasMoreTransactions(transactions.length >= TX_PAGE_SIZE);
+    setLastTxCursor(transactions.length > 0 ? transactions[transactions.length - 1].paging_token : null);
+  }, [TX_PAGE_SIZE, transactions]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -279,7 +299,11 @@ export default function AccountDesktopView({ account, transactions, operations: 
       const newOps = data._embedded?.records || [];
 
       if (newOps.length > 0) {
-        setAllOperations(prev => [...prev, ...newOps]);
+        setAllOperations(prev => {
+          const existing = new Set(prev.map(op => op.id));
+          const uniqueNew = newOps.filter((op: Operation) => !existing.has(op.id));
+          return [...prev, ...uniqueNew];
+        });
         setLastCursor(newOps[newOps.length - 1].paging_token);
         setHasMoreToFetch(newOps.length >= 100);
       } else {
@@ -291,6 +315,71 @@ export default function AccountDesktopView({ account, transactions, operations: 
       setLoadingMore(false);
     }
   }, [account.id, hasMoreToFetch, lastCursor, loadingMore]);
+
+  const fetchMoreTransactions = useCallback(async () => {
+    if (!hasMoreTransactions || loadingMoreTx || !lastTxCursor) return;
+
+    setLoadingMoreTx(true);
+    try {
+      const res = await fetch(
+        `${getBaseUrl()}/accounts/${account.id}/transactions?limit=${TX_PAGE_SIZE}&order=desc&cursor=${lastTxCursor}`
+      );
+      const data = await res.json();
+      const newTxs: Transaction[] = data?._embedded?.records || [];
+
+      if (newTxs.length > 0) {
+        setAllTransactions(prev => {
+          const existing = new Set(prev.map(t => t.hash));
+          const uniqueNew = newTxs.filter(t => !existing.has(t.hash));
+          return [...prev, ...uniqueNew];
+        });
+        setLastTxCursor(newTxs[newTxs.length - 1].paging_token);
+        setHasMoreTransactions(newTxs.length >= TX_PAGE_SIZE);
+      } else {
+        setHasMoreTransactions(false);
+      }
+    } catch (error) {
+      console.error('Failed to load more transactions:', error);
+    } finally {
+      setLoadingMoreTx(false);
+    }
+  }, [TX_PAGE_SIZE, account.id, hasMoreTransactions, lastTxCursor, loadingMoreTx]);
+
+  useEffect(() => {
+    if (activeTab !== 'transactions') return;
+    if (!hasMoreTransactions || loadingMoreTx) return;
+    const el = txLoadMoreRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting) fetchMoreTransactions();
+      },
+      { root: null, rootMargin: '400px', threshold: 0.01 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [activeTab, fetchMoreTransactions, hasMoreTransactions, loadingMoreTx]);
+
+  useEffect(() => {
+    if (activeTab !== 'operations') return;
+    if (!hasMoreToFetch || loadingMore) return;
+    const el = opsLoadMoreRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting) fetchMoreOperations();
+      },
+      { root: null, rootMargin: '400px', threshold: 0.01 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [activeTab, fetchMoreOperations, hasMoreToFetch, loadingMore]);
 
   // Fetch effects for operations
   useEffect(() => {
@@ -467,10 +556,6 @@ export default function AccountDesktopView({ account, transactions, operations: 
 
     return null;
   };
-
-  // Pagination for operations
-  const totalPages = Math.ceil(allOperations.length / PAGE_SIZE);
-  const paginatedOperations = allOperations.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Get first and last operation times
   const firstOpTime = allOperations.length > 0 ? allOperations[allOperations.length - 1]?.created_at : null;
@@ -694,7 +779,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
             {activeTab === 'transactions' && (
               <div>
                 <div className="px-4 py-3 text-xs text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
-                  Latest 25 from a total of {transactions.length.toLocaleString()} transactions
+                  Showing {allTransactions.length.toLocaleString()} latest transactions
                 </div>
                 <table className="w-full">
                   <thead>
@@ -708,7 +793,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border-subtle)]">
-                    {transactions.slice(0, 25).map((tx) => (
+                    {allTransactions.map((tx) => (
                       <tr key={tx.hash} className="hover:bg-[var(--bg-tertiary)]/50 transition-colors">
                         <td className="py-3 px-4">
                           <Link href={`/transaction/${tx.hash}`} className="font-mono text-[13px] text-sky-600 hover:text-sky-700 hover:underline">
@@ -733,6 +818,25 @@ export default function AccountDesktopView({ account, transactions, operations: 
                     ))}
                   </tbody>
                 </table>
+
+                <div className="px-4 py-3 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-[var(--text-tertiary)]">
+                      {loadingMoreTx ? 'Loading more...' : hasMoreTransactions ? 'Scroll to load more...' : allTransactions.length > 0 ? 'End of results' : ''}
+                    </div>
+                    {hasMoreTransactions && (
+                      <button
+                        type="button"
+                        onClick={fetchMoreTransactions}
+                        disabled={loadingMoreTx}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-sky-600 hover:bg-sky-50 disabled:opacity-50"
+                      >
+                        {loadingMoreTx ? 'Loading...' : 'Load More'}
+                      </button>
+                    )}
+                  </div>
+                  <div ref={txLoadMoreRef} className="h-1" />
+                </div>
               </div>
             )}
 
@@ -740,7 +844,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
             {activeTab === 'operations' && (
               <div>
                 <div className="px-4 py-3 text-xs text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
-                  Latest {Math.min(PAGE_SIZE, allOperations.length)} from a total of {allOperations.length.toLocaleString()} operations
+                  Showing {allOperations.length.toLocaleString()} latest operations
                 </div>
                 <table className="w-full">
                   <thead>
@@ -756,7 +860,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border-subtle)]">
-                    {paginatedOperations.map((op) => {
+                    {allOperations.map((op) => {
                       const effects = opEffects[op.id];
                       const effectInfo = getAmountFromEffects(effects);
                       const category = getOperationCategory(op.type);
@@ -869,60 +973,24 @@ export default function AccountDesktopView({ account, transactions, operations: 
                   </tbody>
                 </table>
 
-                {/* Pagination */}
-                {(totalPages > 1 || hasMoreToFetch) && (
-                  <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
-                    <div className="text-sm text-[var(--text-tertiary)]">
-                      Showing {((currentPage - 1) * PAGE_SIZE) + 1} to {Math.min(currentPage * PAGE_SIZE, allOperations.length)} of {allOperations.length} operations
+                <div className="px-4 py-3 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-[var(--text-tertiary)]">
+                      {loadingMore ? 'Loading more...' : hasMoreToFetch ? 'Scroll to load more...' : allOperations.length > 0 ? 'End of results' : ''}
                     </div>
-                    <div className="flex items-center gap-1">
+                    {hasMoreToFetch && (
                       <button
-                        onClick={() => setCurrentPage(1)}
-                        disabled={currentPage === 1}
-                        className="px-2 py-1 text-sm text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)] hover:text-sky-600 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                        type="button"
+                        onClick={fetchMoreOperations}
+                        disabled={loadingMore}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-sky-600 hover:bg-sky-50 disabled:opacity-50"
                       >
-                        First
+                        {loadingMore ? 'Loading...' : 'Load More'}
                       </button>
-                      <button
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="p-1 text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)] hover:text-sky-600 rounded disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <span className="px-3 py-1 text-sm text-[var(--text-secondary)]">
-                        Page {currentPage} of {totalPages}
-                      </span>
-                      <button
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage >= totalPages}
-                        className="p-1 text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)] hover:text-sky-600 rounded disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => setCurrentPage(totalPages)}
-                        disabled={currentPage >= totalPages}
-                        className="px-2 py-1 text-sm text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)] hover:text-sky-600 rounded disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        Last
-                      </button>
-                      {hasMoreToFetch && (
-                        <button
-                          onClick={fetchMoreOperations}
-                          disabled={loadingMore}
-                          className="ml-2 px-3 py-1 text-sm text-sky-600 hover:bg-sky-50 rounded disabled:opacity-50"
-                        >
-                          {loadingMore ? 'Loading...' : 'Load More'}
-                        </button>
-                      )}
-                    </div>
+                    )}
                   </div>
-                )}
+                  <div ref={opsLoadMoreRef} className="h-1" />
+                </div>
               </div>
             )}
 

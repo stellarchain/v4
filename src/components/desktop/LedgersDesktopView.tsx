@@ -33,77 +33,6 @@ const formatCompact = (numStr: string | undefined): string => {
   return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
 };
 
-// Pagination component
-const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, hasMore }: {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-  loading: boolean;
-  hasMore: boolean;
-}) => {
-  if (totalPages <= 1) return null;
-  return (
-    <div className="flex items-center justify-center gap-1.5 px-5 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1 || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-
-      {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-        let pageNum: number;
-        if (totalPages <= 5) {
-          pageNum = i + 1;
-        } else if (currentPage <= 3) {
-          pageNum = i + 1;
-        } else if (currentPage >= totalPages - 2) {
-          pageNum = totalPages - 4 + i;
-        } else {
-          pageNum = currentPage - 2 + i;
-        }
-        return (
-          <button
-            key={pageNum}
-            onClick={() => onPageChange(pageNum)}
-            disabled={loading}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${currentPage === pageNum
-              ? 'bg-sky-600 text-white shadow-sm'
-              : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
-              }`}
-          >
-            {pageNum}
-          </button>
-        );
-      })}
-
-      {hasMore && totalPages > 5 && (
-        <span className="text-[var(--text-muted)] text-xs px-1">...</span>
-      )}
-
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={(currentPage >= totalPages && !hasMore) || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-
-      {loading && (
-        <svg className="w-4 h-4 animate-spin ml-2 text-sky-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      )}
-    </div>
-  );
-};
-
 export default function LedgersDesktopView({
   initialLedgers,
   limit = 50
@@ -112,11 +41,11 @@ export default function LedgersDesktopView({
 
   // Initialize with server-provided data immediately (no loading state)
   const [ledgers, setLedgers] = useState<Ledger[]>(initialLedgers);
-  const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [oldestCursor, setOldestCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const seenIdsRef = useRef<Set<string>>(new Set(initialLedgers.map(l => l.id)));
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const fetchLedgers = useCallback(async () => {
     try {
@@ -147,10 +76,8 @@ export default function LedgersDesktopView({
     }
   }, []);
 
-  const fetchMoreIfNeeded = useCallback(async (targetPage: number) => {
-    const neededItems = targetPage * PAGE_SIZE;
-    if (neededItems <= ledgers.length || !hasMore || isLoadingMore) return;
-
+  const fetchMoreLedgers = useCallback(async () => {
+    if (!hasMore || isLoadingMore) return;
     setIsLoadingMore(true);
 
     try {
@@ -203,12 +130,7 @@ export default function LedgersDesktopView({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, ledgers, oldestCursor, hasMore]);
-
-  const goToPage = useCallback((page: number) => {
-    setCurrentPage(page);
-    fetchMoreIfNeeded(page);
-  }, [fetchMoreIfNeeded]);
+  }, [hasMore, isLoadingMore, ledgers, oldestCursor]);
 
   useEffect(() => {
     // When network changes, reset to initial ledgers
@@ -221,6 +143,23 @@ export default function LedgersDesktopView({
     const interval = setInterval(fetchLedgers, 6000);
     return () => clearInterval(interval);
   }, [fetchLedgers]);
+
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    if (!hasMore || isLoadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting) fetchMoreLedgers();
+      },
+      { root: null, rootMargin: '400px', threshold: 0.01 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [fetchMoreLedgers, hasMore, isLoadingMore]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -250,10 +189,7 @@ export default function LedgersDesktopView({
     return { total, totalTxs, totalOps, successfulTxs, failedTxs, avgCloseTime, totalCoins };
   }, [ledgers]);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(ledgers.length / PAGE_SIZE) + (hasMore ? 1 : 0);
-  const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const visibleLedgers = ledgers.slice(startIndex, startIndex + PAGE_SIZE);
+  const visibleLedgers = ledgers.slice(0, Math.max(limit, 50));
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
@@ -419,14 +355,24 @@ export default function LedgersDesktopView({
               </tbody>
             </table>
           </div>
-
-          <PaginationControls
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={goToPage}
-            loading={isLoadingMore}
-            hasMore={hasMore}
-          />
+          <div className="px-5 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-[var(--text-tertiary)]">
+                {isLoadingMore ? 'Loading more...' : hasMore ? 'Scroll to load more...' : 'End of results'}
+              </div>
+              {hasMore && (
+                <button
+                  type="button"
+                  onClick={fetchMoreLedgers}
+                  disabled={isLoadingMore}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-sky-600 hover:bg-sky-50 disabled:opacity-50"
+                >
+                  {isLoadingMore ? 'Loading...' : 'Load More'}
+                </button>
+              )}
+            </div>
+            <div ref={loadMoreRef} className="h-1" />
+          </div>
         </div>
       </div>
     </div>

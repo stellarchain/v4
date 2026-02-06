@@ -5,13 +5,22 @@ import TransactionsDesktopView from '@/components/desktop/TransactionsDesktopVie
 export const revalidate = 10;
 
 export default async function TransactionsPage() {
-  // Fetch both regular transactions and payment transactions in parallel
-  const [transactionsResponse, paymentTransactions] = await Promise.all([
-    getTransactions(100),
-    getPaymentTransactions(50), // Fetch 50 recent payments directly
-  ]);
+  let transactions: Awaited<ReturnType<typeof getTransactions>>['_embedded']['records'] = [];
+  let paymentTransactions: Awaited<ReturnType<typeof getPaymentTransactions>> = [];
 
-  const transactions = transactionsResponse._embedded.records;
+  try {
+    // Fetch both regular transactions and payment transactions in parallel
+    const [transactionsResponse, payments] = await Promise.all([
+      getTransactions(100),
+      getPaymentTransactions(50), // Fetch 50 recent payments directly
+    ]);
+
+    transactions = transactionsResponse._embedded.records;
+    paymentTransactions = payments;
+  } catch (e) {
+    // Avoid failing builds/prerender when upstream APIs rate-limit or error.
+    console.error('Failed to fetch initial transactions:', e);
+  }
 
   return (
     <>
