@@ -637,7 +637,7 @@ export default function TransactionPageClient({
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-20 pt-1 md:pt-6">
-      <div className="max-w-[1600px] mx-auto px-3 md:px-6">
+      <div className="max-w-[1400px] mx-auto px-3 md:px-6">
         <div className="flex flex-col bg-[var(--bg-primary)] md:bg-[var(--bg-secondary)] md:rounded-xl md:shadow-[var(--shadow-md)] overflow-hidden">
           {/* Header & Tabs */}
           <div className="flex flex-col flex-shrink-0">

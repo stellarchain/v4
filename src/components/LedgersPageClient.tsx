@@ -210,7 +210,7 @@ export default function LedgersPageClient({
   // Mobile view - keep the existing card-based layout
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-20 pt-1">
-      <div className="max-w-[1600px] mx-auto px-3">
+      <div className="max-w-[1400px] mx-auto px-3">
         {/* Mobile Header */}
         <div className="px-3 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">

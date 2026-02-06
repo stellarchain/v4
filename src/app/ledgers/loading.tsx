@@ -3,7 +3,7 @@ export default function LedgersLoading() {
     <>
       {/* Desktop View */}
       <div className="hidden md:block min-h-screen bg-slate-50 dark:bg-[#0a0f1a]">
-        <div className="mx-auto max-w-[1600px] p-6 lg:p-8">
+        <div className="mx-auto max-w-[1400px] p-6 lg:p-8">
           {/* Header Card */}
           <div className="mb-5 rounded-2xl border border-slate-200 dark:border-gray-800/60 bg-white dark:bg-[#111827] p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-5">

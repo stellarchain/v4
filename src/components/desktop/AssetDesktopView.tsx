@@ -234,7 +234,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto max-w-[1600px] px-6 py-6">
+      <div className="mx-auto max-w-[1400px] px-6 py-6">
         {/* Main Grid: Left Sidebar + Right Content */}
         <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-6">
           {/* Left Sidebar */}
