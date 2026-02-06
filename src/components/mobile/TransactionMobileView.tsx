@@ -115,7 +115,7 @@ export default function TransactionMobileView({ transaction, operations, effects
 
   // Decode XDR when on Resources tab for contract transactions
   useEffect(() => {
-    if (!isContractCall || activeTab !== 'details' || isDecodingXdr) {
+    if (!isContractCall || (activeTab !== 'details' && activeTab !== 'trace') || isDecodingXdr) {
       return;
     }
 
@@ -135,7 +135,7 @@ export default function TransactionMobileView({ transaction, operations, effects
 
   // Fetch Soroban RPC XDR if Horizon data is missing trace details
   useEffect(() => {
-    if (!isContractCall || activeTab !== 'details' || isDecodingXdr || xdrFetchAttempted || fetchedXdr) {
+    if (!isContractCall || (activeTab !== 'details' && activeTab !== 'trace') || isDecodingXdr || xdrFetchAttempted || fetchedXdr) {
       return;
     }
 
@@ -2133,345 +2133,312 @@ export default function TransactionMobileView({ transaction, operations, effects
                   )}
 
                   {/* Decoded invocation trace */}
-                  {!isDecodingXdr && decodedMeta && decodedMeta.success && (
-                    <>
-                      {/* Return Value */}
-                      {decodedMeta.returnValue && (
-                        <div className="mb-4 p-3 bg-[var(--success-muted)] rounded-xl border border-[var(--success)]/30">
-                          <div className="text-[10px] uppercase text-[var(--success)] font-semibold tracking-wider mb-1">Return Value</div>
-                          <div className="font-mono text-xs text-[var(--success)] break-all">
-                            <span className="text-[var(--success)]">{decodedMeta.returnValue.type}:</span> {decodedMeta.returnValue.display}
-                          </div>
-                        </div>
-                      )}
+                  {!isDecodingXdr && decodedMeta && decodedMeta.success && (() => {
+                    // Pre-process trace: merge fn_call + fn_return pairs, filter out standalone fn_return
+                    const processedTrace: (typeof decodedMeta.invocationTrace[0] & { matchedReturn?: typeof decodedMeta.returnValue })[] = [];
+                    const pendingCalls: Map<number, (typeof processedTrace[0])[]> = new Map();
 
-                      {/* Main invocation */}
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-6 h-6 rounded-full bg-[var(--accent)]/20 flex items-center justify-center shrink-0 mt-0.5">
-                          <svg className="w-3 h-3 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs text-[var(--text-tertiary)] mb-1 flex items-center flex-wrap">
-                            <Link href={`/account/${transaction.source_account}`} className="font-mono hover:opacity-80" style={{ color: primaryColor }}>
-                              {shortenAddress(transaction.source_account, 4)}
-                            </Link>
-                            <AccountBadges address={transaction.source_account} labels={accountLabels} />
-                            <span className="mx-1">invoked</span>
-                            <Link href={`/contract/${contractAddress}`} className="font-mono hover:opacity-80" style={{ color: primaryColor }}>
-                              {contractAddress ? shortenAddress(contractAddress, 4) : 'contract'}
-                            </Link>
-                          </div>
-                          <div className="bg-[var(--bg-tertiary)] rounded-lg px-3 py-2 font-mono text-xs">
-                            <span className="text-[var(--accent)] font-semibold">{contractFunctionName || 'call'}</span>
-                            <span className="text-[var(--text-tertiary)]">(</span>
-                            <span className="text-[var(--text-muted)]">...</span>
-                            <span className="text-[var(--text-tertiary)]">)</span>
-                          </div>
-                        </div>
-                      </div>
+                    for (const item of decodedMeta.invocationTrace) {
+                      if (item.type === 'fn_call') {
+                        const entry = { ...item };
+                        processedTrace.push(entry);
+                        const stack = pendingCalls.get(item.depth) || [];
+                        stack.push(entry);
+                        pendingCalls.set(item.depth, stack);
+                      } else if (item.type === 'fn_return') {
+                        const stack = pendingCalls.get(item.depth);
+                        if (stack && stack.length > 0) {
+                          const matched = stack.pop()!;
+                          if (item.returnValue) {
+                            matched.matchedReturn = item.returnValue;
+                          }
+                        }
+                      } else {
+                        processedTrace.push({ ...item });
+                      }
+                    }
 
-                      {/* Decoded invocation trace items */}
-                      {decodedMeta.invocationTrace.length > 0 && (
-                        <div className="space-y-2">
-                          {decodedMeta.invocationTrace.slice(0, isTraceExpanded ? undefined : 15).map((call, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-start gap-3 border-l-2 border-[var(--border-default)] pl-4"
-                              style={{ marginLeft: `${Math.min(call.depth, 4) * 16}px` }}
-                            >
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${call.type === 'fn_call' ? 'bg-[var(--primary-blue)]/20' :
-                                call.type === 'fn_return' ? 'bg-[var(--success)]/20' : 'bg-[var(--warning)]/20'
-                                }`}>
-                                {call.type === 'fn_call' ? (
-                                  <svg className="w-2.5 h-2.5 text-[var(--primary-blue)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                  </svg>
-                                ) : call.type === 'fn_return' ? (
-                                  <svg className="w-2.5 h-2.5 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                  </svg>
-                                ) : (
-                                  <svg className="w-2.5 h-2.5 text-[var(--warning)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                  </svg>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-[11px] text-[var(--text-tertiary)]">
+                    return (
+                      <>
+                        {/* Return Value */}
+                        {decodedMeta.returnValue && (
+                          <div className="mb-4 p-3 bg-[var(--success-muted)] rounded-xl border border-[var(--success)]/30">
+                            <div className="text-[10px] uppercase text-[var(--success)] font-semibold tracking-wider mb-1">Return Value</div>
+                            <div className="font-mono text-xs text-[var(--success)] break-all">
+                              <span className="text-[var(--success)]">{decodedMeta.returnValue.type}:</span> {decodedMeta.returnValue.display}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Main invocation header */}
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="w-6 h-6 rounded-full bg-[var(--accent)]/20 flex items-center justify-center shrink-0 mt-0.5">
+                            <svg className="w-3 h-3 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs text-[var(--text-tertiary)] mb-1 flex items-center flex-wrap">
+                              <Link href={`/account/${transaction.source_account}`} className="font-mono hover:opacity-80" style={{ color: primaryColor }}>
+                                {shortenAddress(transaction.source_account, 4)}
+                              </Link>
+                              <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                              <span className="mx-1">invoked</span>
+                              <Link href={`/contract/${contractAddress}`} className="font-mono hover:opacity-80" style={{ color: primaryColor }}>
+                                {contractAddress ? shortenAddress(contractAddress, 4) : 'contract'}
+                              </Link>
+                            </div>
+                            <div className="bg-[var(--bg-tertiary)] rounded-lg px-3 py-2 font-mono text-xs break-all">
+                              <span className="text-[var(--accent)] font-semibold">{contractFunctionName || 'call'}</span>
+                              <span className="text-[var(--text-tertiary)]">(</span>
+                              {processedTrace.length > 0 && processedTrace[0].type === 'fn_call' && processedTrace[0].args && processedTrace[0].args.length > 0 ? (
+                                <span className="text-[var(--text-secondary)]">
+                                  {processedTrace[0].args.map((a, i) => (
+                                    <span key={i}>
+                                      {i > 0 && <span className="text-[var(--text-muted)]">, </span>}
+                                      <span className="text-[var(--primary-blue)]">{a.display}</span>
+                                    </span>
+                                  ))}
+                                </span>
+                              ) : (
+                                <span className="text-[var(--text-muted)]">...</span>
+                              )}
+                              <span className="text-[var(--text-tertiary)]">)</span>
+                              {processedTrace.length > 0 && processedTrace[0].matchedReturn && (
+                                <span className="text-[var(--success)] ml-1">
+                                  {'\u2192'} {processedTrace[0].matchedReturn.display}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Full invocation tree */}
+                        {processedTrace.length > 0 && (
+                          <div className="space-y-1.5">
+                            {processedTrace.slice(1).map((call, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-start gap-2.5"
+                                style={{ marginLeft: `${Math.min(call.depth, 6) * 16}px` }}
+                              >
+                                {/* Tree connector line */}
+                                <div className="flex flex-col items-center shrink-0 mt-0.5">
+                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                                    call.type === 'fn_call' ? 'bg-[var(--primary-blue)]/15' : 'bg-[var(--warning)]/15'
+                                  }`}>
+                                    {call.type === 'fn_call' ? (
+                                      <svg className="w-2.5 h-2.5 text-[var(--primary-blue)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                      </svg>
+                                    ) : (
+                                      <svg className="w-2.5 h-2.5 text-[var(--warning)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex-1 min-w-0">
                                   {call.type === 'fn_call' && (
-                                    <>
-                                      <span className="text-[var(--primary-blue)] font-semibold">call</span>
+                                    <div className="text-[11px] font-mono leading-relaxed">
+                                      <span className="text-[var(--text-muted)]">Invoked </span>
                                       {call.contractId && (
+                                        <Link href={`/contract/${call.contractId}`} className="hover:opacity-80" style={{ color: primaryColor }}>
+                                          {shortenAddress(call.contractId, 4)}
+                                        </Link>
+                                      )}
+                                      {call.functionName && (
                                         <>
-                                          <span className="mx-1">to</span>
-                                          <Link href={`/contract/${call.contractId}`} className="font-mono hover:opacity-80" style={{ color: primaryColor }}>
-                                            {shortenAddress(call.contractId, 4)}
-                                          </Link>
+                                          <span className="text-[var(--text-muted)]"> </span>
+                                          <span className="text-[var(--accent)] font-semibold">{call.functionName}</span>
+                                          <span className="text-[var(--text-tertiary)]">(</span>
+                                          {call.args && call.args.length > 0 && (
+                                            <span className="text-[var(--text-secondary)] break-all">
+                                              {call.args.map((a, i) => (
+                                                <span key={i}>
+                                                  {i > 0 && <span className="text-[var(--text-muted)]">, </span>}
+                                                  <span className="text-[var(--primary-blue)]">{a.display}</span>
+                                                </span>
+                                              ))}
+                                            </span>
+                                          )}
+                                          <span className="text-[var(--text-tertiary)]">)</span>
                                         </>
                                       )}
-                                      {call.functionName && (
-                                        <span className="font-mono text-[var(--accent)] ml-1">.{call.functionName}()</span>
+                                      {call.matchedReturn && (
+                                        <span className="text-[var(--success)] ml-1">
+                                          {'\u2192'} {call.matchedReturn.display}
+                                        </span>
                                       )}
-                                    </>
+                                    </div>
                                   )}
-                                  {call.type === 'fn_return' && (
-                                    <>
-                                      <span className="text-[var(--success)] font-semibold">return</span>
-                                      {call.functionName && (
-                                        <span className="font-mono text-[var(--text-tertiary)] ml-1">{call.functionName}</span>
+
+                                  {call.type === 'event' && (
+                                    <div className="text-[11px] font-mono leading-relaxed">
+                                      <span className="text-[var(--warning)] font-semibold">event </span>
+                                      {call.contractId && (
+                                        <Link href={`/contract/${call.contractId}`} className="hover:opacity-80" style={{ color: primaryColor }}>
+                                          {shortenAddress(call.contractId, 4)}
+                                        </Link>
+                                      )}
+                                      {call.args && call.args.length > 0 && (
+                                        <span className="text-[var(--text-secondary)]">
+                                          {' ['}
+                                          {call.args.map((a, i) => (
+                                            <span key={i}>
+                                              {i > 0 && ', '}
+                                              <span className="text-[var(--warning)]">{a.display}</span>
+                                            </span>
+                                          ))}
+                                          {']'}
+                                        </span>
                                       )}
                                       {call.returnValue && (
-                                        <span className="font-mono text-[var(--success)] ml-1">= {call.returnValue.display}</span>
+                                        <span className="text-[var(--text-secondary)]"> data: <span className="text-[var(--warning)]">{call.returnValue.display}</span></span>
                                       )}
-                                    </>
+                                    </div>
                                   )}
-                                  {call.type === 'event' && (
-                                    <>
-                                      <span className="text-[var(--warning)] font-semibold">event</span>
-                                      {call.args && call.args.length > 0 && (
-                                        <span className="font-mono text-[var(--text-secondary)] font-bold ml-1">{call.args[0].display}</span>
-                                      )}
-                                      {call.contractId && (
-                                        <>
-                                          <span className="mx-1">from</span>
-                                          <Link href={`/contract/${call.contractId}`} className="font-mono hover:opacity-80" style={{ color: primaryColor }}>
-                                            {shortenAddress(call.contractId, 4)}
-                                          </Link>
-                                        </>
-                                      )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
-                                      {/* Event Details (Topics & Data) */}
-                                      <div className="mt-1 bg-[var(--bg-tertiary)] rounded-lg p-2 text-[11px] font-mono text-[var(--text-secondary)] border border-[var(--border-default)]">
-                                        {/* Topics */}
-                                        {call.args && call.args.length > 1 && (
-                                          <div className="flex flex-col gap-1.5 mb-2">
-                                            {call.args.slice(1).map((arg, argIdx) => (
-                                              <div key={argIdx} className="flex flex-col">
-                                                <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] font-bold mb-0.5">Topic {argIdx + 1}</span>
-                                                <span className="bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-subtle)] text-[var(--warning)] break-all leading-relaxed shadow-sm">
-                                                  {arg.display}
-                                                </span>
-                                              </div>
+                        {/* Contract Events with Enhanced Categorization */}
+                        {decodedMeta.parsedEvents && decodedMeta.parsedEvents.length > 0 && (
+                          <div className="mt-4">
+                            <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-semibold tracking-wider mb-2">Contract Events ({decodedMeta.parsedEvents.length})</div>
+                            <div className="space-y-2">
+                              {decodedMeta.parsedEvents.map((event, idx) => {
+                                const categoryColors: Record<string, { bg: string; border: string; text: string; icon: string }> = {
+                                  transfer: { bg: 'bg-[var(--success)]/10', border: 'border-[var(--success)]/30', text: 'text-[var(--success)]', icon: 'text-[var(--success)]' },
+                                  approval: { bg: 'bg-[var(--info)]/10', border: 'border-[var(--info)]/30', text: 'text-[var(--info)]', icon: 'text-[var(--info)]' },
+                                  mint: { bg: 'bg-[var(--accent)]/10', border: 'border-[var(--accent)]/30', text: 'text-[var(--accent)]', icon: 'text-[var(--accent)]' },
+                                  burn: { bg: 'bg-[var(--error)]/10', border: 'border-[var(--error)]/30', text: 'text-[var(--error)]', icon: 'text-[var(--error)]' },
+                                  trade: { bg: 'bg-[var(--warning)]/10', border: 'border-[var(--warning)]/30', text: 'text-[var(--warning)]', icon: 'text-[var(--warning)]' },
+                                  liquidity: { bg: 'bg-[var(--info)]/10', border: 'border-[var(--info)]/30', text: 'text-[var(--info)]', icon: 'text-[var(--info)]' },
+                                  state: { bg: 'bg-[var(--bg-tertiary)]', border: 'border-[var(--border-default)]', text: 'text-[var(--text-secondary)]', icon: 'text-[var(--text-tertiary)]' },
+                                  other: { bg: 'bg-[var(--bg-tertiary)]', border: 'border-[var(--border-default)]', text: 'text-[var(--text-secondary)]', icon: 'text-[var(--text-tertiary)]' },
+                                };
+                                const colors = categoryColors[event.category || 'other'];
+
+                                return (
+                                  <div key={idx} className={`${colors.bg} rounded-lg px-3 py-2 border ${colors.border}`}>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className={`text-[10px] uppercase ${colors.text} font-semibold`}>
+                                        {event.eventName || event.type}
+                                      </span>
+                                      {event.category && event.category !== 'other' && (
+                                        <span className="text-[9px] px-1.5 py-0.5 bg-[var(--bg-secondary)]/50 rounded text-[var(--text-tertiary)]">
+                                          {event.category}
+                                        </span>
+                                      )}
+                                      {event.contractId && (
+                                        <Link href={`/contract/${event.contractId}`} className="text-[10px] font-mono hover:opacity-80 ml-auto" style={{ color: primaryColor }}>
+                                          {shortenAddress(event.contractId, 4)}
+                                        </Link>
+                                      )}
+                                    </div>
+                                    {event.decodedParams && Object.keys(event.decodedParams).length > 0 && (
+                                      <div className="space-y-0.5 mt-1">
+                                        {Object.entries(event.decodedParams).map(([key, val]) => (
+                                          <div key={key} className={`text-[10px] font-mono ${colors.text}`}>
+                                            <span className="text-[var(--text-tertiary)]">{key}:</span>{' '}
+                                            <span className={colors.icon}>{val.display}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {(!event.decodedParams || Object.keys(event.decodedParams).length === 0) && (
+                                      <>
+                                        {event.topics.length > 1 && (
+                                          <div className={`text-[10px] font-mono ${colors.text}`}>
+                                            {event.topics.slice(1).map((t, i) => (
+                                              <span key={i} className="mr-2">{t.display}</span>
                                             ))}
                                           </div>
                                         )}
-
-                                        {/* Data / Amount */}
-                                        {call.returnValue && (
-                                          <div className="pt-2 border-t border-[var(--border-subtle)]">
-                                            <div className="flex flex-col">
-                                              {/* Special handling for 'mint' events where data is often amount */}
-                                              {call.args && call.args.length > 0 && call.args[0].display === 'mint' ? (
-                                                <>
-                                                  <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] font-bold mb-0.5">Amount (Minted)</span>
-                                                  <span className="font-bold text-[var(--warning)] text-xs">
-                                                    {formatTokenAmount((parseFloat(call.returnValue.display) / 10000000).toString())}
-                                                  </span>
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] font-bold mb-0.5">Data</span>
-                                                  <span className="text-[var(--text-secondary)] break-all leading-relaxed whitespace-pre-wrap">
-                                                    {call.returnValue.display}
-                                                  </span>
-                                                </>
-                                              )}
-                                            </div>
+                                        {event.data && (
+                                          <div className={`text-[10px] font-mono ${colors.icon} break-all`}>
+                                            {event.data.display}
                                           </div>
                                         )}
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
-                                {/* Show args for function calls */}
-                                {call.type === 'fn_call' && call.args && call.args.length > 0 && (
-                                  <div className="mt-1 bg-[var(--bg-tertiary)] rounded px-2 py-1 text-[10px] font-mono text-[var(--text-secondary)] space-y-0.5">
-                                    {call.args.slice(0, 4).map((arg, argIdx) => (
-                                      <div key={argIdx} className="truncate">
-                                        <span className="text-[var(--text-muted)]">arg{argIdx}:</span> <span className="text-[var(--primary-blue)]">{arg.display}</span>
-                                      </div>
-                                    ))}
-                                    {call.args.length > 4 && (
-                                      <div className="text-[var(--text-muted)]">+{call.args.length - 4} more args</div>
+                                      </>
                                     )}
                                   </div>
-                                )}
-                              </div>
+                                );
+                              })}
                             </div>
-                          ))}
-                          {decodedMeta.invocationTrace.length > 15 && (
-                            <button
-                              onClick={() => setIsTraceExpanded(!isTraceExpanded)}
-                              className="w-full flex items-center justify-center gap-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors py-2 mt-2"
-                            >
-                              {isTraceExpanded ? (
-                                <>
-                                  <span>Show less</span>
-                                  <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </>
-                              ) : (
-                                <>
-                                  <span>+{decodedMeta.invocationTrace.length - 15} more trace items</span>
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </>
-                              )}
-                            </button>
-                          )}
-                        </div>
-                      )}
+                          </div>
+                        )}
 
-                      {/* Contract Events with Enhanced Categorization */}
-                      {decodedMeta.parsedEvents && decodedMeta.parsedEvents.length > 0 && (
-                        <div className="mt-4">
-                          <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-semibold tracking-wider mb-2">Contract Events ({decodedMeta.parsedEvents.length})</div>
-                          <div className="space-y-2">
-                            {decodedMeta.parsedEvents.slice(0, 10).map((event, idx) => {
-                              // Category-based colors - theme-aware
-                              const categoryColors = {
-                                transfer: { bg: 'bg-[var(--success)]/10', border: 'border-[var(--success)]/30', text: 'text-[var(--success)]', icon: 'text-[var(--success)]' },
-                                approval: { bg: 'bg-[var(--info)]/10', border: 'border-[var(--info)]/30', text: 'text-[var(--info)]', icon: 'text-[var(--info)]' },
-                                mint: { bg: 'bg-[var(--accent)]/10', border: 'border-[var(--accent)]/30', text: 'text-[var(--accent)]', icon: 'text-[var(--accent)]' },
-                                burn: { bg: 'bg-[var(--error)]/10', border: 'border-[var(--error)]/30', text: 'text-[var(--error)]', icon: 'text-[var(--error)]' },
-                                trade: { bg: 'bg-[var(--warning)]/10', border: 'border-[var(--warning)]/30', text: 'text-[var(--warning)]', icon: 'text-[var(--warning)]' },
-                                liquidity: { bg: 'bg-[var(--info)]/10', border: 'border-[var(--info)]/30', text: 'text-[var(--info)]', icon: 'text-[var(--info)]' },
-                                state: { bg: 'bg-[var(--bg-tertiary)]', border: 'border-[var(--border-default)]', text: 'text-[var(--text-secondary)]', icon: 'text-[var(--text-tertiary)]' },
-                                other: { bg: 'bg-[var(--bg-tertiary)]', border: 'border-[var(--border-default)]', text: 'text-[var(--text-secondary)]', icon: 'text-[var(--text-tertiary)]' },
-                              };
-                              const colors = categoryColors[event.category || 'other'];
+                        {/* State Changes */}
+                        {decodedMeta.stateChanges && decodedMeta.stateChanges.length > 0 && (
+                          <div className="mt-4">
+                            <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-semibold tracking-wider mb-2">State Changes ({decodedMeta.stateChanges.length})</div>
+                            <div className="space-y-2">
+                              {decodedMeta.stateChanges.map((change, idx) => {
+                                const changeColors: Record<string, { bg: string; border: string; badge: string }> = {
+                                  created: { bg: 'bg-[var(--success)]/10', border: 'border-[var(--success)]/30', badge: 'bg-[var(--success)]/20 text-[var(--success)]' },
+                                  updated: { bg: 'bg-[var(--info)]/10', border: 'border-[var(--info)]/30', badge: 'bg-[var(--info)]/20 text-[var(--info)]' },
+                                  removed: { bg: 'bg-[var(--error)]/10', border: 'border-[var(--error)]/30', badge: 'bg-[var(--error)]/20 text-[var(--error)]' },
+                                };
+                                const colors = changeColors[change.type];
 
-                              return (
-                                <div key={idx} className={`${colors.bg} rounded-lg px-3 py-2 border ${colors.border}`}>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className={`text-[10px] uppercase ${colors.text} font-semibold`}>
-                                      {event.eventName || event.type}
-                                    </span>
-                                    {event.category && event.category !== 'other' && (
-                                      <span className="text-[9px] px-1.5 py-0.5 bg-[var(--bg-secondary)]/50 rounded text-[var(--text-tertiary)]">
-                                        {event.category}
+                                return (
+                                  <div key={idx} className={`${colors.bg} rounded-lg px-3 py-2 border ${colors.border}`}>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-semibold ${colors.badge}`}>
+                                        {change.type}
                                       </span>
+                                      {change.durability && (
+                                        <span className="text-[9px] px-1.5 py-0.5 bg-[var(--bg-secondary)]/50 rounded text-[var(--text-tertiary)]">
+                                          {change.durability}
+                                        </span>
+                                      )}
+                                      {change.contractId && (
+                                        <Link href={`/contract/${change.contractId}`} className="text-[10px] font-mono hover:opacity-80 ml-auto" style={{ color: primaryColor }}>
+                                          {shortenAddress(change.contractId, 4)}
+                                        </Link>
+                                      )}
+                                    </div>
+                                    {change.key && (
+                                      <div className="text-[10px] font-mono text-[var(--text-secondary)] mb-1">
+                                        <span className="text-[var(--text-muted)]">key:</span> {change.key.display}
+                                      </div>
                                     )}
-                                    {event.contractId && (
-                                      <Link href={`/contract/${event.contractId}`} className="text-[10px] font-mono hover:opacity-80 ml-auto" style={{ color: primaryColor }}>
-                                        {shortenAddress(event.contractId, 4)}
-                                      </Link>
+                                    {change.type === 'updated' && change.valueBefore && change.valueAfter && (
+                                      <div className="space-y-1 text-[10px] font-mono">
+                                        <div className="text-[var(--error)]">
+                                          <span className="text-[var(--text-muted)]">before:</span> {change.valueBefore.display}
+                                        </div>
+                                        <div className="text-[var(--success)]">
+                                          <span className="text-[var(--text-muted)]">after:</span> {change.valueAfter.display}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {change.type === 'created' && change.valueAfter && (
+                                      <div className="text-[10px] font-mono text-[var(--success)]">
+                                        <span className="text-[var(--text-muted)]">value:</span> {change.valueAfter.display}
+                                      </div>
                                     )}
                                   </div>
-                                  {/* Decoded params for known event types */}
-                                  {event.decodedParams && Object.keys(event.decodedParams).length > 0 && (
-                                    <div className="space-y-0.5 mt-1">
-                                      {Object.entries(event.decodedParams).map(([key, val]) => (
-                                        <div key={key} className={`text-[10px] font-mono ${colors.text}`}>
-                                          <span className="text-[var(--text-tertiary)]">{key}:</span>{' '}
-                                          <span className={colors.icon}>{val.display}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                  {/* Fallback to raw topics/data if no decoded params */}
-                                  {(!event.decodedParams || Object.keys(event.decodedParams).length === 0) && (
-                                    <>
-                                      {event.topics.length > 1 && (
-                                        <div className={`text-[10px] font-mono ${colors.text}`}>
-                                          {event.topics.slice(1).map((t, i) => (
-                                            <span key={i} className="mr-2">{t.display}</span>
-                                          ))}
-                                        </div>
-                                      )}
-                                      {event.data && (
-                                        <div className={`text-[10px] font-mono ${colors.icon} truncate`}>
-                                          {event.data.display}
-                                        </div>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
-                              );
-                            })}
-                            {decodedMeta.parsedEvents.length > 10 && (
-                              <div className="text-xs text-[var(--text-muted)] text-center">
-                                +{decodedMeta.parsedEvents.length - 10} more events
-                              </div>
-                            )}
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* State Changes */}
-                      {decodedMeta.stateChanges && decodedMeta.stateChanges.length > 0 && (
-                        <div className="mt-4">
-                          <div className="text-[10px] uppercase text-[var(--text-tertiary)] font-semibold tracking-wider mb-2">State Changes ({decodedMeta.stateChanges.length})</div>
-                          <div className="space-y-2">
-                            {decodedMeta.stateChanges.slice(0, 8).map((change, idx) => {
-                              const changeColors = {
-                                created: { bg: 'bg-[var(--success)]/10', border: 'border-[var(--success)]/30', badge: 'bg-[var(--success)]/20 text-[var(--success)]' },
-                                updated: { bg: 'bg-[var(--info)]/10', border: 'border-[var(--info)]/30', badge: 'bg-[var(--info)]/20 text-[var(--info)]' },
-                                removed: { bg: 'bg-[var(--error)]/10', border: 'border-[var(--error)]/30', badge: 'bg-[var(--error)]/20 text-[var(--error)]' },
-                              };
-                              const colors = changeColors[change.type];
-
-                              return (
-                                <div key={idx} className={`${colors.bg} rounded-lg px-3 py-2 border ${colors.border}`}>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded font-semibold ${colors.badge}`}>
-                                      {change.type}
-                                    </span>
-                                    {change.durability && (
-                                      <span className="text-[9px] px-1.5 py-0.5 bg-[var(--bg-secondary)]/50 rounded text-[var(--text-tertiary)]">
-                                        {change.durability}
-                                      </span>
-                                    )}
-                                    {change.contractId && (
-                                      <Link href={`/contract/${change.contractId}`} className="text-[10px] font-mono hover:opacity-80 ml-auto" style={{ color: primaryColor }}>
-                                        {shortenAddress(change.contractId, 4)}
-                                      </Link>
-                                    )}
-                                  </div>
-                                  {change.key && (
-                                    <div className="text-[10px] font-mono text-[var(--text-secondary)] mb-1">
-                                      <span className="text-[var(--text-muted)]">key:</span> {change.key.display}
-                                    </div>
-                                  )}
-                                  {change.type === 'updated' && change.valueBefore && change.valueAfter && (
-                                    <div className="space-y-1 text-[10px] font-mono">
-                                      <div className="text-[var(--error)]">
-                                        <span className="text-[var(--text-muted)]">before:</span> {change.valueBefore.display}
-                                      </div>
-                                      <div className="text-[var(--success)]">
-                                        <span className="text-[var(--text-muted)]">after:</span> {change.valueAfter.display}
-                                      </div>
-                                    </div>
-                                  )}
-                                  {change.type === 'created' && change.valueAfter && (
-                                    <div className="text-[10px] font-mono text-[var(--success)]">
-                                      <span className="text-[var(--text-muted)]">value:</span> {change.valueAfter.display}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                            {decodedMeta.stateChanges.length > 8 && (
-                              <div className="text-xs text-[var(--text-muted)] text-center">
-                                +{decodedMeta.stateChanges.length - 8} more state changes
-                              </div>
-                            )}
+                        {/* No trace data available */}
+                        {decodedMeta.invocationTrace.length === 0 && decodedMeta.parsedEvents.length === 0 && decodedMeta.stateChanges.length === 0 && (
+                          <div className="mt-3 p-3 bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border-subtle)]">
+                            <p className="text-xs text-[var(--text-tertiary)]">No detailed invocation trace available for this transaction.</p>
                           </div>
-                        </div>
-                      )}
-
-                      {/* No trace data available */}
-                      {decodedMeta.invocationTrace.length === 0 && decodedMeta.parsedEvents.length === 0 && decodedMeta.stateChanges.length === 0 && (
-                        <div className="mt-3 p-3 bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border-subtle)]">
-                          <p className="text-xs text-[var(--text-tertiary)]">No detailed invocation trace available for this transaction.</p>
-                        </div>
-                      )}
-                    </>
-                  )}
+                        )}
+                      </>
+                    );
+                  })()}
 
                   {/* Fallback when XDR not available or decoding failed */}
                   {!isDecodingXdr && (!decodedMeta || !decodedMeta.success) && (
@@ -2504,7 +2471,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       </div>
 
                       {/* Effects as trace items */}
-                      {effects.slice(0, 6).map((effect, idx) => (
+                      {effects.map((effect, idx) => (
                         <div key={idx} className="flex items-start gap-3 mb-2 ml-4 border-l-2 border-[var(--border-default)] pl-4">
                           <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${effect.type.includes('credited') ? 'bg-[var(--success)]/20' :
                             effect.type.includes('debited') ? 'bg-[var(--error)]/20' : 'bg-[var(--bg-tertiary)]'
@@ -2538,12 +2505,6 @@ export default function TransactionMobileView({ transaction, operations, effects
                           </div>
                         </div>
                       ))}
-
-                      {effects.length > 6 && (
-                        <div className="text-xs text-[var(--text-muted)] text-center mt-2">
-                          +{effects.length - 6} more effects
-                        </div>
-                      )}
 
                       {/* Error message if decoding failed */}
                       {decodedMeta && !decodedMeta.success && decodedMeta.error && (
