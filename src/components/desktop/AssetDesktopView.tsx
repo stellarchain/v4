@@ -294,22 +294,18 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                 </div>
               </div>
 
-              {/* Volume & Vol/Mkt Cap */}
-              <div className="p-3 grid grid-cols-2 gap-4">
-                <div>
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-xs text-[var(--text-tertiary)]">Volume (24h)</span>
-                  </div>
-                  <div className="font-semibold text-[var(--text-primary)]">${formatNumber(asset.volume_24h)}</div>
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-xs text-[var(--text-tertiary)]">Vol/Mkt Cap</span>
-                  </div>
-                  <div className="font-semibold text-[var(--text-primary)]">
-                    {asset.market_cap > 0 ? ((asset.volume_24h / asset.market_cap) * 100).toFixed(2) + '%' : '--'}
-                  </div>
-                </div>
+              {/* Volume (24h) */}
+              <div className="p-3 flex items-center justify-between">
+                <span className="text-xs text-[var(--text-tertiary)]">Volume (24h)</span>
+                <span className="font-semibold text-[var(--text-primary)]">${formatNumber(asset.volume_24h)}</span>
+              </div>
+
+              {/* Vol/Mkt Cap */}
+              <div className="p-3 flex items-center justify-between">
+                <span className="text-xs text-[var(--text-tertiary)]">Vol/Mkt Cap</span>
+                <span className="font-semibold text-[var(--text-primary)]">
+                  {asset.market_cap > 0 ? ((asset.volume_24h / asset.market_cap) * 100).toFixed(2) + '%' : '--'}
+                </span>
               </div>
 
               {/* FDV */}
@@ -326,18 +322,18 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                 </span>
               </div>
 
-              {/* Supply Info */}
-              <div className="p-3 grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-xs text-[var(--text-tertiary)] mb-0.5">Total supply</div>
-                  <div className="font-semibold text-[var(--text-primary)]">{formatNumber(asset.total_supply)} {asset.code}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-[var(--text-tertiary)] mb-0.5">Max. supply</div>
-                  <div className="font-semibold text-[var(--text-primary)]">
-                    {asset.total_supply === asset.circulating_supply ? '∞' : formatNumber(asset.total_supply) + ' ' + asset.code}
-                  </div>
-                </div>
+              {/* Total supply */}
+              <div className="p-3 flex items-center justify-between">
+                <span className="text-xs text-[var(--text-tertiary)]">Total supply</span>
+                <span className="font-semibold text-[var(--text-primary)]">{formatNumber(asset.total_supply)} {asset.code}</span>
+              </div>
+
+              {/* Max. supply */}
+              <div className="p-3 flex items-center justify-between">
+                <span className="text-xs text-[var(--text-tertiary)]">Max. supply</span>
+                <span className="font-semibold text-[var(--text-primary)]">
+                  {asset.total_supply === asset.circulating_supply ? '∞' : formatNumber(asset.total_supply) + ' ' + asset.code}
+                </span>
               </div>
 
               {/* Circulating Supply */}

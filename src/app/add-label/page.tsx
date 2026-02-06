@@ -43,14 +43,14 @@ export default function AddLabelPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[800px] p-6 lg:p-8">
         {/* Header Card */}
-        <div className="mb-5 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
+        <div className="mb-5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5">
           <div className="flex items-start gap-4">
             <Link
               href="/known-accounts"
-              className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition hover:bg-sky-100"
+              className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400 transition hover:bg-sky-100 dark:hover:bg-sky-900/50"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -58,13 +58,13 @@ export default function AddLabelPage() {
             </Link>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Accounts</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Accounts</span>
                 <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
                   Label Submission
                 </span>
               </div>
-              <div className="text-xl font-bold text-slate-900">Add Label</div>
-              <div className="mt-1 text-xs text-slate-500">
+              <div className="text-xl font-bold text-[var(--text-primary)]">Add Label</div>
+              <div className="mt-1 text-xs text-[var(--text-tertiary)]">
                 Submit a label for a Stellar account to help identify it on the network
               </div>
             </div>
@@ -72,11 +72,11 @@ export default function AddLabelPage() {
         </div>
 
         {/* Form Card */}
-        <div className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm">
+        <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Account ID Field */}
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">
                 Account ID
               </label>
               <input
@@ -84,17 +84,17 @@ export default function AddLabelPage() {
                 value={accountId}
                 onChange={(e) => setAccountId(e.target.value)}
                 placeholder="G..."
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm font-mono placeholder:text-slate-400"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 text-sm font-mono placeholder:text-[var(--text-muted)]"
                 required
               />
-              <p className="mt-1.5 text-[11px] text-slate-400">
+              <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
                 The Stellar public key (starts with G)
               </p>
             </div>
 
             {/* Label Field */}
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">
                 Label
               </label>
               <input
@@ -102,17 +102,17 @@ export default function AddLabelPage() {
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
                 placeholder="Enter a name for this account"
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm placeholder:text-slate-400"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 text-sm placeholder:text-[var(--text-muted)]"
                 required
               />
-              <p className="mt-1.5 text-[11px] text-slate-400">
+              <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
                 A descriptive name for the account (e.g., &quot;Company Treasury&quot;)
               </p>
             </div>
 
             {/* Email Field */}
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">
                 Email
               </label>
               <input
@@ -120,17 +120,17 @@ export default function AddLabelPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm placeholder:text-slate-400"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 text-sm placeholder:text-[var(--text-muted)]"
                 required
               />
-              <p className="mt-1.5 text-[11px] text-slate-400">
+              <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
                 Contact email for verification and updates
               </p>
             </div>
 
             {/* Verification Type Selection */}
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-3">
                 Verification Type
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -143,14 +143,14 @@ export default function AddLabelPage() {
                       onClick={() => setVerificationType(option.id)}
                       className={`p-4 rounded-xl border-2 text-left transition-all ${
                         isSelected
-                          ? 'border-sky-500 bg-sky-50'
-                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                          ? 'border-sky-500 bg-sky-50 dark:bg-sky-900/20'
+                          : 'border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)]'
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div
                           className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                            isSelected ? 'bg-sky-100 text-sky-600' : 'bg-slate-100 text-slate-500'
+                            isSelected ? 'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
                           }`}
                         >
                           {option.icon}
@@ -159,13 +159,13 @@ export default function AddLabelPage() {
                           <div className="flex items-center gap-2 mb-0.5">
                             <span
                               className={`font-semibold text-sm ${
-                                isSelected ? 'text-sky-600' : 'text-slate-900'
+                                isSelected ? 'text-sky-600 dark:text-sky-400' : 'text-[var(--text-primary)]'
                               }`}
                             >
                               {option.name}
                             </span>
                             {isSelected && (
-                              <svg className="w-4 h-4 text-sky-600" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-sky-600 dark:text-sky-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path
                                   fillRule="evenodd"
                                   d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -174,8 +174,8 @@ export default function AddLabelPage() {
                               </svg>
                             )}
                           </div>
-                          <div className="text-lg font-bold text-slate-900">${option.price}</div>
-                          <p className="text-[11px] text-slate-500 mt-1">{option.description}</p>
+                          <div className="text-lg font-bold text-[var(--text-primary)]">${option.price}</div>
+                          <p className="text-[11px] text-[var(--text-tertiary)] mt-1">{option.description}</p>
                         </div>
                       </div>
                     </button>
@@ -187,7 +187,7 @@ export default function AddLabelPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-sky-600 text-white font-semibold rounded-xl hover:bg-sky-700 transition-colors shadow-sm hover:shadow-md"
+              className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-sky-600 text-white font-semibold rounded-xl hover:bg-sky-700 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -205,10 +205,10 @@ export default function AddLabelPage() {
         {/* Info Cards */}
         <div className="mt-5 space-y-3">
           {/* Process Info */}
-          <div className="rounded-xl border border-slate-200/60 bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -218,10 +218,10 @@ export default function AddLabelPage() {
                 </svg>
               </div>
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-1">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-1">
                   Processing Time
                 </div>
-                <p className="text-sm text-slate-600 leading-relaxed">
+                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
                   The user defined process is instant once the payment has been made. For organisation you will need to contact support and provide evidence of being a legitimate organisation or company.
                 </p>
               </div>
@@ -229,10 +229,10 @@ export default function AddLabelPage() {
           </div>
 
           {/* Paid Service Info */}
-          <div className="rounded-xl border border-slate-200/60 bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-rose-50 flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-9 h-9 rounded-lg bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -242,10 +242,10 @@ export default function AddLabelPage() {
                 </svg>
               </div>
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-rose-600 mb-1">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-rose-600 dark:text-rose-400 mb-1">
                   Why Paid?
                 </div>
-                <p className="text-sm text-slate-600 leading-relaxed">
+                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
                   To prevent scams, this is a paid service.
                 </p>
               </div>
@@ -253,10 +253,10 @@ export default function AddLabelPage() {
           </div>
 
           {/* Community Projects Info */}
-          <div className="rounded-xl border border-slate-200/60 bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -266,10 +266,10 @@ export default function AddLabelPage() {
                 </svg>
               </div>
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 mb-1">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-1">
                   Community Projects
                 </div>
-                <p className="text-sm text-slate-600 leading-relaxed">
+                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
                   Contact support if you&apos;re a community project and would like to be verified for free.
                 </p>
               </div>
