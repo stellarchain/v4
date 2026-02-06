@@ -11,6 +11,7 @@ import TransactionFlowAnimation from './TransactionFlowAnimation';
 import { getOperationColors } from '@/lib/design-system';
 import { getRouteFromSearchQuery } from '@/lib/searchRouting';
 import GliderTabs from '@/components/ui/GliderTabs';
+import { assetRoute } from '@/lib/routes';
 
 interface XLMMarketData {
     price: number;
@@ -342,10 +343,10 @@ export default function DesktopHomePage({
 
     // Trending tokens data
     const trendingTokens = [
-        { symbol: 'XLM', logo: 'https://stellar.org/favicon.ico', fallbackColor: 'bg-[var(--text-primary)]' },
-        { symbol: 'USDC', logo: 'https://www.centre.io/images/usdc/usdc-icon-86074d9d49.png', fallbackColor: 'bg-[var(--info)]' },
-        { symbol: 'yXLM', logo: null, fallbackColor: 'bg-[var(--indigo)]' },
-        { symbol: 'AQUA', logo: 'https://aqua.network/assets/img/aqua-logo.png', fallbackColor: 'bg-[var(--purple)]' },
+        { symbol: 'XLM', logo: 'https://stellar.org/favicon.ico', fallbackColor: 'bg-[var(--text-primary)]', href: assetRoute('XLM', null) },
+        { symbol: 'USDC', logo: 'https://www.centre.io/images/usdc/usdc-icon-86074d9d49.png', fallbackColor: 'bg-[var(--info)]', href: assetRoute('USDC', 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN') },
+        { symbol: 'yXLM', logo: null, fallbackColor: 'bg-[var(--indigo)]', href: assetRoute('yXLM', 'GARDNV3Q7YGT4AKSDF25LT32YSCCW4EV22Y2TV3I2PU2MMXJTEDL5T55') },
+        { symbol: 'AQUA', logo: 'https://aqua.network/assets/img/aqua-logo.png', fallbackColor: 'bg-[var(--purple)]', href: assetRoute('AQUA', 'GBNZILSTVQZ4R7IKQDGHYGY2QXL5QOFJYQMXPKWRRM5PAV7Y4M67AQUA') },
     ];
 
     // Track failed images
@@ -393,7 +394,7 @@ export default function DesktopHomePage({
                         {trendingTokens.map((token) => (
                             <Link
                                 key={token.symbol}
-                                href={`/markets`}
+                                href={token.href}
                                 className="group flex items-center bg-[var(--bg-secondary)] hover:border-[var(--info)]/30 px-3 py-1.5 rounded-full shadow-sm border border-[var(--border-default)] transition"
                             >
                                 <div className="w-5 h-5 rounded-full overflow-hidden mr-2 group-hover:scale-110 transition flex-shrink-0">

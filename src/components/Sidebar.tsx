@@ -68,7 +68,7 @@ export default function Sidebar() {
             </span>
             <input
               className="w-full py-2 pl-10 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70 outline-none"
-              placeholder="address_hash_or_ledger"
+              placeholder="Search by address, hash, contract, or ledger"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
