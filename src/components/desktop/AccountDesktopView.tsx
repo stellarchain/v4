@@ -904,13 +904,18 @@ export default function AccountDesktopView({ account, transactions, operations: 
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <Link
-                              href={`/ledger/${(op as any).ledger || ''}`}
-                              className="text-sm text-sky-600 hover:underline"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {(op as any).ledger?.toLocaleString() || '-'}
-                            </Link>
+                            {(() => {
+                              const ledgerSeq = Math.floor(Number(BigInt(op.id) >> BigInt(32)));
+                              return ledgerSeq ? (
+                                <Link
+                                  href={`/ledger/${ledgerSeq}`}
+                                  className="text-sm text-sky-600 hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {ledgerSeq.toLocaleString()}
+                                </Link>
+                              ) : '-';
+                            })()}
                           </td>
                           <td className="px-4 py-3 text-sm text-[var(--text-tertiary)] whitespace-nowrap">
                             {timeAgo(op.created_at)}
