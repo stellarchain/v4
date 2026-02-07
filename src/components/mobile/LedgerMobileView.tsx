@@ -242,23 +242,16 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-1.5">
-                                <div className="flex items-center gap-1.5 bg-[var(--success)]/10 backdrop-blur-sm border border-[var(--success)]/20 px-2 py-1 rounded-lg">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--success)]"></div>
-                                    <div className="flex flex-col leading-none">
-                                        <span className="text-[11px] font-bold text-[var(--success)]">{ledger.successful_transaction_count}</span>
-                                        <span className="text-[8px] font-bold uppercase text-[var(--success)]/60">Success</span>
-                                    </div>
+                            <div className="flex items-center gap-1.5 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] px-2.5 py-1.5 rounded-lg">
+                                <div className="flex flex-col leading-none text-center">
+                                    <span className="text-[9px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Tx</span>
+                                    <span className="text-[13px] font-bold mt-0.5">
+                                        <span className="text-[var(--success)]">{ledger.successful_transaction_count}</span>
+                                        {ledger.failed_transaction_count > 0 && (
+                                            <span><span className="text-white">/</span><span className="text-[var(--error)]">{ledger.failed_transaction_count}</span></span>
+                                        )}
+                                    </span>
                                 </div>
-                                {ledger.failed_transaction_count > 0 && (
-                                    <div className="flex items-center gap-1.5 bg-[var(--error)]/10 backdrop-blur-sm border border-[var(--error)]/20 px-2 py-1 rounded-lg">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[var(--error)]"></div>
-                                        <div className="flex flex-col leading-none">
-                                            <span className="text-[11px] font-bold text-[var(--error)]">{ledger.failed_transaction_count}</span>
-                                            <span className="text-[8px] font-bold uppercase text-[var(--error)]/60">Failed</span>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
