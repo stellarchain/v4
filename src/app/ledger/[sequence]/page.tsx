@@ -19,52 +19,46 @@ export default function LedgerPage() {
   const [ledger, setLedger] = useState<Ledger | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [operations, setOperations] = useState<Operation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ sequence: number; message: string } | null>(null);
+  const isInvalidSequence = !Number.isFinite(sequenceNum);
+  const errorMessage = isInvalidSequence
+    ? 'Invalid ledger sequence.'
+    : (error && error.sequence === sequenceNum ? error.message : null);
+  const isLoading = !errorMessage && (!ledger || ledger.sequence !== sequenceNum);
+
+  const loadLedgerData = async (targetSequence: number) => {
+    const server = new Horizon.Server(getBaseUrl());
+    const [ledgerResponse, transactionsResponse, operationsResponse] = await Promise.all([
+      server.ledgers().ledger(targetSequence).call(),
+      server.transactions().forLedger(targetSequence).order('desc').limit(10).call(),
+      server.operations().forLedger(targetSequence).order('desc').limit(10).call(),
+    ]);
+
+    return {
+      ledger: ledgerResponse as unknown as Ledger,
+      transactions: (transactionsResponse.records || []) as Transaction[],
+      operations: (operationsResponse.records || []) as Operation[],
+    };
+  };
 
   useEffect(() => {
-    let cancelled = false;
+    if (isInvalidSequence) return;
+    loadLedgerData(sequenceNum)
+      .then(({ ledger: ledgerResult, transactions, operations }) => {
+        setLedger(ledgerResult);
+        setTransactions(transactions);
+        setOperations(operations);
+      })
+      .catch((err) => {
+        setError({
+          sequence: sequenceNum,
+          message: err instanceof Error ? err.message : 'Failed to load ledger.',
+        });
+      });
+  }, [sequenceNum, isInvalidSequence]);
 
-    if (Number.isNaN(sequenceNum)) {
-      setError('Invalid ledger sequence.');
-      setIsLoading(false);
-      return;
-    }
-    async function loadLedgerData() {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const server = new Horizon.Server(getBaseUrl());
-
-        const [ledgerResponse, transactionsResponse, operationsResponse] = await Promise.all([
-          server.ledgers().ledger(sequenceNum).call(),
-          server.transactions().forLedger(sequenceNum).order('desc').limit(10).call(),
-          server.operations().forLedger(sequenceNum).order('desc').limit(10).call(),
-        ]);
-
-        if (cancelled) return;
-        setLedger(ledgerResponse as unknown as Ledger);
-        setTransactions((transactionsResponse.records || []) as Transaction[]);
-        setOperations((operationsResponse.records || []) as Operation[]);
-
-      } catch (err) {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : 'Failed to load ledger.');
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
-    loadLedgerData().then(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, [sequenceNum]);
-
-  if (error) {
-    return <ShowError message={error} />;
+  if (errorMessage) {
+    return <ShowError message={errorMessage} />;
   }
 
   if (isLoading || !ledger) {
