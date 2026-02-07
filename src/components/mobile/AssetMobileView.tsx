@@ -142,20 +142,18 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
   // Fetch chart data
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchChartData = async () => {
       setLoading(true);
       try {
         const timeframe = timeframes.find(t => t.label === selectedTimeframe) || timeframes[1];
-        const xlmUsdPrice = await getXLMUSDPriceFromHorizon();
+        const xlmUsdPrice = await getXLMUSDPriceFromHorizon(controller.signal);
 
         const isXLM = asset.code === 'XLM';
         const counterAsset = isXLM
           ? { code: 'USDC', issuer: USDC_ISSUER }
           : { code: 'XLM' };
-
-        // Calculate time range based on timeframe
-        const endTime = Date.now();
-        const startTime = timeframe.value > 0 ? endTime - timeframe.value : undefined;
 
         // Calculate time range
         const rangeEnd = Date.now();
@@ -167,7 +165,8 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
           timeframe.resolution,
           timeframe.limit,
           rangeStart,
-          rangeEnd
+          rangeEnd,
+          controller.signal
         );
 
         // First pass: get all close prices to calculate median
@@ -234,6 +233,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
         setChartData(processedData);
       } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
         console.error('Failed to fetch chart data', error);
       }
       setLoading(false);
@@ -241,6 +241,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     };
 
     fetchChartData();
+    return () => controller.abort();
   }, [asset, selectedTimeframe]);
 
   // Fetch order book
@@ -754,7 +755,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 <button
                   key={tf.label}
                   onClick={() => setSelectedTimeframe(tf.label)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${selectedTimeframe === tf.label
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${selectedTimeframe === tf.label
                     ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
                     : 'bg-[var(--bg-primary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]'
                     }`}
@@ -1480,7 +1481,7 @@ function AssetConverterMobile({ asset }: { asset: AssetDetails }) {
               setActiveInput('asset');
               setAssetAmount(e.target.value);
             }}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl py-2.5 px-3 pr-16 text-[var(--text-primary)] font-mono text-sm focus:outline-none focus:border-[var(--primary-blue)] transition-colors"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl py-2.5 px-3 pr-16 text-[var(--text-primary)] font-mono text-sm focus:border-[var(--primary-blue)] transition-colors"
             placeholder="0"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] font-bold text-xs">
@@ -1506,7 +1507,7 @@ function AssetConverterMobile({ asset }: { asset: AssetDetails }) {
               setActiveInput('usd');
               setUsdAmount(e.target.value);
             }}
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl py-2.5 px-3 pr-16 text-[var(--text-primary)] font-mono text-sm focus:outline-none focus:border-[var(--primary-blue)] transition-colors"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl py-2.5 px-3 pr-16 text-[var(--text-primary)] font-mono text-sm focus:border-[var(--primary-blue)] transition-colors"
             placeholder="0"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] font-bold text-xs">

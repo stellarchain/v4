@@ -97,7 +97,7 @@ export default function StatCard({ stat, onClick }: StatCardProps) {
   return (
     <div
       onClick={onClick}
-      className={`bg-[var(--bg-secondary)] rounded-2xl p-4 transition-all shadow-sm ${onClick ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''
+      className={`bg-[var(--bg-secondary)] rounded-2xl p-4 transition-[box-shadow,transform] shadow-sm ${onClick ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''
         }`}
     >
       <div className="flex items-start justify-between">

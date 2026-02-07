@@ -8,14 +8,14 @@ export default function ThemeToggle() {
     return (
         <button
             onClick={toggleTheme}
-            className="flex items-center gap-3 px-3 py-2.5 w-full text-[var(--text-secondary)] hover:text-[var(--primary)] rounded-xl hover:bg-[var(--bg-tertiary)] transition-all duration-200 text-[13px] group"
+            className="flex items-center gap-3 px-3 py-2.5 w-full text-[var(--text-secondary)] hover:text-[var(--primary)] rounded-xl hover:bg-[var(--bg-tertiary)] transition-colors duration-200 text-[13px] group"
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
         >
             {/* Icon Container with Toggle Effect */}
             <div className="relative w-[18px] h-[18px]">
                 {/* Sun Icon */}
                 <svg
-                    className={`absolute inset-0 w-[18px] h-[18px] transition-all duration-300 ${theme === 'light'
+                    className={`absolute inset-0 w-[18px] h-[18px] transition-[opacity,transform] duration-300 ${theme === 'light'
                             ? 'opacity-100 rotate-0 scale-100'
                             : 'opacity-0 rotate-90 scale-50'
                         }`}
@@ -33,7 +33,7 @@ export default function ThemeToggle() {
 
                 {/* Moon Icon */}
                 <svg
-                    className={`absolute inset-0 w-[18px] h-[18px] transition-all duration-300 ${theme === 'dark'
+                    className={`absolute inset-0 w-[18px] h-[18px] transition-[opacity,transform] duration-300 ${theme === 'dark'
                             ? 'opacity-100 rotate-0 scale-100'
                             : 'opacity-0 -rotate-90 scale-50'
                         }`}

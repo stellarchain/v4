@@ -1546,7 +1546,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                 value={favoriteLabel}
                 onChange={(e) => setFavoriteLabel(e.target.value)}
                 placeholder="e.g. My Wallet, Exchange..."
-                className="w-full px-3 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--primary-blue)]"
+                className="w-full px-3 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--primary-blue)]"
               />
             </div>
 

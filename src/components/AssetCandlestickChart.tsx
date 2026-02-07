@@ -6,6 +6,7 @@ import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, USDC_ISS
 
 interface ChartProps {
     asset: AssetDetails;
+    className?: string;
 }
 
 interface VolumeDataPoint {
@@ -39,9 +40,10 @@ function formatTimeLabel(timestamp: number, resolution: number): string {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-export default function AssetCandlestickChart({ asset }: ChartProps) {
+export default function AssetCandlestickChart({ asset, className }: ChartProps) {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const volumeChartContainerRef = useRef<HTMLDivElement>(null);
+    const chartInstanceRef = useRef<ReturnType<typeof createChart> | null>(null);
     const [loading, setLoading] = useState(true);
     const [resolution, setResolution] = useState(900000); // 15 min default
     const [viewMode, setViewMode] = useState<'price' | 'volume'>('price');
@@ -77,7 +79,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                 horzLines: { color: 'rgba(148, 163, 184, 0.1)' },
             },
             width: chartContainerRef.current.clientWidth,
-            height: 400,
+            height: chartContainerRef.current.clientHeight || 320,
             timeScale: {
                 timeVisible: true,
                 secondsVisible: false,
@@ -99,6 +101,8 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                 },
             },
         });
+
+        chartInstanceRef.current = chart;
 
         // Candlestick Series
         const candlestickSeries = chart.addSeries(CandlestickSeries, {
@@ -255,19 +259,42 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
 
         const handleResize = () => {
             if (chartContainerRef.current) {
-                chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+                chart.applyOptions({
+                    width: chartContainerRef.current.clientWidth,
+                    height: chartContainerRef.current.clientHeight || 320,
+                });
             }
         };
 
         window.addEventListener('resize', handleResize);
+        // Also observe container size changes from grid layout
+        const ro = new ResizeObserver(handleResize);
+        if (chartContainerRef.current) ro.observe(chartContainerRef.current);
 
         return () => {
             cancelled = true;
+            chartInstanceRef.current = null;
+            ro.disconnect();
             window.removeEventListener('resize', handleResize);
             chart.unsubscribeCrosshairMove(crosshairHandler);
             chart.remove();
         };
     }, [asset, resolution]);
+
+    // Resize price chart when switching back from volume view
+    useEffect(() => {
+        if (viewMode === 'price' && chartInstanceRef.current && chartContainerRef.current) {
+            // Use requestAnimationFrame to ensure DOM has updated layout
+            requestAnimationFrame(() => {
+                if (chartInstanceRef.current && chartContainerRef.current) {
+                    chartInstanceRef.current.applyOptions({
+                        width: chartContainerRef.current.clientWidth,
+                        height: chartContainerRef.current.clientHeight || 320,
+                    });
+                }
+            });
+        }
+    }, [viewMode]);
 
     // Volume chart effect
     useEffect(() => {
@@ -283,7 +310,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                 horzLines: { color: 'rgba(148, 163, 184, 0.1)' },
             },
             width: volumeChartContainerRef.current.clientWidth,
-            height: 250,
+            height: 200,
             timeScale: {
                 timeVisible: true,
                 secondsVisible: false,
@@ -331,13 +358,13 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
     }, [viewMode, volumeData]);
 
     return (
-        <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm p-4 overflow-hidden">
+        <div className={`bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] shadow-sm p-4 overflow-hidden flex flex-col ${className || ''}`}>
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-4">
                     <div className="flex gap-1 bg-[var(--bg-tertiary)] p-1 rounded-lg">
                         <button
                             onClick={() => setViewMode('price')}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'price'
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'price'
                                 ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm'
                                 : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                                 }`}
@@ -346,7 +373,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                         </button>
                         <button
                             onClick={() => setViewMode('volume')}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'volume'
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'volume'
                                 ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm'
                                 : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                                 }`}
@@ -368,7 +395,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                         <button
                             key={opt.label}
                             onClick={() => setResolution(opt.value)}
-                            className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${resolution === opt.value
+                            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${resolution === opt.value
                                 ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm'
                                 : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                                 }`}
@@ -380,11 +407,10 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
             </div>
 
             {/* Price Chart View */}
-            {viewMode === 'price' && (
-                <div className="relative">
+            <div className={`relative flex-1 flex flex-col ${viewMode !== 'price' ? 'hidden' : ''}`}>
                     <div
                         ref={chartContainerRef}
-                        className="w-full h-[400px] relative rounded-lg overflow-hidden"
+                        className="w-full flex-1 min-h-[200px] relative rounded-lg overflow-hidden"
                     >
                         {loading && (
                             <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-secondary)]/80 z-20 backdrop-blur-sm">
@@ -417,11 +443,9 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                         </div>
                     )}
                 </div>
-            )}
 
             {/* Volume View */}
-            {viewMode === 'volume' && (
-                <div className="space-y-4">
+            <div className={`space-y-4 ${viewMode !== 'volume' ? 'hidden' : ''}`}>
                     {/* Volume Stats Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                         <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)]">
@@ -459,7 +483,7 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                     {/* Volume Chart */}
                     <div
                         ref={volumeChartContainerRef}
-                        className="w-full h-[250px] relative rounded-lg overflow-hidden"
+                        className="w-full h-[200px] relative rounded-lg overflow-hidden"
                     >
                         {loading && (
                             <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-secondary)]/80 z-20 backdrop-blur-sm">
@@ -501,7 +525,6 @@ export default function AssetCandlestickChart({ asset }: ChartProps) {
                         </div>
                     </div>
                 </div>
-            )}
         </div>
     );
 }
