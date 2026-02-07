@@ -45,7 +45,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 sidebar-container flex flex-col flex-shrink-0 h-screen shadow-2xl transition-all font-sans sticky top-0">
+    <aside className="w-64 sidebar-container flex flex-col flex-shrink-0 h-screen shadow-2xl transition-colors font-sans sticky top-0">
       <div className="p-4">
         <Link href="/" className="flex items-center space-x-3 mb-2 group">
           <div className="w-9 h-9 bg-[var(--info-muted)] border border-[var(--border-subtle)] rounded-lg flex items-center justify-center text-[var(--primary-blue)]">
@@ -63,11 +63,11 @@ export default function Sidebar() {
         {/* Search */}
         <form onSubmit={handleSearch} className="search-box group">
           <div className="relative">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-muted)]">
+            <span className="absolute inset-y-0 left-0 pl-3 z-10 flex items-center pointer-events-none text-[var(--text-muted)]">
               {icons.search}
             </span>
             <input
-              className="w-full py-2 pl-4 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70 outline-none"
+              className="w-full py-2 pl-9 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70"
               placeholder="Search by address, hash, contract, or ledger"
               type="text"
               value={searchQuery}
@@ -86,7 +86,7 @@ export default function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center px-4 py-2.5 text-sm font-sans font-medium rounded-md transition-all group tracking-wide ${isActive ? 'nav-item-active' : 'nav-item text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
+              className={`flex items-center px-4 py-2.5 text-sm font-sans font-medium rounded-md transition-colors group tracking-wide ${isActive ? 'nav-item-active' : 'nav-item text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
             >
               <span className={`mr-3 opacity-70 group-hover:opacity-100 ${isActive ? 'text-[var(--primary-blue)]' : ''}`}>
                 {icons[item.icon]}

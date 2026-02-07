@@ -48,7 +48,7 @@ export default function WalletTrackPage() {
                                 value={address}
                                 onChange={(e) => setAddress(e.target.value)}
                                 placeholder="G..."
-                                className="w-full bg-[var(--bg-tertiary)] rounded-xl py-3 px-4 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-all text-sm font-mono"
+                                className="w-full bg-[var(--bg-tertiary)] rounded-xl py-3 px-4 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 transition-colors text-sm font-mono"
                             />
                         </div>
                     </div>
@@ -65,7 +65,7 @@ export default function WalletTrackPage() {
 
             {/* Showcase Card */}
             <div
-                className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
+                className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-[colors,box-shadow,transform] cursor-pointer group"
                 onClick={() => window.location.href = `/graph/${showcaseAddress}`}
             >
                 <div className="flex items-start justify-between">
@@ -82,7 +82,7 @@ export default function WalletTrackPage() {
                             </p>
                         </div>
                     </div>
-                    <svg className="w-5 h-5 text-[var(--text-muted)] group-hover:text-[var(--primary)] group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-[var(--text-muted)] group-hover:text-[var(--primary)] group-hover:translate-x-1 transition-[color,transform]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
                     </svg>
                 </div>

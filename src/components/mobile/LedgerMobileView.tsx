@@ -52,7 +52,7 @@ const LoadMoreButton = ({ onClick, loading }: { onClick: () => void; loading: bo
     <button
         onClick={onClick}
         disabled={loading}
-        className="w-full py-3 mt-2 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] text-sm font-semibold text-[var(--primary-blue)] hover:bg-[var(--bg-tertiary)] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 mt-2 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] text-sm font-semibold text-[var(--primary-blue)] hover:bg-[var(--bg-tertiary)] active:scale-[0.99] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
         {loading ? (
             <span className="flex items-center justify-center">

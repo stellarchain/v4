@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import gsap from 'gsap';
 import { Ledger, NetworkStats, Transaction, formatXLM, shortenAddress, timeAgo, Operation, getBaseUrl } from '@/lib/stellar';
 import InfoTooltip from '../InfoTooltip';
@@ -48,11 +48,29 @@ export default function DesktopHomePage({
     xlmMarketData
 }: DesktopHomePageProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
     const [searchQuery, setSearchQuery] = useState('');
     const [liveStats, setLiveStats] = useState(stats);
     const [liveLedgers, setLiveLedgers] = useState<Ledger[]>(initialLedgers);
     const [operations, setOperations] = useState<Operation[]>(initialOperations);
-    const [activeTab, setActiveTab] = useState('All Activity');
+    const validTabs = ['All Activity', 'Payments', 'Swaps', 'Smart Contracts'] as const;
+    const tabFromUrl = searchParams.get('tab');
+    const [activeTab, setActiveTab] = useState(
+        validTabs.includes(tabFromUrl as typeof validTabs[number]) ? tabFromUrl as string : 'All Activity'
+    );
+
+    const handleTabChange = useCallback((tab: string) => {
+        setActiveTab(tab);
+        const params = new URLSearchParams(searchParams.toString());
+        if (tab === 'All Activity') {
+            params.delete('tab');
+        } else {
+            params.set('tab', tab);
+        }
+        const qs = params.toString();
+        router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+    }, [searchParams, pathname, router]);
     const [ledgerProgress, setLedgerProgress] = useState(0);
     const ledgerCountRef = useRef<HTMLDivElement>(null);
     const tpsRef = useRef<HTMLDivElement>(null);
@@ -285,8 +303,21 @@ export default function DesktopHomePage({
             fetchInitialData();
         }
 
-        const interval = setInterval(pollData, 3000);
-        return () => clearInterval(interval);
+        let interval: ReturnType<typeof setInterval> | null = setInterval(pollData, 3000);
+
+        const handleVisibility = () => {
+            if (document.visibilityState === 'hidden') {
+                if (interval) { clearInterval(interval); interval = null; }
+            } else {
+                if (!interval) { interval = setInterval(pollData, 3000); }
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+
+        return () => {
+            if (interval) clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibility);
+        };
     }, [activeTab]);
 
     const handleSearch = (e: React.FormEvent) => {
@@ -360,34 +391,44 @@ export default function DesktopHomePage({
         <div className="min-h-screen bg-[var(--bg-primary)]">
             {/* Hero Section */}
             <section className="relative pt-16 pb-20 overflow-hidden">
-                {/* Background Blobs */}
+                {/* Background */}
                 <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-                    <div className="absolute top-[-10%] left-[10%] w-[500px] h-[500px] bg-[var(--info-muted)] rounded-full filter blur-3xl opacity-60 animate-pulse"></div>
-                    <div className="absolute top-[10%] right-[15%] w-[400px] h-[400px] bg-[var(--indigo-muted)] rounded-full filter blur-3xl opacity-60"></div>
+                    {/* Radial glow behind heading */}
+                    <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[radial-gradient(ellipse_at_center,var(--info)_0%,transparent_70%)] opacity-[0.07]" />
+                    {/* Dot grid */}
+                    <div className="absolute inset-0 opacity-[0.4] dark:opacity-[0.15]" style={{ backgroundImage: 'radial-gradient(circle, var(--border-strong) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+                    {/* Top edge fade so grid doesn't start abruptly */}
+                    <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[var(--bg-primary)] to-transparent" />
+                    {/* Bottom edge fade */}
+                    <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--bg-primary)] to-transparent" />
                 </div>
 
                 <div className="max-w-[1400px] mx-auto px-4 relative z-10 text-center">
-                    <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold mb-4 text-[var(--text-primary)] tracking-tight leading-tight">
+                    <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold mb-4 text-[var(--text-primary)] tracking-tight leading-tight [text-wrap:balance]">
                         Blockchain Explorer
                     </h1>
 
                     {/* Search Bar */}
                     <div className="max-w-2xl mx-auto relative mb-4 group">
-                        <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-                            <svg className="w-5 h-5 text-[var(--text-muted)] group-focus-within:text-[var(--info)] transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="absolute inset-y-0 left-5 z-10 flex items-center pointer-events-none">
+                            <svg className="w-5 h-5 text-[var(--text-muted)] group-focus-within:text-[var(--info)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
-                        <form onSubmit={handleSearch}>
+                        <form onSubmit={handleSearch} role="search">
+                            <label htmlFor="stellar-search" className="sr-only">Search the Stellar blockchain</label>
                             <input
-                                type="text"
+                                id="stellar-search"
+                                type="search"
+                                name="q"
+                                autoComplete="off"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full py-4 pl-14 pr-16 bg-[var(--bg-secondary)] border-2 border-[var(--border-subtle)] rounded-2xl shadow-xl focus:outline-none focus:border-[var(--info)] focus:ring-0 text-lg text-[var(--text-secondary)] placeholder-[var(--text-muted)] transition"
-                                placeholder="Search anything on Stellar"
+                                className="w-full py-4 pl-14 pr-16 bg-[var(--bg-secondary)] border-2 border-[var(--border-subtle)] rounded-2xl focus:border-[var(--info)] focus:ring-2 focus:ring-[var(--info)] text-lg text-[var(--text-secondary)] placeholder-[var(--text-muted)] transition-colors"
+                                placeholder="Search anything on Stellar…"
                             />
                         </form>
-                        <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                        <div className="absolute inset-y-0 right-4 z-10 flex items-center pointer-events-none">
                             <span className="bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] px-3 py-1 rounded-lg text-sm font-bold border border-[var(--border-default)] shadow-sm">/</span>
                         </div>
                     </div>
@@ -434,7 +475,7 @@ export default function DesktopHomePage({
                             <div className="flex items-center gap-1 mb-1">
                                 <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Market Cap</span>} content="Total value of all XLM in circulation" />
                             </div>
-                            <div className="text-lg font-bold text-[var(--text-primary)]">${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(marketCap)}</div>
+                            <div className="text-lg font-bold text-[var(--text-primary)] tabular-nums">${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(marketCap)}</div>
                             <div className={`text-xs font-medium ${marketCapChange >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
                                 {marketCapChange >= 0 ? '+' : ''}{marketCapChange.toFixed(2)}%
                             </div>
@@ -478,7 +519,7 @@ export default function DesktopHomePage({
                             </div>
                             {sparklineData.length > 0 && (
                                 <div className="absolute top-2 right-2 w-16 h-8">
-                                    <svg className="w-full h-full overflow-visible" viewBox="0 0 100 50" preserveAspectRatio="none">
+                                    <svg className="w-full h-full overflow-visible" viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true">
                                         {(() => {
                                             const min = Math.min(...sparklineData);
                                             const max = Math.max(...sparklineData);
@@ -498,36 +539,36 @@ export default function DesktopHomePage({
 
                     {/* Second Row - Network Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                        <Link href={`/ledger/${liveStats.ledger_count}`} className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)] hover:border-[var(--info)]/25 transition-all group">
+                        <Link href={`/ledger/${liveStats.ledger_count}`} className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)] hover:border-[var(--info)]/25 transition-colors group">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Current Ledger</span>} content="Latest confirmed ledger on Stellar network" />
                                     </div>
-                                    <div ref={ledgerCountRef} className="text-xl font-bold text-[var(--info)]">{liveStats.ledger_count.toLocaleString()}</div>
+                                    <div ref={ledgerCountRef} className="text-xl font-bold text-[var(--info)] tabular-nums">{liveStats.ledger_count.toLocaleString()}</div>
                                     <div className="flex items-center gap-2 mt-1">
                                         <div className="w-12 bg-[var(--bg-tertiary)] rounded-full h-1.5 overflow-hidden">
-                                            <div ref={progressBarRef} className="bg-[var(--success)] h-1.5 rounded-full transition-all duration-100 ease-linear" style={{ width: `${ledgerProgress}%` }} />
+                                            <div ref={progressBarRef} className="bg-[var(--success)] h-1.5 rounded-full transition-[width] duration-100 ease-linear" style={{ width: `${ledgerProgress}%` }} />
                                         </div>
                                         <span className="text-[10px] text-[var(--text-muted)]">~{Math.max(0, Math.round((100 - ledgerProgress) / 100 * 5))}s</span>
                                     </div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--info-muted)] rounded-lg flex items-center justify-center text-[var(--info)] group-hover:bg-[var(--info)] group-hover:text-white transition-colors">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                                 </div>
                             </div>
                         </Link>
-                        <Link href="/transactions" className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)] hover:border-[var(--info)]/25 transition-all group">
+                        <Link href="/transactions" className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)] hover:border-[var(--info)]/25 transition-colors group">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">TPS Current</span>} content="Transactions per second" />
                                     </div>
-                                    <div className="text-xl font-bold text-[var(--info)]">{tps}</div>
+                                    <div className="text-xl font-bold text-[var(--info)] tabular-nums">{tps}</div>
                                     <div className="text-[10px] text-[var(--success)] font-medium">{txCount} tx/ledger</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--info-muted)] rounded-lg flex items-center justify-center text-[var(--info)] group-hover:bg-[var(--info)] group-hover:text-white transition-colors">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                 </div>
                             </div>
                         </Link>
@@ -537,11 +578,11 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Network Load</span>} content="Current ledger capacity usage" />
                                     </div>
-                                    <div className="text-xl font-bold text-[var(--text-primary)]">{liveStats.ledger_capacity_usage ? `${(liveStats.ledger_capacity_usage * 100).toFixed(0)}%` : '—'}</div>
+                                    <div className="text-xl font-bold text-[var(--text-primary)] tabular-nums">{liveStats.ledger_capacity_usage ? `${(liveStats.ledger_capacity_usage * 100).toFixed(0)}%` : '—'}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">capacity used</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--warning-muted)] rounded-lg flex items-center justify-center text-[var(--warning)]">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                                 </div>
                             </div>
                         </div>
@@ -551,11 +592,11 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Protocol</span>} content="Current Stellar protocol version" />
                                     </div>
-                                    <div className="text-xl font-bold text-[var(--text-primary)]">{liveStats.protocol_version}</div>
+                                    <div className="text-xl font-bold text-[var(--text-primary)] tabular-nums">{liveStats.protocol_version}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">version</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--purple-muted)] rounded-lg flex items-center justify-center text-[var(--purple)]">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                 </div>
                             </div>
                         </div>
@@ -569,11 +610,11 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Burned Lumens</span>} content="XLM permanently removed from circulation" />
                                     </div>
-                                    <div className="text-xl font-bold text-[var(--error)]">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.burnedLumens)}</div>
+                                    <div className="text-xl font-bold text-[var(--error)] tabular-nums">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.burnedLumens)}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">XLM burned</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--error-muted)] rounded-lg flex items-center justify-center text-[var(--error)]">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" /></svg>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" /></svg>
                                 </div>
                             </div>
                         </div>
@@ -583,11 +624,11 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">SDF Mandate</span>} content="Lumens held by Stellar Development Foundation" />
                                     </div>
-                                    <div className="text-xl font-bold text-[var(--indigo)]">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.sdfMandate)}</div>
+                                    <div className="text-xl font-bold text-[var(--indigo)] tabular-nums">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.sdfMandate)}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">XLM held</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--indigo-muted)] rounded-lg flex items-center justify-center text-[var(--indigo)]">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                                 </div>
                             </div>
                         </div>
@@ -597,11 +638,11 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Fee Pool</span>} content="Accumulated network transaction fees" />
                                     </div>
-                                    <div className="text-xl font-bold text-[var(--success)]">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.feePool)}</div>
+                                    <div className="text-xl font-bold text-[var(--success)] tabular-nums">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.feePool)}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">XLM in fees</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--success-muted)] rounded-lg flex items-center justify-center text-[var(--success)]">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 </div>
                             </div>
                         </div>
@@ -615,7 +656,7 @@ export default function DesktopHomePage({
                                     <div className="text-[10px] text-[var(--text-muted)]">XLM ({liveStats.base_fee.toLocaleString()} stroops)</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--bg-tertiary)] rounded-lg flex items-center justify-center text-[var(--text-tertiary)]">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                                 </div>
                             </div>
                         </div>
@@ -638,7 +679,8 @@ export default function DesktopHomePage({
                         <div className="px-4 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2 uppercase tracking-wider">
-                                    <span className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse"></span>
+                                    <span className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" aria-hidden="true"></span>
+                                    <span aria-live="polite" className="sr-only">Live activity feed, updates automatically</span>
                                     Live Activity
                                 </h3>
                                 <div className="w-[420px] max-w-full">
@@ -652,13 +694,13 @@ export default function DesktopHomePage({
                                             { id: 'Smart Contracts', label: 'Contracts' },
                                         ] as const}
                                         activeId={activeTab as 'All Activity' | 'Payments' | 'Swaps' | 'Smart Contracts'}
-                                        onChange={(id) => setActiveTab(id)}
+                                        onChange={(id) => handleTabChange(id)}
                                     />
                                 </div>
                             </div>
                             <Link href="/transactions" className="text-xs text-[var(--info)] hover:text-[var(--info)] font-medium flex items-center gap-1 transition">
                                 View All
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                             </Link>
@@ -811,7 +853,7 @@ export default function DesktopHomePage({
                                                     {/* Arrow */}
                                                     <td className="py-2 px-1 text-center">
                                                         <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--info-muted)] text-[var(--info)]">
-                                                            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                                             </svg>
                                                         </span>
@@ -860,7 +902,7 @@ export default function DesktopHomePage({
                         {/* Footer */}
                         <div className="px-4 py-3 bg-[var(--bg-tertiary)] border-t border-[var(--border-subtle)] text-center">
                             <Link href="/transactions" className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--info)] transition-colors uppercase tracking-tight">
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                                 View All Transactions

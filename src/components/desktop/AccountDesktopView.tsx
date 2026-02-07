@@ -606,7 +606,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
               : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] border-[var(--border-default)] hover:bg-[var(--bg-tertiary)] hover:text-amber-600'
               }`}
           >
-            <svg className="w-4 h-4" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" aria-hidden="true" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
             </svg>
             {isCurrentFavorite ? 'Favorited' : 'Add to Favorites'}
@@ -623,7 +623,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
               <div>
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">XLM Balance</div>
                 <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                   <span className="text-sm font-semibold text-[var(--text-primary)]">{formatCompactNumber(xlmAmount)} XLM</span>
@@ -646,7 +646,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                 >
                   <span>${tokensValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   <span className="text-xs text-[var(--text-muted)]">({otherBalances.length} tokens)</span>
-                  <svg className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${showTokensDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${showTokensDropdown ? 'rotate-180' : ''}`} aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
@@ -688,7 +688,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                 {currentAccountLabel?.name || currentFavorite?.label ? (
                   <div className="flex items-center gap-2">
                     {currentAccountLabel?.verified && (
-                      <svg className="w-4 h-4 text-sky-500" viewBox="0 0 20 20" fill="currentColor">
+                      <svg className="w-4 h-4 text-sky-500" aria-hidden="true" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                       </svg>
                     )}
@@ -723,7 +723,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                     rel="noopener noreferrer"
                     className="text-sm text-sky-600 hover:text-sky-700 hover:underline flex items-center gap-1"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3.5 h-3.5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                     </svg>
                     {account.home_domain}
@@ -1016,7 +1016,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-[var(--text-primary)] text-[var(--bg-secondary)] flex items-center justify-center shrink-0">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
                           </div>
@@ -1263,7 +1263,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
           >
             <div className="text-center mb-4">
               <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-amber-500" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-amber-500" aria-hidden="true" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                 </svg>
               </div>
@@ -1318,7 +1318,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                   }}
                   className="flex-1 py-2.5 rounded-lg bg-amber-500 text-white font-medium text-sm flex items-center justify-center gap-2 hover:bg-amber-600 transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                   </svg>
                   Add Favorite
