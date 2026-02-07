@@ -8,6 +8,7 @@ import gsap from 'gsap';
 import { Ledger, NetworkStats, Transaction, formatXLM, shortenAddress, timeAgo, Operation, getBaseUrl } from '@/lib/stellar';
 import InfoTooltip from '../InfoTooltip';
 import TransactionFlowAnimation from './TransactionFlowAnimation';
+import TPSChart from './TPSChart';
 import { getOperationColors } from '@/lib/design-system';
 import { getRouteFromSearchQuery } from '@/lib/searchRouting';
 import GliderTabs from '@/components/ui/GliderTabs';
@@ -666,8 +667,9 @@ export default function DesktopHomePage({
 
                     {/* Transaction Flow Animation */}
             <section className="pb-4">
-                <div className="max-w-[1400px] mx-auto px-4">
+                <div className="max-w-[1400px] mx-auto px-4 space-y-3">
                     <TransactionFlowAnimation operations={operations} ledgers={liveLedgers} height={240} currentLedger={liveStats.ledger_count} ledgerProgress={ledgerProgress} />
+                    <TPSChart liveLedgers={liveLedgers} />
                 </div>
             </section>
 
