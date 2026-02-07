@@ -23,14 +23,13 @@ export default function LedgerPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (Number.isNaN(sequenceNum)) {
       setError('Invalid ledger sequence.');
       setIsLoading(false);
       return;
     }
-
-    let cancelled = false;
-
     async function loadLedgerData() {
       try {
         setIsLoading(true);
@@ -38,24 +37,14 @@ export default function LedgerPage() {
 
         const server = new Horizon.Server(getBaseUrl());
 
-        const [ledgerResultRaw, transactionsResponse, operationsResponse] = await Promise.all([
+        const [ledgerResponse, transactionsResponse, operationsResponse] = await Promise.all([
           server.ledgers().ledger(sequenceNum).call(),
-          server
-            .transactions()
-            .forLedger(sequenceNum)
-            .order('desc')
-            .limit(10)
-            .call(),
-          server
-            .operations()
-            .forLedger(sequenceNum)
-            .order('desc')
-            .limit(10)
-            .call(),
+          server.transactions().forLedger(sequenceNum).order('desc').limit(10).call(),
+          server.operations().forLedger(sequenceNum).order('desc').limit(10).call(),
         ]);
 
         if (cancelled) return;
-        setLedger(ledgerResultRaw as unknown as Ledger);
+        setLedger(ledgerResponse as unknown as Ledger);
         setTransactions((transactionsResponse.records || []) as Transaction[]);
         setOperations((operationsResponse.records || []) as Operation[]);
 
