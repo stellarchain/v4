@@ -248,10 +248,10 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1400px] px-4 py-4">
-        {/* Main Grid: 2×2 proportional layout */}
+        {/* Main Grid: 2-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-4">
-          {/* Row 1 Left: Price + Stats */}
-          <div className="space-y-4">
+          {/* Left Column: all sidebar cards */}
+          <div className="space-y-4 self-start">
             {/* Asset Header + Price */}
             <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-3">
               <div className="flex items-center gap-3">
@@ -369,12 +369,6 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                 <div className="mt-1.5 font-semibold text-[var(--text-primary)]">{formatNumber(asset.circulating_supply)} {asset.code}</div>
               </div>
             </div>
-          </div>
-
-          {/* Row 1 Right: injected below via grid order */}
-
-          {/* Row 2 Left: Links + Converter + Price Performance */}
-          <div className="space-y-4 lg:col-start-1">
             {/* Links Section */}
             {(asset.domain || asset.issuer) && (
               <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-3 space-y-3">
@@ -451,7 +445,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider">You pay</label>
-                <div className="flex items-center bg-[var(--bg-primary)] rounded-lg px-3 py-2.5 border border-[var(--border-subtle)] focus-within:border-sky-400 focus-within:ring-1 focus-within:ring-sky-400/20 transition-all">
+                <div className="flex items-center bg-[var(--bg-primary)] rounded-lg px-3 py-2.5 border border-[var(--border-subtle)]">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-6 h-6 bg-sky-50 rounded-full flex items-center justify-center flex-shrink-0 border border-sky-100">
                       {asset.image ? (
@@ -466,7 +460,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                     type="number"
                     value={assetAmount}
                     onChange={(e) => { setActiveInput('asset'); setAssetAmount(e.target.value); }}
-                    className="text-right bg-transparent font-semibold text-[var(--text-primary)] flex-1 min-w-0 ml-2"
+                    className="text-right bg-transparent font-semibold text-[var(--text-primary)] flex-1 min-w-0 ml-2 outline-none! [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
                     placeholder="0"
                   />
                 </div>
@@ -480,7 +474,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider">You get</label>
-                <div className="flex items-center bg-[var(--bg-primary)] rounded-lg px-3 py-2.5 border border-[var(--border-subtle)] focus-within:border-sky-400 focus-within:ring-1 focus-within:ring-sky-400/20 transition-colors">
+                <div className="flex items-center bg-[var(--bg-primary)] rounded-lg px-3 py-2.5 border border-[var(--border-subtle)]">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-6 h-6 bg-emerald-50 rounded-full flex items-center justify-center flex-shrink-0 border border-emerald-100">
                       <span className="text-emerald-600 font-bold text-[9px]">$</span>
@@ -491,7 +485,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                     type="number"
                     value={usdAmount}
                     onChange={(e) => { setActiveInput('usd'); setUsdAmount(e.target.value); }}
-                    className="text-right bg-transparent font-semibold text-[var(--text-primary)] flex-1 min-w-0 ml-2"
+                    className="text-right bg-transparent font-semibold text-[var(--text-primary)] flex-1 min-w-0 ml-2 outline-none! [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
                     placeholder="0"
                   />
                 </div>
@@ -525,8 +519,8 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
             </div>
           </div>
 
-          {/* Row 1 Right: Tabs + Chart/Content */}
-          <div className="flex flex-col gap-4 min-w-0 overflow-hidden lg:row-start-1 lg:col-start-2">
+          {/* Right Column: Tabs + Chart/Content */}
+          <div className="flex flex-col gap-4 min-w-0 overflow-hidden">
             {/* Tab Navigation */}
             <GliderTabs
               size="md"
@@ -928,16 +922,14 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Row 2 Right: Order Book (chart tab only) */}
-          {activeTab === 'chart' ? (
-            <div className="min-w-0 overflow-hidden lg:col-start-2">
-              <AssetOrderBook asset={asset} />
-            </div>
-          ) : (
-            <div className="hidden lg:block" />
-          )}
+            {/* Order Book (chart tab only) */}
+            {activeTab === 'chart' && (
+              <div className="min-w-0 overflow-hidden">
+                <AssetOrderBook asset={asset} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
