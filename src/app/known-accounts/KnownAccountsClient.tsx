@@ -133,7 +133,7 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
                           )}
                         </div>
                         <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                          {shortenAddress(account.account, 4)}
+                          {shortenAddress(account.account)}
                         </span>
                       </div>
 
@@ -203,7 +203,7 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
                     </td>
                     <td className="px-4 py-4">
                       <span className="font-mono text-sm text-[var(--text-muted)]">
-                        {shortenAddress(account.account, 8)}
+                        {shortenAddress(account.account)}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-right">

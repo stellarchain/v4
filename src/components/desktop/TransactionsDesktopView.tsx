@@ -572,7 +572,7 @@ export default function TransactionsDesktopView({
                             className="font-mono text-[12px] text-sky-600 hover:text-sky-700 hover:underline"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {shortenAddress(tx.hash, 6)}
+                            {shortenAddress(tx.hash)}
                           </Link>
                         </td>
 
@@ -609,7 +609,7 @@ export default function TransactionsDesktopView({
                             className="font-mono text-[12px] text-[var(--text-secondary)] hover:text-sky-600 hover:underline"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {shortenAddress(tx.source_account, 5)}
+                            {shortenAddress(tx.source_account)}
                           </Link>
                         </td>
 
@@ -631,7 +631,7 @@ export default function TransactionsDesktopView({
                                 className="font-mono text-[12px] text-[var(--text-secondary)] hover:text-sky-600 hover:underline"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                {shortenAddress(interacted.text, 5)}
+                                {shortenAddress(interacted.text)}
                               </Link>
                             ) : (
                               <span className={`text-[12px] font-medium ${interacted.color}`}>
@@ -688,13 +688,6 @@ export default function TransactionsDesktopView({
             </table>
           </div>
 
-          <PaginationControls
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={goToPage}
-            loading={isLoadingMore}
-            hasMore={hasMore}
-          />
         </div>
       </div>
     </div>

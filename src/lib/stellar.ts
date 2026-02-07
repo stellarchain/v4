@@ -2419,7 +2419,7 @@ export function formatStroopsToXLM(stroops: number): string {
   return (stroops / 10000000).toFixed(7);
 }
 
-export function shortenAddress(address: string, chars: number = 6): string {
+export function shortenAddress(address: string, chars: number = 4): string {
   if (address.length <= chars * 2 + 3) return address;
   return `${address.slice(0, chars)}...${address.slice(-chars)}`;
 }

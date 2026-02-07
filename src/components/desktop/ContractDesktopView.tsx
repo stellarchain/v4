@@ -368,7 +368,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                 <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Asset Address</div>
                   <div className="text-sm font-bold text-[var(--text-primary)] font-mono truncate" title={contract.vaultInfo.underlyingAsset}>
-                    {shortenAddress(contract.vaultInfo.underlyingAsset, 6)}
+                    {shortenAddress(contract.vaultInfo.underlyingAsset)}
                   </div>
                 </div>
                 <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
@@ -450,13 +450,13 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                 {isTransferEventData(event.data) && (
                                   <>
                                     <span className="text-[var(--text-muted)]">|</span>
-                                    <span className="font-mono">{shortenAddress(event.data.from, 4)} → {shortenAddress(event.data.to, 4)}</span>
+                                    <span className="font-mono">{shortenAddress(event.data.from)} → {shortenAddress(event.data.to)}</span>
                                   </>
                                 )}
                                 {customData?.account && (
                                   <>
                                     <span className="text-[var(--text-muted)]">|</span>
-                                    <span className="font-mono">{shortenAddress(customData.account, 4)}</span>
+                                    <span className="font-mono">{shortenAddress(customData.account)}</span>
                                   </>
                                 )}
                               </div>
@@ -536,7 +536,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                             const fn = invocation.functionName.toLowerCase();
                             const symbol = tokenInfo?.symbol || '';
                             const amount = displayAmount ? parseInt(displayAmount).toLocaleString() : '';
-                            const targetAddr = addressParams[0]?.decoded ? shortenAddress(addressParams[0].decoded, 4) : '';
+                            const targetAddr = addressParams[0]?.decoded ? shortenAddress(addressParams[0].decoded) : '';
 
                             switch (fn) {
                               case 'harvest':
@@ -584,7 +584,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
                                       <Link href={`/account/${invocation.sourceAccount}`} className="font-mono text-xs text-sky-600 hover:underline">
-                                        {shortenAddress(invocation.sourceAccount, 4)}
+                                        {shortenAddress(invocation.sourceAccount)}
                                       </Link>
                                       <span className="text-[var(--text-muted)] text-xs">invoked</span>
                                       <span className="font-mono text-sm font-bold text-indigo-600">
@@ -597,7 +597,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                       </div>
                                     )}
                                     <Link href={`/transaction/${invocation.txHash}`} className="font-mono text-[10px] text-[var(--text-muted)] hover:text-sky-600 hover:underline">
-                                      {shortenAddress(invocation.txHash, 6)}
+                                      {shortenAddress(invocation.txHash)}
                                     </Link>
                                   </div>
                                 </div>
@@ -687,13 +687,13 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">From:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.from, 6)}
+                                    {shortenAddress(event.data.from)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">To:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.to, 6)}
+                                    {shortenAddress(event.data.to)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
@@ -711,7 +711,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">To:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.to, 6)}
+                                    {shortenAddress(event.data.to)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
@@ -729,7 +729,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">From:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.from, 6)}
+                                    {shortenAddress(event.data.from)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
@@ -747,13 +747,13 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">Owner:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.from, 6)}
+                                    {shortenAddress(event.data.from)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">Spender:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.spender, 6)}
+                                    {shortenAddress(event.data.spender)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
@@ -778,7 +778,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                   <div className="flex items-center gap-2 text-xs">
                                     <span className="text-[var(--text-tertiary)]">Account:</span>
                                     <span className="font-mono text-[var(--text-secondary)]">
-                                      {shortenAddress(customData.account, 6)}
+                                      {shortenAddress(customData.account)}
                                     </span>
                                   </div>
                                 )}
@@ -1113,7 +1113,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                         href={`/account/${contract.accessControl.admin}`}
                         className="text-[11px] font-mono font-semibold text-sky-600 hover:text-sky-700"
                       >
-                        {shortenAddress(contract.accessControl.admin, 6)}
+                        {shortenAddress(contract.accessControl.admin)}
                       </Link>
                     </div>
                   )}
@@ -1124,7 +1124,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                         href={`/account/${contract.accessControl.owner}`}
                         className="text-[11px] font-mono font-semibold text-sky-600 hover:text-sky-700"
                       >
-                        {shortenAddress(contract.accessControl.owner, 6)}
+                        {shortenAddress(contract.accessControl.owner)}
                       </Link>
                     </div>
                   )}
@@ -1142,7 +1142,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                         href={`/account/${contract.accessControl.pendingOwner}`}
                         className="text-[11px] font-mono font-semibold text-sky-600 hover:text-sky-700"
                       >
-                        {shortenAddress(contract.accessControl.pendingOwner, 6)}
+                        {shortenAddress(contract.accessControl.pendingOwner)}
                       </Link>
                     </div>
                   )}

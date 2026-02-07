@@ -362,7 +362,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                                             {codeA} / {codeB}
                                                         </Link>
                                                         <div className="text-[10px] text-[var(--text-muted)] font-mono">
-                                                            {shortenAddress(pool.id, 6)}
+                                                            {shortenAddress(pool.id)}
                                                         </div>
                                                     </div>
                                                 </td>
@@ -374,7 +374,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                                     </div>
                                                     <div className="text-[10px] text-[var(--text-muted)]">{codeA}</div>
                                                     {issuerA && (
-                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerA, 3)}</div>
+                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerA)}</div>
                                                     )}
                                                 </td>
 
@@ -385,7 +385,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                                     </div>
                                                     <div className="text-[10px] text-[var(--text-muted)]">{codeB}</div>
                                                     {issuerB && (
-                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerB, 3)}</div>
+                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerB)}</div>
                                                     )}
                                                 </td>
 

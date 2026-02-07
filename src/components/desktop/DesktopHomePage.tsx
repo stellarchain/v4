@@ -756,11 +756,11 @@ export default function DesktopHomePage({
                                             // Get destination/details
                                             const getDetails = () => {
                                                 if (op.type === 'payment') {
-                                                    return { text: op.to ? shortenAddress(op.to, 4) : '—', isAddress: true, address: op.to };
+                                                    return { text: op.to ? shortenAddress(op.to) : '—', isAddress: true, address: op.to };
                                                 }
                                                 if (op.type === 'create_account') {
                                                     const account = (op as any).account;
-                                                    return { text: account ? shortenAddress(account, 4) : '—', isAddress: true, address: account };
+                                                    return { text: account ? shortenAddress(account) : '—', isAddress: true, address: account };
                                                 }
                                                 if (op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive') {
                                                     const srcAsset = (op as any).source_asset_code || ((op as any).source_asset_type === 'native' ? 'XLM' : '?');
@@ -783,7 +783,7 @@ export default function DesktopHomePage({
                                                 }
                                                 if (op.type === 'account_merge') {
                                                     const into = (op as any).into;
-                                                    return { text: into ? shortenAddress(into, 4) : '—', isAddress: true, address: into };
+                                                    return { text: into ? shortenAddress(into) : '—', isAddress: true, address: into };
                                                 }
                                                 return { text: '—', isAddress: false };
                                             };
@@ -823,7 +823,7 @@ export default function DesktopHomePage({
                                                             className="font-mono text-[11px] text-[var(--info)] hover:text-[var(--info)] hover:underline"
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
-                                                            {shortenAddress(op.transaction_hash, 5)}
+                                                            {shortenAddress(op.transaction_hash)}
                                                         </Link>
                                                     </td>
 
@@ -846,7 +846,7 @@ export default function DesktopHomePage({
                                                             className="font-mono text-[11px] text-[var(--text-secondary)] hover:text-[var(--info)] hover:underline"
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
-                                                            {shortenAddress(op.source_account, 4)}
+                                                            {shortenAddress(op.source_account)}
                                                         </Link>
                                                     </td>
 

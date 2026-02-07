@@ -273,7 +273,7 @@ export default function DesktopNavbar() {
                                                                     {fav.label || 'Unnamed Account'}
                                                                 </div>
                                                                 <div className="text-xs font-mono text-[var(--text-tertiary)] truncate">
-                                                                    {shortenAddress(fav.address, 6)}
+                                                                    {shortenAddress(fav.address)}
                                                                 </div>
                                                             </div>
                                                             <svg className="w-4 h-4 text-[var(--text-muted)]" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">

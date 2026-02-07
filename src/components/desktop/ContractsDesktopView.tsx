@@ -425,7 +425,7 @@ export default function ContractsDesktopView({
                             className="font-mono text-[12px] text-sky-600 hover:text-sky-700 hover:underline"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {shortenAddress(contract.id, 6)}
+                            {shortenAddress(contract.id)}
                           </Link>
                         </td>
 

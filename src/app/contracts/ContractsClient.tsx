@@ -278,7 +278,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
                           )}
                         </div>
                         <span className="text-xs text-[var(--text-muted)] font-medium font-mono mt-0.5 flex items-center">
-                          {shortenAddress(contract.id, 4)}
+                          {shortenAddress(contract.id)}
                           <span className="mx-1 text-[var(--text-muted)]">•</span>
                           <span className={`text-[9px] font-bold uppercase ${
                             contract.type === 'token' ? 'text-indigo-500' :
