@@ -686,7 +686,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-white/50">Issuer:</span>
                 <Link href={`/account/${asset.issuer}`} className="text-xs font-mono text-white/70 hover:text-white">
-                  {shortenAddress(asset.issuer, 6)}
+                  {shortenAddress(asset.issuer)}
                 </Link>
               </div>
             )}
@@ -1161,7 +1161,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                             onClick={(e) => { e.stopPropagation(); router.push(`/account/${account}`); }}
                             className="font-mono hover:text-[var(--primary-blue)]"
                           >
-                            {shortenAddress(account, 4)}
+                            {shortenAddress(account)}
                           </span>
                         </div>
                       </div>
@@ -1265,7 +1265,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                             <>
                               <span className="mx-1.5">·</span>
                               <span className="font-mono">
-                                {shortenAddress(pair.counterAsset.issuer, 4)}
+                                {shortenAddress(pair.counterAsset.issuer)}
                               </span>
                             </>
                           )}
@@ -1361,7 +1361,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
-                                {displayName || shortenAddress(holder.account_id, 6)}
+                                {displayName || shortenAddress(holder.account_id)}
                               </span>
                               {label?.verified && (
                                 <svg className="w-3.5 h-3.5 text-[var(--primary-blue)] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -1374,7 +1374,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                               {displayName && (
                                 <>
                                   <span className="mx-1.5">·</span>
-                                  <span className="font-mono">{shortenAddress(holder.account_id, 4)}</span>
+                                  <span className="font-mono">{shortenAddress(holder.account_id)}</span>
                                 </>
                               )}
                             </div>

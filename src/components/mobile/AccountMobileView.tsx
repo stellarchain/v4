@@ -690,7 +690,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               onClick={() => setShowAddressDropdown(!showAddressDropdown)}
               className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-sm font-semibold text-[var(--text-secondary)] font-mono hover:text-[var(--text-primary)] transition-colors"
             >
-              {shortenAddress(account.id, 6)}
+              {shortenAddress(account.id)}
               <svg className={`w-3.5 h-3.5 transition-transform ${showAddressDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -957,7 +957,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                           {priceData ? `@${currencySymbol}${convertCurrency(priceData.price).toFixed(priceData.price >= 1 ? 2 : 6)}` : (
                             balance.asset_issuer ? (
                               <Link href={`/account/${balance.asset_issuer}`} onClick={(e) => e.stopPropagation()} className="hover:text-[var(--primary-blue)]">
-                                {shortenAddress(balance.asset_issuer, 4)}
+                                {shortenAddress(balance.asset_issuer)}
                               </Link>
                             ) : 'LP'
                           )}
@@ -1126,7 +1126,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                       // Get counterparty address and label
                       const counterpartyAddress = isReceive ? sender : destination;
                       const counterpartyLabel = counterpartyAddress ? accountLabels[counterpartyAddress]?.name : null;
-                      typeDisplay = counterpartyLabel || (counterpartyAddress ? shortenAddress(counterpartyAddress, 4) : (isReceive ? 'Received' : 'Sent'));
+                      typeDisplay = counterpartyLabel || (counterpartyAddress ? shortenAddress(counterpartyAddress) : (isReceive ? 'Received' : 'Sent'));
                       counterpartyLink = counterpartyAddress || null;
                       amount = formatXLM(op.amount || (op as any).starting_balance || '0');
                       asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
@@ -1158,7 +1158,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                         const counterpartyAddress = isReceive ? sender : destination;
                         if (counterpartyAddress) {
                           const counterpartyLabel = accountLabels[counterpartyAddress]?.name;
-                          typeDisplay = counterpartyLabel || shortenAddress(counterpartyAddress, 4);
+                          typeDisplay = counterpartyLabel || shortenAddress(counterpartyAddress);
                           counterpartyLink = counterpartyAddress;
                         }
                       }
@@ -1315,7 +1315,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] text-[var(--text-muted)] font-medium">Account ID</div>
-                    <div className="text-sm font-mono text-[var(--text-primary)] truncate">{shortenAddress(account.id, 10)}</div>
+                    <div className="text-sm font-mono text-[var(--text-primary)] truncate">{shortenAddress(account.id)}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1394,7 +1394,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     </div>
                     <div className="flex-1 min-w-0">
                       <Link href={`/account/${signer.key}`} className="text-sm font-mono text-[var(--text-primary)] hover:text-[var(--primary-blue)] truncate block">
-                        {shortenAddress(signer.key, 8)}
+                        {shortenAddress(signer.key)}
                       </Link>
                       <div className="text-[11px] text-[var(--text-muted)] capitalize">{signer.type.replace(/_/g, ' ')}</div>
                     </div>
@@ -1534,7 +1534,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               <h3 className="text-lg font-bold text-[var(--text-primary)]">
                 {isCurrentFavorite ? 'Edit Favorite' : 'Add to Favorites'}
               </h3>
-              <p className="text-xs text-[var(--text-muted)] mt-1 font-mono">{shortenAddress(account.id, 8)}</p>
+              <p className="text-xs text-[var(--text-muted)] mt-1 font-mono">{shortenAddress(account.id)}</p>
             </div>
 
             <div className="mb-4">

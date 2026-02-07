@@ -249,7 +249,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="text-sm font-semibold text-[var(--text-primary)] truncate">
-                                                    {shortenAddress(tx.hash, 8)}
+                                                    {shortenAddress(tx.hash)}
                                                 </div>
                                                 <div className="text-[11px] text-[var(--text-muted)]">
                                                     {tx.operation_count} operation{tx.operation_count !== 1 ? 's' : ''}
@@ -316,7 +316,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                                     {account && (
                                                         <>
                                                             <span className="mx-1.5">·</span>
-                                                            <span className="font-mono">{shortenAddress(account, 4)}</span>
+                                                            <span className="font-mono">{shortenAddress(account)}</span>
                                                         </>
                                                     )}
                                                 </div>
@@ -390,7 +390,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                                             href={`/account/${effect.account}`}
                                                             className="font-mono hover:text-[var(--primary-blue)]"
                                                         >
-                                                            {shortenAddress(effect.account, 4)}
+                                                            {shortenAddress(effect.account)}
                                                         </Link>
                                                     </div>
                                                 </div>
@@ -430,7 +430,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                                 <div className="text-[11px] text-[var(--text-muted)]">
                                                     {timeAgo(op.created_at)}
                                                     <span className="mx-1.5">·</span>
-                                                    <span className="font-mono">{shortenAddress(op.source_account, 4)}</span>
+                                                    <span className="font-mono">{shortenAddress(op.source_account)}</span>
                                                 </div>
                                             </div>
                                         </div>

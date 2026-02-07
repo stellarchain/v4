@@ -695,12 +695,12 @@ export default function AccountDesktopView({ account, transactions, operations: 
                     <span className="text-sm font-medium text-[var(--text-primary)]">{currentFavorite?.label || currentAccountLabel?.name}</span>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => setShowFavoriteModal(true)}
+                  <Link
+                    href={`/accounts/directory/update?account=${account.id}`}
                     className="text-sm text-sky-600 hover:text-sky-700 hover:underline"
                   >
                     + Add Label
-                  </button>
+                  </Link>
                 )}
               </div>
 
@@ -797,7 +797,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                       <tr key={tx.hash} className="hover:bg-[var(--bg-tertiary)] transition-colors">
                         <td className="py-3 px-4">
                           <Link href={`/transaction/${tx.hash}`} className="font-mono text-[13px] text-sky-600 hover:text-sky-700 hover:underline">
-                            {shortenAddress(tx.hash, 8)}
+                            {shortenAddress(tx.hash)}
                           </Link>
                         </td>
                         <td className="py-3 px-3">
@@ -809,7 +809,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                         <td className="py-3 px-3">
                           <Link href={`/account/${tx.source_account}`} className="font-mono text-[13px] text-[var(--text-secondary)] hover:text-sky-600 flex items-center gap-2">
                             <AccountBadges address={tx.source_account} labels={accountLabels} size="sm" />
-                            {shortenAddress(tx.source_account, 6)}
+                            {accountLabels[tx.source_account]?.name || shortenAddress(tx.source_account)}
                           </Link>
                         </td>
                         <td className="py-3 px-3 text-[13px] text-[var(--text-secondary)] text-right">{tx.operation_count}</td>
@@ -892,14 +892,14 @@ export default function AccountDesktopView({ account, transactions, operations: 
                           <td className="px-4 py-3">
                             <Link
                               href={`/transaction/${op.transaction_hash}`}
-                              className="font-mono text-sm text-sky-600 hover:text-sky-700 hover:underline"
+                              className="font-mono text-[13px] text-sky-600 hover:text-sky-700 hover:underline"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {shortenAddress(op.transaction_hash, 8)}
+                              {shortenAddress(op.transaction_hash)}
                             </Link>
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${category.bgColor} ${category.color} border`}>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${category.bgColor} ${category.color} border`}>
                               {displayLabel}
                             </span>
                           </td>
@@ -909,7 +909,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                               return ledgerSeq ? (
                                 <Link
                                   href={`/ledger/${ledgerSeq}`}
-                                  className="text-sm text-sky-600 hover:underline"
+                                  className="text-[13px] text-sky-600 hover:underline"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   {ledgerSeq.toLocaleString()}
@@ -917,20 +917,20 @@ export default function AccountDesktopView({ account, transactions, operations: 
                               ) : '-';
                             })()}
                           </td>
-                          <td className="px-4 py-3 text-sm text-[var(--text-tertiary)] whitespace-nowrap">
+                          <td className="px-4 py-3 text-[13px] text-[var(--text-tertiary)] whitespace-nowrap">
                             {timeAgo(op.created_at)}
                           </td>
                           <td className="px-4 py-3">
                             <Link
                               href={`/account/${fromAddress}`}
-                              className="font-mono text-sm text-[var(--text-secondary)] hover:text-sky-600 flex items-center gap-1"
+                              className="font-mono text-[13px] text-[var(--text-secondary)] hover:text-sky-600 flex items-center gap-1"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <AccountBadges address={fromAddress} labels={accountLabels} size="sm" />
                               {fromAddress === account.id ? (
                                 <span className="text-[var(--text-muted)]">Self</span>
                               ) : (
-                                shortenAddress(fromAddress, 6)
+                                accountLabels[fromAddress]?.name || shortenAddress(fromAddress)
                               )}
                             </Link>
                           </td>
@@ -948,28 +948,28 @@ export default function AccountDesktopView({ account, transactions, operations: 
                             {toAddress ? (
                               <Link
                                 href={`/account/${toAddress}`}
-                                className="font-mono text-sm text-[var(--text-secondary)] hover:text-sky-600 flex items-center gap-1"
+                                className="font-mono text-[13px] text-[var(--text-secondary)] hover:text-sky-600 flex items-center gap-1"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <AccountBadges address={toAddress} labels={accountLabels} size="sm" />
                                 {toAddress === account.id ? (
                                   <span className="text-[var(--text-muted)]">Self</span>
                                 ) : (
-                                  shortenAddress(toAddress, 6)
+                                  accountLabels[toAddress]?.name || shortenAddress(toAddress)
                                 )}
                               </Link>
                             ) : (
-                              <span className="text-sm text-[var(--text-muted)]">-</span>
+                              <span className="text-[13px] text-[var(--text-muted)]">-</span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-right">
                             {effectInfo ? (
-                              <span className={`text-sm font-medium ${isIncoming ? 'text-emerald-600' : 'text-[var(--text-secondary)]'
+                              <span className={`text-[13px] font-medium ${isIncoming ? 'text-emerald-600' : 'text-[var(--text-secondary)]'
                                 }`}>
                                 {isIncoming ? '+' : '-'}{formatCompactNumber(parseFloat(effectInfo.amount))} {effectInfo.asset}
                               </span>
                             ) : (
-                              <span className="text-sm text-[var(--text-muted)]">-</span>
+                              <span className="text-[13px] text-[var(--text-muted)]">-</span>
                             )}
                           </td>
                         </tr>
@@ -1169,7 +1169,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                                   href={`/account/${signer.key}`}
                                   className="font-mono text-sm text-sky-600 hover:underline"
                                 >
-                                  {shortenAddress(signer.key, 12)}
+                                  {shortenAddress(signer.key)}
                                 </Link>
                               </td>
                               <td className="px-4 py-3 text-sm text-[var(--text-secondary)] capitalize">{signer.type.replace(/_/g, ' ')}</td>
@@ -1275,7 +1275,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
               <h3 className="text-lg font-bold text-[var(--text-primary)]">
                 {isCurrentFavorite ? 'Edit Favorite' : 'Add to Favorites'}
               </h3>
-              <p className="text-xs text-[var(--text-tertiary)] mt-1 font-mono">{shortenAddress(account.id, 8)}</p>
+              <p className="text-xs text-[var(--text-tertiary)] mt-1 font-mono">{shortenAddress(account.id)}</p>
             </div>
 
             <div className="mb-4">

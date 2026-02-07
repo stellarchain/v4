@@ -63,7 +63,7 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
                           href={`/transaction/${tx.hash}`}
                           className="text-[var(--primary)] hover:underline font-mono text-sm"
                         >
-                          {shortenAddress(tx.hash, 8)}
+                          {shortenAddress(tx.hash)}
                         </Link>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[var(--text-muted)] text-xs">From:</span>
@@ -71,7 +71,7 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
                             href={`/account/${tx.source_account}`}
                             className="text-[var(--text-tertiary)] hover:text-[var(--primary)] font-mono text-xs"
                           >
-                            {shortenAddress(tx.source_account, 4)}
+                            {shortenAddress(tx.source_account)}
                           </Link>
                         </div>
                       </div>
@@ -131,7 +131,7 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
                             href={`/account/${op.source_account}`}
                             className="text-[var(--text-tertiary)] hover:text-[var(--primary)] font-mono text-xs"
                           >
-                            {shortenAddress(op.source_account, 4)}
+                            {shortenAddress(op.source_account)}
                           </Link>
                         </div>
                       </div>
@@ -154,7 +154,7 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
                         <div className="flex items-center gap-1">
                           <span className="text-[var(--text-muted)]">From:</span>
                           <Link href={`/account/${op.from}`} className="text-[var(--text-tertiary)] hover:text-[var(--primary)] font-mono">
-                            {shortenAddress(op.from, 4)}
+                            {shortenAddress(op.from)}
                           </Link>
                         </div>
                       )}
@@ -162,7 +162,7 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
                         <div className="flex items-center gap-1">
                           <span className="text-[var(--text-muted)]">To:</span>
                           <Link href={`/account/${op.to}`} className="text-[var(--text-tertiary)] hover:text-[var(--primary)] font-mono">
-                            {shortenAddress(op.to, 4)}
+                            {shortenAddress(op.to)}
                           </Link>
                         </div>
                       )}

@@ -231,8 +231,8 @@ function decodeScVal(scVal: xdr.ScVal): DecodedScVal {
 }
 
 function shortenAddress(address: string): string {
-  if (address.length <= 12) return address;
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  if (address.length <= 11) return address;
+  return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
 
 // ============================================================================

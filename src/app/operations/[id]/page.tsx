@@ -51,11 +51,11 @@ export default async function OperationDetailsPage({ params }: PageProps) {
           </div>
           <div className="bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl p-3">
             <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Source</div>
-            <div className="mt-1 font-mono text-[var(--text-primary)]">{shortenAddress(op.source_account, 6)}</div>
+            <div className="mt-1 font-mono text-[var(--text-primary)]">{shortenAddress(op.source_account)}</div>
           </div>
           <div className="bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl p-3">
             <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Tx Hash</div>
-            <div className="mt-1 font-mono text-[var(--text-primary)]">{shortenAddress(op.transaction_hash, 6)}</div>
+            <div className="mt-1 font-mono text-[var(--text-primary)]">{shortenAddress(op.transaction_hash)}</div>
           </div>
         </div>
 

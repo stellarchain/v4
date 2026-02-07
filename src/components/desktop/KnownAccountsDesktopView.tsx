@@ -296,7 +296,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
                     {/* Address */}
                     <td className="py-4 px-4">
                       <span className="font-mono text-xs text-[var(--text-tertiary)] group-hover:text-sky-600 transition-colors">
-                        {shortenAddress(account.account, 8)}
+                        {shortenAddress(account.account)}
                       </span>
                     </td>
 

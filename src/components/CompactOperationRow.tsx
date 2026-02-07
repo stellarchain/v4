@@ -114,7 +114,7 @@ const CompactOperationRow = forwardRef<HTMLAnchorElement, CompactOperationRowPro
           )}
           <div className="text-right hidden sm:block">
             <span className="text-[var(--text-tertiary)] font-mono text-[12px] font-medium">
-              {shortenAddress(operation.source_account, 4)}
+              {shortenAddress(operation.source_account)}
             </span>
           </div>
           <svg className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] group-hover:translate-x-0.5 transition-[color,transform]" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">

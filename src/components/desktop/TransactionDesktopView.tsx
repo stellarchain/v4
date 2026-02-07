@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { shortenAddress, timeAgo, getOperationTypeLabel, formatDate, formatStroopsToXLM, extractContractAddress, detectContractFunctionType } from '@/lib/stellar';
 import type { AccountLabel } from '@/lib/stellar';
 import type { ContractFunctionType } from '@/lib/types/token';
@@ -110,8 +111,16 @@ const getEffectCategory = (type: string): { label: string; color: string } => {
 };
 
 export default function TransactionDesktopView({ transaction, operations, effects, accountLabels = {} }: TransactionDesktopViewProps) {
+  const searchParams = useSearchParams();
   const [listTab, setListTab] = useState<'operations' | 'effects' | 'trace'>('operations');
-  const [selectedOpIndex, setSelectedOpIndex] = useState<number>(0);
+  const [selectedOpIndex, setSelectedOpIndex] = useState<number>(() => {
+    const opParam = searchParams.get('op');
+    if (opParam) {
+      const idx = operations.findIndex(op => op.id === opParam);
+      if (idx !== -1) return idx;
+    }
+    return 0;
+  });
   const [selectedEffectIndex, setSelectedEffectIndex] = useState<number>(0);
   const [copied, setCopied] = useState(false);
   const [operationFilter, setOperationFilter] = useState<string>('all');
@@ -361,7 +370,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   <div className="min-w-0 flex-1">
                     <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Caller</div>
                     <div className="flex items-center">
-                      <Link href={`/address/${transaction.source_account}`} className="font-mono text-xs font-medium text-[var(--text-primary)] hover:text-sky-600 truncate">{shortenAddress(transaction.source_account, 6)}</Link>
+                      <Link href={`/address/${transaction.source_account}`} className="font-mono text-xs font-medium text-[var(--text-primary)] hover:text-sky-600 truncate">{accountLabels[transaction.source_account]?.name || shortenAddress(transaction.source_account)}</Link>
                       <AccountBadges address={transaction.source_account} labels={accountLabels} />
                     </div>
                   </div>
@@ -378,7 +387,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center text-white text-xs font-bold shadow-sm">C</div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-0.5">Contract</div>
-                    <Link href={`/contracts/${destination}`} className="font-mono text-xs font-medium text-[var(--text-primary)] hover:text-sky-600 truncate block">{shortenAddress(destination, 6)}</Link>
+                    <Link href={`/contracts/${destination}`} className="font-mono text-xs font-medium text-[var(--text-primary)] hover:text-sky-600 truncate block">{shortenAddress(destination)}</Link>
                   </div>
                 </div>
               </div>
@@ -395,7 +404,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow-md">{transaction.source_account.charAt(0)}</div>
                     <div>
                       <div className="flex items-center">
-                        <Link href={`/address/${transaction.source_account}`} className="font-mono text-sm font-medium text-[var(--text-primary)] hover:text-sky-600">{shortenAddress(transaction.source_account, 6)}</Link>
+                        <Link href={`/address/${transaction.source_account}`} className="font-mono text-sm font-medium text-[var(--text-primary)] hover:text-sky-600">{accountLabels[transaction.source_account]?.name || shortenAddress(transaction.source_account)}</Link>
                         <AccountBadges address={transaction.source_account} labels={accountLabels} />
                       </div>
                       <div className="text-[10px] text-[var(--text-muted)]">Source</div>
@@ -432,7 +441,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white text-sm font-bold shadow-md">{isContractDestination ? 'C' : destination.charAt(0)}</div>
                         <div>
                           <div className="flex items-center">
-                            <Link href={isContractDestination ? `/contracts/${destination}` : `/address/${destination}`} className="font-mono text-sm font-medium text-[var(--text-primary)] hover:text-sky-600">{shortenAddress(destination, 6)}</Link>
+                            <Link href={isContractDestination ? `/contracts/${destination}` : `/address/${destination}`} className="font-mono text-sm font-medium text-[var(--text-primary)] hover:text-sky-600">{!isContractDestination ? (accountLabels[destination]?.name || shortenAddress(destination)) : shortenAddress(destination)}</Link>
                             {!isContractDestination && <AccountBadges address={destination} labels={accountLabels} />}
                           </div>
                           <div className="text-[10px] text-[var(--text-muted)]">{isContractDestination ? 'Contract' : 'Destination'}</div>
@@ -620,7 +629,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                                 </span>
                                 {event.contractId && (
                                   <Link href={`/contracts/${event.contractId}`} className="text-[10px] font-mono text-sky-600 hover:underline ml-auto">
-                                    {shortenAddress(event.contractId, 3)}
+                                    {shortenAddress(event.contractId)}
                                   </Link>
                                 )}
                               </div>
@@ -674,7 +683,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                                 )}
                                 {change.contractId && (
                                   <Link href={`/contracts/${change.contractId}`} className="text-[10px] font-mono text-sky-600 hover:underline ml-auto">
-                                    {shortenAddress(change.contractId, 3)}
+                                    {shortenAddress(change.contractId)}
                                   </Link>
                                 )}
                               </div>
@@ -732,7 +741,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                     <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Source</div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center">
-                        <Link href={`/address/${selectedOp.source_account || transaction.source_account}`} className="font-mono text-xs font-medium text-[var(--text-secondary)] hover:text-sky-600">{shortenAddress(selectedOp.source_account || transaction.source_account, 6)}</Link>
+                        <Link href={`/address/${selectedOp.source_account || transaction.source_account}`} className="font-mono text-xs font-medium text-[var(--text-secondary)] hover:text-sky-600">{accountLabels[selectedOp.source_account || transaction.source_account]?.name || shortenAddress(selectedOp.source_account || transaction.source_account)}</Link>
                         <AccountBadges address={selectedOp.source_account || transaction.source_account} labels={accountLabels} />
                       </span>
                       <button onClick={() => navigator.clipboard.writeText(selectedOp.source_account || transaction.source_account)} className="text-[var(--text-muted)] hover:text-sky-500">
@@ -746,10 +755,10 @@ export default function TransactionDesktopView({ transaction, operations, effect
                       <div className="flex items-center justify-between">
                         <span className="flex items-center">
                           {selectedOp.type === 'invoke_host_function' ? (
-                            <Link href={`/contracts/${contractAddress || ''}`} className="font-mono text-xs font-medium text-[var(--text-secondary)] hover:text-sky-600">{contractAddress ? shortenAddress(contractAddress, 6) : 'Unknown'}</Link>
+                            <Link href={`/contracts/${contractAddress || ''}`} className="font-mono text-xs font-medium text-[var(--text-secondary)] hover:text-sky-600">{contractAddress ? shortenAddress(contractAddress) : 'Unknown'}</Link>
                           ) : (
                             <>
-                              <Link href={`/address/${selectedOp.to || (selectedOp as any).account}`} className="font-mono text-xs font-medium text-[var(--text-secondary)] hover:text-sky-600">{shortenAddress(selectedOp.to || (selectedOp as any).account, 6)}</Link>
+                              <Link href={`/address/${selectedOp.to || (selectedOp as any).account}`} className="font-mono text-xs font-medium text-[var(--text-secondary)] hover:text-sky-600">{accountLabels[selectedOp.to || (selectedOp as any).account]?.name || shortenAddress(selectedOp.to || (selectedOp as any).account)}</Link>
                               <AccountBadges address={selectedOp.to || (selectedOp as any).account} labels={accountLabels} />
                             </>
                           )}
@@ -771,7 +780,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                     </div>
                     {selectedOp.asset_issuer && (
                       <div className="bg-[var(--bg-secondary)] px-3 py-1.5 rounded-lg border border-emerald-100 text-[10px]">
-                        <span className="text-[var(--text-muted)]">Issuer:</span> <span className="font-mono text-[var(--text-secondary)]">{shortenAddress(selectedOp.asset_issuer, 4)}</span>
+                        <span className="text-[var(--text-muted)]">Issuer:</span> <span className="font-mono text-[var(--text-secondary)]">{shortenAddress(selectedOp.asset_issuer)}</span>
                       </div>
                     )}
                   </div>
@@ -803,7 +812,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                     <div><span className="text-[var(--text-muted)] text-xs">Max Fee</span><div className="font-mono text-[var(--text-primary)]">{maxFeeXLM} XLM</div></div>
                     <div><span className="text-[var(--text-muted)] text-xs">Memo</span><div className={transaction.memo ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] italic'}>{transaction.memo || 'None'}</div></div>
                     <div><span className="text-[var(--text-muted)] text-xs">Sequence</span><div className="font-mono text-[var(--text-primary)]">{transaction.source_account_sequence || '--'}</div></div>
-                    <div><span className="text-[var(--text-muted)] text-xs">Fee Account</span><Link href={`/address/${transaction.source_account}`} className="font-mono text-sky-600 hover:underline block truncate">{shortenAddress(transaction.source_account, 6)}</Link></div>
+                    <div><span className="text-[var(--text-muted)] text-xs">Fee Account</span><Link href={`/address/${transaction.source_account}`} className="font-mono text-sky-600 hover:underline block truncate">{shortenAddress(transaction.source_account)}</Link></div>
                   </div>
                   {transaction.signatures.length > 0 && (
                     <div className="mt-4 p-3 bg-[var(--bg-tertiary)] rounded-xl">
@@ -845,7 +854,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Account</div>
                   <div className="flex items-center justify-between">
                     <span className="flex items-center">
-                      <Link href={`/address/${selectedEffect.account}`} className="font-mono text-xs font-medium text-[var(--text-secondary)] hover:text-sky-600">{shortenAddress(selectedEffect.account, 8)}</Link>
+                      <Link href={`/address/${selectedEffect.account}`} className="font-mono text-xs font-medium text-[var(--text-secondary)] hover:text-sky-600">{accountLabels[selectedEffect.account]?.name || shortenAddress(selectedEffect.account)}</Link>
                       <AccountBadges address={selectedEffect.account} labels={accountLabels} />
                     </span>
                     <button onClick={() => navigator.clipboard.writeText(selectedEffect.account)} className="text-[var(--text-muted)] hover:text-sky-500">
@@ -866,7 +875,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                     </div>
                     {selectedEffect.asset_issuer && (
                       <div className="bg-[var(--bg-secondary)] px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-[10px]">
-                        <span className="text-[var(--text-muted)]">Issuer:</span> <span className="font-mono text-[var(--text-secondary)]">{shortenAddress(selectedEffect.asset_issuer, 4)}</span>
+                        <span className="text-[var(--text-muted)]">Issuer:</span> <span className="font-mono text-[var(--text-secondary)]">{shortenAddress(selectedEffect.asset_issuer)}</span>
                       </div>
                     )}
                   </div>
@@ -890,7 +899,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
                     <div><span className="text-[var(--text-muted)] text-xs">Fee Charged</span><div className="font-mono text-[var(--text-primary)]">{feeXLM} XLM</div></div>
                     <div><span className="text-[var(--text-muted)] text-xs">Ledger</span><Link href={`/ledger/${transaction.ledger}`} className="text-sky-600 hover:underline font-semibold block">{transaction.ledger.toLocaleString()}</Link></div>
-                    <div><span className="text-[var(--text-muted)] text-xs">Source Account</span><Link href={`/address/${transaction.source_account}`} className="font-mono text-sky-600 hover:underline block truncate">{shortenAddress(transaction.source_account, 6)}</Link></div>
+                    <div><span className="text-[var(--text-muted)] text-xs">Source Account</span><Link href={`/address/${transaction.source_account}`} className="font-mono text-sky-600 hover:underline block truncate">{shortenAddress(transaction.source_account)}</Link></div>
                     <div><span className="text-[var(--text-muted)] text-xs">Time</span><div className="text-[var(--text-primary)]">{timeAgo(transaction.created_at)}</div></div>
                   </div>
                 </div>
@@ -932,12 +941,12 @@ export default function TransactionDesktopView({ transaction, operations, effect
                         <div className="flex-1 min-w-0">
                           <div className="text-sm text-[var(--text-tertiary)] mb-1.5 flex items-center flex-wrap gap-1">
                             <Link href={`/address/${transaction.source_account}`} className="font-mono text-sky-600 hover:underline font-medium">
-                              {shortenAddress(transaction.source_account, 6)}
+                              {accountLabels[transaction.source_account]?.name || shortenAddress(transaction.source_account)}
                             </Link>
                             <AccountBadges address={transaction.source_account} labels={accountLabels} />
                             <span>invoked</span>
                             <Link href={`/contracts/${contractAddress || ''}`} className="font-mono text-sky-600 hover:underline font-medium">
-                              {contractAddress ? shortenAddress(contractAddress, 6) : 'contract'}
+                              {contractAddress ? shortenAddress(contractAddress) : 'contract'}
                             </Link>
                           </div>
                           <div className="bg-[var(--bg-tertiary)] rounded-lg px-4 py-2.5 font-mono text-sm border border-[var(--border-subtle)] break-all">
@@ -996,7 +1005,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                                     <span className="text-[var(--text-muted)]">Invoked </span>
                                     {call.contractId && (
                                       <Link href={`/contracts/${call.contractId}`} className="text-sky-600 dark:text-sky-400 hover:underline">
-                                        {shortenAddress(call.contractId, 4)}
+                                        {shortenAddress(call.contractId)}
                                       </Link>
                                     )}
                                     {call.functionName && (
@@ -1030,7 +1039,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                                     <span className="text-amber-600 dark:text-amber-400 font-semibold">event </span>
                                     {call.contractId && (
                                       <Link href={`/contracts/${call.contractId}`} className="text-sky-600 dark:text-sky-400 hover:underline">
-                                        {shortenAddress(call.contractId, 4)}
+                                        {shortenAddress(call.contractId)}
                                       </Link>
                                     )}
                                     {call.args && call.args.length > 0 && (
