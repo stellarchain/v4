@@ -161,7 +161,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                     <div>
                                         {issuerA ? (
                                             <Link href={`/account/${issuerA}`} className="text-xs font-mono text-sky-600 hover:underline">
-                                                {shortenAddress(issuerA, 8)}
+                                                {shortenAddress(issuerA)}
                                             </Link>
                                         ) : (
                                             <span className="text-xs text-[var(--text-muted)]">Native Asset (XLM)</span>
@@ -190,7 +190,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                     <div>
                                         {issuerB ? (
                                             <Link href={`/account/${issuerB}`} className="text-xs font-mono text-sky-600 hover:underline">
-                                                {shortenAddress(issuerB, 8)}
+                                                {shortenAddress(issuerB)}
                                             </Link>
                                         ) : (
                                             <span className="text-xs text-[var(--text-muted)]">Native Asset (XLM)</span>
@@ -405,7 +405,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                                         </td>
                                                         <td className="py-3 px-4">
                                                             <Link href={`/account/${effect.account}`} className="font-mono text-sm text-sky-600 hover:underline">
-                                                                {shortenAddress(effect.account, 6)}
+                                                                {shortenAddress(effect.account)}
                                                             </Link>
                                                         </td>
                                                         <td className="py-3 px-4 text-right">
@@ -454,7 +454,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                                 <tr key={tx.id} className="hover:bg-sky-50/30 cursor-pointer transition-colors" onClick={() => window.location.href = `/transaction/${tx.hash}`}>
                                                     <td className="py-3 px-4">
                                                         <span className="font-mono text-sm text-sky-600 hover:underline">
-                                                            {shortenAddress(tx.hash, 8)}
+                                                            {shortenAddress(tx.hash)}
                                                         </span>
                                                     </td>
                                                     <td className="py-3 px-4">
@@ -514,7 +514,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                                     </td>
                                                     <td className="py-3 px-4">
                                                         <Link href={`/account/${op.source_account}`} className="font-mono text-sm text-sky-600 hover:underline">
-                                                            {shortenAddress(op.source_account, 6)}
+                                                            {shortenAddress(op.source_account)}
                                                         </Link>
                                                     </td>
                                                     <td className="py-3 px-4 text-sm text-[var(--text-tertiary)]">

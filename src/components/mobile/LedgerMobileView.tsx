@@ -52,7 +52,7 @@ const LoadMoreButton = ({ onClick, loading }: { onClick: () => void; loading: bo
     <button
         onClick={onClick}
         disabled={loading}
-        className="w-full py-3 mt-2 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] text-sm font-semibold text-[var(--primary-blue)] hover:bg-[var(--bg-tertiary)] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 mt-2 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] text-sm font-semibold text-[var(--primary-blue)] hover:bg-[var(--bg-tertiary)] active:scale-[0.99] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
         {loading ? (
             <span className="flex items-center justify-center">
@@ -242,23 +242,16 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-1.5">
-                                <div className="flex items-center gap-1.5 bg-[var(--success)]/10 backdrop-blur-sm border border-[var(--success)]/20 px-2 py-1 rounded-lg">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--success)]"></div>
-                                    <div className="flex flex-col leading-none">
-                                        <span className="text-[11px] font-bold text-[var(--success)]">{ledger.successful_transaction_count}</span>
-                                        <span className="text-[8px] font-bold uppercase text-[var(--success)]/60">Success</span>
-                                    </div>
+                            <div className="flex items-center gap-1.5 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] px-2.5 py-1.5 rounded-lg">
+                                <div className="flex flex-col leading-none text-center">
+                                    <span className="text-[9px] uppercase font-bold text-[var(--text-muted)] tracking-wider">Tx</span>
+                                    <span className="text-[13px] font-bold mt-0.5">
+                                        <span className="text-[var(--success)]">{ledger.successful_transaction_count}</span>
+                                        {ledger.failed_transaction_count > 0 && (
+                                            <span><span className="text-white">/</span><span className="text-[var(--error)]">{ledger.failed_transaction_count}</span></span>
+                                        )}
+                                    </span>
                                 </div>
-                                {ledger.failed_transaction_count > 0 && (
-                                    <div className="flex items-center gap-1.5 bg-[var(--error)]/10 backdrop-blur-sm border border-[var(--error)]/20 px-2 py-1 rounded-lg">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[var(--error)]"></div>
-                                        <div className="flex flex-col leading-none">
-                                            <span className="text-[11px] font-bold text-[var(--error)]">{ledger.failed_transaction_count}</span>
-                                            <span className="text-[8px] font-bold uppercase text-[var(--error)]/60">Failed</span>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
@@ -405,9 +398,9 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                                 </div>
                                                 {/* Row 2: Hash + From */}
                                                 <div className="flex items-center gap-1.5 text-[11px] mt-1">
-                                                    <span className="font-mono text-[var(--text-muted)]">#{shortenAddress(tx.hash, 4)}</span>
+                                                    <span className="font-mono text-[var(--text-muted)]">#{shortenAddress(tx.hash)}</span>
                                                     <span className="text-[var(--text-muted)]">·</span>
-                                                    <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(tx.source_account, 4)}</span></span>
+                                                    <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(tx.source_account)}</span></span>
                                                     <span className="text-[var(--text-muted)]">·</span>
                                                     <span className="text-[11px] font-medium text-[var(--text-muted)]">{tx.operation_count} ops</span>
                                                 </div>
@@ -530,9 +523,9 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                                 </div>
                                                 <div className="flex items-center justify-between mt-1">
                                                     <div className="flex items-center gap-1.5 text-[11px]">
-                                                        <span className="font-mono text-[var(--text-muted)]">#{shortenAddress(op.transaction_hash, 4)}</span>
+                                                        <span className="font-mono text-[var(--text-muted)]">#{shortenAddress(op.transaction_hash)}</span>
                                                         <span className="text-[var(--text-muted)]">·</span>
-                                                        <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(op.source_account, 4)}</span></span>
+                                                        <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(op.source_account)}</span></span>
                                                     </div>
                                                     {summary && (
                                                         <span className="text-xs font-semibold text-[var(--text-primary)] shrink-0">{summary}</span>

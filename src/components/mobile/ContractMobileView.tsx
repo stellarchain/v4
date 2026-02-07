@@ -216,7 +216,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
         </div>
         <div className="flex-1 max-w-[180px] ml-auto">
           <form onSubmit={handleSearch} className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -224,7 +224,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..."
-              className="w-full pl-4 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all"
+              className="w-full pl-10 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-colors"
             />
           </form>
         </div>
@@ -292,7 +292,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                 onClick={handleCopy}
                 className="text-[11px] font-mono text-[var(--text-muted)] mt-1 hover:text-[var(--text-secondary)] transition-colors flex items-center gap-1"
               >
-                {shortenAddress(contract.id, 8)}
+                {shortenAddress(contract.id)}
                 {copied && <span className="text-[var(--success)]">Copied!</span>}
               </button>
             </div>
@@ -306,7 +306,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                   className="text-sm font-mono mt-1 block"
                   style={{ color: primaryColor }}
                 >
-                  {shortenAddress(contract.accessControl.admin || contract.accessControl.owner!, 4)}
+                  {shortenAddress(contract.accessControl.admin || contract.accessControl.owner!)}
                 </Link>
               </div>
             )}
@@ -607,7 +607,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                       const fn = invocation.functionName.toLowerCase();
                       const symbol = tokenInfo?.symbol || '';
                       const amount = displayAmount ? parseInt(displayAmount).toLocaleString() : '';
-                      const targetAddr = addressParams[0]?.decoded ? shortenAddress(addressParams[0].decoded, 4) : '';
+                      const targetAddr = addressParams[0]?.decoded ? shortenAddress(addressParams[0].decoded) : '';
 
                       switch (fn) {
                         case 'harvest': return resultAmt ? `Harvested ${resultAmt} ${resultAsset}` : 'Harvested rewards';
@@ -707,7 +707,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                               <>
                                 <span className="text-[var(--border-default)]">·</span>
                                 <span className="text-[11px] font-mono text-[var(--text-tertiary)]">
-                                  {shortenAddress(event.data.from, 4)} → {shortenAddress(event.data.to, 4)}
+                                  {shortenAddress(event.data.from)} → {shortenAddress(event.data.to)}
                                 </span>
                               </>
                             )}
@@ -898,11 +898,11 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                       </a>
                     ) : item.isAccountLink ? (
                       <Link href={`/account/${item.value}`} className="text-xs font-semibold hover:underline font-mono truncate max-w-[180px]" style={{ color: primaryColor }}>
-                        {shortenAddress(item.value, 6)}
+                        {shortenAddress(item.value)}
                       </Link>
                     ) : item.isContractLink ? (
                       <Link href={`/contract/${item.value}`} className="text-xs font-semibold hover:underline font-mono truncate max-w-[180px]" style={{ color: primaryColor }}>
-                        {shortenAddress(item.value, 6)}
+                        {shortenAddress(item.value)}
                       </Link>
                     ) : (
                       <span className={`text-xs font-semibold text-[var(--text-secondary)] text-right ${item.mono ? 'font-mono break-all max-w-[180px]' : ''}`}>

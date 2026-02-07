@@ -83,7 +83,7 @@ export default function TopAccountsMobileList({ initialAccounts }: TopAccountsMo
                                                 )}
                                             </div>
                                             <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                                                {shortenAddress(account.account, 4)}
+                                                {shortenAddress(account.account)}
                                             </span>
                                         </div>
 

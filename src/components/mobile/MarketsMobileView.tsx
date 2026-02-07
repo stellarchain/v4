@@ -283,7 +283,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
         {/* Search & Filter - aligned with list */}
         <div className="flex gap-2 items-stretch px-3">
           <div className="relative flex-1">
-            <span className="absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
+            <span className="absolute inset-y-0 left-3 z-10 flex items-center text-[var(--text-muted)] pointer-events-none">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -293,7 +293,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search assets..."
-              className="w-full h-10 pl-4 pr-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm font-medium placeholder-[var(--text-muted)] text-[var(--text-primary)] outline-none"
+              className="w-full h-10 pl-10 pr-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm font-medium placeholder-[var(--text-muted)] text-[var(--text-primary)]"
             />
           </div>
           <div className="relative">

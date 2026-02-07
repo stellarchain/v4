@@ -357,13 +357,20 @@ export interface LiquidityPool {
 
 // API Functions
 
-async function fetchJSON<T>(url: string): Promise<T> {
-  const response = await fetch(url, {
+async function fetchJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
+  const options: RequestInit = {
     headers: {
       'Accept': 'application/json',
     },
-    next: { revalidate: 10 }, // Cache for 10 seconds
-  });
+    signal,
+  };
+
+  // Only use Next.js caching on server-side
+  if (typeof window === 'undefined') {
+    (options as any).next = { revalidate: 10 };
+  }
+
+  const response = await fetch(url, options);
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
@@ -2412,7 +2419,7 @@ export function formatStroopsToXLM(stroops: number): string {
   return (stroops / 10000000).toFixed(7);
 }
 
-export function shortenAddress(address: string, chars: number = 6): string {
+export function shortenAddress(address: string, chars: number = 4): string {
   if (address.length <= chars * 2 + 3) return address;
   return `${address.slice(0, chars)}...${address.slice(-chars)}`;
 }
@@ -3350,7 +3357,8 @@ export async function getTradeAggregations(
   resolution: number, // e.g. 900000 (15m), 3600000 (1h), 86400000 (1d)
   limit: number = 100,
   startTime?: number,
-  endTime?: number
+  endTime?: number,
+  signal?: AbortSignal
 ): Promise<TradeAggregation[]> {
   const baseType = baseAsset.code === 'XLM' ? 'native' : (baseAsset.code.length > 4 ? 'credit_alphanum12' : 'credit_alphanum4');
   const counterType = counterAsset.code === 'XLM' ? 'native' : (counterAsset.code.length > 4 ? 'credit_alphanum12' : 'credit_alphanum4');
@@ -3368,7 +3376,7 @@ export async function getTradeAggregations(
   if (startTime) url += `&start_time=${startTime}`;
   if (endTime) url += `&end_time=${endTime}`;
 
-  const response = await fetchJSON<PaginatedResponse<TradeAggregation>>(url);
+  const response = await fetchJSON<PaginatedResponse<TradeAggregation>>(url, signal);
   return response._embedded.records;
 }
 
@@ -3379,13 +3387,16 @@ const USDC_ISSUER = 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN';
  * Get current XLM/USD price from Horizon API using XLM/USDC trade aggregations
  * Uses the most recent 15-minute aggregation to get the close price
  */
-export async function getXLMUSDPriceFromHorizon(): Promise<number> {
+export async function getXLMUSDPriceFromHorizon(signal?: AbortSignal): Promise<number> {
   try {
     const aggregations = await getTradeAggregations(
       { code: 'XLM' }, // base asset
       { code: 'USDC', issuer: USDC_ISSUER }, // counter asset (USDC ≈ USD)
       900000, // 15-minute resolution
-      1 // just need the most recent one
+      1, // just need the most recent one
+      undefined,
+      undefined,
+      signal
     );
 
     if (aggregations.length > 0) {

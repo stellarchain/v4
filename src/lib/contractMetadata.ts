@@ -1005,16 +1005,25 @@ function parseSpecData(data: Buffer, functions: SpecFunction[], udts: SpecUDT[])
           const cases: SpecCase[] = [];
 
           for (let i = 0; i < caseCount; i++) {
+            // XDR union: discriminant first, then the arm's struct fields
+            const caseKind = reader.readU32(); // 0=Void, 1=Tuple
             const cDoc = reader.readString();
             const cName = reader.readString();
-            const caseKind = reader.readU32(); // 0=Void, 1=Tuple
 
             let cType: SpecType | undefined;
-            if (caseKind === 1) { // generic type
-              cType = readSpecTypeDef(reader);
+            if (caseKind === 1) { // Tuple: variable-length array type<12>
+              const tupleCount = reader.readU32();
+              if (tupleCount === 1) {
+                cType = readSpecTypeDef(reader);
+              } else if (tupleCount > 1) {
+                const types: string[] = [];
+                for (let j = 0; j < tupleCount; j++) {
+                  types.push(formatTypeString(readSpecTypeDef(reader)));
+                }
+                cType = { type: `(${types.join(', ')})` };
+              }
             }
 
-            // We store cases as fields in our UI model
             fields.push({ name: cName, doc: cDoc, type: cType });
           }
           udts.push({ name, doc, type: 'union', fields });

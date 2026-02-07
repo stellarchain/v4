@@ -56,7 +56,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
             <button
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1 || loading}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -79,7 +79,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
                         key={pageNum}
                         onClick={() => onPageChange(pageNum)}
                         disabled={loading}
-                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${currentPage === pageNum
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${currentPage === pageNum
                             ? 'bg-sky-600 text-white shadow-sm'
                             : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
                             }`}
@@ -96,7 +96,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
             <button
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={(currentPage >= totalPages && !hasMore) || loading}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -104,7 +104,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
             </button>
 
             {loading && (
-                <svg className="w-4 h-4 animate-spin ml-2 text-sky-500" fill="none" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 animate-spin ml-2 text-sky-500" aria-hidden="true" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
@@ -271,7 +271,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                 {/* Search / Filters Row */}
                 <div className="mb-4 flex items-center justify-between gap-4">
                     <div className="relative flex-1 max-w-md">
-                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-4 h-4 text-[var(--text-muted)] pointer-events-none" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                         <input
@@ -282,7 +282,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                 setSearchQuery(e.target.value);
                                 setCurrentPage(1);
                             }}
-                            className="w-full pl-4 pr-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100 transition-all"
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-sky-300 focus:ring-2 focus:ring-sky-100 transition-colors"
                         />
                         {searchQuery && (
                             <button
@@ -362,7 +362,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                                             {codeA} / {codeB}
                                                         </Link>
                                                         <div className="text-[10px] text-[var(--text-muted)] font-mono">
-                                                            {shortenAddress(pool.id, 6)}
+                                                            {shortenAddress(pool.id)}
                                                         </div>
                                                     </div>
                                                 </td>
@@ -374,7 +374,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                                     </div>
                                                     <div className="text-[10px] text-[var(--text-muted)]">{codeA}</div>
                                                     {issuerA && (
-                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerA, 3)}</div>
+                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerA)}</div>
                                                     )}
                                                 </td>
 
@@ -385,7 +385,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                                     </div>
                                                     <div className="text-[10px] text-[var(--text-muted)]">{codeB}</div>
                                                     {issuerB && (
-                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerB, 3)}</div>
+                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerB)}</div>
                                                     )}
                                                 </td>
 
@@ -409,7 +409,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                                 {/* Trustlines */}
                                                 <td className="py-2.5 px-3 text-right">
                                                     <div className="inline-flex items-center gap-1">
-                                                        <svg className="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <svg className="w-3 h-3 text-emerald-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                                         </svg>
                                                         <span className="text-[12px] font-medium text-[var(--text-secondary)]">
@@ -428,7 +428,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                                 {/* Arrow */}
                                                 <td className="py-2.5 px-4 text-center">
                                                     <div className="w-7 h-7 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-muted)] group-hover:bg-sky-50 group-hover:text-sky-700 transition-colors mx-auto">
-                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <svg className="w-4 h-4" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                                         </svg>
                                                     </div>

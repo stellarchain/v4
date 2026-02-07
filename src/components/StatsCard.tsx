@@ -12,7 +12,7 @@ export default function StatsCard({
   icon,
 }: StatsCardProps) {
   return (
-    <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
+    <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow duration-300">
       <div className="flex items-start justify-between">
         <div>
           <p className="data-label mb-1.5">{title}</p>
