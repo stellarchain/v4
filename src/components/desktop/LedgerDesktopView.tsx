@@ -226,16 +226,6 @@ export default function LedgerDesktopView({
                   <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
                     v{ledger.protocol_version}
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    {ledger.successful_transaction_count} Success
-                  </span>
-                  {ledger.failed_transaction_count > 0 && (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-rose-500">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                      {ledger.failed_transaction_count} Failed
-                    </span>
-                  )}
                 </div>
                 <div className="text-xl font-bold text-[var(--text-primary)]">#{ledger.sequence.toLocaleString()}</div>
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--text-tertiary)]">
@@ -270,7 +260,7 @@ export default function LedgerDesktopView({
                 <div className="text-lg font-bold text-[var(--text-primary)]">
                   <span className="text-emerald-600">{ledger.successful_transaction_count}</span>
                   {ledger.failed_transaction_count > 0 && (
-                    <span className="text-rose-500">/{ledger.failed_transaction_count}</span>
+                    <span><span className="text-white">/</span><span className="text-rose-500">{ledger.failed_transaction_count}</span></span>
                   )}
                 </div>
               </div>
@@ -412,22 +402,6 @@ export default function LedgerDesktopView({
                   <span className="bg-[var(--bg-tertiary)] px-2 py-0.5 rounded text-[9px] font-bold text-[var(--text-tertiary)]">{totalTx} TX</span>
                 </div>
                 <div className="p-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/70">
-                      <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Successful</div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span className="text-xl font-bold text-[var(--text-primary)]">{ledger.successful_transaction_count}</span>
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/70">
-                      <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Failed</div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                        <span className="text-xl font-bold text-[var(--text-primary)]">{ledger.failed_transaction_count}</span>
-                      </div>
-                    </div>
-                  </div>
                   <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/70">
                     <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Operations</div>
                     <div className="text-xl font-bold text-[var(--text-primary)]">{ledger.operation_count}</div>
