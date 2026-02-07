@@ -37,7 +37,7 @@ export default function AccountDirectory({ initialAccounts }: AccountDirectoryPr
                             <Link
                                 href={`/address/${account.address}`}
                                 key={account.address}
-                                className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-[var(--bg-tertiary)] transition-all group"
+                                className="grid grid-cols-12 gap-4 px-4 py-4 hover:bg-[var(--bg-tertiary)] transition-colors group"
                             >
                                 {/* Rank */}
                                 <div className="col-span-1 flex items-center justify-center">

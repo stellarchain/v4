@@ -106,7 +106,7 @@ export default function NewsMobileView({ news }: NewsMobileViewProps) {
                 key={tab.id}
                 type="button"
                 onClick={() => setFilter(tab.id as FilterType)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all ${
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-colors ${
                   filter === tab.id
                     ? 'bg-[var(--primary-blue)] text-white'
                     : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] border border-[var(--border-subtle)]'

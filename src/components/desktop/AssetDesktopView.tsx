@@ -67,11 +67,23 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
   // Converter state
   const [assetAmount, setAssetAmount] = useState<string>('1');
   const [usdAmount, setUsdAmount] = useState<string>(asset.price_usd.toFixed(asset.price_usd >= 1 ? 2 : 6));
+  const [activeInput, setActiveInput] = useState<'asset' | 'usd'>('asset');
 
   useEffect(() => {
-    const amount = parseFloat(assetAmount) || 0;
-    setUsdAmount((amount * asset.price_usd).toFixed(asset.price_usd >= 1 ? 2 : 6));
-  }, [assetAmount, asset.price_usd]);
+    if (activeInput === 'asset') {
+      const amount = parseFloat(assetAmount) || 0;
+      setUsdAmount((amount * asset.price_usd).toFixed(asset.price_usd >= 1 ? 2 : 6));
+    }
+  }, [assetAmount, asset.price_usd, activeInput]);
+
+  useEffect(() => {
+    if (activeInput === 'usd') {
+      const amount = parseFloat(usdAmount) || 0;
+      if (asset.price_usd > 0) {
+        setAssetAmount((amount / asset.price_usd).toFixed(asset.price_usd >= 1 ? 4 : 2));
+      }
+    }
+  }, [usdAmount, asset.price_usd, activeInput]);
 
   // Calculate price position in 24h range
   const priceRange = asset.price_high_24h - asset.price_low_24h;
@@ -236,9 +248,9 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1400px] px-4 py-4">
-        {/* Main Grid: Left Sidebar + Right Content */}
+        {/* Main Grid: 2×2 proportional layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-4">
-          {/* Left Sidebar */}
+          {/* Row 1 Left: Price + Stats */}
           <div className="space-y-4">
             {/* Asset Header + Price */}
             <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-3">
@@ -357,7 +369,12 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                 <div className="mt-1.5 font-semibold text-[var(--text-primary)]">{formatNumber(asset.circulating_supply)} {asset.code}</div>
               </div>
             </div>
+          </div>
 
+          {/* Row 1 Right: injected below via grid order */}
+
+          {/* Row 2 Left: Links + Converter + Price Performance */}
+          <div className="space-y-4 lg:col-start-1">
             {/* Links Section */}
             {(asset.domain || asset.issuer) && (
               <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-3 space-y-3">
@@ -448,8 +465,8 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                   <input
                     type="number"
                     value={assetAmount}
-                    onChange={(e) => setAssetAmount(e.target.value)}
-                    className="text-right bg-transparent font-semibold text-[var(--text-primary)] focus:outline-none flex-1 min-w-0 ml-2"
+                    onChange={(e) => { setActiveInput('asset'); setAssetAmount(e.target.value); }}
+                    className="text-right bg-transparent font-semibold text-[var(--text-primary)] flex-1 min-w-0 ml-2"
                     placeholder="0"
                   />
                 </div>
@@ -463,14 +480,20 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider">You get</label>
-                <div className="flex items-center bg-[var(--bg-primary)] rounded-lg px-3 py-2.5 border border-[var(--border-subtle)]">
+                <div className="flex items-center bg-[var(--bg-primary)] rounded-lg px-3 py-2.5 border border-[var(--border-subtle)] focus-within:border-sky-400 focus-within:ring-1 focus-within:ring-sky-400/20 transition-colors">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-6 h-6 bg-emerald-50 rounded-full flex items-center justify-center flex-shrink-0 border border-emerald-100">
                       <span className="text-emerald-600 font-bold text-[9px]">$</span>
                     </div>
                     <span className="text-sm font-semibold text-[var(--text-primary)]">USD</span>
                   </div>
-                  <span className="text-right font-semibold text-[var(--text-primary)] flex-1 ml-2">{usdAmount}</span>
+                  <input
+                    type="number"
+                    value={usdAmount}
+                    onChange={(e) => { setActiveInput('usd'); setUsdAmount(e.target.value); }}
+                    className="text-right bg-transparent font-semibold text-[var(--text-primary)] flex-1 min-w-0 ml-2"
+                    placeholder="0"
+                  />
                 </div>
               </div>
               <div className="mt-2 text-center">
@@ -502,8 +525,8 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
             </div>
           </div>
 
-          {/* Right Content Area */}
-          <div className="space-y-4 min-w-0 overflow-hidden">
+          {/* Row 1 Right: Tabs + Chart/Content */}
+          <div className="flex flex-col gap-4 min-w-0 overflow-hidden lg:row-start-1 lg:col-start-2">
             {/* Tab Navigation */}
             <GliderTabs
               size="md"
@@ -521,11 +544,8 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
 
             {/* Tab Content */}
             {activeTab === 'chart' && (
-              <div className="space-y-4">
-                <AssetCandlestickChart asset={asset} />
-
-                {/* Order Book below chart */}
-                <AssetOrderBook asset={asset} />
+              <div className="flex-1 min-h-0">
+                <AssetCandlestickChart asset={asset} className="h-full" />
               </div>
             )}
 
@@ -909,6 +929,15 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
               </div>
             )}
           </div>
+
+          {/* Row 2 Right: Order Book (chart tab only) */}
+          {activeTab === 'chart' ? (
+            <div className="min-w-0 overflow-hidden lg:col-start-2">
+              <AssetOrderBook asset={asset} />
+            </div>
+          ) : (
+            <div className="hidden lg:block" />
+          )}
         </div>
       </div>
     </div>

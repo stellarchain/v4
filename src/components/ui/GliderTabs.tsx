@@ -45,7 +45,7 @@ export default function GliderTabs<TId extends string>({
     >
       <div
         aria-hidden="true"
-        className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-all duration-300 ease-out z-0"
+        className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-transform duration-300 ease-out z-0"
         style={{
           left: '4px',
           width: `calc((100% - 8px) / ${tabCount})`,

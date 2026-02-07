@@ -746,7 +746,7 @@ export default function TransactionMobileView({ transaction, operations, effects
         </div>
         <div className="flex-1 max-w-[180px] ml-auto">
           <form onSubmit={handleSearch} className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -754,7 +754,7 @@ export default function TransactionMobileView({ transaction, operations, effects
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..."
-              className="w-full pl-4 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all"
+              className="w-full pl-10 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-colors"
             />
           </form>
         </div>
@@ -855,7 +855,7 @@ export default function TransactionMobileView({ transaction, operations, effects
               )}
 
               {/* Smart Contract Summary Card */}
-              <div className="mt-4 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-2xl p-4 relative overflow-hidden transition-all duration-300">
+              <div className="mt-4 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-2xl p-4 relative overflow-hidden transition-colors duration-300">
                 {/* Decorative glow effect */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary-blue)]/10 rounded-full blur-2xl -mr-4 -mt-4 pointer-events-none"></div>
                 {contractEffectType === 'both' ? (
@@ -950,7 +950,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       {contractTransferEffects.filter(e => contractHeaderIsCredit ? e.type.includes('credited') : e.type.includes('debited')).length > 1 && (
                         <button
                           onClick={() => setIsExpanded(!isExpanded)}
-                          className="bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded-lg p-2 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-all ml-4"
+                          className="bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded-lg p-2 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors ml-4"
                         >
                           <svg className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1872,7 +1872,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                                 btn.classList.remove('text-[var(--success)]');
                               }, 1500);
                             }}
-                            className="text-xs font-mono font-bold text-[var(--text-secondary)] hover:opacity-70 transition-all cursor-pointer"
+                            className="text-xs font-mono font-bold text-[var(--text-secondary)] hover:opacity-70 transition-opacity cursor-pointer"
                             title="Click to copy"
                           >
                             {sig.slice(0, 8)}...{sig.slice(-6)}

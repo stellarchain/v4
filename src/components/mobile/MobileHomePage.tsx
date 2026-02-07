@@ -96,22 +96,21 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
       {/* Network Stats Card */}
       <div className="px-3 mt-2 relative z-20">
         <div className="bg-[var(--bg-secondary)]/90 backdrop-blur-xl rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border-t border-white/10 border-x border-b border-white/5 ring-1 ring-white/5">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3" aria-live="polite">
 
             {/* Market Cap - Mainnet only, TX Count for testnet */}
             {isMainnet ? (
               <div className="bg-[var(--bg-tertiary)] p-3 rounded-xl">
                 <div className="flex justify-between items-start mb-2">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Market Cap</span>
-                  <span className="text-[11px] font-bold text-[var(--success)]">+2.4%</span>
                 </div>
                 <div className="flex items-end justify-between">
-                  <span className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{formattedMarketCap}</span>
-                  <svg className="w-16 h-8" viewBox="0 0 100 40">
+                  <span className="text-lg tabular-nums font-bold leading-none" style={{ color: primaryColor }}>{formattedMarketCap}</span>
+                  <svg className="w-16 h-8" viewBox="0 0 100 40" aria-hidden="true">
                     <path
                       d="M0,35 L10,32 L20,38 L30,25 L40,30 L50,15 L60,20 L70,10 L80,18 L90,5 L100,12"
                       fill="none"
-                      stroke="var(--success)"
+                      stroke="var(--text-muted)"
                       strokeWidth="2"
                     />
                   </svg>
@@ -121,13 +120,13 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
               <div className="bg-[var(--bg-tertiary)] p-3 rounded-xl">
                 <div className="flex justify-between items-start mb-2">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">TX Count</span>
-                  <span className="text-[11px] font-bold text-[var(--success)]">{tps} TPS</span>
+                  <span className="text-[11px] tabular-nums font-bold text-[var(--success)]">{tps} TPS</span>
                 </div>
                 <div className="flex items-end justify-between">
-                  <span ref={tpsRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>
+                  <span ref={tpsRef} className="text-lg tabular-nums font-bold leading-none" style={{ color: primaryColor }}>
                     {liveStats.latest_ledger.successful_transaction_count.toLocaleString()}
                   </span>
-                  <svg className="w-16 h-8" viewBox="0 0 100 40">
+                  <svg className="w-16 h-8" viewBox="0 0 100 40" aria-hidden="true">
                     <path
                       d="M0,30 L20,28 L40,32 L60,15 L80,12 L100,5"
                       fill="none"
@@ -144,15 +143,14 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
               <div className="bg-[var(--bg-tertiary)] p-3 rounded-xl">
                 <div className="flex justify-between items-start mb-2">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Vol (24h)</span>
-                  <span className="text-[11px] font-bold text-[var(--error)]">-0.8%</span>
                 </div>
                 <div className="flex items-end justify-between">
-                  <span className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{formattedVolume}</span>
-                  <svg className="w-16 h-8" viewBox="0 0 100 40">
+                  <span className="text-lg tabular-nums font-bold leading-none" style={{ color: primaryColor }}>{formattedVolume}</span>
+                  <svg className="w-16 h-8" viewBox="0 0 100 40" aria-hidden="true">
                     <path
                       d="M0,10 L10,15 L20,12 L30,25 L40,20 L50,35 L60,30 L70,38 L80,32 L90,36 L100,34"
                       fill="none"
-                      stroke="var(--error)"
+                      stroke="var(--text-muted)"
                       strokeWidth="2"
                     />
                   </svg>
@@ -164,7 +162,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
                   <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Ledger</span>
                 </div>
                 <div className="flex items-baseline space-x-1 mt-2">
-                  <span ref={ledgerCountRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{liveStats.ledger_count.toLocaleString()}</span>
+                  <span ref={ledgerCountRef} className="text-lg tabular-nums font-bold leading-none" style={{ color: primaryColor }}>{liveStats.ledger_count.toLocaleString()}</span>
                 </div>
               </Link>
             )}
@@ -174,13 +172,13 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
               <div className="bg-[var(--bg-tertiary)] p-3 rounded-xl">
                 <div className="flex justify-between items-start mb-2">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">TX Count</span>
-                  <span className="text-[11px] font-bold text-[var(--success)]">{tps} TPS</span>
+                  <span className="text-[11px] tabular-nums font-bold text-[var(--success)]">{tps} TPS</span>
                 </div>
                 <div className="flex items-end justify-between">
-                  <span ref={tpsRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>
+                  <span ref={tpsRef} className="text-lg tabular-nums font-bold leading-none" style={{ color: primaryColor }}>
                     {liveStats.latest_ledger.successful_transaction_count.toLocaleString()}
                   </span>
-                  <svg className="w-16 h-8" viewBox="0 0 100 40">
+                  <svg className="w-16 h-8" viewBox="0 0 100 40" aria-hidden="true">
                     <path
                       d="M0,30 L20,28 L40,32 L60,15 L80,12 L100,5"
                       fill="none"
@@ -199,7 +197,7 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
                   <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-tighter">Ledger</span>
                 </div>
                 <div className="flex items-baseline space-x-1 mt-2">
-                  <span ref={ledgerCountRef} className="text-lg font-bold leading-none" style={{ color: primaryColor }}>{liveStats.ledger_count.toLocaleString()}</span>
+                  <span ref={ledgerCountRef} className="text-lg tabular-nums font-bold leading-none" style={{ color: primaryColor }}>{liveStats.ledger_count.toLocaleString()}</span>
                 </div>
               </Link>
             )}
