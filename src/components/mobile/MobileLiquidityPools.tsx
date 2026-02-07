@@ -139,7 +139,7 @@ export default function MobileLiquidityPools({ initialPools }: MobileLiquidityPo
                                                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/account/${issuerA}`); }}
                                                     className="text-[9px] text-[var(--text-muted)] font-mono truncate hover:text-[var(--primary-blue)] text-left"
                                                 >
-                                                    {shortenAddress(issuerA, 4)}
+                                                    {shortenAddress(issuerA)}
                                                 </button>
                                             )}
                                         </div>
@@ -158,7 +158,7 @@ export default function MobileLiquidityPools({ initialPools }: MobileLiquidityPo
                                                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/account/${issuerB}`); }}
                                                     className="text-[9px] text-[var(--text-muted)] font-mono truncate hover:text-[var(--primary-blue)] text-left"
                                                 >
-                                                    {shortenAddress(issuerB, 4)}
+                                                    {shortenAddress(issuerB)}
                                                 </button>
                                             )}
                                         </div>

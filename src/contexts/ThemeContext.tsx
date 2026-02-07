@@ -36,6 +36,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setThemeState(newTheme);
         localStorage.setItem('stellarchain-theme', newTheme);
         document.documentElement.setAttribute('data-theme', newTheme);
+        document.documentElement.style.colorScheme = newTheme;
     };
 
     const toggleTheme = () => {

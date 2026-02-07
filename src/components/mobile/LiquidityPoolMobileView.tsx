@@ -126,7 +126,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                 </div>
                 <div className="flex-1 max-w-[180px] ml-auto">
                     <form onSubmit={handleSearch} className="relative">
-                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                         <input
@@ -134,7 +134,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search..."
-                            className="w-full pl-4 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all"
+                            className="w-full pl-10 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-colors"
                         />
                     </form>
                 </div>
@@ -249,7 +249,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="text-sm font-semibold text-[var(--text-primary)] truncate">
-                                                    {shortenAddress(tx.hash, 8)}
+                                                    {shortenAddress(tx.hash)}
                                                 </div>
                                                 <div className="text-[11px] text-[var(--text-muted)]">
                                                     {tx.operation_count} operation{tx.operation_count !== 1 ? 's' : ''}
@@ -316,7 +316,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                                     {account && (
                                                         <>
                                                             <span className="mx-1.5">·</span>
-                                                            <span className="font-mono">{shortenAddress(account, 4)}</span>
+                                                            <span className="font-mono">{shortenAddress(account)}</span>
                                                         </>
                                                     )}
                                                 </div>
@@ -390,7 +390,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                                             href={`/account/${effect.account}`}
                                                             className="font-mono hover:text-[var(--primary-blue)]"
                                                         >
-                                                            {shortenAddress(effect.account, 4)}
+                                                            {shortenAddress(effect.account)}
                                                         </Link>
                                                     </div>
                                                 </div>
@@ -430,7 +430,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                                 <div className="text-[11px] text-[var(--text-muted)]">
                                                     {timeAgo(op.created_at)}
                                                     <span className="mx-1.5">·</span>
-                                                    <span className="font-mono">{shortenAddress(op.source_account, 4)}</span>
+                                                    <span className="font-mono">{shortenAddress(op.source_account)}</span>
                                                 </div>
                                             </div>
                                         </div>

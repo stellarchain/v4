@@ -352,15 +352,15 @@ export default function TransactionFlowAnimation({
                 ))}
             </div>
 
-            <div className="flex items-stretch gap-2 px-4 pt-12 pb-4 h-full overflow-hidden"
+            <div className="flex items-stretch gap-2 px-4 pt-12 pb-4 h-full overflow-hidden flex-row-reverse"
                 style={{ scrollbarWidth: 'none' }}
             >
-                {/* Next Ledger Block */}
+                {/* Next Ledger Block (right side) */}
                 <div className="flex-shrink-0 flex flex-col border-2 border-dashed border-[var(--border-default)] relative overflow-hidden"
                     style={{ width: 130 }}
                 >
                     <div
-                        className="absolute bottom-0 left-0 right-0 transition-all duration-100 ease-linear"
+                        className="absolute bottom-0 left-0 right-0 transition-[height] duration-100 ease-linear"
                         style={{
                             height: `${ledgerProgress}%`,
                             background: theme === 'dark'
@@ -371,7 +371,7 @@ export default function TransactionFlowAnimation({
                     <div className="relative z-10 flex flex-col items-center justify-center h-full gap-2 p-2">
                         <div className="w-9 h-9 rounded-full border-2 border-sky-500/40 flex items-center justify-center">
                             <div className="w-6 h-6 rounded-full bg-sky-500/20 flex items-center justify-center animate-pulse">
-                                <svg className="w-3 h-3 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-3 h-3 text-sky-500" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                 </svg>
                             </div>
@@ -385,7 +385,7 @@ export default function TransactionFlowAnimation({
                         <div className="w-full px-1">
                             <div className="w-full bg-[var(--bg-tertiary)] rounded-full h-1 overflow-hidden">
                                 <div
-                                    className="bg-sky-500 h-1 rounded-full transition-all duration-100 ease-linear"
+                                    className="bg-sky-500 h-1 rounded-full transition-[width] duration-100 ease-linear"
                                     style={{ width: `${ledgerProgress}%` }}
                                 />
                             </div>
@@ -397,12 +397,12 @@ export default function TransactionFlowAnimation({
                 </div>
 
                 <div className="flex-shrink-0 flex items-center">
-                    <svg className="w-5 h-5 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+                    <svg className="w-5 h-5 text-[var(--text-muted)]" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
                     </svg>
                 </div>
 
-                {/* Ledger Blocks */}
+                {/* Ledger Blocks (newest near right, oldest pushed left) */}
                 {displayedLedgers.map((ledger, index) => {
                     const realOps = ledgerOpsMap.get(ledger.sequence);
                     if (!realOps) return null;
@@ -438,11 +438,11 @@ export default function TransactionFlowAnimation({
                 })}
 
                 <div
-                    className="absolute top-0 right-0 bottom-0 w-12 pointer-events-none z-10"
+                    className="absolute top-0 left-0 bottom-0 w-12 pointer-events-none z-10"
                     style={{
                         background: theme === 'dark'
-                            ? 'linear-gradient(270deg, var(--bg-primary) 0%, transparent 100%)'
-                            : 'linear-gradient(270deg, #f8fafc 0%, transparent 100%)'
+                            ? 'linear-gradient(90deg, var(--bg-primary) 0%, transparent 100%)'
+                            : 'linear-gradient(90deg, #f8fafc 0%, transparent 100%)'
                     }}
                 />
             </div>

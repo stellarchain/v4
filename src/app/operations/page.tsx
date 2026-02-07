@@ -29,7 +29,7 @@ export default async function OperationsPage() {
       </div>
 
       <div className="flex justify-center">
-        <button className="px-4 py-3 bg-[var(--bg-secondary)] rounded-xl shadow-sm text-[var(--text-primary)] font-medium text-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+        <button className="px-4 py-3 bg-[var(--bg-secondary)] rounded-xl shadow-sm text-[var(--text-primary)] font-medium text-sm hover:shadow-md hover:-translate-y-0.5 transition-[box-shadow,transform]">
           Load More
         </button>
       </div>

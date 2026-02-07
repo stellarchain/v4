@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 type VerificationType = 'user_defined' | 'verified';
 
 export default function AddLabelPage() {
-  const [accountId, setAccountId] = useState('');
+  const searchParams = useSearchParams();
+  const [accountId, setAccountId] = useState(searchParams.get('account') || '');
   const [label, setLabel] = useState('');
   const [email, setEmail] = useState('');
   const [verificationType, setVerificationType] = useState<VerificationType>('user_defined');
@@ -141,7 +143,7 @@ export default function AddLabelPage() {
                       key={option.id}
                       type="button"
                       onClick={() => setVerificationType(option.id)}
-                      className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      className={`p-4 rounded-xl border-2 text-left transition-colors ${
                         isSelected
                           ? 'border-sky-500 bg-sky-50 dark:bg-sky-900/20'
                           : 'border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)]'

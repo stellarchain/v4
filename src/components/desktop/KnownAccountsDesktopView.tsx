@@ -202,7 +202,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-4">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-5 h-5 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -210,14 +210,14 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name or address..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 pl-4 text-sm shadow-sm"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] pl-12 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm shadow-sm"
             />
           </div>
 
           <div className="flex items-center gap-3">
             <Link
               href="/accounts"
-              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:border-sky-200 hover:text-sky-600 transition-all shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:border-sky-200 hover:text-sky-600 transition-colors shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -296,7 +296,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
                     {/* Address */}
                     <td className="py-4 px-4">
                       <span className="font-mono text-xs text-[var(--text-tertiary)] group-hover:text-sky-600 transition-colors">
-                        {shortenAddress(account.account, 8)}
+                        {shortenAddress(account.account)}
                       </span>
                     </td>
 
@@ -369,7 +369,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
               <button
                 onClick={() => fetchPage(currentPage - 1)}
                 disabled={currentPage === 1 || isLoading}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -392,7 +392,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
                     key={pageNum}
                     onClick={() => fetchPage(pageNum)}
                     disabled={isLoading}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${currentPage === pageNum
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${currentPage === pageNum
                         ? 'bg-sky-600 text-white shadow-sm'
                         : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
                       }`}
@@ -409,7 +409,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
               <button
                 onClick={() => fetchPage(currentPage + 1)}
                 disabled={currentPage === totalPages || isLoading}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

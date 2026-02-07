@@ -61,7 +61,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1 || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -84,7 +84,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
             key={pageNum}
             onClick={() => onPageChange(pageNum)}
             disabled={loading}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${currentPage === pageNum
+            className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${currentPage === pageNum
                 ? 'bg-sky-600 text-white shadow-sm'
                 : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
               }`}
@@ -101,7 +101,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={(currentPage >= totalPages && !hasMore) || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -226,16 +226,6 @@ export default function LedgerDesktopView({
                   <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
                     v{ledger.protocol_version}
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    {ledger.successful_transaction_count} Success
-                  </span>
-                  {ledger.failed_transaction_count > 0 && (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-rose-500">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                      {ledger.failed_transaction_count} Failed
-                    </span>
-                  )}
                 </div>
                 <div className="text-xl font-bold text-[var(--text-primary)]">#{ledger.sequence.toLocaleString()}</div>
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--text-tertiary)]">
@@ -253,7 +243,7 @@ export default function LedgerDesktopView({
                     onClick={handleCopyHash}
                     className="group flex items-center gap-1.5 font-mono text-[11px] text-[var(--text-muted)] hover:text-sky-600 transition-colors"
                   >
-                    <span className="truncate">{shortenAddress(ledger.hash, 6)}</span>
+                    <span className="truncate">{shortenAddress(ledger.hash)}</span>
                     <svg className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
@@ -270,7 +260,7 @@ export default function LedgerDesktopView({
                 <div className="text-lg font-bold text-[var(--text-primary)]">
                   <span className="text-emerald-600">{ledger.successful_transaction_count}</span>
                   {ledger.failed_transaction_count > 0 && (
-                    <span className="text-rose-500">/{ledger.failed_transaction_count}</span>
+                    <span><span className="text-white">/</span><span className="text-rose-500">{ledger.failed_transaction_count}</span></span>
                   )}
                 </div>
               </div>
@@ -300,7 +290,7 @@ export default function LedgerDesktopView({
         <div className="mb-4 grid grid-cols-2 gap-3">
           <Link
             href={`/ledger/${ledger.sequence - 1}`}
-            className="group flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] hover:border-sky-200 hover:bg-sky-50/50 transition-all"
+            className="group flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] hover:border-sky-200 hover:bg-sky-50/50 transition-colors"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -314,7 +304,7 @@ export default function LedgerDesktopView({
           </Link>
           <Link
             href={`/ledger/${ledger.sequence + 1}`}
-            className="group flex items-center justify-end gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] hover:border-sky-200 hover:bg-sky-50/50 transition-all"
+            className="group flex items-center justify-end gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] hover:border-sky-200 hover:bg-sky-50/50 transition-colors"
           >
             <div className="text-right">
               <div className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Next</div>
@@ -412,22 +402,6 @@ export default function LedgerDesktopView({
                   <span className="bg-[var(--bg-tertiary)] px-2 py-0.5 rounded text-[9px] font-bold text-[var(--text-tertiary)]">{totalTx} TX</span>
                 </div>
                 <div className="p-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/70">
-                      <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Successful</div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span className="text-xl font-bold text-[var(--text-primary)]">{ledger.successful_transaction_count}</span>
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/70">
-                      <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Failed</div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                        <span className="text-xl font-bold text-[var(--text-primary)]">{ledger.failed_transaction_count}</span>
-                      </div>
-                    </div>
-                  </div>
                   <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/70">
                     <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Operations</div>
                     <div className="text-xl font-bold text-[var(--text-primary)]">{ledger.operation_count}</div>
@@ -553,10 +527,10 @@ export default function LedgerDesktopView({
                             {description}
                           </span>
                           <span className="text-[var(--text-muted)]">→</span>
-                          <span className="text-xs font-mono text-[var(--text-tertiary)] truncate">{shortenAddress(tx.source_account, 6)}</span>
+                          <span className="text-xs font-mono text-[var(--text-tertiary)] truncate">{shortenAddress(tx.source_account)}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-[10px] text-[var(--text-muted)]">
-                          <span className="font-mono">{shortenAddress(tx.hash, 8)}</span>
+                          <span className="font-mono">{shortenAddress(tx.hash)}</span>
                           <span className="text-[var(--text-muted)]">•</span>
                           <span>{timeAgo(tx.created_at)}</span>
                         </div>
@@ -604,7 +578,7 @@ export default function LedgerDesktopView({
                   if (op.type === 'payment') {
                     const asset = (op as any).asset_code || ((op as any).asset_type === 'native' ? 'XLM' : '');
                     summary = `${formatTokenAmount((op as any).amount, 2)} ${asset}`;
-                    summaryLabel = (op as any).to ? `→ ${shortenAddress((op as any).to, 4)}` : '';
+                    summaryLabel = (op as any).to ? `→ ${shortenAddress((op as any).to)}` : '';
                     typeDisplay = 'Payment';
                     accentClass = 'text-emerald-600 dark:text-emerald-400';
                     bgClass = 'bg-emerald-100 dark:bg-emerald-900/40';
@@ -700,7 +674,7 @@ export default function LedgerDesktopView({
                           {op.source_account && (
                             <>
                               <span className="text-xs text-[var(--text-tertiary)]">from</span>
-                              <span className="text-xs font-mono font-medium text-[var(--text-secondary)]">{shortenAddress(op.source_account, 6)}</span>
+                              <span className="text-xs font-mono font-medium text-[var(--text-secondary)]">{shortenAddress(op.source_account)}</span>
                             </>
                           )}
                           <span className="text-[var(--text-muted)]">•</span>
