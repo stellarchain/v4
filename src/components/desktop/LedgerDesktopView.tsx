@@ -61,7 +61,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1 || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -84,7 +84,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
             key={pageNum}
             onClick={() => onPageChange(pageNum)}
             disabled={loading}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all ${currentPage === pageNum
+            className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${currentPage === pageNum
                 ? 'bg-sky-600 text-white shadow-sm'
                 : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
               }`}
@@ -101,7 +101,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={(currentPage >= totalPages && !hasMore) || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -300,7 +300,7 @@ export default function LedgerDesktopView({
         <div className="mb-4 grid grid-cols-2 gap-3">
           <Link
             href={`/ledger/${ledger.sequence - 1}`}
-            className="group flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] hover:border-sky-200 hover:bg-sky-50/50 transition-all"
+            className="group flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] hover:border-sky-200 hover:bg-sky-50/50 transition-colors"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -314,7 +314,7 @@ export default function LedgerDesktopView({
           </Link>
           <Link
             href={`/ledger/${ledger.sequence + 1}`}
-            className="group flex items-center justify-end gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] hover:border-sky-200 hover:bg-sky-50/50 transition-all"
+            className="group flex items-center justify-end gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-default)] hover:border-sky-200 hover:bg-sky-50/50 transition-colors"
           >
             <div className="text-right">
               <div className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Next</div>

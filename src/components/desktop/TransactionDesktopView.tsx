@@ -309,7 +309,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
         {/* Header */}
         <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
           <div className="flex items-start gap-3">
-            <Link href="/transactions" className="mt-0.5 w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-secondary)] transition-all shrink-0">
+            <Link href="/transactions" className="mt-0.5 w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-secondary)] transition-colors shrink-0">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             </Link>
             <div className="flex-1 min-w-0">
@@ -479,7 +479,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   <div className="relative ml-auto">
                     <button
                       onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border ${operationFilter !== 'all' ? 'bg-sky-50 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 border-sky-200 dark:border-sky-800' : 'text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--border-default)] hover:text-[var(--text-secondary)]'}`}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors border ${operationFilter !== 'all' ? 'bg-sky-50 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 border-sky-200 dark:border-sky-800' : 'text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--border-default)] hover:text-[var(--text-secondary)]'}`}
                     >
                       <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -525,9 +525,9 @@ export default function TransactionDesktopView({ transaction, operations, effect
                       const isActive = idx === selectedOpIndex;
                       const originalIdx = operations.findIndex(o => o.id === op.id);
                       return (
-                        <button key={op.id} onClick={() => setSelectedOpIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800 shadow-sm' : 'hover:bg-[var(--bg-tertiary)] border border-transparent hover:border-[var(--border-default)]'}`}>
+                        <button key={op.id} onClick={() => setSelectedOpIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-colors text-left group ${isActive ? 'bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800 shadow-sm' : 'hover:bg-[var(--bg-tertiary)] border border-transparent hover:border-[var(--border-default)]'}`}>
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-[9px] font-black transition-all ${isActive ? 'bg-sky-600 text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] group-hover:bg-[var(--bg-tertiary)]'}`}>OP{originalIdx + 1}</div>
+                            <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-[9px] font-black transition-colors ${isActive ? 'bg-sky-600 text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] group-hover:bg-[var(--bg-tertiary)]'}`}>OP{originalIdx + 1}</div>
                             <div className="flex-1 min-w-0">
                               <h4 className={`text-sm font-semibold truncate ${isActive ? 'text-sky-600' : 'text-[var(--text-primary)] group-hover:text-sky-600'}`}>{title}</h4>
                               <p className={`text-[9px] uppercase tracking-wider font-bold ${isActive ? 'text-sky-400' : catColor}`}>{cat}</p>
@@ -554,9 +554,9 @@ export default function TransactionDesktopView({ transaction, operations, effect
                       const isCredit = ef.type.includes('credited');
                       const isDebit = ef.type.includes('debited');
                       return (
-                        <button key={ef.id} onClick={() => setSelectedEffectIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-all text-left group ${isActive ? 'bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800 shadow-sm' : 'hover:bg-[var(--bg-tertiary)] border border-transparent hover:border-[var(--border-default)]'}`}>
+                        <button key={ef.id} onClick={() => setSelectedEffectIndex(idx)} className={`w-full p-3 rounded-xl cursor-pointer transition-colors text-left group ${isActive ? 'bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800 shadow-sm' : 'hover:bg-[var(--bg-tertiary)] border border-transparent hover:border-[var(--border-default)]'}`}>
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center transition-all ${isActive ? 'bg-sky-600 text-white' : isCredit ? 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' : isDebit ? 'bg-rose-50 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'}`}>
+                            <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center transition-colors ${isActive ? 'bg-sky-600 text-white' : isCredit ? 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' : isDebit ? 'bg-rose-50 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'}`}>
                               {isCredit ? (
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
                               ) : isDebit ? (

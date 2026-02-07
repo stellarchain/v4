@@ -141,7 +141,7 @@ export default function AddLabelPage() {
                       key={option.id}
                       type="button"
                       onClick={() => setVerificationType(option.id)}
-                      className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      className={`p-4 rounded-xl border-2 text-left transition-colors ${
                         isSelected
                           ? 'border-sky-500 bg-sky-50 dark:bg-sky-900/20'
                           : 'border-[var(--border-default)] bg-[var(--bg-secondary)] hover:border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)]'

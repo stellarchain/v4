@@ -192,13 +192,13 @@ export default function DesktopNavbar() {
                             {/* Search (Desktop) */}
                             <form onSubmit={handleSearch} className="search-box group hidden lg:block w-56 xl:w-80">
                                 <div className="relative">
-                                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-muted)]">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <span className="absolute inset-y-0 left-0 pl-3 z-10 flex items-center pointer-events-none text-[var(--text-muted)]">
+                                        <svg className="w-4 h-4" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                         </svg>
                                     </span>
                                     <input
-                                        className="w-full py-2 pl-4 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70 outline-none"
+                                        className="w-full py-2 pl-9 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70"
                                         placeholder="Search by address, hash, contract, or ledger"
                                         type="search"
                                         value={searchQuery}
@@ -221,7 +221,7 @@ export default function DesktopNavbar() {
                                         }}
                                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors"
                                     >
-                                        <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-4 h-4 text-amber-500" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
                                             <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                                         </svg>
                                         <span>Watchlist</span>
@@ -231,6 +231,7 @@ export default function DesktopNavbar() {
                                         {favorites.length > 1 && (
                                             <svg
                                                 className={`w-4 h-4 transition-transform ${showFavoritesDropdown ? 'rotate-180' : ''}`}
+                                                aria-hidden="true"
                                                 fill="none"
                                                 viewBox="0 0 24 24"
                                                 stroke="currentColor"
@@ -244,7 +245,7 @@ export default function DesktopNavbar() {
                                         <div className="absolute top-full right-0 mt-1 w-72 bg-[var(--bg-secondary)] rounded-xl shadow-xl border border-[var(--border-default)] py-2 z-50">
                                             <div className="px-4 py-2 border-b border-[var(--border-subtle)]">
                                                 <div className="flex items-center gap-2">
-                                                    <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                                                    <svg className="w-4 h-4 text-amber-500" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
                                                         <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                                                     </svg>
                                                     <span className="text-sm font-semibold text-[var(--text-secondary)]">Watchlist</span>
@@ -275,7 +276,7 @@ export default function DesktopNavbar() {
                                                                     {shortenAddress(fav.address, 6)}
                                                                 </div>
                                                             </div>
-                                                            <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <svg className="w-4 h-4 text-[var(--text-muted)]" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                                             </svg>
                                                         </Link>
@@ -304,6 +305,7 @@ export default function DesktopNavbar() {
                                     <span>{networkConfig.displayName}</span>
                                     <svg
                                         className={`w-4 h-4 transition-transform ${showNetworkDropdown ? 'rotate-180' : ''}`}
+                                        aria-hidden="true"
                                         fill="none"
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"
@@ -334,7 +336,7 @@ export default function DesktopNavbar() {
                                                         {config.displayName}
                                                     </span>
                                                     {isActive && (
-                                                        <svg className="w-4 h-4 ml-auto text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                                        <svg className="w-4 h-4 ml-auto text-blue-500" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
                                                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                         </svg>
                                                     )}
@@ -368,9 +370,9 @@ export default function DesktopNavbar() {
                             {/* Donate Button */}
                             <button
                                 onClick={() => setShowDonationModal(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-sm font-medium rounded-lg hover:from-pink-600 hover:to-rose-600 transition-all shadow-sm hover:shadow-md"
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-sm font-medium rounded-lg hover:from-pink-600 hover:to-rose-600 transition-[colors,box-shadow] shadow-sm hover:shadow-md"
                             >
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                                 </svg>
                                 Donate

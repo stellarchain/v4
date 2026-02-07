@@ -329,10 +329,10 @@ export const tabs = {
 
 export const inputs = {
   // Search input
-  search: 'w-full pl-4 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-all',
+  search: 'w-full pl-4 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-colors',
 
   // Standard input
-  input: 'w-full px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all',
+  input: 'w-full px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-colors',
 
   // Select dropdown
   select: 'w-full px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm text-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all appearance-none',

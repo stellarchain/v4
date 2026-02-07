@@ -14,11 +14,11 @@ const CompactLedgerRow = forwardRef<HTMLAnchorElement, CompactLedgerRowProps>(
       <Link
         ref={ref}
         href={`/ledger/${ledger.sequence}`}
-        className="flex items-center justify-between py-4 px-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm hover:shadow-md hover:border-[var(--border-default)] transition-all duration-300 group text-[13px]"
+        className="flex items-center justify-between py-4 px-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl shadow-sm hover:shadow-md hover:border-[var(--border-default)] transition-[colors,box-shadow,border-color] duration-300 group text-[13px]"
       >
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] shrink-0">
-            <svg className="w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-[var(--text-muted)]" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
           </div>
@@ -42,7 +42,7 @@ const CompactLedgerRow = forwardRef<HTMLAnchorElement, CompactLedgerRowProps>(
             <span className="text-[var(--text-primary)] font-bold font-mono">{ledger.operation_count}</span>
             <span className="text-[var(--text-muted)] ml-1 text-[10px] uppercase font-bold tracking-wider">OPS</span>
           </div>
-          <svg className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] group-hover:translate-x-0.5 transition-[color,transform]" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </div>

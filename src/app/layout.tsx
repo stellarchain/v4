@@ -22,13 +22,10 @@ export const viewport: Viewport = {
   width: "device-width",
   height: "device-height",
   initialScale: 1,
-  minimumScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#000000" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: "#f1f5f9" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B1118" },
   ],
 };
 
@@ -55,6 +52,7 @@ export default function RootLayout({
       try {
         var theme = localStorage.getItem('stellarchain-theme') || 'light';
         document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.style.colorScheme = theme;
         if (theme === 'dark') {
           document.documentElement.classList.add('dark');
         }
@@ -75,6 +73,11 @@ export default function RootLayout({
         <ThemeProvider>
           <NetworkProvider>
           <FavoritesProvider>
+          {/* Skip Navigation */}
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:bg-[var(--bg-secondary)] focus:text-[var(--text-primary)] focus:px-4 focus:py-2 focus:rounded-lg focus:border focus:border-[var(--border-default)] focus:outline-none focus:ring-2 focus:ring-[var(--info)]">
+            Skip to content
+          </a>
+
           {/* Mobile Header */}
           <MobileHeader />
 
@@ -82,7 +85,7 @@ export default function RootLayout({
           <DesktopNavbar />
 
           {/* Main Content */}
-          <main className="min-h-screen p-0 pb-20 md:pb-0 overflow-x-hidden">
+          <main id="main-content" className="min-h-screen p-0 pb-20 md:pb-0 overflow-x-hidden">
             <div className="w-full max-w-full overflow-x-hidden">
               {children}
             </div>

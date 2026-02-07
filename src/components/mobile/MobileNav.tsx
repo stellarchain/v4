@@ -379,7 +379,7 @@ export default function MobileNav() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl transition-all ${active
+                className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl transition-colors ${active
                   ? 'text-[var(--text-primary)]'
                   : 'text-[var(--text-muted)] active:text-[var(--text-secondary)]'
                   }`}
@@ -400,7 +400,7 @@ export default function MobileNav() {
               e.stopPropagation();
               setShowMore(!showMore);
             }}
-            className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl transition-all ${isMoreActive || showMore
+            className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl transition-colors ${isMoreActive || showMore
               ? 'text-[var(--text-primary)]'
               : 'text-[var(--text-muted)] active:text-[var(--text-secondary)]'
               }`}

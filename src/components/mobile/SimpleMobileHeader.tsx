@@ -40,7 +40,7 @@ export default function SimpleMobileHeader() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent border-none text-white placeholder-white/40 focus:ring-0 focus:outline-none flex-1 text-sm py-1 w-full"
+              className="bg-transparent border-none text-white placeholder-white/40 flex-1 text-sm py-1 w-full"
               placeholder="Search..."
             />
           </div>
