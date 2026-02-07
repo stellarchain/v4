@@ -7,7 +7,7 @@ import { getBaseUrl } from '@/lib/stellar';
 import LedgerMobileView from '@/components/mobile/LedgerMobileView';
 import LedgerDesktopView from '@/components/desktop/LedgerDesktopView';
 import Loading from '@/components/ui/Loading';
-import ShowError from '@/components/ui/ShowError';
+import { notFound } from 'next/navigation';
 
 type Ledger = Horizon.ServerApi.LedgerRecord;
 type Transaction = Horizon.ServerApi.TransactionRecord;
@@ -57,11 +57,11 @@ export default function LedgerPage() {
       });
   }, [sequenceNum, isInvalidSequence]);
 
-  if (errorMessage) {
-    return <ShowError message={errorMessage} />;
+  if (errorMessage || !ledger) {
+    notFound()
   }
 
-  if (isLoading || !ledger) {
+  if (isLoading) {
     return <Loading title="Loading ledger" description="Fetching ledger details and activity." />;
   }
 
