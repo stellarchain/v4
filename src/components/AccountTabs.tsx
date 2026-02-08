@@ -83,10 +83,10 @@ export default function AccountTabs({ transactions, operations }: AccountTabsPro
                           {tx.operation_count} op{tx.operation_count !== 1 ? 's' : ''}
                         </span>
                         <Link
-                          href={`/ledger/${tx.ledger}`}
+                          href={`/ledger/${tx.ledger_attr}`}
                           className="text-[var(--text-muted)] hover:text-[var(--text-tertiary)] text-xs"
                         >
-                          #{tx.ledger}
+                          #{tx.ledger_attr}
                         </Link>
                       </div>
                       <p className="text-[var(--text-muted)] text-xs mt-1">{timeAgo(tx.created_at)}</p>

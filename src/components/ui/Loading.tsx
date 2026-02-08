@@ -8,7 +8,7 @@ interface LoadingProps {
 
 export default function Loading({ title = 'Loading...', description, children }: LoadingProps) {
   return (
-    <div className="py-6 px-4 animate-pulse">
+    <div className="max-w-[1400px] mx-auto py-6 px-4 animate-pulse">
       {title ? (
         <div className="h-6 w-40 rounded bg-[var(--bg-secondary)] mb-4" aria-hidden />
       ) : null}

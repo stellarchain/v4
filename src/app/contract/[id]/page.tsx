@@ -1,4 +1,7 @@
-import { Suspense } from 'react';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { getTokenMetadata } from '@/lib/tokenRegistry';
 import { isContractAddress, normalizeContractAddress } from '@/lib/soroban';
 import type { ContractInvocation } from '@/lib/stellar';
@@ -10,142 +13,146 @@ import { getContractMetadata, getContractAccessControl, detectContractType, getC
 import { getNFTInfo, getVaultInfo } from '@/lib/contractExtensions';
 import { getContractEvents, getEventSummary, ParsedEvent } from '@/lib/eventParser';
 import { getContractStorage, ContractStorageResult } from '@/lib/contractStorage';
-import ContractPageClient from '@/components/contract/ContractPageClient';
-import { ContractHeaderSkeleton, ContractEventsSkeleton, ContractInvocationsSkeleton, ContractStorageSkeleton } from '@/components/mobile/skeletons/ContractSkeleton';
+import ContractMobileView from '@/components/mobile/ContractMobileView';
+import ContractDesktopView from '@/components/desktop/ContractDesktopView';
+import Loading from '@/components/ui/Loading';
+import type { TokenRegistryEntry, ContractVerification } from '@/lib/types/token';
+import type { ContractMetadataResult, ContractAccessControlResult, ContractSpecResult } from '@/lib/contractMetadata';
+import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
+import type { EventSummary } from '@/lib/eventParser';
 
-export const revalidate = 60;
-
-// Custom JSON serializer that handles BigInt
-function safeStringify(data: unknown): string {
-  return JSON.stringify(data, (_, value) =>
-    typeof value === 'bigint' ? value.toString() : value
-  );
+interface VerifiedContract {
+  id: string;
+  name: string;
+  type: string;
+  sep41?: boolean;
+  symbol?: string;
+  decimals?: number;
+  verified: boolean;
+  website?: string;
+  description?: string;
+  iconUrl?: string;
 }
 
-interface ContractPageProps {
-  params: Promise<{ id: string }>;
+interface QuickData {
+  id: string;
+  tokenMetadata: TokenRegistryEntry | null;
+  verifiedContract: VerifiedContract | undefined;
+  type: string;
+  accessControl: ContractAccessControlResult | null;
+  isVerified: boolean;
 }
 
-// ============ QUICK DATA (loads first) ============
-async function getQuickContractData(id: string) {
-  const [tokenMetadata, contractType, accessControl] = await Promise.all([
-    getTokenMetadata(id).catch(() => null),
-    detectContractType(id).catch(() => null),
-    getContractAccessControl(id).catch(() => null),
-  ]);
-
-  const verifiedContract = verifiedContracts.contracts.find(c => c.id === id);
-
-  return {
-    id,
-    tokenMetadata,
-    verifiedContract,
-    type: contractType || verifiedContract?.type || (tokenMetadata?.isSAC ? 'token' : tokenMetadata ? 'token' : 'contract'),
-    accessControl,
-    isVerified: !!verifiedContract,
-  };
+interface FullContractData extends QuickData {
+  events: ParsedEvent[];
+  eventSummary: EventSummary | null;
+  invocations: ContractInvocation[];
+  storage: ContractStorageResult | null;
+  spec: ContractSpecResult | null;
+  verification: ContractVerification | null;
+  nftInfo: NFTInfo | null;
+  vaultInfo: VaultInfo | null;
+  contractMetadata: ContractMetadataResult | null;
 }
 
-// ============ ASYNC DATA SECTIONS ============
-
-// Events section
-async function EventsData({ id }: { id: string }) {
-  const events = await getContractEvents(id, 50).catch(() => [] as ParsedEvent[]);
-  const eventSummary = getEventSummary(events);
-  return { events, eventSummary };
-}
-
-async function EventsSection({ id }: { id: string }) {
-  const data = await EventsData({ id });
-  return (
-    <script
-      id="events-data"
-      type="application/json"
-      dangerouslySetInnerHTML={{ __html: safeStringify(data) }}
-    />
-  );
-}
-
-// Invocations section
-async function InvocationsData({ id }: { id: string }) {
-  const invocations = await getContractInvocations(id, 50).catch(() => [] as ContractInvocation[]);
-  return { invocations };
-}
-
-async function InvocationsSection({ id }: { id: string }) {
-  const data = await InvocationsData({ id });
-  return (
-    <script
-      id="invocations-data"
-      type="application/json"
-      dangerouslySetInnerHTML={{ __html: safeStringify(data) }}
-    />
-  );
-}
-
-// Storage section
-async function StorageData({ id }: { id: string }) {
-  const storage = await getContractStorage(id).catch(() => null as ContractStorageResult | null);
-  return { storage };
-}
-
-async function StorageSection({ id }: { id: string }) {
-  const data = await StorageData({ id });
-  return (
-    <script
-      id="storage-data"
-      type="application/json"
-      dangerouslySetInnerHTML={{ __html: safeStringify(data) }}
-    />
-  );
-}
-
-// Spec & verification section
-async function SpecData({ id }: { id: string }) {
-  // Wrap each call in try-catch to handle XDR parsing errors
-  const safeGetContractSpec = async () => {
-    try {
-      return await getContractSpec(id);
-    } catch (e) {
-      console.error('Failed to get contract spec:', e);
-      return null;
-    }
-  };
-
-  const [specRes, verificationRes, nftInfoRes, vaultInfoRes, contractMetaRes] = await Promise.allSettled([
-    safeGetContractSpec(),
-    verifyContract(id),
-    getNFTInfo(id),
-    getVaultInfo(id),
-    getContractMetadata(id),
-  ]);
-
-  return {
-    spec: specRes.status === 'fulfilled' ? specRes.value : null,
-    verification: verificationRes.status === 'fulfilled' ? toContractVerification(verificationRes.value) : null,
-    nftInfo: nftInfoRes.status === 'fulfilled' ? nftInfoRes.value : null,
-    vaultInfo: vaultInfoRes.status === 'fulfilled' ? vaultInfoRes.value : null,
-    contractMetadata: contractMetaRes.status === 'fulfilled' ? contractMetaRes.value : null,
-  };
-}
-
-async function SpecSection({ id }: { id: string }) {
-  const data = await SpecData({ id });
-  return (
-    <script
-      id="spec-data"
-      type="application/json"
-      dangerouslySetInnerHTML={{ __html: safeStringify(data) }}
-    />
-  );
-}
-
-export default async function ContractPage({ params }: ContractPageProps) {
-  const { id: rawId } = await params;
+export default function ContractPage() {
+  const { id: rawId } = useParams<{ id: string }>();
   const id = normalizeContractAddress(rawId);
 
-  // Validate contract ID format - instant, no API call
-  if (!isContractAddress(id)) {
+  const [contractData, setContractData] = useState<FullContractData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(true);
+
+  const isInvalidId = !isContractAddress(id);
+  const isLoading = isValidating || (!contractData && !error && !isInvalidId);
+
+  useEffect(() => {
+    if (isInvalidId) {
+      setIsValidating(false);
+      return;
+    }
+
+    const loadContractData = async () => {
+      try {
+        // Load quick data first
+        const [tokenMetadata, contractType, accessControl] = await Promise.all([
+          getTokenMetadata(id).catch(() => null),
+          detectContractType(id).catch(() => null),
+          getContractAccessControl(id).catch(() => null),
+        ]);
+
+        const verifiedContract = verifiedContracts.contracts.find(c => c.id === id);
+
+        const quickData: QuickData = {
+          id,
+          tokenMetadata,
+          verifiedContract,
+          type: contractType || verifiedContract?.type || (tokenMetadata?.isSAC ? 'token' : tokenMetadata ? 'token' : 'contract'),
+          accessControl,
+          isVerified: !!verifiedContract,
+        };
+
+        // Set quick data first so UI can render
+        setContractData({
+          ...quickData,
+          events: [],
+          eventSummary: null,
+          invocations: [],
+          storage: null,
+          spec: null,
+          verification: null,
+          nftInfo: null,
+          vaultInfo: null,
+          contractMetadata: null,
+        });
+        setIsValidating(false);
+
+        // Load remaining data in parallel
+        const [
+          events,
+          invocations,
+          storage,
+          specRes,
+          verificationRes,
+          nftInfoRes,
+          vaultInfoRes,
+          contractMetaRes
+        ] = await Promise.allSettled([
+          getContractEvents(id, 50).catch(() => [] as ParsedEvent[]),
+          getContractInvocations(id, 50).catch(() => [] as ContractInvocation[]),
+          getContractStorage(id).catch(() => null as ContractStorageResult | null),
+          getContractSpec(id).catch(() => null),
+          verifyContract(id),
+          getNFTInfo(id),
+          getVaultInfo(id),
+          getContractMetadata(id),
+        ]);
+
+        const eventsData = events.status === 'fulfilled' ? events.value : [];
+        const eventSummary = getEventSummary(eventsData);
+
+        setContractData({
+          ...quickData,
+          events: eventsData,
+          eventSummary,
+          invocations: invocations.status === 'fulfilled' ? invocations.value : [],
+          storage: storage.status === 'fulfilled' ? storage.value : null,
+          spec: specRes.status === 'fulfilled' ? specRes.value : null,
+          verification: verificationRes.status === 'fulfilled' ? toContractVerification(verificationRes.value) : null,
+          nftInfo: nftInfoRes.status === 'fulfilled' ? nftInfoRes.value : null,
+          vaultInfo: vaultInfoRes.status === 'fulfilled' ? vaultInfoRes.value : null,
+          contractMetadata: contractMetaRes.status === 'fulfilled' ? contractMetaRes.value : null,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load contract data');
+        setIsValidating(false);
+      }
+    };
+
+    loadContractData();
+  }, [id, isInvalidId]);
+
+  if (isInvalidId) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4">
         <div className="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
@@ -166,28 +173,51 @@ export default async function ContractPage({ params }: ContractPageProps) {
     );
   }
 
-  // Get quick data first (header info)
-  const quickData = await getQuickContractData(id);
+  if (isLoading) {
+    return <Loading title="Loading contract" description="Fetching contract details and data." />;
+  }
+
+  if (error || !contractData) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4">
+        <h1 className="text-2xl font-bold mb-2">Error</h1>
+        <p className="text-muted">{error || 'Failed to load contract.'}</p>
+      </div>
+    );
+  }
+
+  // Transform data to match component props
+  const contractForView = {
+    id: contractData.id,
+    account: null,
+    tokenMetadata: contractData.tokenMetadata,
+    verifiedContract: contractData.verifiedContract,
+    isVerified: contractData.isVerified,
+    type: contractData.type,
+    verification: contractData.verification,
+    contractMetadata: contractData.contractMetadata,
+    accessControl: contractData.accessControl,
+    nftInfo: contractData.nftInfo,
+    vaultInfo: contractData.vaultInfo,
+    events: contractData.events,
+    eventSummary: contractData.eventSummary,
+    storage: contractData.storage,
+    invocations: contractData.invocations,
+  };
 
   return (
     <>
-      {/* Render client component with quick data */}
-      <ContractPageClient quickData={quickData} />
-
-      {/* Stream in heavy data sections - each loads independently */}
-      <div className="hidden">
-        <Suspense fallback={null}>
-          <EventsSection id={id} />
-        </Suspense>
-        <Suspense fallback={null}>
-          <InvocationsSection id={id} />
-        </Suspense>
-        <Suspense fallback={null}>
-          <StorageSection id={id} />
-        </Suspense>
-        <Suspense fallback={null}>
-          <SpecSection id={id} />
-        </Suspense>
+      <div className="hidden md:block">
+        <ContractDesktopView
+          contract={contractForView}
+          operations={[]}
+        />
+      </div>
+      <div className="md:hidden">
+        <ContractMobileView
+          contract={contractForView}
+          operations={[]}
+        />
       </div>
     </>
   );

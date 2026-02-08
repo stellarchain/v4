@@ -1,27 +1,38 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { buildAddressGraph } from '@/lib/stellar_graph';
 import AddressGraph from '@/components/AddressGraph';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-interface PageProps {
-  params: Promise<{ address: string }>;
-}
+export default function GraphPage() {
+  const { address } = useParams<{ address: string }>();
+  const [graphData, setGraphData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export default async function GraphPage({ params }: PageProps) {
-  const { address } = await params;
+  useEffect(() => {
+    if (!address || address.length !== 56 || !address.startsWith('G')) {
+      notFound();
+      return;
+    }
+
+    buildAddressGraph(address, 2, 50)
+      .then((data) => {
+        setGraphData(data);
+        setLoading(false);
+      })
+      .catch((e) => {
+        console.error('Failed to build graph:', e);
+        setError('Failed to load transaction graph. The address might not have enough transaction history.');
+        setLoading(false);
+      });
+  }, [address]);
 
   if (!address || address.length !== 56 || !address.startsWith('G')) {
     notFound();
-  }
-
-  let graphData;
-  let error = null;
-
-  try {
-    graphData = await buildAddressGraph(address, 2, 50);
-  } catch (e) {
-    console.error('Failed to build graph:', e);
-    error = 'Failed to load transaction graph. The address might not have enough transaction history.';
   }
 
   return (
@@ -86,7 +97,12 @@ export default async function GraphPage({ params }: PageProps) {
       </div>
 
       {/* Graph Visualization */}
-      {error ? (
+      {loading ? (
+        <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 text-center shadow-sm">
+          <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-[var(--text-muted)] text-sm">Building transaction graph...</p>
+        </div>
+      ) : error ? (
         <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 text-center shadow-sm">
           <div className="w-16 h-16 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -96,14 +112,9 @@ export default async function GraphPage({ params }: PageProps) {
           <h3 className="text-[var(--text-primary)] font-medium mb-1">Failed to Load Graph</h3>
           <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto">{error}</p>
         </div>
-      ) : graphData ? (
+      ) : (
         <div className="h-[600px] w-full max-w-full overflow-hidden rounded-2xl relative bg-[var(--bg-secondary)] shadow-sm">
           <AddressGraph data={graphData} />
-        </div>
-      ) : (
-        <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 text-center shadow-sm">
-          <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[var(--text-muted)] text-sm">Building transaction graph...</p>
         </div>
       )}
     </div>

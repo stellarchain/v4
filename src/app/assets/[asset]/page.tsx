@@ -1,13 +1,11 @@
-import { notFound, redirect } from 'next/navigation';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, notFound, useRouter } from 'next/navigation';
 import { getAssetDetails, getMarketAssets } from '@/lib/stellar';
 import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
-
-export const revalidate = 60;
-
-interface PageProps {
-  params: Promise<{ asset: string }>;
-}
+import Loading from '@/components/ui/Loading';
 
 function parseAssetSlug(slug: string): { code: string; issuer?: string } | null {
   const decoded = decodeURIComponent(slug);
@@ -21,24 +19,65 @@ function parseAssetSlug(slug: string): { code: string; issuer?: string } | null 
   return { code, issuer };
 }
 
-export default async function AssetDetailsRoute({ params }: PageProps) {
-  const { asset } = await params;
-  const parsed = parseAssetSlug(asset);
-  if (!parsed) notFound();
+export default function AssetDetailsRoute() {
+  const params = useParams<{ asset: string }>();
+  const router = useRouter();
+  const asset = params.asset;
 
-  const code = parsed.code;
-  const issuer = parsed.issuer;
+  const [details, setDetails] = useState<any>(null);
+  const [rank, setRank] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Normalize native asset to the canonical slug.
-  if (code.toUpperCase() === 'XLM' && !issuer && asset !== 'XLM-native') {
-    redirect('/assets/XLM-native');
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const parsed = parseAssetSlug(asset);
+        if (!parsed) {
+          setError('Invalid asset format');
+          return;
+        }
+
+        const code = parsed.code;
+        const issuer = parsed.issuer;
+
+        // Normalize native asset to the canonical slug.
+        if (code.toUpperCase() === 'XLM' && !issuer && asset !== 'XLM-native') {
+          router.replace('/assets/XLM-native');
+          return;
+        }
+
+        const [assetDetails, marketAssets] = await Promise.all([
+          getAssetDetails(code, issuer),
+          getMarketAssets(),
+        ]);
+
+        if (!assetDetails) {
+          setError('Asset not found');
+          return;
+        }
+
+        const assetRank = marketAssets.findIndex(a => a.code === assetDetails.code) + 1;
+        setDetails(assetDetails);
+        setRank(assetRank);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load asset details.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [asset, router]);
+
+  if (isLoading) {
+    return <Loading title="Loading asset" description="Fetching asset details." />;
   }
 
-  const details = await getAssetDetails(code, issuer);
-  if (!details) notFound();
-
-  const marketAssets = await getMarketAssets();
-  const rank = marketAssets.findIndex(a => a.code === details.code) + 1;
+  if (error || !details) {
+    notFound();
+  }
 
   return (
     <>

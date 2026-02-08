@@ -17,6 +17,11 @@
 - `node test-xdr.js`: Manually run the XDR decoding sample (optional).
 
 ## Coding Style & Naming Conventions
+
+You are working on a Next.js App Router project with client-only pages. All data fetching happens on the client using React function components, useState, and useEffect (with 'use client' at the top). Avoid SSR
+  and server components; the final goal is to serve a static build with client-side data loading. Keep components simple and consistent with existing Tailwind styles. Prefer minimal, clear state handling and avoid
+  unnecessary effects. Use always stellar-sdk for query api endpoints and not raw requests from stellar.ts.
+  
 - TypeScript + React with Next.js App Router; use the `@/` alias for imports rooted at `src`.
 - Indentation is 2 spaces; keep semicolons and single-quoted strings in TS/TSX.
 - Components are `PascalCase` (`StatsCard.tsx`), route folders use lowercase with `page.tsx` entrypoints, and dynamic params use `[param]`.
@@ -25,6 +30,7 @@
 ## Testing Guidelines
 - No automated test framework is currently configured.
 - If you add tests, keep them close to the source (for example, `src/components/__tests__/Component.test.tsx`) and document any new command in this file.
+
 
 ## Commit & Pull Request Guidelines
 - Git history shows short, informal commit messages with no strict convention. Prefer concise, imperative summaries (for example, "Add ledger filters").

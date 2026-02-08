@@ -1,15 +1,67 @@
 // Stellar Horizon API Service Layer
 import { xdr, Address, StrKey } from '@stellar/stellar-sdk';
 
+import type {
+  Ledger,
+  TransactionDisplayInfo,
+  Transaction,
+  Operation,
+  Effect,
+  MarketAsset,
+  AssetDetails,
+  PaginatedResponse,
+  LiquidityPool,
+  LiquidityPoolTrade,
+  AssetTrade,
+  ContractInvocation,
+  AssetHolder,
+  TradingPair,
+  RichListAccount,
+  LabeledAccount,
+  AccountLabel,
+  TradeAggregation,
+  OrderBook,
+} from './interfaces';
+
+// Re-export all interfaces so consumers can import from '@/lib/stellar'
+export type {
+  Ledger,
+  TransactionDisplayInfo,
+  Transaction,
+  Operation,
+  KnownAccount,
+  Effect,
+  MarketAsset,
+  AssetDetails,
+  PaginatedResponse,
+  NetworkStats,
+  LiquidityPool,
+  LiquidityPoolTrade,
+  LiquidityPoolEffect,
+  AssetTrade,
+  ContractInvocation,
+  AssetHolder,
+  TradingPair,
+  RichListAccount,
+  LabeledAccount,
+  LabeledAccountsAPIResponse,
+  AccountLabel,
+  APIContract,
+  StatItem,
+  StatisticsData,
+  TradeAggregation,
+  OrderBook,
+} from './interfaces';
+
 const HORIZON_URLS = {
   mainnet: 'https://horizon.stellar.org',
   testnet: 'https://horizon-testnet.stellar.org',
   futurenet: 'https://horizon-futurenet.stellar.org',
 };
 
-export const NETWORK_COOKIE_NAME = 'stellarchain-network';
+const NETWORK_COOKIE_NAME = 'stellarchain-network';
 
-export type NetworkType = 'mainnet' | 'testnet' | 'futurenet';
+type NetworkType = 'mainnet' | 'testnet' | 'futurenet';
 
 let currentNetwork: NetworkType = 'mainnet';
 
@@ -56,7 +108,7 @@ export function getBaseUrl(): string {
 }
 
 // Async version for server components - reads from cookie
-export async function getBaseUrlAsync(): Promise<string> {
+async function getBaseUrlAsync(): Promise<string> {
   const cookieNetwork = await getNetworkFromCookie();
   if (cookieNetwork) {
     return HORIZON_URLS[cookieNetwork];
@@ -65,7 +117,8 @@ export async function getBaseUrlAsync(): Promise<string> {
 }
 
 // Types
-export interface StellarAccount {
+
+interface StellarAccount {
   id: string;
   account_id: string;
   sequence: string;
@@ -91,7 +144,7 @@ export interface StellarAccount {
   num_sponsored: number;
 }
 
-export interface Balance {
+interface Balance {
   balance: string;
   buying_liabilities?: string;
   selling_liabilities?: string;
@@ -103,256 +156,10 @@ export interface Balance {
   is_authorized_to_maintain_liabilities?: boolean;
 }
 
-export interface Signer {
+interface Signer {
   weight: number;
   key: string;
   type: string;
-}
-
-export interface Ledger {
-  id: string;
-  paging_token: string;
-  hash: string;
-  prev_hash: string;
-  sequence: number;
-  successful_transaction_count: number;
-  failed_transaction_count: number;
-  operation_count: number;
-  tx_set_operation_count: number;
-  closed_at: string;
-  total_coins: string;
-  fee_pool: string;
-  base_fee_in_stroops: number;
-  base_reserve_in_stroops: number;
-  max_tx_set_size: number;
-  protocol_version: number;
-  header_xdr: string;
-}
-
-export interface TransactionDisplayInfo {
-  type: 'payment' | 'contract' | 'other' | 'manage_offer' | 'multi_send' | 'bulk_send';
-  amount?: string;
-  rawAmount?: number; // For sorting
-  asset?: string;
-  functionName?: string;
-  // Payment specific
-  to?: string; // Recipient address
-  // Swap specific
-  isSwap?: boolean;
-  sourceAmount?: string;
-  sourceAsset?: string;
-  destinationAsset?: string;
-  // Contract effect (received/sent from effects)
-  effectType?: 'received' | 'sent';
-  effectAmount?: string;
-  effectAsset?: string;
-  // Multi/Bulk Send specific
-  elementCount?: number;
-  // Offer specific
-  offerDetails?: {
-    sellingAsset: string;
-    buyingAsset: string;
-    price: string;
-    amount: string;
-  };
-}
-
-
-export interface Transaction {
-  id: string;
-  paging_token: string;
-  successful: boolean;
-  hash: string;
-  ledger: number;
-  created_at: string;
-  source_account: string;
-  source_account_sequence: string;
-  fee_account: string;
-  fee_charged: string;
-  max_fee: string;
-  operation_count: number;
-  envelope_xdr: string;
-  result_xdr: string;
-  result_meta_xdr: string;
-  fee_meta_xdr: string;
-  memo_type: string;
-  memo?: string;
-  signatures: string[];
-  // Enhanced fields for display (populated by client)
-  displayInfo?: TransactionDisplayInfo;
-}
-
-export interface Operation {
-  id: string;
-  paging_token: string;
-  transaction_successful: boolean;
-  source_account: string;
-  type: string;
-  type_i: number;
-  created_at: string;
-  transaction_hash: string;
-  // Payment specific
-  asset_type?: string;
-  asset_code?: string;
-  asset_issuer?: string;
-  from?: string;
-  to?: string;
-  amount?: string;
-  // Create account specific
-  account?: string;
-  starting_balance?: string;
-  funder?: string;
-  // Smart Contract specific
-  function?: string;
-  parameters?: { value: string; type: string }[];
-  // Other operation-specific fields
-  [key: string]: unknown;
-}
-
-export interface KnownAccount {
-  address: string;
-  name: string;
-  domain?: string;
-  tags?: string[];
-  paging_token: string;
-}
-
-export interface DirectoryResponse {
-  _embedded: {
-    records: KnownAccount[];
-  };
-  _links: {
-    next?: { href: string };
-    prev?: { href: string };
-  };
-}
-
-export interface Effect {
-  id: string;
-  paging_token: string;
-  account: string;
-  type: string;
-  type_i: number;
-  created_at: string;
-  [key: string]: unknown;
-}
-
-export interface StellarAsset {
-  asset_type: string;
-  asset_code: string;
-  asset_issuer: string;
-  paging_token: string;
-  num_accounts: number;
-  num_claimable_balances: number;
-  num_liquidity_pools: number;
-  num_contracts: number;
-  num_archived_contracts: number;
-  amount: string;
-  accounts: {
-    authorized: number;
-    authorized_to_maintain_liabilities: number;
-    unauthorized: number;
-  };
-  claimable_balances_amount: string;
-  liquidity_pools_amount: string;
-  contracts_amount: string;
-  archived_contracts_amount: string;
-  balances: {
-    authorized: string;
-    authorized_to_maintain_liabilities: string;
-    unauthorized: string;
-  };
-  flags: {
-    auth_required: boolean;
-    auth_revocable: boolean;
-    auth_immutable: boolean;
-    auth_clawback_enabled: boolean;
-  };
-  _links: {
-    toml: { href: string };
-  };
-}
-
-export interface MarketAsset {
-  rank: number;
-  code: string;
-  issuer: string;
-  name: string;
-  image?: string;
-  price_usd: number;
-  price_xlm: number;
-  change_1h: number;
-  change_24h: number;
-  change_7d: number;
-  change_30d?: number;
-  change_90d?: number;
-  change_1y?: number;
-  volume_24h: number;
-  market_cap: number;
-  circulating_supply: number;
-  sparkline: number[];
-}
-
-export interface AssetDetails extends MarketAsset {
-  description?: string;
-  domain?: string;
-  image?: string;
-  total_supply: number;
-  holders: number;
-  payments_24h: number;
-  trades_24h: number;
-  price_high_24h: number;
-  price_low_24h: number;
-  all_time_high?: number;
-  all_time_low?: number;
-  rating: number;
-  price_history: [number, number][];
-  volume_history: [number, number][];
-}
-
-export interface PaginatedResponse<T> {
-  _links: {
-    self: { href: string };
-    next: { href: string };
-    prev: { href: string };
-  };
-  _embedded: {
-    records: T[];
-  };
-}
-
-export interface NetworkStats {
-  ledger_count: number;
-  latest_ledger: Ledger;
-  total_coins: string;
-  fee_pool: string;
-  base_fee: number;
-  base_reserve: number;
-  protocol_version: number;
-  // Extended stats
-  ledger_capacity_usage?: number;
-  avg_fee?: number;
-  max_tx_set_size?: number;
-}
-
-export interface LiquidityPool {
-  id: string;
-  paging_token: string;
-  fee_bp: number;
-  type: string;
-  total_trustlines: number;
-  total_shares: string;
-  reserves: {
-    asset: string;
-    amount: string;
-  }[];
-  last_modified_ledger: number;
-  last_modified_time: string;
-  _links?: {
-    self: { href: string };
-    transactions: { href: string; templated: boolean };
-    operations: { href: string; templated: boolean };
-  };
 }
 
 // API Functions
@@ -380,20 +187,6 @@ async function fetchJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
 }
 
 // Liquidity Pool endpoints
-export async function getLiquidityPools(
-  limit: number = 10,
-  order: 'asc' | 'desc' = 'desc',
-  cursor?: string
-): Promise<PaginatedResponse<LiquidityPool>> {
-  let url = `${getBaseUrl()}/liquidity_pools?limit=${limit}&order=${order}`;
-  if (cursor) url += `&cursor=${cursor}`;
-  return fetchJSON<PaginatedResponse<LiquidityPool>>(url);
-}
-
-export async function getLiquidityPool(poolId: string): Promise<LiquidityPool> {
-  return fetchJSON<LiquidityPool>(`${getBaseUrl()}/liquidity_pools/${poolId}`);
-}
-
 export async function getLiquidityPoolByAssets(
   assetA: { code: string; issuer?: string },
   assetB: { code: string; issuer?: string }
@@ -411,69 +204,8 @@ export async function getLiquidityPoolByAssets(
   }
 }
 
-export async function getLiquidityPoolOperations(
-  poolId: string,
-  limit: number = 20,
-  order: 'asc' | 'desc' = 'desc'
-): Promise<PaginatedResponse<Operation>> {
-  return fetchJSON<PaginatedResponse<Operation>>(
-    `${getBaseUrl()}/liquidity_pools/${poolId}/operations?limit=${limit}&order=${order}`
-  );
-}
-
-export async function getLiquidityPoolTransactions(
-  poolId: string,
-  limit: number = 20,
-  order: 'asc' | 'desc' = 'desc'
-): Promise<PaginatedResponse<Transaction>> {
-  return fetchJSON<PaginatedResponse<Transaction>>(
-    `${getBaseUrl()}/liquidity_pools/${poolId}/transactions?limit=${limit}&order=${order}`
-  );
-}
-
-export interface LiquidityPoolTrade {
-  id: string;
-  paging_token: string;
-  ledger_close_time: string;
-  trade_type: string;
-  liquidity_pool_fee_bp: number;
-  base_offer_id?: string;
-  base_account?: string;
-  base_amount: string;
-  base_asset_type: string;
-  base_asset_code?: string;
-  base_asset_issuer?: string;
-  counter_liquidity_pool_id?: string;
-  counter_amount: string;
-  counter_asset_type: string;
-  counter_asset_code?: string;
-  counter_asset_issuer?: string;
-  price: {
-    n: number;
-    d: number;
-  };
-  // Added for linking to transactions
-  transaction_hash?: string;
-  _links?: {
-    self: { href: string };
-    base?: { href: string };
-    counter?: { href: string };
-    operation?: { href: string };
-  };
-}
-
-export async function getLiquidityPoolTrades(
-  poolId: string,
-  limit: number = 20,
-  order: 'asc' | 'desc' = 'desc'
-): Promise<PaginatedResponse<LiquidityPoolTrade>> {
-  return fetchJSON<PaginatedResponse<LiquidityPoolTrade>>(
-    `${getBaseUrl()}/liquidity_pools/${poolId}/trades?limit=${limit}&order=${order}`
-  );
-}
-
 // Fetch transaction hash for a trade from its operation link
-export async function getTradeTransactionHash(trade: LiquidityPoolTrade): Promise<string | null> {
+async function getTradeTransactionHash(trade: LiquidityPoolTrade): Promise<string | null> {
   try {
     if (!trade._links?.operation?.href) return null;
     const operationUrl = trade._links.operation.href;
@@ -486,7 +218,6 @@ export async function getTradeTransactionHash(trade: LiquidityPoolTrade): Promis
   }
 }
 
-// Batch fetch transaction hashes for multiple trades
 export async function enrichTradesWithTransactionHashes(
   trades: LiquidityPoolTrade[]
 ): Promise<LiquidityPoolTrade[]> {
@@ -501,68 +232,6 @@ export async function enrichTradesWithTransactionHashes(
   return results.map((result, index) =>
     result.status === 'fulfilled' ? result.value : trades[index]
   );
-}
-
-export interface LiquidityPoolEffect {
-  id: string;
-  paging_token: string;
-  account: string;
-  type: string;
-  type_i: number;
-  created_at: string;
-  liquidity_pool?: {
-    id: string;
-    fee_bp: number;
-    type: string;
-    total_trustlines: number;
-    total_shares: string;
-    reserves: { asset: string; amount: string }[];
-  };
-  reserves_deposited?: { asset: string; amount: string }[];
-  reserves_received?: { asset: string; amount: string }[];
-  shares_received?: string;
-  shares_redeemed?: string;
-}
-
-export async function getLiquidityPoolEffects(
-  poolId: string,
-  limit: number = 20,
-  order: 'asc' | 'desc' = 'desc'
-): Promise<PaginatedResponse<LiquidityPoolEffect>> {
-  return fetchJSON<PaginatedResponse<LiquidityPoolEffect>>(
-    `${getBaseUrl()}/liquidity_pools/${poolId}/effects?limit=${limit}&order=${order}`
-  );
-}
-
-// Asset Trades interface (for /trades endpoint)
-export interface AssetTrade {
-  id: string;
-  paging_token: string;
-  ledger_close_time: string;
-  trade_type: string;
-  base_offer_id?: string;
-  base_account?: string;
-  base_amount: string;
-  base_asset_type: string;
-  base_asset_code?: string;
-  base_asset_issuer?: string;
-  counter_offer_id?: string;
-  counter_account?: string;
-  counter_amount: string;
-  counter_asset_type: string;
-  counter_asset_code?: string;
-  counter_asset_issuer?: string;
-  base_is_seller: boolean;
-  price: {
-    n: number;
-    d: number;
-  };
-  _links?: {
-    self: { href: string };
-    base: { href: string };
-    counter: { href: string };
-    operation: { href: string };
-  };
 }
 
 // Get trades for a specific asset (paired with XLM for credit assets, or USDC for XLM)
@@ -618,23 +287,7 @@ export async function getAssetTradeTransactionHash(trade: AssetTrade): Promise<s
 }
 
 // Ledger endpoints
-export async function getLedgers(
-  limit: number = 10,
-  order: 'asc' | 'desc' = 'desc',
-  cursor?: string
-): Promise<PaginatedResponse<Ledger>> {
-  const baseUrl = await getBaseUrlAsync();
-  let url = `${baseUrl}/ledgers?limit=${limit}&order=${order}`;
-  if (cursor) url += `&cursor=${cursor}`;
-  return fetchJSON<PaginatedResponse<Ledger>>(url);
-}
-
-export async function getLedger(sequence: number): Promise<Ledger> {
-  const baseUrl = await getBaseUrlAsync();
-  return fetchJSON<Ledger>(`${baseUrl}/ledgers/${sequence}`);
-}
-
-export async function getLedgerTransactions(
+async function getLedgerTransactions(
   sequence: number,
   limit: number = 10,
   order: 'asc' | 'desc' = 'desc',
@@ -706,11 +359,6 @@ export async function getTransactions(
   return fetchJSON<PaginatedResponse<Transaction>>(url);
 }
 
-export async function getTransaction(hash: string): Promise<Transaction> {
-  const baseUrl = await getBaseUrlAsync();
-  return fetchJSON<Transaction>(`${baseUrl}/transactions/${hash}`);
-}
-
 export async function getTransactionOperations(
   hash: string,
   limit: number = 10
@@ -718,16 +366,6 @@ export async function getTransactionOperations(
   const baseUrl = await getBaseUrlAsync();
   return fetchJSON<PaginatedResponse<Operation>>(
     `${baseUrl}/transactions/${hash}/operations?limit=${limit}`
-  );
-}
-
-export async function getTransactionEffects(
-  hash: string,
-  limit: number = 10
-): Promise<PaginatedResponse<Effect>> {
-  const baseUrl = await getBaseUrlAsync();
-  return fetchJSON<PaginatedResponse<Effect>>(
-    `${baseUrl}/transactions/${hash}/effects?limit=${limit}`
   );
 }
 
@@ -883,113 +521,12 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
   return { type: 'other' };
 }
 
-// Fetch transactions with display info (batch operations fetch)
-export async function getTransactionsWithDisplayInfo(
-  limit: number = 10,
-  order: 'asc' | 'desc' = 'desc'
-): Promise<Transaction[]> {
-  const txResponse = await getTransactions(limit, order);
-  const transactions = txResponse._embedded.records;
-
-  // Fetch operations for each transaction in parallel
-  const transactionsWithOps = await Promise.all(
-    transactions.map(async (tx) => {
-      try {
-        const opsResponse = await getTransactionOperations(tx.hash, 1);
-        const operations = opsResponse._embedded.records;
-        return {
-          ...tx,
-          displayInfo: getTransactionDisplayInfo(operations),
-        };
-      } catch {
-        return {
-          ...tx,
-          displayInfo: { type: 'other' as const },
-        };
-      }
-    })
-  );
-
-  return transactionsWithOps;
-}
-
-// Account endpoints
-export async function getAccount(accountId: string): Promise<StellarAccount> {
-  const baseUrl = await getBaseUrlAsync();
-  return fetchJSON<StellarAccount>(`${baseUrl}/accounts/${accountId}`);
-}
-
-export async function getAccountTransactions(
-  accountId: string,
-  limit: number = 10,
-  order: 'asc' | 'desc' = 'desc',
-  cursor?: string
-): Promise<PaginatedResponse<Transaction>> {
-  const baseUrl = await getBaseUrlAsync();
-  let url = `${baseUrl}/accounts/${accountId}/transactions?limit=${limit}&order=${order}`;
-  if (cursor) url += `&cursor=${cursor}`;
-  return fetchJSON<PaginatedResponse<Transaction>>(url);
-}
-
-export async function getAccountOperations(
-  accountId: string,
-  limit: number = 10,
-  order: 'asc' | 'desc' = 'desc',
-  cursor?: string
-): Promise<PaginatedResponse<Operation>> {
-  const baseUrl = await getBaseUrlAsync();
-  let url = `${baseUrl}/accounts/${accountId}/operations?limit=${limit}&order=${order}`;
-  if (cursor) url += `&cursor=${cursor}`;
-  return fetchJSON<PaginatedResponse<Operation>>(url);
-}
-
-export async function getAccountPayments(
-  accountId: string,
-  limit: number = 10,
-  order: 'asc' | 'desc' = 'desc'
-): Promise<PaginatedResponse<Operation>> {
-  const baseUrl = await getBaseUrlAsync();
-  return fetchJSON<PaginatedResponse<Operation>>(
-    `${baseUrl}/accounts/${accountId}/payments?limit=${limit}&order=${order}`
-  );
-}
-
-export async function getAccountEffects(
-  accountId: string,
-  limit: number = 10,
-  order: 'asc' | 'desc' = 'desc'
-): Promise<PaginatedResponse<Effect>> {
-  const baseUrl = await getBaseUrlAsync();
-  return fetchJSON<PaginatedResponse<Effect>>(
-    `${baseUrl}/accounts/${accountId}/effects?limit=${limit}&order=${order}`
-  );
-}
-
 // Operations endpoints
-export async function getOperations(
-  limit: number = 10,
-  order: 'asc' | 'desc' = 'desc',
-  cursor?: string
-): Promise<PaginatedResponse<Operation>> {
-  const baseUrl = await getBaseUrlAsync();
-  let url = `${baseUrl}/operations?limit=${limit}&order=${order}`;
-  if (cursor) url += `&cursor=${cursor}`;
-  return fetchJSON<PaginatedResponse<Operation>>(url);
-}
-
 export async function getOperation(id: string): Promise<Operation> {
   const baseUrl = await getBaseUrlAsync();
   return fetchJSON<Operation>(`${baseUrl}/operations/${id}`);
 }
 
-// Active Contracts - fetch contracts by recent activity
-export interface ActiveContract {
-  contractId: string;
-  operationCount: number;
-  lastActivity: string;
-  lastLedger: number;
-  functions: string[];
-}
 
 // Helper to decode contract address from XDR ScVal
 function decodeContractAddress(value: string): string | null {
@@ -1021,104 +558,6 @@ function decodeSymbol(value: string): string | null {
     // Failed to decode
   }
   return null;
-}
-
-export async function getActiveContracts(maxOperations: number = 1000): Promise<ActiveContract[]> {
-  try {
-    const contractMap = new Map<string, ActiveContract>();
-    let cursor: string | undefined;
-    let totalFetched = 0;
-    const pageSize = 200; // Max Horizon allows per request
-
-    // Fetch multiple pages of contract operations (filtered by type for efficiency)
-    while (totalFetched < maxOperations) {
-      let url = `${getBaseUrl()}/operations?limit=${pageSize}&order=desc&type=invoke_host_function`;
-      if (cursor) url += `&cursor=${cursor}`;
-
-      const response = await fetchJSON<PaginatedResponse<Operation>>(url);
-      const operations = response._embedded.records;
-
-      if (operations.length === 0) break;
-
-      for (const op of operations) {
-
-        let contractId: string | null = null;
-        let functionName = 'unknown';
-
-        // Parse parameters to extract contract ID and function name
-        const params = op.parameters as Array<{ type: string; value: string }> | undefined;
-        if (params && Array.isArray(params)) {
-          // First Address parameter is usually the contract being called
-          const addressParam = params.find(p => p.type === 'Address');
-          if (addressParam?.value) {
-            contractId = decodeContractAddress(addressParam.value);
-          }
-
-          // Sym parameter contains the function name
-          const symParam = params.find(p => p.type === 'Sym');
-          if (symParam?.value) {
-            const decoded = decodeSymbol(symParam.value);
-            if (decoded) {
-              functionName = decoded;
-            }
-          }
-        }
-
-        if (!contractId || !contractId.startsWith('C') || contractId.length !== 56) continue;
-
-        // Update or create contract entry
-        const existing = contractMap.get(contractId);
-        if (existing) {
-          existing.operationCount++;
-          if (!existing.functions.includes(functionName) && functionName !== 'unknown') {
-            existing.functions.push(functionName);
-          }
-        } else {
-          contractMap.set(contractId, {
-            contractId,
-            operationCount: 1,
-            lastActivity: op.created_at,
-            lastLedger: typeof op.ledger === 'number' ? op.ledger : 0,
-            functions: functionName !== 'unknown' ? [functionName] : [],
-          });
-        }
-      }
-
-      totalFetched += operations.length;
-
-      // Get cursor for next page
-      const lastOp = operations[operations.length - 1];
-      cursor = lastOp?.paging_token;
-
-      // Stop if we got less than a full page (no more data)
-      if (operations.length < pageSize) break;
-    }
-
-    // Convert to array and sort by operation count (activity)
-    const contracts = Array.from(contractMap.values());
-    contracts.sort((a, b) => b.operationCount - a.operationCount);
-
-    return contracts;
-  } catch (error) {
-    console.error('Error fetching active contracts:', error);
-    return [];
-  }
-}
-
-// Contract invocation record
-export interface ContractInvocation {
-  id: string;
-  txHash: string;
-  sourceAccount: string;
-  contractId: string;
-  functionName: string;
-  parameters: Array<{ type: string; value: string; decoded?: string }>;
-  createdAt: string;
-  ledger: number;
-  successful: boolean;
-  // Amount credited to source account (from effects) - useful for harvest/claim
-  resultAmount?: string;
-  resultAsset?: string;
 }
 
 // Get invocations for a specific contract from Horizon
@@ -1259,145 +698,6 @@ export async function getContractInvocations(
   }
 }
 
-// Payments (subset of operations)
-export async function getPayments(
-  limit: number = 10,
-  order: 'asc' | 'desc' = 'desc',
-  cursor?: string
-): Promise<PaginatedResponse<Operation>> {
-  let url = `${getBaseUrl()}/payments?limit=${limit}&order=${order}`;
-  if (cursor) url += `&cursor=${cursor}`;
-  return fetchJSON<PaginatedResponse<Operation>>(url);
-}
-
-// Fetch payment operations and convert to Transaction format with displayInfo
-export async function getPaymentTransactions(
-  limit: number = 50
-): Promise<Transaction[]> {
-  try {
-    const payments = await getPayments(limit, 'desc');
-    const operations = payments._embedded.records;
-
-    // Group by transaction hash to get unique transactions
-    const txMap = new Map<string, { op: Operation; displayInfo: TransactionDisplayInfo }>();
-
-    for (const op of operations) {
-      // Skip if we already have this transaction
-      if (txMap.has(op.transaction_hash)) continue;
-
-      // Create display info from the operation
-      const displayInfo = getTransactionDisplayInfo([op]);
-
-      txMap.set(op.transaction_hash, { op, displayInfo });
-    }
-
-    // Convert to Transaction format
-    const transactions: Transaction[] = [];
-
-    for (const [hash, { op, displayInfo }] of txMap) {
-      transactions.push({
-        id: op.id,
-        paging_token: op.paging_token,
-        successful: op.transaction_successful,
-        hash: hash,
-        ledger: 0, // Will be populated if needed
-        created_at: op.created_at,
-        source_account: op.source_account,
-        source_account_sequence: '',
-        fee_account: op.source_account,
-        fee_charged: '0',
-        max_fee: '0',
-        operation_count: 1,
-        envelope_xdr: '',
-        result_xdr: '',
-        result_meta_xdr: '',
-        fee_meta_xdr: '',
-        memo_type: 'none',
-        signatures: [],
-        displayInfo,
-      });
-    }
-
-    return transactions;
-  } catch (error) {
-    console.error('Failed to fetch payment transactions:', error);
-    return []; // Return empty array on error
-  }
-}
-
-// Effects endpoints
-export async function getEffects(
-  limit: number = 10,
-  order: 'asc' | 'desc' = 'desc',
-  cursor?: string
-): Promise<PaginatedResponse<Effect>> {
-  let url = `${getBaseUrl()}/effects?limit=${limit}&order=${order}`;
-  if (cursor) url += `&cursor=${cursor}`;
-  return fetchJSON<PaginatedResponse<Effect>>(url);
-}
-
-// Network stats - uses latest ledger and fee_stats
-export async function getNetworkStats(): Promise<NetworkStats> {
-  const [ledgersResponse, feeStatsResponse] = await Promise.all([
-    getLedgers(1, 'desc'),
-    fetch(`${getBaseUrl()}/fee_stats`, {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 10 },
-    }).then(res => res.ok ? res.json() : null).catch(() => null),
-  ]);
-
-  const latestLedger = ledgersResponse._embedded.records[0];
-
-  return {
-    ledger_count: latestLedger.sequence,
-    latest_ledger: latestLedger,
-    total_coins: latestLedger.total_coins,
-    fee_pool: latestLedger.fee_pool,
-    base_fee: latestLedger.base_fee_in_stroops,
-    base_reserve: latestLedger.base_reserve_in_stroops,
-    protocol_version: latestLedger.protocol_version,
-    ledger_capacity_usage: feeStatsResponse ? parseFloat(feeStatsResponse.ledger_capacity_usage) : undefined,
-    avg_fee: feeStatsResponse?.fee_charged?.p50 ? parseInt(feeStatsResponse.fee_charged.p50) : undefined,
-    max_tx_set_size: latestLedger.max_tx_set_size,
-  };
-}
-
-// Assets endpoints
-export async function getAssets(
-  limit: number = 10,
-  order: 'asc' | 'desc' = 'desc',
-  cursor?: string
-): Promise<PaginatedResponse<StellarAsset>> {
-  let url = `${getBaseUrl()}/assets?limit=${limit}&order=${order}`;
-  if (cursor) url += `&cursor=${cursor}`;
-  return fetchJSON<PaginatedResponse<StellarAsset>>(url);
-}
-
-export async function getAssetsByCode(
-  assetCode: string,
-  limit: number = 10
-): Promise<PaginatedResponse<StellarAsset>> {
-  return fetchJSON<PaginatedResponse<StellarAsset>>(
-    `${getBaseUrl()}/assets?asset_code=${assetCode}&limit=${limit}`
-  );
-}
-
-export async function getAssetsByIssuer(
-  assetIssuer: string,
-  limit: number = 10
-): Promise<PaginatedResponse<StellarAsset>> {
-  return fetchJSON<PaginatedResponse<StellarAsset>>(
-    `${getBaseUrl()}/assets?asset_issuer=${assetIssuer}&limit=${limit}`
-  );
-}
-
-// Asset holder interface
-export interface AssetHolder {
-  account_id: string;
-  balance: string;
-  paging_token: string;
-}
-
 // Get accounts holding a specific asset (sorted by balance descending)
 export async function getAssetHolders(
   assetCode: string,
@@ -1410,7 +710,6 @@ export async function getAssetHolders(
     return { holders: [], nextCursor: null, totalSupply: 0 };
   }
 
-  const assetType = assetCode.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12';
   let url = `${getBaseUrl()}/accounts?asset=${assetCode}:${assetIssuer}&limit=${limit}&order=desc`;
   if (cursor) {
     url += `&cursor=${cursor}`;
@@ -1442,20 +741,6 @@ export async function getAssetHolders(
   const totalSupply = holders.reduce((sum, h) => sum + parseFloat(h.balance), 0);
 
   return { holders, nextCursor, totalSupply };
-}
-
-// Trading pair interface
-export interface TradingPair {
-  baseAsset: { code: string; issuer?: string; type: string };
-  counterAsset: { code: string; issuer?: string; type: string };
-  price: number;
-  baseVolume24h: number;
-  counterVolume24h: number;
-  tradeCount24h: number;
-  totalTradeCount: number;
-  priceChange24h: number;
-  spread: number;
-  lastTradeTime?: string;
 }
 
 // Get all trading pairs for a specific asset
@@ -1538,9 +823,6 @@ export async function getAssetTradingPairs(
         ? trade.base_asset_type === 'native'
         : (baseCode === assetCode && baseIssuer === (assetIssuer || ''));
 
-      const isOurAssetCounter = isNative
-        ? trade.counter_asset_type === 'native'
-        : (counterCode === assetCode && counterIssuer === (assetIssuer || ''));
 
       // Create a unique key for this pair (always put our asset first)
       const otherCode = isOurAssetBase ? counterCode : baseCode;
@@ -1597,7 +879,7 @@ export async function getAssetTradingPairs(
     }
 
     // Convert to TradingPair array - include ALL pairs, not just those with 24h activity
-    for (const [key, stats] of pairStats) {
+    for (const [, stats] of pairStats) {
       const priceChange = stats.firstPrice > 0 && stats.lastPrice > 0
         ? ((stats.lastPrice - stats.firstPrice) / stats.firstPrice) * 100
         : 0;
@@ -2018,7 +1300,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
 
 // Get XLM Holders (Top Accounts)
 export async function getXLMHolders(
-  limit: number = 20,
+  _limit: number = 20,
   cursor?: string
 ): Promise<{ holders: AssetHolder[]; nextCursor?: string }> {
   try {
@@ -2054,20 +1336,6 @@ export async function getXLMHolders(
     console.error('Failed to fetch XLM holders:', error);
     return { holders: [] };
   }
-}
-
-// Rich List specific types
-export interface RichListAccount {
-  rank: number;
-  account: string;
-  balance: number;
-  percent_of_coins: string;
-  transactions: number;
-  label?: {
-    name: string;
-    verified: boolean;
-    description?: string;
-  };
 }
 
 export async function getRichList(
@@ -2106,108 +1374,7 @@ export async function getRichList(
 
 // Known Accounts (Legacy wrapper for compatibility)
 // List All Accounts sorted by XLM balance (Rich List) - using Stellarchain API
-export async function fetchAllAccounts(
-  limit: number = 50,
-  page: number = 1
-): Promise<KnownAccount[]> {
-  try {
-    const richList = await getRichList(page, limit);
-    return richList.map(item => {
-      const formattedBalance = item.balance >= 1e9
-        ? `${(item.balance / 1e9).toFixed(2)}B XLM`
-        : item.balance >= 1e6
-          ? `${(item.balance / 1e6).toFixed(2)}M XLM`
-          : `${item.balance.toLocaleString()} XLM`;
-
-      const tags: string[] = [formattedBalance];
-      if (item.percent_of_coins) {
-        tags.push(`${parseFloat(item.percent_of_coins).toFixed(2)}%`);
-      }
-      if (item.label?.verified) {
-        tags.push('verified');
-      }
-
-      return {
-        address: item.account,
-        name: item.label?.name || shortenAddress(item.account),
-        domain: undefined,
-        tags,
-        paging_token: item.rank.toString()
-      };
-    });
-  } catch (error) {
-    console.error('Error fetching accounts:', error);
-    return generateMockKnownAccounts(limit);
-  }
-}
-
 // Known/Labeled Accounts API types
-export interface LabeledAccount {
-  account: string;
-  org_name: string | null;
-  label: {
-    name: string;
-    description: string | null;
-    verified: number;
-  } | null;
-  balance: number;
-  transactions: string;
-  rank: number;
-}
-
-export interface LabeledAccountsAPIResponse {
-  current_page: number;
-  total: number;
-  per_page: number;
-  last_page: number;
-  data: LabeledAccount[];
-}
-
-// Fetch known/labeled accounts from Stellarchain API
-export async function fetchLabeledAccounts(
-  page: number = 1,
-  perPage: number = 25
-): Promise<LabeledAccountsAPIResponse> {
-  try {
-    const url = `https://api.stellarchain.io/v1/accounts?page=${page}&labels[]=undefined&paginate=${perPage}`;
-
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 }, // Cache for 1 minute
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch labeled accounts: ${response.status}`);
-    }
-
-    const json = await response.json();
-    // API returns pagination in meta object
-    return {
-      current_page: json.meta?.current_page || 1,
-      total: json.meta?.total || 0,
-      per_page: json.meta?.per_page || perPage,
-      last_page: json.meta?.last_page || 1,
-      data: json.data || [],
-    };
-  } catch (error) {
-    console.error('Error fetching labeled accounts:', error);
-    return {
-      current_page: 1,
-      total: 0,
-      per_page: perPage,
-      last_page: 1,
-      data: [],
-    };
-  }
-}
-
-// Account Label type for badge display
-export interface AccountLabel {
-  name: string;
-  verified: boolean;
-  org_name: string | null;
-  description: string | null;
-}
 
 // Cache for all labeled accounts (fetched once and reused)
 let labeledAccountsCache: Map<string, AccountLabel> | null = null;
@@ -2273,6 +1440,90 @@ async function getCachedLabels(): Promise<Map<string, AccountLabel>> {
   return labeledAccountsCache;
 }
 
+function normalizeUnknownLabel(raw: unknown): AccountLabel | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const obj = raw as Record<string, unknown>;
+  const nested = (obj.label && typeof obj.label === 'object')
+    ? (obj.label as Record<string, unknown>)
+    : null;
+
+  const name = (
+    (typeof obj.name === 'string' ? obj.name.trim() : '') ||
+    (nested && typeof nested.name === 'string' ? nested.name.trim() : '')
+  );
+  const orgName = (
+    (typeof obj.org_name === 'string' ? obj.org_name.trim() : '') ||
+    (typeof obj.orgName === 'string' ? obj.orgName.trim() : '')
+  );
+  const descriptionValue = (
+    (typeof obj.description === 'string' ? obj.description.trim() : '') ||
+    (nested && typeof nested.description === 'string' ? nested.description.trim() : '')
+  );
+  const verifiedValue = nested?.verified ?? obj.verified;
+  const verified = verifiedValue === true || verifiedValue === 1 || verifiedValue === '1';
+
+  if (!name && !orgName && !descriptionValue && !verified) {
+    return null;
+  }
+
+  return {
+    name,
+    verified,
+    org_name: orgName || null,
+    description: descriptionValue || null,
+  };
+}
+
+function collectLabelsFromPayload(payload: unknown): Map<string, AccountLabel> {
+  const found = new Map<string, AccountLabel>();
+
+  const visit = (node: unknown) => {
+    if (!node || typeof node !== 'object') {
+      return;
+    }
+
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        if (!item || typeof item !== 'object') continue;
+        const row = item as Record<string, unknown>;
+        const address = (
+          (typeof row.address === 'string' && row.address) ||
+          (typeof row.account === 'string' && row.account) ||
+          (typeof row.account_id === 'string' && row.account_id) ||
+          ''
+        );
+        const normalized = normalizeUnknownLabel(row);
+        if (address && normalized) {
+          found.set(address, normalized);
+        }
+      }
+      return;
+    }
+
+    const obj = node as Record<string, unknown>;
+
+    // Handle object maps: { "G...": { ...label } }
+    for (const [key, value] of Object.entries(obj)) {
+      if (typeof key === 'string' && key.length >= 56 && (key.startsWith('G') || key.startsWith('C'))) {
+        const normalized = normalizeUnknownLabel(value);
+        if (normalized) {
+          found.set(key, normalized);
+        }
+      }
+    }
+
+    if ('data' in obj) {
+      visit(obj.data);
+    }
+  };
+
+  visit(payload);
+  return found;
+}
+
 // Batch fetch labels for multiple accounts
 export async function getAccountLabels(
   addresses: string[]
@@ -2283,12 +1534,43 @@ export async function getAccountLabels(
     return result;
   }
 
+  const uniqueAddresses = Array.from(new Set(addresses.filter(Boolean)));
+
+  // First, try direct batch lookup endpoint (fresh + precise)
+  try {
+    const response = await fetch('https://api.stellarchain.io/v1/accounts/labels', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ addresses: uniqueAddresses }),
+    });
+
+    if (response.ok) {
+      const payload = await response.json();
+      const directLabels = collectLabelsFromPayload(payload);
+      for (const address of uniqueAddresses) {
+        const label = directLabels.get(address) || directLabels.get(address.toUpperCase()) || directLabels.get(address.toLowerCase());
+        if (label) {
+          result.set(address, label);
+        }
+      }
+
+      if (result.size > 0) {
+        return result;
+      }
+    }
+  } catch {
+    // Fall back to cached directory method below
+  }
+
   // Get all labeled accounts from cache
   const allLabels = await getCachedLabels();
 
   // Look up requested addresses
-  for (const address of addresses) {
-    const label = allLabels.get(address);
+  for (const address of uniqueAddresses) {
+    const label = allLabels.get(address) || allLabels.get(address.toUpperCase()) || allLabels.get(address.toLowerCase());
     if (label) {
       result.set(address, label);
     }
@@ -2297,107 +1579,13 @@ export async function getAccountLabels(
   return result;
 }
 
-// Contracts API types
-export interface APIContract {
-  id: number;
-  contract_id: string;
-  contract_code: string | null;
-  asset_code: string | null;
-  asset_issuer: string | null;
-  created_at: string;
-  wasm_id: string | null;
-  contract_type: number; // 0 = wasm/address, 1 = asset/SAC
-  network: string;
-  source_code_verified: boolean;
-  transactions_count: number;
-  create_transaction: {
-    hash: string;
-    fee: string;
-    source_account: string;
-    host_functions: string[];
-  } | null;
-}
-
-export interface ContractsAPIResponse {
-  current_page: number;
-  total: number;
-  per_page: number;
-  last_page: number;
-  data: APIContract[];
-}
-
-// Fetch contracts from Stellarchain API
-export async function fetchContracts(
-  page: number = 1,
-  perPage: number = 20
-): Promise<ContractsAPIResponse> {
-  try {
-    const url = `https://api.stellarchain.io/v1/contracts/env/public?page=${page}&paginate=${perPage}`;
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 }, // Cache for 1 minute
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch contracts: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    return {
-      current_page: data.current_page || 1,
-      total: data.total || 0,
-      per_page: data.per_page || perPage,
-      last_page: data.last_page || 1,
-      data: data.data || [],
-    };
-  } catch (error) {
-    console.error('Error fetching contracts:', error);
-    return {
-      current_page: 1,
-      total: 0,
-      per_page: perPage,
-      last_page: 1,
-      data: [],
-    };
-  }
-}
-
-
-function generateMockKnownAccounts(limit: number, search?: string, tag?: string): KnownAccount[] {
-  const mockAccounts: KnownAccount[] = [
-    { address: 'GCO2IP3MJHM72GMXOD4KKHLNPHX6F477123456789012345678901234', name: 'Binance', domain: 'binance.com', tags: ['exchange', 'wallet'], paging_token: '1' },
-    { address: 'GA5XIGA5C7QTPTWXQHY6MCJRMTRZDOSHR6EFIBJH372345678901234', name: 'Coinbase', domain: 'coinbase.com', tags: ['exchange', 'custodian'], paging_token: '2' },
-    { address: 'GBX67BEOABQAELIP2XTC2JZB3TVXQ7W351234567890123456789012', name: 'Kraken', domain: 'kraken.com', tags: ['exchange'], paging_token: '3' },
-    { address: 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN', name: 'USDC Issuer', domain: 'centre.io', tags: ['issuer', 'stablecoin'], paging_token: '4' },
-    { address: 'GATEMHCCKCY67ZUCKTROYN24ZYT5GK4EQZ654321098765432109876', name: 'AnchorUSD', domain: 'anchorusd.com', tags: ['anchor', 'wallet'], paging_token: '5' },
-    { address: 'GC4KAS6W2YQFJHLFQT3Z29XN3723456789012345678901234567890', name: 'Bitfinex', domain: 'bitfinex.com', tags: ['exchange'], paging_token: '6' },
-    { address: 'GAB7PTLMA7234567890123456789012345678901234567890123456', name: 'LOBSTR', domain: 'lobstr.co', tags: ['wallet'], paging_token: '7' },
-    { address: 'GC32345678901234567890123456789012345678901234567890123', name: 'Wirex', domain: 'wirexapp.com', tags: ['anchor', 'issuer'], paging_token: '8' },
-  ];
-
-  // Simple filtering for mock data
-  let result = mockAccounts;
-  if (search) {
-    const s = search.toLowerCase();
-    result = result.filter(a =>
-      a.name.toLowerCase().includes(s) ||
-      (a.domain && a.domain.toLowerCase().includes(s))
-    );
-  }
-  if (tag) {
-    const t = tag.toLowerCase();
-    result = result.filter(a => a.tags && a.tags.includes(t));
-  }
-
-  return result.slice(0, limit);
+// Normalize Horizon SDK transaction records to ensure ledger_attr is set
+// The SDK returns `ledger` as a function and the actual number as `ledger_attr`
+export function normalizeTransactions(records: any[]): Transaction[] {
+  return records.map(tx => ({
+    ...tx,
+    ledger_attr: tx.ledger_attr ?? (typeof tx.ledger === 'number' ? tx.ledger : 0),
+  }));
 }
 
 // Utility functions
@@ -2569,69 +1757,9 @@ export function getOperationTypeLabel(typeOrOp: string | Operation): string {
 // Soroban Contract Helper Functions
 // ============================================
 
-import type { ContractFunctionType, DecodedParam, ContractDisplayInfo } from './types/token';
+import type { ContractFunctionType } from './types/token';
 
 // Convert i128 (lo, hi) to BigInt
-export function i128ToBigInt(lo: bigint | string, hi: bigint | string): bigint {
-  const loVal = typeof lo === 'string' ? BigInt(lo) : lo;
-  const hiVal = typeof hi === 'string' ? BigInt(hi) : hi;
-
-  // i128 uses two's complement for negative numbers
-  // For unsigned interpretation: (hi << 64) | lo
-  const SIXTY_FOUR = BigInt(64);
-  const MAX_U64 = BigInt('0xFFFFFFFFFFFFFFFF');
-  const combined = (hiVal << SIXTY_FOUR) | (loVal & MAX_U64);
-
-  // Check if negative (MSB set in hi)
-  const ZERO = BigInt(0);
-  const ONE = BigInt(1);
-  const SIXTY_THREE = BigInt(63);
-  const TWO_POW_128 = ONE << BigInt(128);
-
-  if (hiVal < ZERO || (hiVal >> SIXTY_THREE) === ONE) {
-    // Two's complement for negative
-    return combined - TWO_POW_128;
-  }
-  return combined;
-}
-
-// Convert u128 (lo, hi) to BigInt
-export function u128ToBigInt(lo: bigint | string, hi: bigint | string): bigint {
-  const loVal = typeof lo === 'string' ? BigInt(lo) : lo;
-  const hiVal = typeof hi === 'string' ? BigInt(hi) : hi;
-  const SIXTY_FOUR = BigInt(64);
-  const MAX_U64 = BigInt('0xFFFFFFFFFFFFFFFF');
-  return (hiVal << SIXTY_FOUR) | (loVal & MAX_U64);
-}
-
-// Format token amount with decimals
-export function formatSorobanAmount(rawAmount: bigint | string | number, decimals: number = 7): string {
-  const ZERO = BigInt(0);
-  const TEN = BigInt(10);
-
-  const amount = typeof rawAmount === 'bigint'
-    ? rawAmount
-    : BigInt(Math.floor(Number(rawAmount)));
-
-  if (amount === ZERO) return '0';
-
-  const isNegative = amount < ZERO;
-  const absAmount = isNegative ? -amount : amount;
-  const divisor = TEN ** BigInt(decimals);
-  const wholePart = absAmount / divisor;
-  const fracPart = absAmount % divisor;
-
-  let result: string;
-  if (fracPart === ZERO) {
-    result = wholePart.toLocaleString();
-  } else {
-    const fracStr = fracPart.toString().padStart(decimals, '0').replace(/0+$/, '');
-    result = wholePart === ZERO ? `0.${fracStr}` : `${wholePart.toLocaleString()}.${fracStr}`;
-  }
-
-  return isNegative ? `-${result}` : result;
-}
-
 // Extract contract address from invoke_host_function operation
 export function extractContractAddress(op: Operation): string | null {
   if (
@@ -2661,40 +1789,6 @@ export function extractContractAddress(op: Operation): string | null {
   return null;
 }
 
-// Extract contract function name from operation
-export function extractContractFunctionName(op: Operation): string {
-  if (
-    op.type !== 'invoke_host_function' ||
-    !op.parameters ||
-    op.parameters.length < 2
-  ) {
-    return 'Contract Call';
-  }
-
-  try {
-    const fnParam = op.parameters[1];
-    if (!fnParam || !fnParam.value) return 'Contract Call';
-
-    // Check if it's a Symbol type
-    if (fnParam.type === 'Sym' || fnParam.type === 'Symbol') {
-      const scVal = xdr.ScVal.fromXDR(fnParam.value, 'base64');
-      if (scVal.switch() === xdr.ScValType.scvSymbol()) {
-        return scVal.sym().toString();
-      }
-    }
-
-    // Try to decode anyway
-    const scVal = xdr.ScVal.fromXDR(fnParam.value, 'base64');
-    if (scVal.switch() === xdr.ScValType.scvSymbol()) {
-      return scVal.sym().toString();
-    }
-  } catch (error) {
-    console.warn('Error extracting function name:', error);
-  }
-
-  return 'Contract Call';
-}
-
 // Detect common SEP-0041 function types
 export function detectContractFunctionType(functionName: string): ContractFunctionType {
   const normalized = functionName.toLowerCase();
@@ -2711,223 +1805,8 @@ export function detectContractFunctionType(functionName: string): ContractFuncti
   return 'unknown';
 }
 
-// Enhanced parameter decoding with type information
-export function getEnhancedDecodedParameters(op: Operation): DecodedParam[] {
-  if (
-    op.type !== 'invoke_host_function' ||
-    !op.parameters ||
-    !(op.function === 'HostFunctionTypeHostFunctionTypeInvokeContract' ||
-      op.function === 'HostFunctionTypeInvokeContract')
-  ) {
-    return [];
-  }
-
-  try {
-    return op.parameters.map((param, index) => {
-      const result: DecodedParam = {
-        name: `Param ${index + 1}`,
-        value: param.value,
-        type: 'unknown',
-      };
-
-      try {
-        const scVal = xdr.ScVal.fromXDR(param.value, 'base64');
-
-        switch (scVal.switch()) {
-          case xdr.ScValType.scvSymbol():
-            result.value = scVal.sym().toString();
-            result.type = 'symbol';
-            if (index === 1) result.name = 'Function';
-            break;
-
-          case xdr.ScValType.scvAddress():
-            result.value = Address.fromScVal(scVal).toString();
-            result.type = 'address';
-            result.isContract = result.value.startsWith('C');
-            if (index === 0) result.name = 'Contract';
-            else if (result.value.startsWith('G')) result.name = 'Account';
-            break;
-
-          case xdr.ScValType.scvI128(): {
-            const parts = scVal.i128();
-            const bigVal = i128ToBigInt(parts.lo().toBigInt(), parts.hi().toBigInt());
-            result.value = bigVal.toString();
-            result.rawValue = bigVal;
-            result.type = 'i128';
-            result.name = 'Amount';
-            break;
-          }
-
-          case xdr.ScValType.scvU128(): {
-            const uParts = scVal.u128();
-            const bigVal = u128ToBigInt(uParts.lo().toBigInt(), uParts.hi().toBigInt());
-            result.value = bigVal.toString();
-            result.rawValue = bigVal;
-            result.type = 'u128';
-            result.name = 'Amount';
-            break;
-          }
-
-          case xdr.ScValType.scvU64():
-            result.value = scVal.u64().toString();
-            result.rawValue = BigInt(scVal.u64().toString());
-            result.type = 'u64';
-            break;
-
-          case xdr.ScValType.scvI64():
-            result.value = scVal.i64().toString();
-            result.rawValue = BigInt(scVal.i64().toString());
-            result.type = 'i64';
-            break;
-
-          case xdr.ScValType.scvU32():
-            result.value = scVal.u32().toString();
-            result.rawValue = BigInt(scVal.u32());
-            result.type = 'u32';
-            break;
-
-          case xdr.ScValType.scvI32():
-            result.value = scVal.i32().toString();
-            result.rawValue = BigInt(scVal.i32());
-            result.type = 'i32';
-            break;
-
-          case xdr.ScValType.scvBool():
-            result.value = scVal.b() ? 'true' : 'false';
-            result.type = 'bool';
-            break;
-
-          case xdr.ScValType.scvBytes():
-            result.value = Buffer.from(scVal.bytes()).toString('hex');
-            result.type = 'bytes';
-            break;
-
-          case xdr.ScValType.scvString():
-            result.value = scVal.str().toString();
-            result.type = 'string';
-            break;
-
-          case xdr.ScValType.scvVec():
-            result.type = 'vec';
-            result.value = `[${scVal.vec()?.length || 0} items]`;
-            break;
-
-          case xdr.ScValType.scvMap():
-            result.type = 'map';
-            result.value = `{${scVal.map()?.length || 0} entries}`;
-            break;
-
-          default:
-            // Keep base64 for unknown types
-            break;
-        }
-      } catch (innerError) {
-        console.warn('Failed to decode param:', innerError);
-      }
-
-      return result;
-    });
-  } catch (error) {
-    console.error('Error decoding parameters:', error);
-    return [];
-  }
-}
-
-// Get complete contract display info for UI
-export function getContractDisplayInfo(op: Operation): ContractDisplayInfo {
-  const functionName = extractContractFunctionName(op);
-  const functionType = detectContractFunctionType(functionName);
-  const contractAddress = extractContractAddress(op);
-  const parameters = getEnhancedDecodedParameters(op);
-
-  const info: ContractDisplayInfo = {
-    functionName,
-    functionType,
-    contractAddress,
-    parameters,
-  };
-
-  // Extract transfer-specific details for SEP-0041 transfer(from, to, amount)
-  if (functionType === 'transfer' && parameters.length >= 4) {
-    // Params: [contract, function, from, to, amount] or [contract, function, from_or_to, amount]
-    const addressParams = parameters.filter(p => p.type === 'address');
-    const amountParam = parameters.find(p => p.type === 'i128' || p.type === 'u128');
-
-    if (addressParams.length >= 2) {
-      // Skip contract address (index 0)
-      const nonContractAddresses = addressParams.filter(p => !p.isContract);
-      if (nonContractAddresses.length >= 2) {
-        info.from = nonContractAddresses[0]?.value;
-        info.to = nonContractAddresses[1]?.value;
-      } else if (nonContractAddresses.length === 1) {
-        info.to = nonContractAddresses[0]?.value;
-      }
-    }
-
-    if (amountParam?.rawValue !== undefined) {
-      info.amount = amountParam.rawValue.toString();
-      // Format with default 7 decimals (will be overridden by token registry)
-      info.formattedAmount = formatSorobanAmount(amountParam.rawValue, 7);
-    }
-  }
-
-  // Extract swap details
-  if (functionType === 'swap' && parameters.length >= 3) {
-    const amountParams = parameters.filter(p => p.type === 'i128' || p.type === 'u128');
-    if (amountParams.length >= 1) {
-      info.amount = amountParams[0]?.rawValue?.toString();
-      info.formattedAmount = amountParams[0]?.rawValue
-        ? formatSorobanAmount(amountParams[0].rawValue, 7)
-        : undefined;
-    }
-  }
-
-  return info;
-}
-
-// Check if an address is a contract
-export function isContractId(address: string): boolean {
-  return typeof address === 'string' && address.startsWith('C') && address.length === 56;
-}
-
-// Check if an address is a Stellar account
-export function isAccountId(address: string): boolean {
-  return typeof address === 'string' && address.startsWith('G') && address.length === 56;
-}
 
 // Statistics interfaces
-export interface StatItem {
-  label: string;
-  value: string | number;
-  change?: number;
-  sparkline: number[];
-  prefix?: string;
-  suffix?: string;
-}
-
-export interface StatisticsData {
-  market: {
-    price: StatItem;
-    rank: StatItem;
-    marketCap: StatItem;
-    volume: StatItem;
-    circulatingSupply: StatItem;
-  };
-  blockchain: {
-    totalLedgers: StatItem;
-    tps: StatItem;
-    ops: StatItem;
-    txPerLedger: StatItem;
-    successfulTx: StatItem;
-  };
-  network: {
-    totalAccounts: StatItem;
-    totalAssets: StatItem;
-    outputValue: StatItem;
-    activeAddresses: StatItem;
-    contractInvocations: StatItem;
-  };
-}
 
 // Fetch XLM market data from CoinGecko
 async function fetchCoinGeckoData(): Promise<{
@@ -2986,347 +1865,6 @@ async function fetchCoinGeckoData(): Promise<{
     }
     return fallback;
   }
-}
-
-// Fetch blockchain statistics from StellarExpert
-async function fetchStellarExpertStats(): Promise<{
-  totalAccounts: number;
-  totalAssets: number;
-  payments24h: number;
-  trades24h: number;
-  operationsHistory: number[];
-}> {
-  const fallback = {
-    totalAccounts: 8500000,
-    totalAssets: 75000,
-    payments24h: 2500000,
-    trades24h: 450000,
-    operationsHistory: [] as number[],
-  };
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-
-    const response = await fetch(
-      'https://api.stellar.expert/explorer/public/network-stats',
-      {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 60 },
-        signal: controller.signal,
-      }
-    );
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      // This endpoint is occasionally flaky; avoid noisy production build logs.
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('StellarExpert stats fetch warning:', response.status, response.statusText);
-      }
-      return fallback;
-    }
-
-    const data = await response.json();
-
-    return {
-      totalAccounts: data.accounts || 0,
-      totalAssets: data.assets || 0,
-      payments24h: data.payments_24h || 0,
-      trades24h: data.trades_24h || 0,
-      operationsHistory: data.operations_history?.slice(-24) || [],
-    };
-  } catch (error) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('StellarExpert stats fetch warning:', error);
-    }
-    return fallback;
-  }
-}
-
-// Fetch ledger statistics for TPS/OPS calculations
-async function fetchLedgerStats(): Promise<{
-  totalLedgers: number;
-  avgTps: number;
-  avgOps: number;
-  avgTxPerLedger: number;
-  successRate: number;
-  ledgerHistory: number[];
-}> {
-  try {
-    const ledgers = await getLedgers(50, 'desc');
-    const records = ledgers._embedded.records;
-
-    if (records.length === 0) throw new Error('No ledgers found');
-
-    const latestLedger = records[0];
-    const totalLedgers = latestLedger.sequence;
-
-    // Calculate averages from recent ledgers
-    let totalTx = 0;
-    let totalOps = 0;
-    let totalSuccessful = 0;
-    let totalFailed = 0;
-
-    const ledgerHistory: number[] = [];
-
-    for (const ledger of records) {
-      totalTx += ledger.successful_transaction_count + ledger.failed_transaction_count;
-      totalOps += ledger.operation_count;
-      totalSuccessful += ledger.successful_transaction_count;
-      totalFailed += ledger.failed_transaction_count;
-      ledgerHistory.push(ledger.operation_count);
-    }
-
-    const avgTxPerLedger = totalTx / records.length;
-    const avgOpsPerLedger = totalOps / records.length;
-
-    // Stellar closes ledgers roughly every 5-6 seconds
-    const avgTps = avgTxPerLedger / 5.5;
-    const avgOps = avgOpsPerLedger / 5.5;
-
-    const successRate = totalTx > 0 ? (totalSuccessful / totalTx) * 100 : 0;
-
-    return {
-      totalLedgers,
-      avgTps,
-      avgOps,
-      avgTxPerLedger,
-      successRate,
-      ledgerHistory: ledgerHistory.reverse().slice(-24),
-    };
-  } catch (error) {
-    console.error('Ledger stats fetch error:', error);
-    return {
-      totalLedgers: 52000000,
-      avgTps: 150,
-      avgOps: 450,
-      avgTxPerLedger: 825,
-      successRate: 99.2,
-      ledgerHistory: [].map(v => v * 1000),
-    };
-  }
-}
-
-// Fetch Stellar supply data
-async function fetchSupplyData(): Promise<{
-  totalCoins: number;
-  circulatingSupply: number;
-  feePool: number;
-}> {
-  try {
-    const response = await fetch(
-      'https://dashboard.stellar.org/api/v2/lumens',
-      {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 300 },
-      }
-    );
-
-    if (!response.ok) throw new Error('Stellar Dashboard API error');
-
-    const data = await response.json();
-
-    return {
-      totalCoins: parseFloat(data.totalCoins) || 0,
-      circulatingSupply: parseFloat(data.circulatingSupply) || 0,
-      feePool: parseFloat(data.feePool) || 0,
-    };
-  } catch (error) {
-    console.error('Supply data fetch error:', error);
-    return {
-      totalCoins: 50000000000,
-      circulatingSupply: 29000000000,
-      feePool: 2500000,
-    };
-  }
-}
-
-// Main function to get all statistics
-export async function getStatistics(): Promise<StatisticsData> {
-  // Fetch all data in parallel
-  const [coinGecko, stellarExpert, ledgerStats, supplyData] = await Promise.all([
-    fetchCoinGeckoData(),
-    fetchStellarExpertStats(),
-    fetchLedgerStats(),
-    fetchSupplyData(),
-  ]);
-
-  // Generate sparklines for items without historical data
-  const generateTrendSparkline = (baseValue: number, changePercent: number): number[] => {
-    const points: number[] = [];
-    const startValue = baseValue / (1 + changePercent / 100);
-    for (let i = 0; i < 24; i++) {
-      const progress = i / 23;
-      const noise = (Math.random() - 0.5) * 0.02 * baseValue;
-      const value = startValue + (baseValue - startValue) * progress + noise;
-      points.push(value);
-    }
-    return points;
-  };
-
-  return {
-    market: {
-      price: {
-        label: 'Market Price',
-        value: coinGecko.price,
-        change: coinGecko.priceChange24h,
-        sparkline: coinGecko.sparkline.length > 0 ? coinGecko.sparkline : [],
-        prefix: '$',
-      },
-      rank: {
-        label: 'Market Rank',
-        value: coinGecko.rank,
-        sparkline: generateTrendSparkline(coinGecko.rank, -2),
-        prefix: '#',
-      },
-      marketCap: {
-        label: 'Market Capitalization',
-        value: coinGecko.marketCap,
-        change: coinGecko.priceChange24h,
-        sparkline: generateTrendSparkline(coinGecko.marketCap, coinGecko.priceChange24h),
-        prefix: '$',
-      },
-      volume: {
-        label: 'Volume',
-        value: coinGecko.volume,
-        change: 5.2,
-        sparkline: generateTrendSparkline(coinGecko.volume, 5.2),
-        prefix: '$',
-      },
-      circulatingSupply: {
-        label: 'Circulating Supply',
-        value: coinGecko.circulatingSupply,
-        change: 0.01,
-        sparkline: generateTrendSparkline(coinGecko.circulatingSupply, 0.01),
-        suffix: 'XLM',
-      },
-    },
-    blockchain: {
-      totalLedgers: {
-        label: 'Total Ledgers',
-        value: ledgerStats.totalLedgers,
-        change: 0.5,
-        sparkline: ledgerStats.ledgerHistory,
-      },
-      tps: {
-        label: 'TPS',
-        value: ledgerStats.avgTps.toFixed(1),
-        change: 3.2,
-        sparkline: generateTrendSparkline(ledgerStats.avgTps, 3.2),
-      },
-      ops: {
-        label: 'OPS',
-        value: ledgerStats.avgOps.toFixed(1),
-        change: 4.1,
-        sparkline: generateTrendSparkline(ledgerStats.avgOps, 4.1),
-      },
-      txPerLedger: {
-        label: 'Transactions per Ledger',
-        value: ledgerStats.avgTxPerLedger.toFixed(1),
-        change: 2.8,
-        sparkline: generateTrendSparkline(ledgerStats.avgTxPerLedger, 2.8),
-      },
-      successfulTx: {
-        label: 'Successful Transactions',
-        value: ledgerStats.successRate.toFixed(1),
-        change: 0.1,
-        sparkline: generateTrendSparkline(ledgerStats.successRate, 0.1),
-        suffix: '%',
-      },
-    },
-    network: {
-      totalAccounts: {
-        label: 'Total Accounts',
-        value: stellarExpert.totalAccounts,
-        change: 1.2,
-        sparkline: generateTrendSparkline(stellarExpert.totalAccounts, 1.2),
-      },
-      totalAssets: {
-        label: 'Total Assets',
-        value: stellarExpert.totalAssets,
-        change: 2.5,
-        sparkline: generateTrendSparkline(stellarExpert.totalAssets, 2.5),
-      },
-      outputValue: {
-        label: 'Output Value',
-        value: supplyData.totalCoins,
-        change: 0.02,
-        sparkline: generateTrendSparkline(supplyData.totalCoins, 0.02),
-        suffix: 'XLM',
-      },
-      activeAddresses: {
-        label: 'Active Addresses (24h)',
-        value: Math.floor(stellarExpert.payments24h / 10),
-        change: 5.8,
-        sparkline: generateTrendSparkline(stellarExpert.payments24h / 10, 5.8),
-      },
-      contractInvocations: {
-        label: 'Contract Invocations',
-        value: stellarExpert.trades24h,
-        change: 12.3,
-        sparkline: generateTrendSparkline(stellarExpert.trades24h, 12.3),
-      },
-    },
-  };
-}
-
-// Order Book specific interfaces
-export interface OrderBook {
-  bids: {
-    price: string;
-    amount: string;
-    price_r: {
-      n: number;
-      d: number;
-    };
-  }[];
-  asks: {
-    price: string;
-    amount: string;
-    price_r: {
-      n: number;
-      d: number;
-    };
-  }[];
-  base: {
-    asset_type: string;
-    asset_code: string;
-    asset_issuer: string;
-  };
-  counter: {
-    asset_type: string;
-    asset_code: string;
-    asset_issuer: string;
-  };
-}
-
-export interface TradeAggregation {
-  timestamp: number;
-  trade_count: number;
-  base_volume: string;
-  counter_volume: string;
-  avg: string;
-  high: string;
-  high_r: {
-    n: number;
-    d: number;
-  };
-  low: string;
-  low_r: {
-    n: number;
-    d: number;
-  };
-  open: string;
-  open_r: {
-    n: number;
-    d: number;
-  };
-  close: string;
-  close_r: {
-    n: number;
-    d: number;
-  };
 }
 
 // Fetch Order Book
@@ -3403,6 +1941,26 @@ export async function getXLMUSDPriceFromHorizon(signal?: AbortSignal): Promise<n
       // Close price gives us XLM price in USDC (≈ USD)
       return parseFloat(aggregations[0].close);
     }
+
+    // Fallback: use current order book midpoint/first quote if there were no recent trades
+    const orderBookUrl = `${getBaseUrl()}/order_book?selling_asset_type=native&buying_asset_type=credit_alphanum4&buying_asset_code=USDC&buying_asset_issuer=${USDC_ISSUER}&limit=5`;
+    const orderBook = await fetchJSON<{
+      bids?: Array<{ price: string }>;
+      asks?: Array<{ price: string }>;
+    }>(orderBookUrl, signal);
+
+    const topBid = orderBook.bids?.[0]?.price ? parseFloat(orderBook.bids[0].price) : NaN;
+    const topAsk = orderBook.asks?.[0]?.price ? parseFloat(orderBook.asks[0].price) : NaN;
+
+    if (Number.isFinite(topBid) && Number.isFinite(topAsk) && topBid > 0 && topAsk > 0) {
+      return (topBid + topAsk) / 2;
+    }
+    if (Number.isFinite(topBid) && topBid > 0) {
+      return topBid;
+    }
+    if (Number.isFinite(topAsk) && topAsk > 0) {
+      return topAsk;
+    }
   } catch (error) {
     if (process.env.NODE_ENV !== 'production') {
       console.warn('Failed to fetch XLM/USD price from Horizon:', error);
@@ -3463,99 +2021,6 @@ export async function getAssetPriceFromHorizon(
     priceXlm: 0,
     xlmUsdRate: 0.10
   };
-}
-
-/**
- * Get comprehensive XLM market data including dominance from CoinGecko
- */
-export async function getXLMMarketData(): Promise<{
-  price: number;
-  priceChange24h: number;
-  marketCap: number;
-  marketCapChange24h: number;
-  volume24h: number;
-  circulatingSupply: number;
-  totalSupply: number;
-  dominance: number;
-  rank: number;
-  sparkline: number[];
-  burnedLumens: number;
-  sdfMandate: number;
-  feePool: number;
-  upgradeReserve: number;
-}> {
-  try {
-    // Fetch XLM data, global market data, and Stellar Dashboard data in parallel
-    const [xlmResponse, globalResponse, stellarDashResponse] = await Promise.all([
-      fetch(
-        'https://api.coingecko.com/api/v3/coins/stellar?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=true',
-        {
-          headers: { 'Accept': 'application/json' },
-          next: { revalidate: 60 },
-        }
-      ),
-      fetch(
-        'https://api.coingecko.com/api/v3/global',
-        {
-          headers: { 'Accept': 'application/json' },
-          next: { revalidate: 60 },
-        }
-      ),
-      fetch(
-        'https://dashboard.stellar.org/api/v2/lumens',
-        {
-          headers: { 'Accept': 'application/json' },
-          next: { revalidate: 300 },
-        }
-      ),
-    ]);
-
-    const xlmData = xlmResponse.ok ? await xlmResponse.json() : null;
-    const globalData = globalResponse.ok ? await globalResponse.json() : null;
-    const stellarDash = stellarDashResponse.ok ? await stellarDashResponse.json() : null;
-
-    // Get XLM market cap and total market cap to calculate dominance
-    const xlmMarketCap = xlmData?.market_data?.market_cap?.usd || 0;
-    const totalMarketCap = globalData?.data?.total_market_cap?.usd || 0;
-
-    // Calculate dominance as percentage of total crypto market cap
-    const dominance = totalMarketCap > 0 ? (xlmMarketCap / totalMarketCap) * 100 : 0;
-
-    return {
-      price: xlmData?.market_data?.current_price?.usd || 0,
-      priceChange24h: xlmData?.market_data?.price_change_percentage_24h || 0,
-      marketCap: xlmMarketCap,
-      marketCapChange24h: xlmData?.market_data?.market_cap_change_percentage_24h || 0,
-      volume24h: xlmData?.market_data?.total_volume?.usd || 0,
-      circulatingSupply: stellarDash ? parseFloat(stellarDash.circulatingSupply) : (xlmData?.market_data?.circulating_supply || 0),
-      totalSupply: stellarDash ? parseFloat(stellarDash.totalSupply) : (xlmData?.market_data?.total_supply || 50001787183),
-      dominance,
-      rank: xlmData?.market_cap_rank || 0,
-      sparkline: xlmData?.market_data?.sparkline_7d?.price?.slice(-48) || [],
-      burnedLumens: stellarDash ? parseFloat(stellarDash.burnedLumens) : 0,
-      sdfMandate: stellarDash ? parseFloat(stellarDash.sdfMandate) : 0,
-      feePool: stellarDash ? parseFloat(stellarDash.feePool) : 0,
-      upgradeReserve: stellarDash ? parseFloat(stellarDash.upgradeReserve) : 0,
-    };
-  } catch (error) {
-    console.error('Error fetching XLM market data:', error);
-    return {
-      price: 0,
-      priceChange24h: 0,
-      marketCap: 0,
-      marketCapChange24h: 0,
-      volume24h: 0,
-      circulatingSupply: 0,
-      totalSupply: 50001787183,
-      dominance: 0,
-      rank: 0,
-      sparkline: [],
-      burnedLumens: 0,
-      sdfMandate: 0,
-      feePool: 0,
-      upgradeReserve: 0,
-    };
-  }
 }
 
 export { USDC_ISSUER };

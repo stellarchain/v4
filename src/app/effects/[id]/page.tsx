@@ -1,23 +1,54 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { Horizon } from '@stellar/stellar-sdk';
+import { getBaseUrl } from '@/lib/stellar';
 import { notFound } from 'next/navigation';
-import { getBaseUrlAsync } from '@/lib/stellar';
 
-export const revalidate = 10;
+type Effect = Horizon.ServerApi.EffectRecord;
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
+export default function EffectDetailsPage() {
+  const { id } = useParams<{ id: string }>();
+  const [effect, setEffect] = useState<Effect | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function EffectDetailsPage({ params }: PageProps) {
-  const { id } = await params;
-  const baseUrl = await getBaseUrlAsync();
+  useEffect(() => {
+    if (!id) return;
 
-  const res = await fetch(`${baseUrl}/effects/${encodeURIComponent(id)}`, {
-    headers: { 'Accept': 'application/json' },
-    next: { revalidate: 10 },
-  }).catch(() => null);
+    const fetchEffect = async () => {
+      try {
+        // Horizon doesn't have a direct effect(id) method, use raw fetch
+        const response = await fetch(`${getBaseUrl()}/effects/${id}`);
+        if (!response.ok) {
+          throw new Error('Effect not found');
+        }
+        const data = await response.json();
+        setEffect(data as Effect);
+        setLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load effect');
+        setLoading(false);
+      }
+    };
 
-  if (!res || !res.ok) notFound();
-  const effect = await res.json();
+    fetchEffect();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="flex items-center justify-center py-8">
+          <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !effect) {
+    notFound();
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-4">

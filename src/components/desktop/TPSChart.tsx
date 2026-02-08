@@ -7,6 +7,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 
 interface TPSDataPoint {
   ledger: number;
+  ledger_attr: number;
   tps: number;
   txCount: number;
   closeTime: number; // seconds between ledgers
@@ -27,6 +28,7 @@ function computeTPS(ledgers: Ledger[]): TPSDataPoint[] {
 
     points.push({
       ledger: curr.sequence,
+      ledger_attr: curr.sequence,
       tps: Math.round(tps * 100) / 100,
       txCount,
       closeTime: Math.round(dt),
@@ -169,7 +171,7 @@ export default function TPSChart({ liveLedgers }: TPSChartProps) {
                   const d = payload[0].payload as TPSDataPoint;
                   return (
                     <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg px-3 py-2 shadow-lg text-xs">
-                      <div className="font-bold text-[var(--text-primary)] mb-1">Ledger #{d.ledger.toLocaleString()}</div>
+                      <div className="font-bold text-[var(--text-primary)] mb-1">Ledger #{d.ledger_attr.toLocaleString()}</div>
                       <div className="text-sky-500 font-semibold">{d.tps} tx/s</div>
                       <div className="text-[var(--text-muted)]">{d.txCount} txs in {d.closeTime}s</div>
                     </div>

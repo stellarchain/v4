@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { Transaction, getTransactionDisplayInfo, Operation, getBaseUrl, shortenAddress, getTransactionOperations } from '@/lib/stellar';
+import { Transaction, getTransactionDisplayInfo, Operation, getBaseUrl, normalizeTransactions, shortenAddress, getTransactionOperations } from '@/lib/stellar';
 import { useNetwork } from '@/contexts/NetworkContext';
 import GliderTabs from '@/components/ui/GliderTabs';
 
@@ -175,7 +175,7 @@ export default function TransactionsDesktopView({
     try {
       const txRes = await fetch(`${getBaseUrl()}/transactions?limit=15&order=desc`);
       const txData = await txRes.json();
-      const newTransactions: Transaction[] = txData._embedded.records;
+      const newTransactions: Transaction[] = normalizeTransactions(txData._embedded.records || []);
 
       // Filter to only new transactions we haven't seen
       const unseenTxs = newTransactions.filter(tx => !seenIdsRef.current.has(tx.hash));
@@ -228,7 +228,7 @@ export default function TransactionsDesktopView({
         `${getBaseUrl()}/transactions?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
       );
       const data = await res.json();
-      const olderTransactions: Transaction[] = data._embedded.records;
+      const olderTransactions: Transaction[] = normalizeTransactions(data._embedded.records || []);
 
       if (olderTransactions.length === 0) {
         setIsLoadingMore(false);
@@ -529,6 +529,12 @@ export default function TransactionsDesktopView({
                   visibleTransactions.map((tx) => {
                     const info = tx.displayInfo;
                     const typeInfo = getTypeInfo(tx);
+                    const txWithLegacyLedger = tx as Transaction & { ledger?: number };
+                    const ledgerValue =
+                      txWithLegacyLedger.ledger_attr ??
+                      txWithLegacyLedger.ledger ??
+                      null;
+                    const hasLedger = typeof ledgerValue === 'number' && Number.isFinite(ledgerValue);
 
                     // Adjust colors if failed
                     const colorClass = !tx.successful ? 'text-rose-700 dark:text-rose-400' : typeInfo.color;
@@ -588,13 +594,17 @@ export default function TransactionsDesktopView({
 
                         {/* Ledger */}
                         <td className="py-2.5 px-3">
-                          <Link
-                            href={`/ledger/${tx.ledger}`}
-                            className="font-mono text-[12px] text-sky-600 hover:text-sky-700 hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {tx.ledger.toLocaleString()}
-                          </Link>
+                          {hasLedger ? (
+                            <Link
+                              href={`/ledger/${ledgerValue}`}
+                              className="font-mono text-[12px] text-sky-600 hover:text-sky-700 hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {ledgerValue.toLocaleString()}
+                            </Link>
+                          ) : (
+                            <span className="text-[12px] text-[var(--text-muted)]">—</span>
+                          )}
                         </td>
 
                         {/* Age */}
