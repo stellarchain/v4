@@ -3,15 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl } from '@/lib/stellar';
+import { getBaseUrl, normalizeTransactions } from '@/lib/stellar';
+import type { Ledger, Transaction, Operation } from '@/lib/stellar';
 import LedgerMobileView from '@/components/mobile/LedgerMobileView';
 import LedgerDesktopView from '@/components/desktop/LedgerDesktopView';
 import Loading from '@/components/ui/Loading';
 import { notFound } from 'next/navigation';
-
-type Ledger = Horizon.ServerApi.LedgerRecord;
-type Transaction = Horizon.ServerApi.TransactionRecord;
-type Operation = Horizon.ServerApi.OperationRecord;
 
 export default function LedgerPage() {
   const { sequence } = useParams<{ sequence: string }>();
@@ -36,8 +33,8 @@ export default function LedgerPage() {
 
     return {
       ledger: ledgerResponse as unknown as Ledger,
-      transactions: (transactionsResponse.records || []) as Transaction[],
-      operations: (operationsResponse.records || []) as Operation[],
+      transactions: normalizeTransactions(transactionsResponse.records || []),
+      operations: (operationsResponse.records || []) as unknown as Operation[],
     };
   };
 
@@ -57,12 +54,12 @@ export default function LedgerPage() {
       });
   }, [sequenceNum, isInvalidSequence]);
 
-  if (errorMessage || !ledger) {
-    notFound()
-  }
-
   if (isLoading) {
     return <Loading title="Loading ledger" description="Fetching ledger details and activity." />;
+  }
+
+  if (errorMessage || !ledger) {
+    notFound();
   }
 
   return (

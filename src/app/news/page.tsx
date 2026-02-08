@@ -1,3 +1,5 @@
+'use client';
+
 import NewsMobileView from '@/components/mobile/NewsMobileView';
 import NewsDesktopView from '@/components/desktop/NewsDesktopView';
 

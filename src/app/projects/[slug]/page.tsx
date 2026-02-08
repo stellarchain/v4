@@ -1,29 +1,36 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { fetchProjectBySlug, fetchProjects, Project, TeamMember } from '@/lib/projects';
+import { fetchProjectBySlug, Project, TeamMember } from '@/lib/projects';
 
-export const revalidate = 3600;
+export default function ProjectDetailPage() {
+    const { slug } = useParams<{ slug: string }>();
+    const [project, setProject] = useState<Project | null>(null);
+    const [loading, setLoading] = useState(true);
 
-export async function generateStaticParams() {
-    const projects = await fetchProjects();
-    return projects.map((project) => ({
-        slug: project.slug,
-    }));
-}
+    useEffect(() => {
+        if (!slug) return;
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params;
-    const project = await fetchProjectBySlug(slug);
-    if (!project) return { title: 'Project Not Found' };
-    return {
-        title: `${project.name} | Stellar Ecosystem`,
-        description: project.description,
-    };
-}
+        fetchProjectBySlug(slug)
+            .then((data) => {
+                setProject(data);
+                setLoading(false);
+            })
+            .catch(() => {
+                setLoading(false);
+            });
+    }, [slug]);
 
-export default async function ProjectDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params;
-    const project = await fetchProjectBySlug(slug);
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-8">
+                <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
 
     if (!project) {
         notFound();

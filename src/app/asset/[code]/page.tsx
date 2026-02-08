@@ -1,28 +1,58 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useSearchParams, notFound } from 'next/navigation';
 import { getAssetDetails, getMarketAssets } from '@/lib/stellar';
-import { notFound } from 'next/navigation';
 import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
+import Loading from '@/components/ui/Loading';
 
-export const revalidate = 60;
+export default function AssetPage() {
+  const params = useParams<{ code: string }>();
+  const searchParams = useSearchParams();
+  const code = params.code;
+  const issuer = searchParams.get('issuer') || undefined;
 
-interface PageProps {
-  params: Promise<{ code: string }>;
-  searchParams: Promise<{ issuer?: string }>;
-}
+  const [asset, setAsset] = useState<any>(null);
+  const [rank, setRank] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function AssetPage({ params, searchParams }: PageProps) {
-  const { code } = await params;
-  const { issuer } = await searchParams;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const decodedCode = decodeURIComponent(code);
+        const [assetData, marketAssets] = await Promise.all([
+          getAssetDetails(decodedCode, issuer),
+          getMarketAssets(),
+        ]);
 
-  const decodedCode = decodeURIComponent(code);
-  const asset = await getAssetDetails(decodedCode, issuer);
+        if (!assetData) {
+          setError('Asset not found');
+          return;
+        }
 
-  if (!asset) {
-    notFound();
+        const assetRank = marketAssets.findIndex(a => a.code === assetData.code) + 1;
+        setAsset(assetData);
+        setRank(assetRank);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load asset details.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [code, issuer]);
+
+  if (isLoading) {
+    return <Loading title="Loading asset" description="Fetching asset details." />;
   }
 
-  const marketAssets = await getMarketAssets();
-  const rank = marketAssets.findIndex(a => a.code === asset.code) + 1;
+  if (error || !asset) {
+    notFound();
+  }
 
   return (
     <>

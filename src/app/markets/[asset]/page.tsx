@@ -1,11 +1,16 @@
-import { redirect } from 'next/navigation';
+'use client';
 
-interface PageProps {
-  params: Promise<{ asset: string }>;
-}
+import { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 
-export default async function MarketAssetRoute({ params }: PageProps) {
-  const { asset } = await params;
-  redirect(`/assets/${encodeURIComponent(asset)}`);
+export default function MarketAssetRoute() {
+  const { asset } = useParams<{ asset: string }>();
+  const router = useRouter();
+
+  useEffect(() => {
+    router.push(`/assets/${encodeURIComponent(asset)}`);
+  }, [asset, router]);
+
+  return null;
 }
 

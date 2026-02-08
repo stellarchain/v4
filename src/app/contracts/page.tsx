@@ -1,7 +1,11 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import verifiedContracts from '@/data/verified-contracts.json';
-import { fetchContracts, APIContract } from '@/lib/stellar';
+import { APIContract } from '@/lib/stellar';
 import ContractsClient from './ContractsClient';
 import { StrKey } from '@stellar/stellar-sdk';
+import Loading from '@/components/ui/Loading';
 
 // Convert hex contract ID to StrKey format (C...)
 function hexToContractStrKey(hexId: string): string {
@@ -19,9 +23,6 @@ function hexToContractStrKey(hexId: string): string {
   }
 }
 
-export const revalidate = 60; // Revalidate every minute
-export const dynamic = 'force-dynamic';
-
 // Enhanced contract interface for display
 export interface EnhancedContract {
   id: string;
@@ -38,6 +39,14 @@ export interface EnhancedContract {
   wasmId?: string;
   createdAt?: string;
   createTxHash?: string;
+}
+
+interface ContractsAPIResponse {
+  current_page: number;
+  total: number;
+  per_page: number;
+  last_page: number;
+  data: APIContract[];
 }
 
 // Transform API contract to display format
@@ -83,29 +92,105 @@ function transformContract(apiContract: APIContract): EnhancedContract {
   };
 }
 
-export default async function ContractsPage() {
-  // Fetch first page of contracts from API
-  const initialData = await fetchContracts(1, 30);
+// Fetch contracts from Stellarchain API
+async function fetchContracts(
+  page: number = 1,
+  perPage: number = 20
+): Promise<ContractsAPIResponse> {
+  try {
+    const url = `https://api.stellarchain.io/v1/contracts/env/public?page=${page}&paginate=${perPage}`;
 
-  // Transform API contracts to display format
-  const contracts = initialData.data.map(transformContract);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
 
-  // Calculate stats from current page (will be approximate for now)
-  const stats = {
-    total: initialData.total,
-    active: contracts.filter(c => c.operationCount > 0).length,
-    tokens: contracts.filter(c => c.type === 'token').length,
-    dex: contracts.filter(c => c.type === 'dex').length,
-    verified: contracts.filter(c => c.verified).length,
-  };
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal,
+    });
 
-  // Pagination info
-  const pagination = {
-    currentPage: initialData.current_page,
-    totalPages: initialData.last_page,
-    total: initialData.total,
-    perPage: initialData.per_page,
-  };
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch contracts: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      current_page: data.current_page || 1,
+      total: data.total || 0,
+      per_page: data.per_page || perPage,
+      last_page: data.last_page || 1,
+      data: data.data || [],
+    };
+  } catch (error) {
+    console.error('Error fetching contracts:', error);
+    return {
+      current_page: 1,
+      total: 0,
+      per_page: perPage,
+      last_page: 1,
+      data: [],
+    };
+  }
+}
+
+export default function ContractsPage() {
+  const [contracts, setContracts] = useState<EnhancedContract[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [pagination, setPagination] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const isLoading = !stats && !error;
+
+  useEffect(() => {
+    const loadContracts = async () => {
+      try {
+        // Fetch first page of contracts from API
+        const initialData = await fetchContracts(1, 30);
+
+        // Transform API contracts to display format
+        const transformedContracts = initialData.data.map(transformContract);
+
+        // Calculate stats from current page (will be approximate for now)
+        const calculatedStats = {
+          total: initialData.total,
+          active: transformedContracts.filter(c => c.operationCount > 0).length,
+          tokens: transformedContracts.filter(c => c.type === 'token').length,
+          dex: transformedContracts.filter(c => c.type === 'dex').length,
+          verified: transformedContracts.filter(c => c.verified).length,
+        };
+
+        // Pagination info
+        const paginationInfo = {
+          currentPage: initialData.current_page,
+          totalPages: initialData.last_page,
+          total: initialData.total,
+          perPage: initialData.per_page,
+        };
+
+        setContracts(transformedContracts);
+        setStats(calculatedStats);
+        setPagination(paginationInfo);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load contracts.');
+      }
+    };
+
+    loadContracts();
+  }, []);
+
+  if (isLoading) {
+    return <Loading title="Loading contracts" description="Fetching contracts data." />;
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4">
+        <h1 className="text-2xl font-bold mb-2">Error</h1>
+        <p className="text-muted">{error || 'Failed to load contracts.'}</p>
+      </div>
+    );
+  }
 
   return (
     <ContractsClient

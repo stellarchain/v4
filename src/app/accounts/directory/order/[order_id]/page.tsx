@@ -1,6 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 
-export default async function DirectoryOrderPage() {
+export default function DirectoryOrderPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-4">
       <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-2xl p-4">

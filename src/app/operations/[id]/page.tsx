@@ -1,21 +1,43 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getOperation, shortenAddress, timeAgo } from '@/lib/stellar';
+import { Horizon } from '@stellar/stellar-sdk';
+import { getBaseUrl, shortenAddress, timeAgo } from '@/lib/stellar';
 import { txRoute, addressRoute } from '@/lib/routes';
+import Loading from '@/components/ui/Loading';
 
-export const revalidate = 10;
+type Operation = Horizon.ServerApi.OperationRecord;
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
+export default function OperationDetailsPage() {
+  const { id } = useParams<{ id: string }>();
+  const [op, setOp] = useState<Operation | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const isLoading = !error && !op;
 
-export default async function OperationDetailsPage({ params }: PageProps) {
-  const { id } = await params;
+  const loadOperationData = async (opId: string) => {
+    const server = new Horizon.Server(getBaseUrl());
+    const operation = await server.operations().operation(opId).call();
+    return operation as unknown as Operation;
+  };
 
-  let op;
-  try {
-    op = await getOperation(id);
-  } catch {
+  useEffect(() => {
+    loadOperationData(id)
+      .then((operation) => {
+        setOp(operation);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Failed to load operation.');
+      });
+  }, [id]);
+
+  if (isLoading) {
+    return <Loading title="Loading operation" description="Fetching operation details." />;
+  }
+
+  if (error || !op) {
     notFound();
   }
 

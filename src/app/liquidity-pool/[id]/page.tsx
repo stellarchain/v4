@@ -1,57 +1,70 @@
-import { getLiquidityPool, getLiquidityPoolOperations, getLiquidityPoolTransactions, getLiquidityPoolTrades, getLiquidityPoolEffects } from '@/lib/stellar';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { Horizon } from '@stellar/stellar-sdk';
+import { getBaseUrl, normalizeTransactions } from '@/lib/stellar';
+import type { LiquidityPool, Operation, Transaction, LiquidityPoolTrade, Effect } from '@/lib/stellar';
 import Link from 'next/link';
 import LiquidityPoolMobileView from '@/components/mobile/LiquidityPoolMobileView';
 import LiquidityPoolDesktopView from '@/components/desktop/LiquidityPoolDesktopView';
+import Loading from '@/components/ui/Loading';
 
-export const revalidate = 60;
+export default function LiquidityPoolPage() {
+  const { id } = useParams<{ id: string }>();
+  const [pool, setPool] = useState<LiquidityPool | null>(null);
+  const [operations, setOperations] = useState<Operation[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [trades, setTrades] = useState<LiquidityPoolTrade[]>([]);
+  const [effects, setEffects] = useState<Effect[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const isLoading = !pool && !error;
 
-interface LiquidityPoolPageProps {
-  params: Promise<{ id: string }>;
-}
+  useEffect(() => {
+    const loadPoolData = async () => {
+      try {
+        const server = new Horizon.Server(getBaseUrl());
 
-export default async function LiquidityPoolPage({ params }: LiquidityPoolPageProps) {
-  const { id } = await params;
+        const [poolRes, opsRes, txsRes, tradesRes, effectsRes] = await Promise.allSettled([
+          server.liquidityPools().liquidityPoolId(id).call(),
+          server.operations().forLiquidityPool(id).limit(20).order('desc').call(),
+          server.transactions().forLiquidityPool(id).limit(20).order('desc').call(),
+          server.trades().forLiquidityPool(id).limit(20).order('desc').call(),
+          server.effects().forLiquidityPool(id).limit(20).order('desc').call(),
+        ]);
 
-  let pool = null;
-  let operations = null;
-  let transactions = null;
-  let trades = null;
-  let effects = null;
-  let error: string | null = null;
+        if (poolRes.status === 'fulfilled') {
+          setPool(poolRes.value as unknown as LiquidityPool);
+        } else {
+          setError('Pool not found');
+          return;
+        }
 
-  try {
-    const [poolRes, opsRes, txsRes, tradesRes, effectsRes] = await Promise.allSettled([
-      getLiquidityPool(id),
-      getLiquidityPoolOperations(id, 20),
-      getLiquidityPoolTransactions(id, 20),
-      getLiquidityPoolTrades(id, 20),
-      getLiquidityPoolEffects(id, 20),
-    ]);
+        if (opsRes.status === 'fulfilled') {
+          setOperations(((opsRes.value as any).records || []) as unknown as Operation[]);
+        }
 
-    if (poolRes.status === 'fulfilled') {
-      pool = poolRes.value;
-    } else {
-      error = 'Pool not found';
-    }
+        if (txsRes.status === 'fulfilled') {
+          setTransactions(normalizeTransactions((txsRes.value as any).records || []));
+        }
 
-    if (opsRes.status === 'fulfilled') {
-      operations = opsRes.value._embedded.records;
-    }
+        if (tradesRes.status === 'fulfilled') {
+          setTrades(((tradesRes.value as any).records || []) as unknown as LiquidityPoolTrade[]);
+        }
 
-    if (txsRes.status === 'fulfilled') {
-      transactions = txsRes.value._embedded.records;
-    }
+        if (effectsRes.status === 'fulfilled') {
+          setEffects(((effectsRes.value as any).records || []) as unknown as Effect[]);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error fetching pool data');
+      }
+    };
 
-    if (tradesRes.status === 'fulfilled') {
-      trades = tradesRes.value._embedded.records;
-    }
+    loadPoolData();
+  }, [id]);
 
-    if (effectsRes.status === 'fulfilled') {
-      effects = effectsRes.value._embedded.records;
-    }
-  } catch (e) {
-    error = 'Error fetching pool data';
-    console.error(e);
+  if (isLoading) {
+    return <Loading title="Loading liquidity pool" description="Fetching pool details and activity." />;
   }
 
   if (error || !pool) {
@@ -80,19 +93,19 @@ export default async function LiquidityPoolPage({ params }: LiquidityPoolPagePro
       <div className="hidden md:block">
         <LiquidityPoolDesktopView
           pool={pool}
-          operations={operations || []}
-          transactions={transactions || []}
-          trades={trades || []}
-          effects={effects || []}
+          operations={operations}
+          transactions={transactions}
+          trades={trades}
+          effects={effects}
         />
       </div>
       <div className="md:hidden">
         <LiquidityPoolMobileView
           pool={pool}
-          operations={operations || []}
-          transactions={transactions || []}
-          trades={trades || []}
-          effects={effects || []}
+          operations={operations}
+          transactions={transactions}
+          trades={trades}
+          effects={effects}
         />
       </div>
     </>

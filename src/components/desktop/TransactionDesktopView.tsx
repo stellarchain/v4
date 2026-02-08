@@ -43,6 +43,7 @@ interface TransactionData {
   successful: boolean;
   created_at: string;
   ledger: number;
+  ledger_attr: number;
   operation_count: number;
   fee_charged: string;
   max_fee: string;
@@ -343,7 +344,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   {timeAgo(transaction.created_at)}
                 </span>
-                <span>Ledger <Link href={`/ledger/${transaction.ledger}`} className="text-sky-500 hover:underline font-semibold">{transaction.ledger.toLocaleString()}</Link></span>
+                <span>Ledger <Link href={`/ledger/${transaction.ledger_attr}`} className="text-sky-500 hover:underline font-semibold">{transaction.ledger_attr.toLocaleString()}</Link></span>
               </div>
             </div>
           </div>
@@ -801,7 +802,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   </div>
                   <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                     <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Ledger</div>
-                    <Link href={`/ledger/${transaction.ledger}`} className="text-sm font-semibold text-sky-600 hover:underline">{transaction.ledger.toLocaleString()}</Link>
+                    <Link href={`/ledger/${transaction.ledger_attr}`} className="text-sm font-semibold text-sky-600 hover:underline">{transaction.ledger_attr.toLocaleString()}</Link>
                   </div>
                 </div>
 
@@ -898,7 +899,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   <h3 className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">Transaction Info</h3>
                   <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
                     <div><span className="text-[var(--text-muted)] text-xs">Fee Charged</span><div className="font-mono text-[var(--text-primary)]">{feeXLM} XLM</div></div>
-                    <div><span className="text-[var(--text-muted)] text-xs">Ledger</span><Link href={`/ledger/${transaction.ledger}`} className="text-sky-600 hover:underline font-semibold block">{transaction.ledger.toLocaleString()}</Link></div>
+                    <div><span className="text-[var(--text-muted)] text-xs">Ledger</span><Link href={`/ledger/${transaction.ledger_attr}`} className="text-sky-600 hover:underline font-semibold block">{transaction.ledger_attr.toLocaleString()}</Link></div>
                     <div><span className="text-[var(--text-muted)] text-xs">Source Account</span><Link href={`/address/${transaction.source_account}`} className="font-mono text-sky-600 hover:underline block truncate">{shortenAddress(transaction.source_account)}</Link></div>
                     <div><span className="text-[var(--text-muted)] text-xs">Time</span><div className="text-[var(--text-primary)]">{timeAgo(transaction.created_at)}</div></div>
                   </div>

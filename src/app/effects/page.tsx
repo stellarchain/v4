@@ -1,11 +1,52 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getEffects, timeAgo } from '@/lib/stellar';
+import { Horizon } from '@stellar/stellar-sdk';
+import { getBaseUrl, timeAgo } from '@/lib/stellar';
 
-export const revalidate = 10;
+type Effect = Horizon.ServerApi.EffectRecord;
 
-export default async function EffectsPage() {
-  const res = await getEffects(30);
-  const effects = res._embedded.records;
+export default function EffectsPage() {
+  const [effects, setEffects] = useState<Effect[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const server = new Horizon.Server(getBaseUrl());
+    server.effects()
+      .order('desc')
+      .limit(30)
+      .call()
+      .then((response) => {
+        setEffects(response.records as Effect[]);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Failed to load effects');
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="flex items-center justify-center py-8">
+          <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-2xl p-4 text-center">
+          <p className="text-[var(--text-muted)]">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-4">

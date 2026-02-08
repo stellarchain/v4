@@ -1,11 +1,19 @@
-import { getAccount, getAccountTransactions, getAccountOperations, getTransactionOperations, getXLMUSDPriceFromHorizon, getAccountLabels } from '@/lib/stellar';
-import type { AccountLabel } from '@/lib/stellar';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { Horizon } from '@stellar/stellar-sdk';
+import { getBaseUrl, normalizeTransactions, getXLMUSDPriceFromHorizon, getAccountLabels } from '@/lib/stellar';
+import type { AccountLabel, Transaction, Operation } from '@/lib/stellar';
 import Link from 'next/link';
 import AccountMobileView from '@/components/mobile/AccountMobileView';
 import AccountDesktopView from '@/components/desktop/AccountDesktopView';
+import Loading from '@/components/ui/Loading';
+
+type Account = Horizon.ServerApi.AccountRecord;
 
 // Extract counterparty addresses from operations
-function extractCounterpartyAddresses(operations: any[], accountId: string): string[] {
+function extractCounterpartyAddresses(operations: Operation[], accountId: string): string[] {
   const addresses = new Set<string>();
 
   for (const op of operations) {
@@ -33,80 +41,108 @@ function extractCounterpartyAddresses(operations: any[], accountId: string): str
   return Array.from(addresses);
 }
 
-export const revalidate = 30;
+export default function AccountPage() {
+  const { id } = useParams<{ id: string }>();
+  const [account, setAccount] = useState<Account | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [operations, setOperations] = useState<Operation[]>([]);
+  const [xlmPrice, setXlmPrice] = useState(0.10);
+  const [accountLabels, setAccountLabels] = useState<Record<string, AccountLabel>>({});
+  const [currentAccountLabel, setCurrentAccountLabel] = useState<AccountLabel | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-interface AccountPageProps {
-  params: Promise<{ id: string }>;
-}
+  useEffect(() => {
+    const fetchAccountData = async () => {
+      try {
+        setLoading(true);
+        const server = new Horizon.Server(getBaseUrl());
 
-export default async function AccountPage({ params }: AccountPageProps) {
-  const { id } = await params;
+        // Fetch account, transactions, and operations
+        const [accountResponse, transactionsResponse, operationsResponse] = await Promise.all([
+          server.accounts().accountId(id).call(),
+          server.transactions().forAccount(id).order('desc').limit(50).call(),
+          server.operations().forAccount(id).order('desc').limit(100).call(),
+        ]);
 
-  let account;
-  let transactions: Awaited<ReturnType<typeof getAccountTransactions>>['_embedded']['records'] = [];
-  let operations: Awaited<ReturnType<typeof getAccountOperations>>['_embedded']['records'] = [];
-  let xlmPrice = 0.10;
-  let error: string | null = null;
+        const accountData = accountResponse as unknown as Account;
+        const transactionsData = normalizeTransactions(transactionsResponse.records || []);
+        let operationsData = (operationsResponse.records || []) as unknown as Operation[];
 
-  try {
-    [account, { _embedded: { records: transactions } }, { _embedded: { records: operations } }, xlmPrice] = await Promise.all([
-      getAccount(id),
-      getAccountTransactions(id, 50), // Fetch more transactions to find contract calls
-      getAccountOperations(id, 100),
-      getXLMUSDPriceFromHorizon(),
-    ]);
+        // For Soroban contract calls, the operation's source can be different from the transaction's source
+        // This means contract calls made by this account might not appear in /accounts/{id}/operations
+        // We need to fetch operations from transactions where this account is the source
+        const existingOpTxHashes = new Set(operationsData.map(op => op.transaction_hash));
 
-    // For Soroban contract calls, the operation's source can be different from the transaction's source
-    // This means contract calls made by this account might not appear in /accounts/{id}/operations
-    // We need to fetch operations from transactions where this account is the source
-    const existingOpTxHashes = new Set(operations.map(op => op.transaction_hash));
+        // Find transactions that don't have operations in our list (likely contract calls with different op source)
+        const missingTxs = transactionsData.filter(tx => !existingOpTxHashes.has(tx.hash));
 
-    // Find transactions that don't have operations in our list (likely contract calls with different op source)
-    const missingTxs = transactions.filter(tx => !existingOpTxHashes.has(tx.hash));
+        if (missingTxs.length > 0) {
+          // Fetch operations for missing transactions (limit to first 20 to avoid too many requests)
+          const additionalOpsPromises = missingTxs.slice(0, 20).map(async tx => {
+            try {
+              const txOps = await server.operations().forTransaction(tx.hash).limit(5).call();
+              return (txOps.records || []) as unknown as Operation[];
+            } catch {
+              return [];
+            }
+          });
 
-    if (missingTxs.length > 0) {
-      // Fetch operations for missing transactions (limit to first 20 to avoid too many requests)
-      const additionalOpsPromises = missingTxs.slice(0, 20).map(async tx => {
-        try {
-          const txOps = await getTransactionOperations(tx.hash, 5);
-          return txOps._embedded.records;
-        } catch {
-          return [];
+          const additionalOpsArrays = await Promise.all(additionalOpsPromises);
+          const additionalOps = additionalOpsArrays.flat();
+
+          // Merge additional operations into the main list
+          if (additionalOps.length > 0) {
+            operationsData = [...operationsData, ...additionalOps];
+            // Sort by created_at descending to ensure proper order
+            operationsData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          }
         }
-      });
 
-      const additionalOpsArrays = await Promise.all(additionalOpsPromises);
-      const additionalOps = additionalOpsArrays.flat();
+        // Fetch XLM price from Horizon (XLM/USDC trade aggregation)
+        const priceData = await getXLMUSDPriceFromHorizon();
 
-      // Merge additional operations into the main list
-      if (additionalOps.length > 0) {
-        operations = [...operations, ...additionalOps];
-        // Sort by created_at descending to ensure proper order
-        operations.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        // Fetch labels for counterparty addresses AND the current account
+        const counterpartyAddresses = operationsData.length > 0 ? extractCounterpartyAddresses(operationsData, id) : [];
+        const allAddresses = [id, ...counterpartyAddresses];
+
+        const labels: Record<string, AccountLabel> = {};
+        let currentLabel: AccountLabel | null = null;
+
+        try {
+          const labelsMap = await getAccountLabels(allAddresses);
+          labelsMap.forEach((label, address) => {
+            if (address.toUpperCase() === id.toUpperCase()) {
+              currentLabel = label;
+            } else {
+              labels[address] = label;
+            }
+          });
+        } catch (e) {
+          console.error('Failed to fetch account labels:', e);
+        }
+
+        setAccount(accountData);
+        setTransactions(transactionsData);
+        setOperations(operationsData);
+        setXlmPrice(priceData);
+        setAccountLabels(labels);
+        setCurrentAccountLabel(currentLabel);
+      } catch (e) {
+        setError('Account not found or invalid account ID');
+        console.error('Error fetching account data:', e);
+      } finally {
+        setLoading(false);
       }
+    };
+
+    if (id) {
+      fetchAccountData();
     }
-  } catch (e) {
-    error = 'Account not found or invalid account ID';
-    console.error(e);
-  }
+  }, [id]);
 
-  // Fetch labels for counterparty addresses AND the current account
-  let accountLabels: Record<string, AccountLabel> = {};
-  let currentAccountLabel: AccountLabel | null = null;
-  try {
-    const counterpartyAddresses = operations.length > 0 ? extractCounterpartyAddresses(operations, id) : [];
-    // Include the current account ID to get its label too
-    const allAddresses = [id, ...counterpartyAddresses];
-    const labelsMap = await getAccountLabels(allAddresses);
-    labelsMap.forEach((label, address) => {
-      if (address === id) {
-        currentAccountLabel = label;
-      } else {
-        accountLabels[address] = label;
-      }
-    });
-  } catch (e) {
-    console.error('Failed to fetch account labels:', e);
+  if (loading) {
+    return <Loading title="Loading account" description="Fetching account details and activity." />;
   }
 
   if (error || !account) {
