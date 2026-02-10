@@ -1,18 +1,33 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
 import { getBaseUrl } from '@/lib/stellar';
 import type { Ledger } from '@/lib/stellar';
 import LedgersPageClient from '@/components/LedgersPageClient';
+import LedgerDetailsClientPage from '@/app/ledger/[sequence]/client-page';
 import Loading from '@/components/ui/Loading';
+import { getDetailRouteValue } from '@/lib/routeDetail';
 
 export default function LedgersPage() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const detailsSequence = getDetailRouteValue({
+    pathname,
+    searchParams,
+    queryKey: 'sequence',
+    aliases: ['/ledgers'],
+  });
+  const hasDetailsRoute = Boolean(detailsSequence);
+
   const [ledgers, setLedgers] = useState<Ledger[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (hasDetailsRoute) return;
+
     const loadLedgers = async () => {
       try {
         const server = new Horizon.Server(getBaseUrl());
@@ -28,7 +43,11 @@ export default function LedgersPage() {
     };
 
     loadLedgers();
-  }, []);
+  }, [hasDetailsRoute]);
+
+  if (hasDetailsRoute) {
+    return <LedgerDetailsClientPage />;
+  }
 
   if (isLoading) {
     return <Loading title="Loading ledgers" description="Fetching recent ledgers." />;
