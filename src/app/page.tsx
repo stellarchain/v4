@@ -8,6 +8,7 @@ import DesktopHomePage from '@/components/desktop/DesktopHomePage';
 import StatsSection from '@/components/mobile/sections/StatsSection';
 import TransactionsSection from '@/components/mobile/sections/TransactionsSection';
 import Loading from '@/components/ui/Loading';
+import { fetchStellarCoinData } from '@/services/api';
 
 interface MarketAsset {
   rank: number;
@@ -58,7 +59,7 @@ export default function HomePage() {
           server.transactions().order('desc').limit(8).call(),
           server.operations().order('desc').limit(30).call(),
           server.payments().order('desc').limit(20).call(),
-          fetch('https://api.stellarchain.dev/api/coins/stellar').then(res => res.json())
+          fetchStellarCoinData()
         ]);
 
         const marketAssets = stellarChainData.stellar_expert;
