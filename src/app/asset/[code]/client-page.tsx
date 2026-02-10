@@ -6,18 +6,20 @@ import { getAssetDetails, getMarketAssets } from '@/lib/stellar';
 import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
 import Loading from '@/components/ui/Loading';
+import { getDetailRouteValue } from '@/lib/routeDetail';
 
 
 export default function AssetPage() {
   const params = useParams<{ code?: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const pathCode = (() => {
-    const clean = pathname.replace(/\/+$/, '');
-    if (clean.startsWith('/asset/')) return clean.slice('/asset/'.length);
-    return '';
-  })();
-  const code = (searchParams.get('code') || params.code || pathCode || '').trim();
+  const code = getDetailRouteValue({
+    pathname,
+    searchParams,
+    queryKey: 'code',
+    routeParam: params.code,
+    aliases: ['/asset'],
+  });
   const issuer = searchParams.get('issuer') || undefined;
 
   const [asset, setAsset] = useState<any>(null);

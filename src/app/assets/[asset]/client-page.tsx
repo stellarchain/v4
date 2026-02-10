@@ -6,6 +6,7 @@ import { getAssetDetails, getMarketAssets } from '@/lib/stellar';
 import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
 import Loading from '@/components/ui/Loading';
+import { getDetailRouteValue } from '@/lib/routeDetail';
 
 
 function parseAssetSlug(slug: string): { code: string; issuer?: string } | null {
@@ -25,12 +26,13 @@ export default function AssetDetailsRoute() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const pathAsset = (() => {
-    const clean = pathname.replace(/\/+$/, '');
-    if (clean.startsWith('/assets/')) return clean.slice('/assets/'.length);
-    return '';
-  })();
-  const asset = (searchParams.get('id') || params.asset || pathAsset || '').trim();
+  const asset = getDetailRouteValue({
+    pathname,
+    searchParams,
+    queryKey: 'id',
+    routeParam: params.asset,
+    aliases: ['/assets'],
+  });
 
   const [details, setDetails] = useState<any>(null);
   const [rank, setRank] = useState<number>(0);
