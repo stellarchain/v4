@@ -9,23 +9,20 @@ import LedgerMobileView from '@/components/mobile/LedgerMobileView';
 import LedgerDesktopView from '@/components/desktop/LedgerDesktopView';
 import Loading from '@/components/ui/Loading';
 import { notFound } from 'next/navigation';
+import { getDetailRouteValue } from '@/lib/routeDetail';
 
 
 export default function LedgerPage() {
   const params = useParams<{ sequence?: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const pathSequence = (() => {
-    const clean = pathname.replace(/\/+$/, '');
-    if (clean.startsWith('/ledger/')) {
-      return clean.slice('/ledger/'.length);
-    }
-    if (clean.startsWith('/ledgers/')) {
-      return clean.slice('/ledgers/'.length);
-    }
-    return '';
-  })();
-  const sequenceRaw = (searchParams.get('sequence') || params.sequence || pathSequence || '').trim();
+  const sequenceRaw = getDetailRouteValue({
+    pathname,
+    searchParams,
+    queryKey: 'sequence',
+    routeParam: params.sequence,
+    aliases: ['/ledger', '/ledgers'],
+  });
   const sequenceNum = Number(sequenceRaw);
   const [ledger, setLedger] = useState<Ledger | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
