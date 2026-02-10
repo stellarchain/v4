@@ -1,17 +1,32 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import type { RichListAccount } from '@/lib/stellar';
 import TopAccountsMobileList from '@/components/mobile/TopAccountsMobileList';
 import TopAccountsDesktopView from '@/components/desktop/TopAccountsDesktopView';
+import AccountDetailsClientPage from '@/app/account/[id]/client-page';
 import Loading from '@/components/ui/Loading';
+import { getDetailRouteValue } from '@/lib/routeDetail';
 
 export default function AccountsPage() {
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const detailsAccountId = getDetailRouteValue({
+        pathname,
+        searchParams,
+        queryKey: 'id',
+        aliases: ['/accounts'],
+    });
+    const hasDetailsRoute = Boolean(detailsAccountId);
+
     const [richListAccounts, setRichListAccounts] = useState<RichListAccount[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (hasDetailsRoute) return;
+
         const fetchRichList = async () => {
             try {
                 setLoading(true);
@@ -44,7 +59,11 @@ export default function AccountsPage() {
         };
 
         fetchRichList();
-    }, []);
+    }, [hasDetailsRoute]);
+
+    if (hasDetailsRoute) {
+        return <AccountDetailsClientPage />;
+    }
 
     if (loading) {
         return <Loading title="Loading accounts" description="Fetching top XLM holders." />;
