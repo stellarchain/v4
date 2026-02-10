@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Transaction, Operation, Effect, shortenAddress, timeAgo, formatXLM, getBaseUrl } from '@/lib/stellar';
+import { Transaction, Operation, Effect, shortenAddress, timeAgo, formatXLM, getBaseUrl, getXLMStats } from '@/lib/stellar';
 import type { AccountLabel } from '@/lib/stellar';
 import AccountBadges from '@/components/AccountBadges';
 import { QRCodeSVG } from 'qrcode.react';
@@ -218,9 +218,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
   useEffect(() => {
     const fetchXlmChange = async () => {
       try {
-        const res = await fetch('/api/coingecko/xlm', { cache: 'force-cache' });
-        const data = await res.json();
-        if (typeof data?.usd_24h_change === 'number') {
+        const data = await getXLMStats();
+        if (data && typeof data.usd_24h_change === 'number') {
           setXlmChange24h(data.usd_24h_change);
         }
       } catch {
@@ -757,25 +756,25 @@ export default function AccountDesktopView({ account, transactions, operations: 
           </div>
         </div>
 
-	        {/* Tabs Row */}
-	        <div className="mb-4">
-	          <GliderTabs
-	            size="md"
-	            className="border-[var(--border-default)]"
-	            tabs={[
-	              { id: 'assets', label: 'Assets' },
-	              { id: 'transactions', label: 'Transactions' },
-	              { id: 'operations', label: 'Operations' },
-	              { id: 'details', label: 'Details' },
-	            ] as const}
-	            activeId={activeTab}
-	            onChange={(id) => handleTabChange(id)}
-	          />
-	        </div>
+        {/* Tabs Row */}
+        <div className="mb-4">
+          <GliderTabs
+            size="md"
+            className="border-[var(--border-default)]"
+            tabs={[
+              { id: 'assets', label: 'Assets' },
+              { id: 'transactions', label: 'Transactions' },
+              { id: 'operations', label: 'Operations' },
+              { id: 'details', label: 'Details' },
+            ] as const}
+            activeId={activeTab}
+            onChange={(id) => handleTabChange(id)}
+          />
+        </div>
 
-          {/* Tab Content */}
-          <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm overflow-hidden">
-            <div className="p-0">
+        {/* Tab Content */}
+        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm overflow-hidden">
+          <div className="p-0">
             {/* Transactions Tab - Placeholder */}
             {activeTab === 'transactions' && (
               <div>
@@ -1137,8 +1136,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
 
                   {/* Flags */}
                   <div>
-                      <h3 className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider font-medium mb-3">Flags</h3>
-                      <div className="bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-default)] divide-y divide-[var(--border-default)]">
+                    <h3 className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider font-medium mb-3">Flags</h3>
+                    <div className="bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-default)] divide-y divide-[var(--border-default)]">
                       {Object.entries(account.flags).map(([flag, enabled]) => (
                         <div key={flag} className="flex justify-between px-4 py-4">
                           <span className="text-sm text-[var(--text-secondary)] capitalize">{flag.replace('auth_', '').replace(/_/g, ' ')}</span>
@@ -1199,8 +1198,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
                 </div>
               </div>
             )}
-            </div>
           </div>
+        </div>
       </div>
 
       {/* QR Code Modal */}
