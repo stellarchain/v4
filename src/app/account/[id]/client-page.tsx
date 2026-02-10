@@ -9,6 +9,7 @@ import Link from 'next/link';
 import AccountMobileView from '@/components/mobile/AccountMobileView';
 import AccountDesktopView from '@/components/desktop/AccountDesktopView';
 import Loading from '@/components/ui/Loading';
+import { getDetailRouteValue } from '@/lib/routeDetail';
 
 
 type Account = Horizon.ServerApi.AccountRecord;
@@ -46,14 +47,13 @@ export default function AccountPage() {
   const params = useParams<{ id?: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const pathId = (() => {
-    const clean = pathname.replace(/\/+$/, '');
-    if (clean.startsWith('/account/')) return clean.slice('/account/'.length);
-    if (clean.startsWith('/accounts/')) return clean.slice('/accounts/'.length);
-    if (clean.startsWith('/address/')) return clean.slice('/address/'.length);
-    return '';
-  })();
-  const id = (searchParams.get('id') || params.id || pathId || '').trim();
+  const id = getDetailRouteValue({
+    pathname,
+    searchParams,
+    queryKey: 'id',
+    routeParam: params.id,
+    aliases: ['/account', '/accounts', '/address'],
+  });
   const [account, setAccount] = useState<Account | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [operations, setOperations] = useState<Operation[]>([]);
