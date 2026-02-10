@@ -10,22 +10,22 @@ import ShowError from '@/components/ui/ShowError';
 import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
 import { assetRoute } from '@/lib/routes';
+import { getDetailRouteValue } from '@/lib/routeDetail';
 
 type Asset = Horizon.ServerApi.AssetRecord;
 
 export default function AssetsPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const assetIdFromQuery = searchParams.get('id');
   const assetSlug = useMemo(() => {
-    if (assetIdFromQuery) {
-      return assetIdFromQuery;
-    }
-    const clean = pathname.replace(/\/+$/, '');
-    if (!clean.startsWith('/assets')) return null;
-    const suffix = clean.slice('/assets'.length).replace(/^\//, '');
-    return suffix || null;
-  }, [pathname, assetIdFromQuery]);
+    const value = getDetailRouteValue({
+      pathname,
+      searchParams,
+      queryKey: 'id',
+      aliases: ['/assets'],
+    });
+    return value || null;
+  }, [pathname, searchParams]);
 
   const [assets, setAssets] = useState<Asset[] | null>(null);
   const [details, setDetails] = useState<any>(null);
