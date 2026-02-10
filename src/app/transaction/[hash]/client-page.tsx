@@ -9,6 +9,7 @@ import TransactionMobileView from '@/components/mobile/TransactionMobileView';
 import TransactionDesktopView from '@/components/desktop/TransactionDesktopView';
 import Loading from '@/components/ui/Loading';
 import { notFound } from 'next/navigation';
+import { getDetailRouteValue } from '@/lib/routeDetail';
 
 
 type Operation = Horizon.ServerApi.OperationRecord;
@@ -69,21 +70,13 @@ export default function TransactionPage() {
   const [error, setError] = useState<string | null>(null);
   const isLoading = !error && !transaction;
 
-  const pathHash = (() => {
-    const clean = pathname.replace(/\/+$/, '');
-    if (clean.startsWith('/transaction/')) {
-      return clean.slice('/transaction/'.length);
-    }
-    if (clean.startsWith('/transactions/')) {
-      return clean.slice('/transactions/'.length);
-    }
-    if (clean.startsWith('/tx/')) {
-      return clean.slice('/tx/'.length);
-    }
-    return '';
-  })();
-
-  const hash = (searchParams.get('hash') || params.hash || pathHash || '').trim();
+  const hash = getDetailRouteValue({
+    pathname,
+    searchParams,
+    queryKey: 'hash',
+    routeParam: params.hash,
+    aliases: ['/transaction', '/transactions', '/tx'],
+  });
 
   const loadTransactionData = async (txHash: string) => {
     const server = new Horizon.Server(getBaseUrl());

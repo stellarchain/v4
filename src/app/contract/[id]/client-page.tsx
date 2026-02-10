@@ -20,6 +20,7 @@ import type { TokenRegistryEntry, ContractVerification } from '@/lib/types/token
 import type { ContractMetadataResult, ContractAccessControlResult, ContractSpecResult } from '@/lib/contractMetadata';
 import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
 import type { EventSummary } from '@/lib/eventParser';
+import { getDetailRouteValue } from '@/lib/routeDetail';
 
 
 interface VerifiedContract {
@@ -60,13 +61,13 @@ export default function ContractPage() {
   const params = useParams<{ id?: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const pathId = (() => {
-    const clean = pathname.replace(/\/+$/, '');
-    if (clean.startsWith('/contract/')) return clean.slice('/contract/'.length);
-    if (clean.startsWith('/contracts/')) return clean.slice('/contracts/'.length);
-    return '';
-  })();
-  const rawId = (searchParams.get('id') || params.id || pathId || '').trim();
+  const rawId = getDetailRouteValue({
+    pathname,
+    searchParams,
+    queryKey: 'id',
+    routeParam: params.id,
+    aliases: ['/contract', '/contracts'],
+  });
   const id = normalizeContractAddress(rawId);
 
   const [contractData, setContractData] = useState<FullContractData | null>(null);

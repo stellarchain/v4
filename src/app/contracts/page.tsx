@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import verifiedContracts from '@/data/verified-contracts.json';
 import { APIContract } from '@/lib/stellar';
 import ContractsClient from './ContractsClient';
+import ContractDetailsClientPage from '@/app/contract/[id]/client-page';
 import { StrKey } from '@stellar/stellar-sdk';
 import Loading from '@/components/ui/Loading';
+import { getDetailRouteValue } from '@/lib/routeDetail';
 
 // Convert hex contract ID to StrKey format (C...)
 function hexToContractStrKey(hexId: string): string {
@@ -136,6 +139,16 @@ async function fetchContracts(
 }
 
 export default function ContractsPage() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const detailsContractId = getDetailRouteValue({
+    pathname,
+    searchParams,
+    queryKey: 'id',
+    aliases: ['/contracts'],
+  });
+  const hasDetailsRoute = Boolean(detailsContractId);
+
   const [contracts, setContracts] = useState<EnhancedContract[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [pagination, setPagination] = useState<any>(null);
@@ -143,6 +156,8 @@ export default function ContractsPage() {
   const isLoading = !stats && !error;
 
   useEffect(() => {
+    if (hasDetailsRoute) return;
+
     const loadContracts = async () => {
       try {
         // Fetch first page of contracts from API
@@ -177,7 +192,11 @@ export default function ContractsPage() {
     };
 
     loadContracts();
-  }, []);
+  }, [hasDetailsRoute]);
+
+  if (hasDetailsRoute) {
+    return <ContractDetailsClientPage />;
+  }
 
   if (isLoading) {
     return <Loading title="Loading contracts" description="Fetching contracts data." />;

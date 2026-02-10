@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import TransactionPageClient from '@/components/TransactionPageClient';
 import TransactionsDesktopView from '@/components/desktop/TransactionsDesktopView';
 import TransactionDetailsClientPage from '@/app/transaction/[hash]/client-page';
+import { getDetailRouteValue } from '@/lib/routeDetail';
 
 function useIsMobile(breakpoint: number = 768) {
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
@@ -22,10 +23,13 @@ function useIsMobile(breakpoint: number = 768) {
 export default function TransactionsPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const cleanPath = pathname.replace(/\/+$/, '');
-  const txHashFromPath = cleanPath.startsWith('/transactions/') ? cleanPath.slice('/transactions/'.length) : '';
-  const txHashFromQuery = searchParams.get('hash') || '';
-  const hasDetailsRoute = Boolean((txHashFromPath || txHashFromQuery).trim());
+  const detailsHash = getDetailRouteValue({
+    pathname,
+    searchParams,
+    queryKey: 'hash',
+    aliases: ['/transactions'],
+  });
+  const hasDetailsRoute = Boolean(detailsHash);
   const isMobile = useIsMobile();
 
   if (hasDetailsRoute) {
