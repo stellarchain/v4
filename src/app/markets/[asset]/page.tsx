@@ -1,16 +1,9 @@
-'use client';
+import ClientPage from './client-page';
 
-import { useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-
-export default function MarketAssetRoute() {
-  const { asset } = useParams<{ asset: string }>();
-  const router = useRouter();
-
-  useEffect(() => {
-    router.push(`/assets/${encodeURIComponent(asset)}`);
-  }, [asset, router]);
-
-  return null;
+export function generateStaticParams() {
+  return [{ asset: 'XLM-native' }];
 }
 
+export default function Page() {
+  return <ClientPage />;
+}

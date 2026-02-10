@@ -1,6 +1,8 @@
-'use client';
-
 import Link from 'next/link';
+
+export function generateStaticParams() {
+  return [{ order_id: 'test' }];
+}
 
 export default function DirectoryOrderPage() {
   return (
@@ -28,4 +30,3 @@ export default function DirectoryOrderPage() {
     </div>
   );
 }
-
