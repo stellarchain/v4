@@ -9,18 +9,20 @@ import Link from 'next/link';
 import LiquidityPoolMobileView from '@/components/mobile/LiquidityPoolMobileView';
 import LiquidityPoolDesktopView from '@/components/desktop/LiquidityPoolDesktopView';
 import Loading from '@/components/ui/Loading';
+import { getDetailRouteValue } from '@/lib/routeDetail';
 
 
 export default function LiquidityPoolPage() {
   const params = useParams<{ id?: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const pathId = (() => {
-    const clean = pathname.replace(/\/+$/, '');
-    if (clean.startsWith('/liquidity-pool/')) return clean.slice('/liquidity-pool/'.length);
-    return '';
-  })();
-  const id = (searchParams.get('id') || params.id || pathId || '').trim();
+  const id = getDetailRouteValue({
+    pathname,
+    searchParams,
+    queryKey: 'id',
+    routeParam: params.id,
+    aliases: ['/liquidity-pool', '/liquidity-pools'],
+  });
   const [pool, setPool] = useState<LiquidityPool | null>(null);
   const [operations, setOperations] = useState<Operation[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
