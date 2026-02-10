@@ -46,6 +46,7 @@ interface TransactionData {
   successful: boolean;
   created_at: string;
   ledger: number;
+  ledger_attr: number;
   operation_count: number;
   fee_charged: string;
   max_fee: string;
@@ -1893,7 +1894,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       <div className="p-4">
                         <div className="grid grid-cols-4 gap-2">
                           {[
-                            { label: 'Ledger', value: transaction.ledger.toLocaleString() },
+                            { label: 'Ledger', value: transaction.ledger_attr.toLocaleString() },
                             { label: 'Ops', value: transaction.operation_count.toString() },
                             { label: 'Effects', value: effects.length.toString() },
                             { label: 'Sigs', value: transaction.signatures.length.toString() },
@@ -2035,7 +2036,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                   { label: 'Memo', value: transaction.memo ? `${transaction.memo} (${transaction.memo_type})` : 'None' },
                   { label: 'Source Account', value: transaction.source_account, isLink: true },
                   { label: 'Sequence', value: transaction.source_account_sequence },
-                  { label: 'Ledger', value: transaction.ledger.toString(), linkUrl: `/ledger/${transaction.ledger}` },
+                  { label: 'Ledger', value: transaction.ledger_attr.toString(), linkUrl: `/ledger/${transaction.ledger_attr}` },
                 ].map((item, i) => (
                   <div key={i} className="flex justify-between items-center px-4 py-3 border-b border-[var(--border-subtle)] last:border-0">
                     <span className="text-xs text-[var(--text-tertiary)] font-medium">{item.label}</span>

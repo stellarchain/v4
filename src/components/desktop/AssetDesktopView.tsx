@@ -8,7 +8,7 @@ import AssetCandlestickChart from '@/components/AssetCandlestickChart';
 import AssetOrderBook from '@/components/AssetOrderBook';
 import GliderTabs from '@/components/ui/GliderTabs';
 import { AssetDetails, AssetHolder, AssetTrade, AccountLabel, TradingPair, shortenAddress, timeAgo, getAssetHolders, getAssetTrades, getAccountLabels, getAssetTradingPairs, getLiquidityPoolByAssets, getOperation } from '@/lib/stellar';
-import { getXLMHoldersAction } from '@/app/actions/stellar';
+import { getXLMHoldersAction } from '@/lib/helpers';
 
 interface AssetDesktopViewProps {
   asset: AssetDetails;

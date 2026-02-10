@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { NetworkBadge } from '@/components/NetworkSwitcher';
-import { getBaseUrl } from '@/lib/stellar';
+import { getBaseUrl, getXLMStats } from '@/lib/stellar';
 import { getRouteFromSearchQuery } from '@/lib/searchRouting';
 
 export default function MobileHeader() {
@@ -18,10 +18,9 @@ export default function MobileHeader() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Cached server-side proxy (avoids CoinGecko rate limits in the client).
-        const res = await fetch('/api/coingecko/xlm', { cache: 'force-cache' });
-        const data = await res.json();
-        if (typeof data?.usd === 'number') {
+        // Direct fetch from internal API
+        const data = await getXLMStats();
+        if (data) {
           setXlmPrice(data.usd || 0);
           setXlmChange24h(data.usd_24h_change || 0);
         }

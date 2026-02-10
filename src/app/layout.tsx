@@ -7,6 +7,7 @@ import DesktopNavbar from "@/components/desktop/DesktopNavbar";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { NetworkProvider } from "@/contexts/NetworkContext";
+import ScrollToTop from "@/components/ScrollToTop";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -77,6 +78,8 @@ export default function RootLayout({
           <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:bg-[var(--bg-secondary)] focus:text-[var(--text-primary)] focus:px-4 focus:py-2 focus:rounded-lg focus:border focus:border-[var(--border-default)] focus:outline-none focus:ring-2 focus:ring-[var(--info)]">
             Skip to content
           </a>
+
+          <ScrollToTop />
 
           {/* Mobile Header */}
           <MobileHeader />

@@ -1,46 +1,45 @@
-import { getTransactions, getPaymentTransactions } from '@/lib/stellar';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import TransactionPageClient from '@/components/TransactionPageClient';
 import TransactionsDesktopView from '@/components/desktop/TransactionsDesktopView';
+import TransactionDetailsClientPage from '@/app/transaction/[hash]/client-page';
 
-export const revalidate = 10;
+function useIsMobile(breakpoint: number = 768) {
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
 
-export default async function TransactionsPage() {
-  let transactions: Awaited<ReturnType<typeof getTransactions>>['_embedded']['records'] = [];
-  let paymentTransactions: Awaited<ReturnType<typeof getPaymentTransactions>> = [];
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < breakpoint);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, [breakpoint]);
 
-  try {
-    // Fetch both regular transactions and payment transactions in parallel
-    const [transactionsResponse, payments] = await Promise.all([
-      getTransactions(100),
-      getPaymentTransactions(50), // Fetch 50 recent payments directly
-    ]);
+  return isMobile;
+}
 
-    transactions = transactionsResponse._embedded.records;
-    paymentTransactions = payments;
-  } catch (e) {
-    // Avoid failing builds/prerender when upstream APIs rate-limit or error.
-    console.error('Failed to fetch initial transactions:', e);
+export default function TransactionsPage() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const cleanPath = pathname.replace(/\/+$/, '');
+  const txHashFromPath = cleanPath.startsWith('/transactions/') ? cleanPath.slice('/transactions/'.length) : '';
+  const txHashFromQuery = searchParams.get('hash') || '';
+  const hasDetailsRoute = Boolean((txHashFromPath || txHashFromQuery).trim());
+  const isMobile = useIsMobile();
+
+  if (hasDetailsRoute) {
+    return <TransactionDetailsClientPage />;
   }
 
-  return (
-    <>
-      {/* Mobile View */}
-      <div className="block md:hidden">
-        <TransactionPageClient
-          initialTransactions={transactions}
-          initialPaymentTransactions={paymentTransactions}
-          limit={100}
-        />
-      </div>
+  // Wait for client-side hydration to determine viewport
+  if (isMobile === null) {
+    return null;
+  }
 
-      {/* Desktop View */}
-      <div className="hidden md:block">
-        <TransactionsDesktopView
-          initialTransactions={transactions}
-          initialPaymentTransactions={paymentTransactions}
-          limit={100}
-        />
-      </div>
-    </>
+  return isMobile ? (
+    <TransactionPageClient limit={100} />
+  ) : (
+    <TransactionsDesktopView limit={100} />
   );
 }
