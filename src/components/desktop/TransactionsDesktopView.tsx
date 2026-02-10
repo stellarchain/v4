@@ -2,15 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { Transaction, getTransactionDisplayInfo, Operation, getBaseUrl, shortenAddress, getTransactionOperations } from '@/lib/stellar';
+import { Transaction, getTransactionDisplayInfo, Operation, getBaseUrl, normalizeTransactions, shortenAddress, getTransactionOperations } from '@/lib/stellar';
 import { useNetwork } from '@/contexts/NetworkContext';
 import GliderTabs from '@/components/ui/GliderTabs';
 
 type FilterType = 'all' | 'transfers' | 'contracts';
 
 interface TransactionsDesktopViewProps {
-  initialTransactions: Transaction[];
-  initialPaymentTransactions?: Transaction[];
   limit?: number;
 }
 
@@ -145,50 +143,45 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
 };
 
 export default function TransactionsDesktopView({
-  initialTransactions,
-  initialPaymentTransactions = [],
   limit = 25
 }: TransactionsDesktopViewProps) {
-  const mergedInitial = mergeTransactions(initialTransactions, initialPaymentTransactions);
   const { network } = useNetwork();
 
-  // Initialize with server-provided data immediately (no loading state)
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    // Mark initial transactions with basic display info
-    return mergedInitial.map(tx => ({
-      ...tx,
-      displayInfo: tx.displayInfo || { type: 'other' as const },
-    }));
-  });
-  const [isInitialLoading, setIsInitialLoading] = useState(false);
-  const [isEnrichingData, setIsEnrichingData] = useState(true);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isEnrichingData, setIsEnrichingData] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [oldestCursor, setOldestCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  const seenIdsRef = useRef<Set<string>>(new Set(mergedInitial.map(t => t.hash)));
-  const animatedIdsRef = useRef<Set<string>>(new Set(mergedInitial.map(t => t.hash)));
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const animatedIdsRef = useRef<Set<string>>(new Set());
+  const enrichedIdsRef = useRef<Set<string>>(new Set());
 
 
   const fetchTransactions = useCallback(async () => {
     try {
       const txRes = await fetch(`${getBaseUrl()}/transactions?limit=15&order=desc`);
       const txData = await txRes.json();
-      const newTransactions: Transaction[] = txData._embedded.records;
+      const newTransactions: Transaction[] = normalizeTransactions(txData._embedded.records || []);
 
       // Filter to only new transactions we haven't seen
       const unseenTxs = newTransactions.filter(tx => !seenIdsRef.current.has(tx.hash));
 
       if (unseenTxs.length === 0) return;
 
-      // Fetch operations for new transactions
-      const txsWithOps = await Promise.all(unseenTxs.map(fetchTransactionWithOps));
+      // Add new transactions immediately without enrichment to avoid flooding with operations requests.
+      // They will show as basic "other" type until the user refreshes or navigates.
+      const txsWithBasicInfo = unseenTxs.map(tx => ({
+        ...tx,
+        displayInfo: tx.displayInfo || { type: 'other' as const },
+      }));
 
       setTransactions(prevTransactions => {
         const existingMap = new Map(prevTransactions.map(t => [t.hash, t]));
 
-        txsWithOps.forEach(tx => {
+        txsWithBasicInfo.forEach(tx => {
           const existing = existingMap.get(tx.hash);
           if (!existing || (tx.displayInfo && tx.displayInfo.type !== 'other' && existing.displayInfo?.type === 'other')) {
             existingMap.set(tx.hash, tx);
@@ -228,7 +221,7 @@ export default function TransactionsDesktopView({
         `${getBaseUrl()}/transactions?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
       );
       const data = await res.json();
-      const olderTransactions: Transaction[] = data._embedded.records;
+      const olderTransactions: Transaction[] = normalizeTransactions(data._embedded.records || []);
 
       if (olderTransactions.length === 0) {
         setIsLoadingMore(false);
@@ -245,7 +238,7 @@ export default function TransactionsDesktopView({
 
       // Fetch operations for new transactions in batches
       const txsWithOps: Transaction[] = [];
-      const batchSize = 10;
+      const batchSize = 5;
       for (let i = 0; i < unseenTxs.length; i += batchSize) {
         const batch = unseenTxs.slice(i, i + batchSize);
         const batchResults = await Promise.all(batch.map(fetchTransactionWithOps));
@@ -282,45 +275,89 @@ export default function TransactionsDesktopView({
     setCurrentPage(1);
   }, [filter]);
 
+  // Fetch initial data on mount and when network changes
   useEffect(() => {
-    // Enrich the initial transactions with operation details in the background
-    // This doesn't block the UI - data shows immediately from server
-    const enrichTransactions = async () => {
+    const fetchInitialData = async () => {
+      setIsInitialLoading(true);
       setIsEnrichingData(true);
       try {
-        // Fetch operations for each transaction to get better display info
-        const batchSize = 10;
-        const enrichedTxs: Transaction[] = [...transactions];
+        // Fetch transactions and payments in parallel
+        const [txRes, paymentsRes] = await Promise.all([
+          fetch(`${getBaseUrl()}/transactions?limit=${limit}&order=desc`),
+          fetch(`${getBaseUrl()}/payments?limit=30&order=desc`).catch(() => null),
+        ]);
 
-        for (let i = 0; i < transactions.length; i += batchSize) {
-          const batch = transactions.slice(i, i + batchSize);
-          const batchResults = await Promise.all(batch.map(fetchTransactionWithOps));
+        const txData = await txRes.json();
+        const rawTransactions: Transaction[] = normalizeTransactions(txData._embedded.records || []);
 
-          // Update the enriched array
-          batchResults.forEach((enrichedTx, idx) => {
-            enrichedTxs[i + idx] = enrichedTx;
-          });
-
-          // Update state progressively so UI shows enriched data as it loads
-          setTransactions([...enrichedTxs]);
+        // Process payment operations if available
+        let paymentOps: Operation[] = [];
+        if (paymentsRes && paymentsRes.ok) {
+          try {
+            const paymentsData = await paymentsRes.json();
+            paymentOps = paymentsData._embedded?.records || [];
+          } catch {
+            // Ignore payment parse errors
+          }
         }
+
+        // Convert payment ops to minimal transactions with displayInfo
+        const paymentTxMap = new Map<string, Transaction>();
+        for (const op of paymentOps) {
+          if (paymentTxMap.has((op as any).transaction_hash)) continue;
+          const displayInfo = getTransactionDisplayInfo([op]);
+          paymentTxMap.set((op as any).transaction_hash, {
+            id: op.id,
+            paging_token: op.paging_token,
+            successful: (op as any).transaction_successful,
+            hash: (op as any).transaction_hash,
+            ledger: 0,
+            ledger_attr: 0,
+            created_at: op.created_at,
+            source_account: op.source_account,
+            source_account_sequence: '',
+            fee_account: op.source_account,
+            fee_charged: '0',
+            max_fee: '0',
+            operation_count: 1,
+            envelope_xdr: '',
+            result_xdr: '',
+            result_meta_xdr: '',
+            fee_meta_xdr: '',
+            memo_type: 'none',
+            signatures: [],
+            displayInfo,
+          } as Transaction);
+        }
+
+        // Merge all together
+        const allTxs = mergeTransactions(
+          rawTransactions.map(tx => ({ ...tx, displayInfo: tx.displayInfo || { type: 'other' as const } })),
+          Array.from(paymentTxMap.values())
+        );
+
+        setTransactions(allTxs);
+        seenIdsRef.current = new Set(allTxs.map(t => t.hash));
+        animatedIdsRef.current = new Set(allTxs.map(t => t.hash));
+        setIsInitialLoading(false);
+        // Enrichment of visible transactions is handled by the lazy enrichment effect
       } catch (error) {
-        console.error('Failed to enrich transactions:', error);
+        console.error('Failed to fetch initial transactions:', error);
       } finally {
+        setIsInitialLoading(false);
         setIsEnrichingData(false);
       }
     };
 
-    if (transactions.length > 0) {
-      enrichTransactions();
-    }
-  }, [network]); // Only run on network change, not on transactions change
+    fetchInitialData();
+  }, [network, limit]);
 
   useEffect(() => {
-    // Start polling for new transactions right away (data is already shown from server)
-    const interval = setInterval(fetchTransactions, 2000);
+    // Don't start polling until initial enrichment is complete
+    if (isEnrichingData) return;
+    const interval = setInterval(fetchTransactions, 3000);
     return () => clearInterval(interval);
-  }, [fetchTransactions]);
+  }, [fetchTransactions, isEnrichingData]);
 
   // Filter transactions based on selected filter
   const filteredTransactions = transactions.filter(tx => {
@@ -345,6 +382,37 @@ export default function TransactionsDesktopView({
   const totalPages = Math.ceil(filteredTransactions.length / PAGE_SIZE) + (hasMore ? 1 : 0);
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const visibleTransactions = filteredTransactions.slice(startIndex, startIndex + PAGE_SIZE);
+
+  // Lazily enrich visible transactions that haven't been enriched yet
+  // This effect re-runs when visibleTransactions changes (e.g. after setTransactions).
+  // We mark candidates per-batch so that when the effect re-triggers after state updates,
+  // remaining unenriched transactions are still picked up.
+  useEffect(() => {
+    const candidates = visibleTransactions.filter(tx =>
+      (!tx.displayInfo || tx.displayInfo.type === 'other') &&
+      !enrichedIdsRef.current.has(tx.hash)
+    );
+
+    if (candidates.length === 0) return;
+
+    // Only take the first batch — after setTransactions, the effect will re-run
+    // and pick up the next batch automatically
+    const batch = candidates.slice(0, 5);
+    batch.forEach(tx => enrichedIdsRef.current.add(tx.hash));
+
+    let mounted = true;
+    const enrichBatch = async () => {
+      const batchResults = await Promise.all(batch.map(fetchTransactionWithOps));
+      if (!mounted) return;
+      setTransactions(prev => prev.map(t => {
+        const enriched = batchResults.find(r => r.hash === t.hash);
+        return enriched ? enriched : t;
+      }));
+    };
+
+    enrichBatch();
+    return () => { mounted = false; };
+  }, [visibleTransactions]);
 
   // Get transaction type info
   const getTypeInfo = (tx: Transaction) => {
@@ -525,10 +593,30 @@ export default function TransactionsDesktopView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--bg-primary)]">
-                {visibleTransactions.length > 0 ? (
+                {isInitialLoading ? (
+                  Array.from({ length: 10 }).map((_, i) => (
+                    <tr key={i} className="h-[44px]">
+                      <td className="py-2.5 px-4"><div className="h-4 w-20 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-2.5 px-3"><div className="h-5 w-16 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-2.5 px-3"><div className="h-4 w-14 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-2.5 px-3"><div className="h-4 w-12 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-2.5 px-3"><div className="h-4 w-20 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-2.5 px-1"></td>
+                      <td className="py-2.5 px-3"><div className="h-4 w-20 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-2.5 px-3 text-right"><div className="h-4 w-16 bg-[var(--bg-tertiary)] rounded animate-pulse ml-auto" /></td>
+                      <td className="py-2.5 px-4 text-right"><div className="h-4 w-14 bg-[var(--bg-tertiary)] rounded animate-pulse ml-auto" /></td>
+                    </tr>
+                  ))
+                ) : visibleTransactions.length > 0 ? (
                   visibleTransactions.map((tx) => {
                     const info = tx.displayInfo;
                     const typeInfo = getTypeInfo(tx);
+                    const txWithLegacyLedger = tx as Transaction & { ledger?: number };
+                    const ledgerValue =
+                      txWithLegacyLedger.ledger_attr ??
+                      txWithLegacyLedger.ledger ??
+                      null;
+                    const hasLedger = typeof ledgerValue === 'number' && Number.isFinite(ledgerValue);
 
                     // Adjust colors if failed
                     const colorClass = !tx.successful ? 'text-rose-700 dark:text-rose-400' : typeInfo.color;
@@ -588,13 +676,17 @@ export default function TransactionsDesktopView({
 
                         {/* Ledger */}
                         <td className="py-2.5 px-3">
-                          <Link
-                            href={`/ledger/${tx.ledger}`}
-                            className="font-mono text-[12px] text-sky-600 hover:text-sky-700 hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {tx.ledger.toLocaleString()}
-                          </Link>
+                          {hasLedger ? (
+                            <Link
+                              href={`/ledger/${ledgerValue}`}
+                              className="font-mono text-[12px] text-sky-600 hover:text-sky-700 hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {ledgerValue.toLocaleString()}
+                            </Link>
+                          ) : (
+                            <span className="text-[12px] text-[var(--text-muted)]">—</span>
+                          )}
                         </td>
 
                         {/* Age */}

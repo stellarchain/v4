@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Transaction, Operation, Effect, shortenAddress, timeAgo, formatXLM, getBaseUrl } from '@/lib/stellar';
+import { Transaction, Operation, Effect, shortenAddress, timeAgo, formatXLM, getBaseUrl, getXLMStats } from '@/lib/stellar';
 import type { AccountLabel } from '@/lib/stellar';
 import AccountBadges from '@/components/AccountBadges';
 import { QRCodeSVG } from 'qrcode.react';
@@ -90,6 +90,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
   const { favorites, addFavorite, removeFavorite, updateFavoriteLabel, isFavorite, getFavorite } = useFavorites();
   const isCurrentFavorite = isFavorite(account.id);
   const currentFavorite = getFavorite(account.id);
+  const accountLabelText = currentFavorite?.label || currentAccountLabel?.name || currentAccountLabel?.org_name;
 
   // Read initial tab from URL params
   const initialTab = (searchParams.get('tab') as 'assets' | 'transactions' | 'operations' | 'details') || 'assets';
@@ -217,9 +218,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
   useEffect(() => {
     const fetchXlmChange = async () => {
       try {
-        const res = await fetch('/api/coingecko/xlm', { cache: 'force-cache' });
-        const data = await res.json();
-        if (typeof data?.usd_24h_change === 'number') {
+        const data = await getXLMStats();
+        if (data && typeof data.usd_24h_change === 'number') {
           setXlmChange24h(data.usd_24h_change);
         }
       } catch {
@@ -685,14 +685,14 @@ export default function AccountDesktopView({ account, transactions, operations: 
             <div className="space-y-3">
               <div>
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Account Label</div>
-                {currentAccountLabel?.name || currentFavorite?.label ? (
+                {accountLabelText ? (
                   <div className="flex items-center gap-2">
                     {currentAccountLabel?.verified && (
                       <svg className="w-4 h-4 text-sky-500" aria-hidden="true" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                       </svg>
                     )}
-                    <span className="text-sm font-medium text-[var(--text-primary)]">{currentFavorite?.label || currentAccountLabel?.name}</span>
+                    <span className="text-sm font-medium text-[var(--text-primary)]">{accountLabelText}</span>
                   </div>
                 ) : (
                   <Link
@@ -756,25 +756,25 @@ export default function AccountDesktopView({ account, transactions, operations: 
           </div>
         </div>
 
-	        {/* Tabs Row */}
-	        <div className="mb-4">
-	          <GliderTabs
-	            size="md"
-	            className="border-[var(--border-default)]"
-	            tabs={[
-	              { id: 'assets', label: 'Assets' },
-	              { id: 'transactions', label: 'Transactions' },
-	              { id: 'operations', label: 'Operations' },
-	              { id: 'details', label: 'Details' },
-	            ] as const}
-	            activeId={activeTab}
-	            onChange={(id) => handleTabChange(id)}
-	          />
-	        </div>
+        {/* Tabs Row */}
+        <div className="mb-4">
+          <GliderTabs
+            size="md"
+            className="border-[var(--border-default)]"
+            tabs={[
+              { id: 'assets', label: 'Assets' },
+              { id: 'transactions', label: 'Transactions' },
+              { id: 'operations', label: 'Operations' },
+              { id: 'details', label: 'Details' },
+            ] as const}
+            activeId={activeTab}
+            onChange={(id) => handleTabChange(id)}
+          />
+        </div>
 
-          {/* Tab Content */}
-          <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm overflow-hidden">
-            <div className="p-0">
+        {/* Tab Content */}
+        <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm overflow-hidden">
+          <div className="p-0">
             {/* Transactions Tab - Placeholder */}
             {activeTab === 'transactions' && (
               <div>
@@ -801,8 +801,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
                           </Link>
                         </td>
                         <td className="py-3 px-3">
-                          <Link href={`/ledger/${tx.ledger}`} className="text-[13px] text-sky-600 hover:underline">
-                            {tx.ledger.toLocaleString()}
+                          <Link href={`/ledger/${tx.ledger_attr}`} className="text-[13px] text-sky-600 hover:underline">
+                            {tx.ledger_attr.toLocaleString()}
                           </Link>
                         </td>
                         <td className="py-3 px-3 text-[13px] text-[var(--text-tertiary)]">{timeAgo(tx.created_at)}</td>
@@ -1136,8 +1136,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
 
                   {/* Flags */}
                   <div>
-                      <h3 className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider font-medium mb-3">Flags</h3>
-                      <div className="bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-default)] divide-y divide-[var(--border-default)]">
+                    <h3 className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider font-medium mb-3">Flags</h3>
+                    <div className="bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-default)] divide-y divide-[var(--border-default)]">
                       {Object.entries(account.flags).map(([flag, enabled]) => (
                         <div key={flag} className="flex justify-between px-4 py-4">
                           <span className="text-sm text-[var(--text-secondary)] capitalize">{flag.replace('auth_', '').replace(/_/g, ' ')}</span>
@@ -1198,8 +1198,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
                 </div>
               </div>
             )}
-            </div>
           </div>
+        </div>
       </div>
 
       {/* QR Code Modal */}

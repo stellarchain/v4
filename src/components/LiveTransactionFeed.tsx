@@ -79,6 +79,7 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
         successful: op.transaction_successful,
         hash: op.transaction_hash,
         ledger: 0,
+        ledger_attr: 0,
         created_at: op.created_at,
         source_account: op.source_account,
         source_account_sequence: '',

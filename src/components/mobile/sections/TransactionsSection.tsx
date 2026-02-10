@@ -1,9 +1,12 @@
-import { getTransactions } from '@/lib/stellar';
+'use client';
+
+import type { Transaction } from '@/lib/stellar';
 import TransactionsFeed from './TransactionsFeed';
 
-export default async function TransactionsSection() {
-  const transactionsResponse = await getTransactions(8);
-  const transactions = transactionsResponse._embedded.records;
+interface TransactionsSectionProps {
+  transactions: Transaction[];
+}
 
+export default function TransactionsSection({ transactions }: TransactionsSectionProps) {
   return <TransactionsFeed initialTransactions={transactions} />;
 }

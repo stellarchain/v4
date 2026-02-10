@@ -100,7 +100,7 @@ export default function AssetOrderBook({ asset }: OrderBookProps) {
     }, [asset]);
 
     if (loading && !orderBook) return (
-        <div className="h-[500px] flex items-center justify-center bg-white rounded-2xl border border-slate-200/60">
+        <div className="h-[500px] flex items-center justify-center bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)]">
             <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
     );
@@ -126,8 +126,8 @@ export default function AssetOrderBook({ asset }: OrderBookProps) {
             onClick={() => setViewMode(mode)}
             className={`p-1.5 rounded transition-colors ${
                 viewMode === mode
-                    ? 'bg-slate-100 text-slate-900'
-                    : 'text-slate-400 hover:text-slate-600'
+                    ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
             }`}
         >
             {icon}
@@ -171,34 +171,34 @@ export default function AssetOrderBook({ asset }: OrderBookProps) {
     const showAsks = viewMode === 'both' || viewMode === 'asks';
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden h-full flex flex-col min-w-0">
+        <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden h-full flex flex-col min-w-0">
             {/* Header with toggles */}
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+            <div className="p-4 border-b border-[var(--border-subtle)] flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                    <h3 className="text-slate-900 font-semibold">Order Book</h3>
+                    <h3 className="text-[var(--text-primary)] font-semibold">Order Book</h3>
                     <div className="flex items-center gap-1 ml-2">
                         <ViewToggle mode="both" icon={<BothIcon />} />
                         <ViewToggle mode="bids" icon={<BidsIcon />} />
                         <ViewToggle mode="asks" icon={<AsksIcon />} />
                     </div>
                 </div>
-                <div className="text-xs text-slate-500">
-                    Spread: <span className="text-slate-900 font-medium">${formatPrice(spread)}</span> ({spreadPercent.toFixed(2)}%)
+                <div className="text-xs text-[var(--text-muted)]">
+                    Spread: <span className="text-[var(--text-primary)] font-medium">${formatPrice(spread)}</span> ({spreadPercent.toFixed(2)}%)
                 </div>
             </div>
 
             {/* Side-by-side orderbook */}
             <div className="flex-1 overflow-hidden min-h-[400px] flex flex-col text-xs font-mono">
                 {/* Column Headers */}
-                <div className={`grid ${viewMode === 'both' ? 'grid-cols-2' : 'grid-cols-1'} border-b border-slate-100 bg-slate-50/50`}>
+                <div className={`grid ${viewMode === 'both' ? 'grid-cols-2' : 'grid-cols-1'} border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/40`}>
                     {showBids && (
-                        <div className="grid grid-cols-2 p-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <div className="grid grid-cols-2 p-2 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                             <div>Amount</div>
                             <div className="text-right">Price</div>
                         </div>
                     )}
                     {showAsks && (
-                        <div className={`grid grid-cols-2 p-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 ${viewMode === 'both' ? 'border-l border-slate-100' : ''}`}>
+                        <div className={`grid grid-cols-2 p-2 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] ${viewMode === 'both' ? 'border-l border-[var(--border-subtle)]' : ''}`}>
                             <div>Price</div>
                             <div className="text-right">Amount</div>
                         </div>
@@ -214,12 +214,12 @@ export default function AssetOrderBook({ asset }: OrderBookProps) {
                                 {processedBids.slice(0, 15).map((bid, i) => {
                                     const percent = (bid.total / maxTotal) * 100;
                                     return (
-                                        <div key={`bid-${i}`} className="relative grid grid-cols-2 py-1.5 px-2 hover:bg-slate-50 cursor-pointer">
+                                        <div key={`bid-${i}`} className="relative grid grid-cols-2 py-1.5 px-2 hover:bg-[var(--bg-tertiary)]/40 cursor-pointer">
                                             <div
                                                 className="absolute top-0 bottom-0 left-0 bg-emerald-500 opacity-[0.12]"
                                                 style={{ width: `${percent}%` }}
                                             />
-                                            <div className="relative text-slate-900">{bid.amount.toLocaleString(undefined, { maximumFractionDigits: 5 })}</div>
+                                            <div className="relative text-[var(--text-primary)]">{bid.amount.toLocaleString(undefined, { maximumFractionDigits: 5 })}</div>
                                             <div className="relative text-right text-emerald-600 font-medium">{formatPrice(bid.price)}</div>
                                         </div>
                                     );
@@ -229,17 +229,17 @@ export default function AssetOrderBook({ asset }: OrderBookProps) {
 
                         {/* Asks Column (Sell Orders) - Red */}
                         {showAsks && (
-                            <div className={`flex flex-col ${viewMode === 'both' ? 'border-l border-slate-100' : ''}`}>
+                            <div className={`flex flex-col ${viewMode === 'both' ? 'border-l border-[var(--border-subtle)]' : ''}`}>
                                 {processedAsks.slice(0, 15).map((ask, i) => {
                                     const percent = (ask.total / maxTotal) * 100;
                                     return (
-                                        <div key={`ask-${i}`} className="relative grid grid-cols-2 py-1.5 px-2 hover:bg-slate-50 cursor-pointer">
+                                        <div key={`ask-${i}`} className="relative grid grid-cols-2 py-1.5 px-2 hover:bg-[var(--bg-tertiary)]/40 cursor-pointer">
                                             <div
                                                 className="absolute top-0 bottom-0 right-0 bg-rose-500 opacity-[0.12]"
                                                 style={{ width: `${percent}%` }}
                                             />
                                             <div className="relative text-rose-600 font-medium">{formatPrice(ask.price)}</div>
-                                            <div className="relative text-right text-slate-900">{ask.amount.toLocaleString(undefined, { maximumFractionDigits: 5 })}</div>
+                                            <div className="relative text-right text-[var(--text-primary)]">{ask.amount.toLocaleString(undefined, { maximumFractionDigits: 5 })}</div>
                                         </div>
                                     );
                                 })}

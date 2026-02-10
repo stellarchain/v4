@@ -1,11 +1,9 @@
-import { redirect } from 'next/navigation';
+import ClientPage from './client-page';
 
-interface PageProps {
-  params: Promise<{ asset: string }>;
+export function generateStaticParams() {
+  return [{ asset: 'XLM-native' }];
 }
 
-export default async function MarketAssetRoute({ params }: PageProps) {
-  const { asset } = await params;
-  redirect(`/assets/${encodeURIComponent(asset)}`);
+export default function Page() {
+  return <ClientPage />;
 }
-
