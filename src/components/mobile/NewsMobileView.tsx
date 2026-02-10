@@ -18,11 +18,11 @@ interface NewsMobileViewProps {
 
 type FilterType = 'all' | 'stellar' | 'crypto' | 'defi' | 'regulation';
 
-const categoryConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  stellar: { label: 'Stellar', color: 'text-sky-600', bgColor: 'bg-sky-50' },
-  crypto: { label: 'Crypto', color: 'text-amber-600', bgColor: 'bg-amber-50' },
-  defi: { label: 'DeFi', color: 'text-violet-600', bgColor: 'bg-violet-50' },
-  regulation: { label: 'Regulation', color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
+const categoryConfig: Record<string, { label: string; color: string; bgColor: string; barColor: string }> = {
+  stellar: { label: 'Stellar', color: 'text-sky-600 dark:text-sky-400', bgColor: 'bg-sky-50 dark:bg-sky-900/20', barColor: 'bg-sky-400 dark:bg-sky-500' },
+  crypto: { label: 'Crypto', color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-50 dark:bg-amber-900/20', barColor: 'bg-amber-400 dark:bg-amber-500' },
+  defi: { label: 'DeFi', color: 'text-violet-600 dark:text-violet-400', bgColor: 'bg-violet-50 dark:bg-violet-900/20', barColor: 'bg-violet-400 dark:bg-violet-500' },
+  regulation: { label: 'Regulation', color: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-50 dark:bg-emerald-900/20', barColor: 'bg-emerald-400 dark:bg-emerald-500' },
 };
 
 function formatDate(dateString: string): string {
@@ -76,20 +76,20 @@ export default function NewsMobileView({ news }: NewsMobileViewProps) {
           {/* Stats Row */}
           <div className="grid grid-cols-4 gap-2 mb-3">
             <div className="bg-[var(--bg-secondary)] rounded-lg p-2 border border-[var(--border-subtle)]">
-              <div className="text-[9px] text-sky-600/60 font-bold uppercase tracking-wider">Stellar</div>
-              <div className="text-[15px] font-bold text-sky-600">{stats.stellar}</div>
+              <div className="text-[9px] text-sky-600/60 dark:text-sky-400/60 font-bold uppercase tracking-wider">Stellar</div>
+              <div className="text-[15px] font-bold text-sky-600 dark:text-sky-400">{stats.stellar}</div>
             </div>
             <div className="bg-[var(--bg-secondary)] rounded-lg p-2 border border-[var(--border-subtle)]">
-              <div className="text-[9px] text-amber-600/60 font-bold uppercase tracking-wider">Crypto</div>
-              <div className="text-[15px] font-bold text-amber-600">{stats.crypto}</div>
+              <div className="text-[9px] text-amber-600/60 dark:text-amber-400/60 font-bold uppercase tracking-wider">Crypto</div>
+              <div className="text-[15px] font-bold text-amber-600 dark:text-amber-400">{stats.crypto}</div>
             </div>
             <div className="bg-[var(--bg-secondary)] rounded-lg p-2 border border-[var(--border-subtle)]">
-              <div className="text-[9px] text-violet-600/60 font-bold uppercase tracking-wider">DeFi</div>
-              <div className="text-[15px] font-bold text-violet-600">{stats.defi}</div>
+              <div className="text-[9px] text-violet-600/60 dark:text-violet-400/60 font-bold uppercase tracking-wider">DeFi</div>
+              <div className="text-[15px] font-bold text-violet-600 dark:text-violet-400">{stats.defi}</div>
             </div>
             <div className="bg-[var(--bg-secondary)] rounded-lg p-2 border border-[var(--border-subtle)]">
-              <div className="text-[9px] text-emerald-600/60 font-bold uppercase tracking-wider">Regulation</div>
-              <div className="text-[15px] font-bold text-emerald-600">{stats.regulation}</div>
+              <div className="text-[9px] text-emerald-600/60 dark:text-emerald-400/60 font-bold uppercase tracking-wider">Regulation</div>
+              <div className="text-[15px] font-bold text-emerald-600 dark:text-emerald-400">{stats.regulation}</div>
             </div>
           </div>
 
@@ -106,11 +106,10 @@ export default function NewsMobileView({ news }: NewsMobileViewProps) {
                 key={tab.id}
                 type="button"
                 onClick={() => setFilter(tab.id as FilterType)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-colors ${
-                  filter === tab.id
-                    ? 'bg-[var(--primary-blue)] text-white'
-                    : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] border border-[var(--border-subtle)]'
-                }`}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-colors ${filter === tab.id
+                  ? 'bg-[var(--primary-blue)] text-white'
+                  : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] border border-[var(--border-subtle)]'
+                  }`}
               >
                 {tab.label}
                 <span className={`${filter === tab.id ? 'text-white/70' : 'text-[var(--text-muted)]'}`}>
@@ -140,7 +139,7 @@ export default function NewsMobileView({ news }: NewsMobileViewProps) {
                   className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors overflow-hidden"
                 >
                   {/* Category Color Bar */}
-                  <div className={`h-0.5 ${config.bgColor.replace('bg-', 'bg-').replace('-50', '-400')}`} />
+                  <div className={`h-0.5 ${config.barColor}`} />
 
                   <div className="px-4 py-3">
                     {/* Title Row */}

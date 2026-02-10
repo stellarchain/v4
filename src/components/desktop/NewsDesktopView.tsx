@@ -23,10 +23,10 @@ type SortField = 'date' | 'source';
 type SortOrder = 'asc' | 'desc';
 
 const categoryConfig: Record<string, { label: string; color: string; bgColor: string; borderColor: string }> = {
-  stellar: { label: 'Stellar', color: 'text-sky-600', bgColor: 'bg-sky-50', borderColor: 'border-sky-200' },
-  crypto: { label: 'Crypto', color: 'text-amber-600', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' },
-  defi: { label: 'DeFi', color: 'text-violet-600', bgColor: 'bg-violet-50', borderColor: 'border-violet-200' },
-  regulation: { label: 'Regulation', color: 'text-emerald-600', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' },
+  stellar: { label: 'Stellar', color: 'text-sky-600 dark:text-sky-400', bgColor: 'bg-sky-50 dark:bg-sky-900/20', borderColor: 'border-sky-200 dark:border-sky-800/30' },
+  crypto: { label: 'Crypto', color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-50 dark:bg-amber-900/20', borderColor: 'border-amber-200 dark:border-amber-800/30' },
+  defi: { label: 'DeFi', color: 'text-violet-600 dark:text-violet-400', bgColor: 'bg-violet-50 dark:bg-violet-900/20', borderColor: 'border-violet-200 dark:border-violet-800/30' },
+  regulation: { label: 'Regulation', color: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-50 dark:bg-emerald-900/20', borderColor: 'border-emerald-200 dark:border-emerald-800/30' },
 };
 
 function formatDate(dateString: string): string {
@@ -255,11 +255,10 @@ export default function NewsDesktopView({ news }: NewsDesktopViewProps) {
                       return (
                         <tr
                           key={item.id}
-                          className={`transition-colors cursor-pointer ${
-                            isSelected
-                              ? 'bg-sky-50/50 border-l-2 border-l-sky-500'
+                          className={`transition-colors cursor-pointer ${isSelected
+                              ? 'bg-sky-50/50 dark:bg-sky-900/10 border-l-2 border-l-sky-500'
                               : 'hover:bg-[var(--bg-primary)]'
-                          }`}
+                            }`}
                           onClick={() => setSelectedNews(item)}
                         >
                           {/* Title */}

@@ -955,18 +955,52 @@ async function getXLMPrice(): Promise<number> {
 
 // Fetch market data from StellarExpert API (aggregated market data)
 // Fetch XLM data from CoinGecko
+// Fetch XLM data from Stellarchain (CoinGecko Proxy)
 async function getCoinGeckoXLMData() {
   try {
-    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true', {
+    const response = await fetch('https://api.stellarchain.dev/api/coins/stellar', {
       headers: { 'Accept': 'application/json' },
       next: { revalidate: 60 },
     });
     if (response.ok) {
-      const data = await response.json();
-      return data.stellar;
+      const json = await response.json();
+      const marketData = json?.coingecko_stellar?.market_data;
+
+      if (marketData) {
+        return {
+          usd: marketData.current_price?.usd || 0,
+          usd_market_cap: marketData.market_cap?.usd || 0,
+          usd_24h_vol: marketData.total_volume?.usd || 0,
+          usd_24h_change: marketData.price_change_percentage_24h || 0
+        };
+      }
     }
   } catch (error) {
-    console.error('Error fetching CoinGecko data:', error);
+    console.error('Error fetching CoinGecko data from Stellarchain:', error);
+  }
+  return null;
+}
+
+// Client-side helper to fetch XLM stats
+export async function getXLMStats(): Promise<{ usd: number; usd_24h_change: number } | null> {
+  try {
+    const response = await fetch('https://api.stellarchain.dev/api/coins/stellar', {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 60 },
+    });
+
+    if (response.ok) {
+      const json = await response.json();
+      const marketData = json?.coingecko_stellar?.market_data;
+      if (marketData) {
+        return {
+          usd: Number(marketData.current_price?.usd || 0),
+          usd_24h_change: Number(marketData.price_change_percentage_24h || 0)
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching XLM stats:', error);
   }
   return null;
 }
@@ -1808,7 +1842,7 @@ export function detectContractFunctionType(functionName: string): ContractFuncti
 
 // Statistics interfaces
 
-// Fetch XLM market data from CoinGecko
+// Fetch XLM market data from Stellarchain (CoinGecko Proxy)
 async function fetchCoinGeckoData(): Promise<{
   price: number;
   rank: number;
@@ -1832,7 +1866,7 @@ async function fetchCoinGeckoData(): Promise<{
 
   try {
     const response = await fetch(
-      'https://api.coingecko.com/api/v3/coins/stellar?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=true',
+      'https://api.stellarchain.dev/api/coins/stellar',
       {
         headers: { 'Accept': 'application/json' },
         next: { revalidate: 60 },
@@ -1841,12 +1875,15 @@ async function fetchCoinGeckoData(): Promise<{
 
     if (!response.ok) {
       if (process.env.NODE_ENV !== 'production') {
-        console.warn('CoinGecko fetch warning:', response.status, response.statusText);
+        console.warn('Stellarchain CoinGecko proxy fetch warning:', response.status, response.statusText);
       }
       return fallback;
     }
 
-    const data = await response.json();
+    const json = await response.json();
+    const data = json?.coingecko_stellar;
+
+    if (!data) return fallback;
 
     return {
       price: data.market_data?.current_price?.usd || 0,
@@ -1861,7 +1898,7 @@ async function fetchCoinGeckoData(): Promise<{
     };
   } catch (error) {
     if (process.env.NODE_ENV !== 'production') {
-      console.warn('CoinGecko fetch warning:', error);
+      console.warn('Stellarchain CoinGecko proxy fetch warning:', error);
     }
     return fallback;
   }
