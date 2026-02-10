@@ -1,20 +1,33 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
 import { getBaseUrl, normalizeTransactions } from '@/lib/stellar';
 import type { Transaction, Operation } from '@/lib/stellar';
 import TransactionPageClient from '@/components/TransactionPageClient';
 import TransactionsDesktopView from '@/components/desktop/TransactionsDesktopView';
+import TransactionDetailsClientPage from '@/app/transaction/[hash]/client-page';
 import Loading from '@/components/ui/Loading';
 
 export default function TransactionsPage() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const cleanPath = pathname.replace(/\/+$/, '');
+  const txHashFromPath = cleanPath.startsWith('/transactions/') ? cleanPath.slice('/transactions/'.length) : '';
+  const txHashFromQuery = searchParams.get('hash') || '';
+  const hasDetailsRoute = Boolean((txHashFromPath || txHashFromQuery).trim());
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [paymentTransactions, setPaymentTransactions] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (hasDetailsRoute) {
+      return;
+    }
+
     const loadTransactions = async () => {
       try {
         const server = new Horizon.Server(getBaseUrl());
@@ -52,7 +65,11 @@ export default function TransactionsPage() {
     };
 
     loadTransactions();
-  }, []);
+  }, [hasDetailsRoute]);
+
+  if (hasDetailsRoute) {
+    return <TransactionDetailsClientPage />;
+  }
 
   if (isLoading) {
     return <Loading title="Loading transactions" description="Fetching recent transactions." />;

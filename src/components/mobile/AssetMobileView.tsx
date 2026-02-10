@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
 import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, getAssetTrades, getAssetTradeTransactionHash, getAssetHolders, getAssetTradingPairs, getLiquidityPoolByAssets, USDC_ISSUER, shortenAddress, OrderBook as OrderBookType, AssetTrade, AssetHolder, TradingPair, getAccountLabels, AccountLabel } from '@/lib/stellar';
-import { getXLMHoldersAction } from '@/app/actions/stellar';
+import { getXLMHoldersAction } from '@/lib/helpers';
 import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/design-system';
 import GliderTabs from '@/components/ui/GliderTabs';
 
