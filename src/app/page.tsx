@@ -52,24 +52,19 @@ export default function HomePage() {
           transactionsResponse,
           operationsResponse,
           paymentsResponse,
-          marketAssetsResponse,
-          xlmMarketResponse,
-          globalMarketResponse,
-          lumensResponse,
+          stellarChainData
         ] = await Promise.all([
           server.ledgers().order('desc').limit(8).call(),
           server.transactions().order('desc').limit(8).call(),
           server.operations().order('desc').limit(30).call(),
           server.payments().order('desc').limit(20).call(),
-          fetch('https://api.stellar.expert/explorer/public/asset?search=&sort=rating&order=desc&limit=50')
-            .then(res => res.json()),
-          fetch('https://api.coingecko.com/api/v3/coins/stellar')
-            .then(res => res.json()),
-          fetch('https://api.coingecko.com/api/v3/global')
-            .then(res => res.json()).catch(() => null),
-          fetch('https://dashboard.stellar.org/api/v2/lumens')
-            .then(res => res.json()).catch(() => null),
+          fetch('https://api.stellarchain.dev/api/coins/stellar').then(res => res.json())
         ]);
+
+        const marketAssets = stellarChainData.stellar_expert;
+        const xlmMarketData = stellarChainData.coingecko_stellar;
+        const globalMarketData = stellarChainData.coingecko_global;
+        const networkSupply = stellarChainData.stellar_dashboard;
 
         const ledgersData = (ledgersResponse.records || []) as unknown as Ledger[];
         const transactionsData = normalizeTransactions(transactionsResponse.records || []);
@@ -83,23 +78,22 @@ export default function HomePage() {
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
         // Extract market data
-        const marketAssets = marketAssetsResponse._embedded?.records || [];
-        const xlmAsset = marketAssets.find((a: MarketAsset) => a.rank === 1) || marketAssets[0];
+        const xlmAsset = (marketAssets._embedded?.records || []).find((a: MarketAsset) => a.rank === 1) || (marketAssets._embedded?.records || [])[0];
         const xlmVol = xlmAsset ? xlmAsset.volume_24h : 0;
 
         // Get network stats from latest ledger
         const latestLedger = ledgersData[0];
 
         // Calculate dominance from global market data
-        const totalCryptoMarketCap = globalMarketResponse?.data?.total_market_cap?.usd || 0;
-        const xlmMarketCap = xlmMarketResponse.market_data?.market_cap?.usd || 0;
+        const totalCryptoMarketCap = globalMarketData?.data?.total_market_cap?.usd || 0;
+        const xlmMarketCap = xlmMarketData.market_data?.market_cap?.usd || 0;
         const dominance = totalCryptoMarketCap > 0 ? (xlmMarketCap / totalCryptoMarketCap) * 100 : 0;
 
-        // Extract burned lumens and SDF mandate from Stellar Dashboard
-        const totalCoins = lumensResponse ? parseFloat(lumensResponse.totalCoins) || 50000000000 : 50000000000;
-        const availableCoins = lumensResponse ? parseFloat(lumensResponse.availableCoins) || 0 : 0;
-        const burnedLumens = totalCoins - (lumensResponse ? parseFloat(lumensResponse.originalSupply || '100000000000') : 100000000000);
-        const sdfMandate = totalCoins - availableCoins - (lumensResponse ? parseFloat(lumensResponse.feePool || '0') : 0);
+        // Extract supply data
+        const totalCoins = networkSupply ? parseFloat(networkSupply.totalSupply) : 0;
+        const availableCoins = networkSupply ? parseFloat(networkSupply.circulatingSupply) : 0;
+        const burnedLumens = networkSupply ? parseFloat(networkSupply.burnedLumens) : 0;
+        const sdfMandate = networkSupply ? parseFloat(networkSupply.sdfMandate) : 0;
 
         // Calculate network load from recent ledgers
         const totalTx = ledgersData.reduce((sum, l) => sum + l.successful_transaction_count + l.failed_transaction_count, 0);
@@ -107,19 +101,19 @@ export default function HomePage() {
         const ledgerCapacity = latestLedger.max_tx_set_size || 1000;
         const capacityUsage = ledgerCapacity > 0 ? avgTxPerLedger / ledgerCapacity : 0;
 
-        const xlmData = xlmMarketResponse.market_data ? {
-          price: xlmMarketResponse.market_data.current_price.usd,
-          priceChange24h: xlmMarketResponse.market_data.price_change_percentage_24h,
-          marketCap: xlmMarketResponse.market_data.market_cap.usd,
-          marketCapChange24h: xlmMarketResponse.market_data.market_cap_change_percentage_24h || 0,
-          volume24h: xlmMarketResponse.market_data.total_volume.usd,
-          circulatingSupply: xlmMarketResponse.market_data.circulating_supply || 0,
-          totalSupply: xlmMarketResponse.market_data.total_supply || 0,
+        const xlmData = xlmMarketData.market_data ? {
+          price: xlmMarketData.market_data.current_price.usd,
+          priceChange24h: xlmMarketData.market_data.price_change_percentage_24h,
+          marketCap: xlmMarketData.market_data.market_cap.usd,
+          marketCapChange24h: xlmMarketData.market_data.market_cap_change_percentage_24h || 0,
+          volume24h: xlmMarketData.market_data.total_volume.usd,
+          circulatingSupply: xlmMarketData.market_data.circulating_supply || 0,
+          totalSupply: xlmMarketData.market_data.total_supply || 0,
           dominance,
-          rank: xlmMarketResponse.market_cap_rank || 0,
-          sparkline: xlmMarketResponse.market_data.sparkline_7d?.price || [],
-          burnedLumens: Math.abs(burnedLumens),
-          sdfMandate: Math.max(0, sdfMandate),
+          rank: xlmMarketData.market_cap_rank || 0,
+          sparkline: xlmMarketData.market_data.sparkline_7d?.price || [],
+          burnedLumens: burnedLumens,
+          sdfMandate: sdfMandate,
           feePool: parseFloat(latestLedger.fee_pool) || 0,
           upgradeReserve: 0,
         } : null;
