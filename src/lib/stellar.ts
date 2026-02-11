@@ -957,6 +957,68 @@ interface StellarCoinApiResponse {
   };
 }
 
+type NormalizedStellarchainAsset = {
+  code?: string;
+  domain?: string;
+  image?: string;
+  holders: number;
+  trades_24h: number;
+  payments_24h: number;
+  price_usd: number;
+  price_usd_change: number;
+  volume_usd: number;
+  supply: number;
+  rating: number;
+};
+
+function parseStellarchainV1AssetData(payload: unknown): NormalizedStellarchainAsset | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const root = payload as Record<string, unknown>;
+  const stellarData = (root.stellarData as Record<string, unknown>) || {};
+  const stats = Array.isArray(root.statisticHistory) ? root.statisticHistory as Record<string, unknown>[] : [];
+  const latest = stats.length > 0 ? stats[stats.length - 1] : null;
+  const first = stats.length > 0 ? stats[0] : null;
+  const decimals = Number(stellarData.decimals ?? 7) || 7;
+  const scalar = 10 ** decimals;
+
+  const latestPrice = Number(latest?.price ?? stellarData.price ?? 0);
+  const firstPrice = Number(first?.price ?? latestPrice ?? 0);
+  const priceChange = firstPrice > 0 ? ((latestPrice - firstPrice) / firstPrice) * 100 : 0;
+
+  const rawSupply = Number(latest?.supply ?? stellarData.supply ?? 0);
+  const supply = rawSupply > 0 ? rawSupply / scalar : 0;
+
+  const volume7dRaw = Number(stellarData.volume7d ?? 0);
+  const volume7d = volume7dRaw > 0 ? volume7dRaw / scalar : 0;
+  const volume24hUsd = volume7d > 0 && latestPrice > 0 ? (volume7d / 7) * latestPrice : 0;
+
+  const ratingFromStats = Number(latest?.ratingAverage ?? 0);
+  const ratingNode = (stellarData.rating as Record<string, unknown>) || {};
+  const ratingFromStellar = Number(ratingNode.average ?? 0);
+  const rating = ratingFromStats || ratingFromStellar || 0;
+
+  const toml = (stellarData.toml_info as Record<string, unknown>) || {};
+  const image = (toml.image || toml.orgLogo) as string | undefined;
+  const trustlines = (stellarData.trustlines as Record<string, unknown>) || {};
+
+  return {
+    code: (root.code || toml.code) as string | undefined,
+    domain: stellarData.home_domain as string | undefined,
+    image,
+    holders: Number(latest?.trustlinesTotal ?? trustlines.total ?? 0),
+    trades_24h: Number(latest?.trades ?? stellarData.trades ?? 0),
+    payments_24h: Number(latest?.payments ?? stellarData.payments ?? 0),
+    price_usd: latestPrice,
+    price_usd_change: priceChange,
+    volume_usd: volume24hUsd,
+    supply,
+    rating,
+  };
+}
+
 const STELLAR_COIN_API_URL = 'https://api.stellarchain.dev/api/coins/stellar';
 const STELLAR_COIN_API_TTL_MS = 60_000;
 let stellarCoinApiCache: {
@@ -1170,20 +1232,37 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
   const assetId = parsedIssuer ? `${parsedCode}-${parsedIssuer}` : parsedCode;
   let stellarChainData: any = null;
 
-  // 1. Try fetching from StellarChain.io API first
-  // It provides accurate USD prices and ratings for yXLM etc.
+  // 1. Try fetching from Stellarchain v1 API first
+  // It provides asset-level stats and metadata for most issued assets.
   try {
-    const scResponse = await fetch(`https://api.stellarchain.io/v1/assets/${assetId}/show`, {
+    const scResponse = await fetch(`https://api.stellarchain.dev/v1/assets/${assetId}`, {
       headers: { 'Accept': 'application/json' },
       next: { revalidate: 60 }
     });
 
     if (scResponse.ok) {
       const json = await scResponse.json();
-      stellarChainData = json.data;
+      stellarChainData = parseStellarchainV1AssetData(json);
     }
   } catch (e) {
-    console.error('Error fetching from StellarChain.io:', e);
+    console.error('Error fetching from Stellarchain.dev v1:', e);
+  }
+
+  // 1b. Fallback to the legacy Stellarchain API shape if v1 is unavailable.
+  try {
+    if (!stellarChainData) {
+      const legacyResponse = await fetch(`https://api.stellarchain.io/v1/assets/${assetId}/show`, {
+        headers: { 'Accept': 'application/json' },
+        next: { revalidate: 60 }
+      });
+
+      if (legacyResponse.ok) {
+        const json = await legacyResponse.json();
+        stellarChainData = json.data;
+      }
+    }
+  } catch (e) {
+    console.error('Error fetching from legacy StellarChain.io:', e);
   }
 
   // 2. Fallback/Concurrent Fetch to Stellar Expert & CoinGecko (for XLM)
