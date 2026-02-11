@@ -6,10 +6,12 @@ import Image from 'next/image';
 import { MarketAsset } from '@/lib/stellar';
 import { containers } from '@/lib/design-system';
 import { assetRoute } from '@/lib/routes';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface MarketsMobileViewProps {
   initialAssets: MarketAsset[];
   xlmPrice: number;
+  loading?: boolean;
 }
 
 type SortField = 'market_cap' | 'price_usd' | 'change_24h' | 'change_7d' | 'volume_24h';
@@ -117,7 +119,7 @@ function getAssetUrl(asset: MarketAsset): string {
 
 const ASSETS_PER_PAGE = 50;
 
-export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMobileViewProps) {
+export default function MarketsMobileView({ initialAssets, xlmPrice, loading = false }: MarketsMobileViewProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('market_cap');
@@ -246,7 +248,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
                 </svg>
               </div>
-              <p className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{formatLargeNumber(marketTotals.totalMarketCap)}</p>
+              <p className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{loading ? <InlineSkeleton width="w-16" /> : formatLargeNumber(marketTotals.totalMarketCap)}</p>
               <div className="absolute top-full left-0 mt-2 px-2 py-1 bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30 border border-[var(--border-default)]">
                 Total market cap of all Stellar assets
               </div>
@@ -259,7 +261,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
                 </svg>
               </div>
-              <p className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{formatLargeNumber(marketTotals.totalVolume)}</p>
+              <p className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{loading ? <InlineSkeleton width="w-16" /> : formatLargeNumber(marketTotals.totalVolume)}</p>
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30 border border-[var(--border-default)]">
                 Combined 24h trading volume
               </div>
@@ -272,7 +274,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
                 </svg>
               </div>
-              <p className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{marketTotals.totalAssets}</p>
+              <p className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{loading ? <InlineSkeleton width="w-10" /> : marketTotals.totalAssets}</p>
               <div className="absolute top-full right-0 mt-2 px-2 py-1 bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30 border border-[var(--border-default)]">
                 Total tracked Stellar assets
               </div>
@@ -329,7 +331,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
         {/* Stats Row */}
         <div className="flex justify-between items-center mt-3 px-4">
           <span className="text-xs font-medium text-[var(--text-tertiary)]">
-            {totalItems} assets {totalItems > ASSETS_PER_PAGE && `• Showing ${Math.min(visibleCount, totalItems)}`}
+            {loading ? <InlineSkeleton width="w-36" /> : <>{totalItems} assets {totalItems > ASSETS_PER_PAGE && `• Showing ${Math.min(visibleCount, totalItems)}`}</>}
           </span>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
@@ -350,7 +352,29 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
 
         {/* Asset Cards */}
         <div className="space-y-1.5">
-          {visibleAssets.map((asset, index) => {
+          {loading ? (
+            Array.from({ length: 10 }).map((_, index) => (
+              <div
+                key={`skeleton-${index}`}
+                className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-3 py-3 flex items-center"
+              >
+                <div className="w-6 flex-shrink-0"><InlineSkeleton width="w-4" /></div>
+                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2 bg-[var(--bg-tertiary)]" />
+                <div className="flex-1 min-w-0">
+                  <InlineSkeleton width="w-14" />
+                  <div className="mt-1"><InlineSkeleton width="w-20" /></div>
+                </div>
+                <div className="w-20 text-right">
+                  <InlineSkeleton width="w-16" />
+                  <div className="mt-1"><InlineSkeleton width="w-14" /></div>
+                </div>
+                <div className="w-16 flex flex-col items-end pl-2">
+                  <InlineSkeleton width="w-12" />
+                  <div className="mt-1"><InlineSkeleton width="w-10" /></div>
+                </div>
+              </div>
+            ))
+          ) : visibleAssets.map((asset, index) => {
             const hasData = asset.price_usd > 0 && asset.market_cap > 0;
             const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
             const change = asset.change_24h || 0;
@@ -462,7 +486,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice }: MarketsMo
         )}
 
         {/* Empty State */}
-        {filteredAndSortedAssets.length === 0 && (
+        {!loading && filteredAndSortedAssets.length === 0 && (
           <div className="text-center py-4 bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)]">
             <div className="w-12 h-12 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center mx-auto mb-3 border border-[var(--border-subtle)]">
               <svg className="w-6 h-6 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

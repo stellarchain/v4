@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Transaction, Operation, Effect, shortenAddress, formatXLM, AccountLabel, getBaseUrl, getXLMStats } from '@/lib/stellar';
 import { containers, colors, coreColors, tabs, badges } from '@/lib/design-system';
 import GliderTabs from '@/components/ui/GliderTabs';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 import { QRCodeSVG } from 'qrcode.react';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { assetRoute } from '@/lib/routes';
@@ -63,12 +64,14 @@ interface AssetPriceData {
 }
 
 interface AccountMobileViewProps {
-  account: AccountData;
+  account: AccountData | null;
+  accountId: string;
   transactions: Transaction[];
   operations: Operation[];
   xlmPrice: number;
   accountLabels?: Record<string, AccountLabel>;
   currentAccountLabel?: AccountLabel | null;
+  loading?: boolean;
 }
 
 function getAssetUrl(code: string | undefined, issuer: string | undefined): string {
@@ -77,7 +80,7 @@ function getAssetUrl(code: string | undefined, issuer: string | undefined): stri
   return assetRoute(code, issuer);
 }
 
-export default function AccountMobileView({ account, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel }: AccountMobileViewProps) {
+export default function AccountMobileView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, loading = false }: AccountMobileViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -104,8 +107,8 @@ export default function AccountMobileView({ account, transactions, operations: i
   const [favoriteLabel, setFavoriteLabel] = useState('');
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   const { favorites, addFavorite, removeFavorite, updateFavoriteLabel, isFavorite, getFavorite } = useFavorites();
-  const isCurrentFavorite = isFavorite(account.id);
-  const currentFavorite = getFavorite(account.id);
+  const isCurrentFavorite = isFavorite(accountId);
+  const currentFavorite = getFavorite(accountId);
   const accountLabelText = currentFavorite?.label || currentAccountLabel?.name || currentAccountLabel?.org_name;
 
   // Update URL when tab changes
@@ -122,6 +125,9 @@ export default function AccountMobileView({ account, transactions, operations: i
   };
   const [assetPrices, setAssetPrices] = useState<Record<string, AssetPriceData>>({});
   const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
+  const fetchedEffectIds = useRef<Set<string>>(new Set());
+  const fetchedBalancePriceKeys = useRef<Set<string>>(new Set());
+  const fetchedActivityPriceKeys = useRef<Set<string>>(new Set());
   const [xlmChange24h, setXlmChange24h] = useState(0);
   const [activityAssets, setActivityAssets] = useState<Array<{ code: string; issuer: string; type: string }>>([]);
 
@@ -145,6 +151,11 @@ export default function AccountMobileView({ account, transactions, operations: i
       initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
     );
   }, [initialOperations]);
+
+  useEffect(() => {
+    fetchedBalancePriceKeys.current.clear();
+    fetchedActivityPriceKeys.current.clear();
+  }, [accountId]);
 
   // Close activity filter dropdown when clicking outside
   useEffect(() => {
@@ -230,8 +241,8 @@ export default function AccountMobileView({ account, transactions, operations: i
   const activityContainerRef = useRef<HTMLDivElement>(null);
 
   // Balances
-  const xlmBalance = account.balances.find(b => b.asset_type === 'native');
-  const otherBalancesUnsorted = account.balances.filter(b => b.asset_type !== 'native');
+  const xlmBalance = account?.balances.find(b => b.asset_type === 'native');
+  const otherBalancesUnsorted = account?.balances.filter(b => b.asset_type !== 'native') || [];
   const xlmAmount = parseFloat(xlmBalance?.balance || '0');
 
   // Sort other balances by USD value (highest first)
@@ -306,8 +317,21 @@ export default function AccountMobileView({ account, transactions, operations: i
   useEffect(() => {
     const fetchPrices = async () => {
       const newPrices: Record<string, AssetPriceData> = {};
+      const balancesToFetch = (account?.balances || []).filter((b) => {
+        if (b.asset_type === 'native' || !b.asset_code || !b.asset_issuer) return false;
+        const key = `${b.asset_code}:${b.asset_issuer}`;
+        return !fetchedBalancePriceKeys.current.has(key);
+      });
 
-      await Promise.all(account.balances.filter(b => b.asset_type !== 'native').map(async (b) => {
+      if (balancesToFetch.length === 0) return;
+
+      // Mark immediately to prevent duplicate requests from repeated effect runs.
+      balancesToFetch.forEach((b) => {
+        if (!b.asset_code || !b.asset_issuer) return;
+        fetchedBalancePriceKeys.current.add(`${b.asset_code}:${b.asset_issuer}`);
+      });
+
+      await Promise.all(balancesToFetch.map(async (b) => {
         if (!b.asset_code || !b.asset_issuer) return;
         const key = `${b.asset_code}:${b.asset_issuer}`;
 
@@ -359,11 +383,13 @@ export default function AccountMobileView({ account, transactions, operations: i
         }
       }));
 
-      setAssetPrices(prev => ({ ...prev, ...newPrices }));
+      if (Object.keys(newPrices).length > 0) {
+        setAssetPrices(prev => ({ ...prev, ...newPrices }));
+      }
     };
 
     fetchPrices();
-  }, [account.balances, xlmPrice, xlmChange24h]);
+  }, [account?.balances, xlmPrice, xlmChange24h]);
 
   // Fetch more operations for infinite scroll
   const fetchMoreOperations = useCallback(async () => {
@@ -372,7 +398,7 @@ export default function AccountMobileView({ account, transactions, operations: i
     setLoadingMore(true);
     try {
       const res = await fetch(
-        `${getBaseUrl()}/accounts/${account.id}/operations?limit=100&order=desc&cursor=${lastCursor}`
+        `${getBaseUrl()}/accounts/${accountId}/operations?limit=100&order=desc&cursor=${lastCursor}`
       );
       const data = await res.json();
       const newOps = data._embedded?.records || [];
@@ -389,7 +415,7 @@ export default function AccountMobileView({ account, transactions, operations: i
     } finally {
       setLoadingMore(false);
     }
-  }, [account.id, hasMoreToFetch, lastCursor, loadingMore]);
+  }, [accountId, hasMoreToFetch, lastCursor, loadingMore]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -426,34 +452,38 @@ export default function AccountMobileView({ account, transactions, operations: i
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activityType]);
 
-  // Fetch effects for operations that don't have them yet
+  // Fetch effects for all operations in a single request
+  const effectsFetched = useRef(false);
   useEffect(() => {
+    if (effectsFetched.current || allOperations.length === 0) return;
+    effectsFetched.current = true;
+
     const fetchEffects = async () => {
-      // Get operations that need effects fetched (limit batch size for performance)
-      const opsNeedingEffects = allOperations
-        .filter(op => !opEffects[op.id])
-        .slice(0, 20); // Fetch effects in batches of 20
+      try {
+        const res = await fetch(`${getBaseUrl()}/accounts/${accountId}/effects?limit=200&order=desc`);
+        const data = await res.json();
+        const records = data._embedded?.records || [];
 
-      if (opsNeedingEffects.length === 0) return;
-
-      const newEffects: Record<string, Effect[]> = {};
-      await Promise.all(opsNeedingEffects.map(async (op) => {
-        try {
-          const res = await fetch(`${getBaseUrl()}/operations/${op.id}/effects`);
-          const data = await res.json();
-          if (data._embedded?.records) {
-            newEffects[op.id] = data._embedded.records;
+        // Group effects by operation_id
+        const grouped: Record<string, Effect[]> = {};
+        for (const effect of records) {
+          const opId = (effect as any).operation?.split('/').pop() || effect.id?.split('-')[0];
+          // Effects from Horizon have an operation link, extract operation ID
+          const operationId = (effect as any).operation_id || opId;
+          if (operationId) {
+            if (!grouped[operationId]) grouped[operationId] = [];
+            grouped[operationId].push(effect);
           }
-        } catch { /* ignore */ }
-      }));
+        }
 
-      if (Object.keys(newEffects).length > 0) {
-        setOpEffects(prev => ({ ...prev, ...newEffects }));
-      }
+        if (Object.keys(grouped).length > 0) {
+          setOpEffects(grouped);
+        }
+      } catch { /* ignore */ }
     };
 
     fetchEffects();
-  }, [allOperations, opEffects]);
+  }, [allOperations, accountId]);
 
   // Extract unique assets from activity effects for price fetching
   useEffect(() => {
@@ -486,10 +516,13 @@ export default function AccountMobileView({ account, transactions, operations: i
       // Filter to assets we don't have prices for yet
       const assetsToFetch = activityAssets.filter(a => {
         const key = `${a.code}:${a.issuer}`;
-        return !assetPrices[key];
+        return !fetchedActivityPriceKeys.current.has(key);
       });
 
       if (assetsToFetch.length === 0) return;
+
+      // Mark as fetched immediately to prevent duplicate requests
+      assetsToFetch.forEach(a => fetchedActivityPriceKeys.current.add(`${a.code}:${a.issuer}`));
 
       await Promise.all(assetsToFetch.map(async (asset) => {
         const key = `${asset.code}:${asset.issuer}`;
@@ -521,10 +554,10 @@ export default function AccountMobileView({ account, transactions, operations: i
     if (activityAssets.length > 0 && xlmPrice > 0) {
       fetchActivityPrices();
     }
-  }, [activityAssets, xlmPrice, assetPrices]);
+  }, [activityAssets, xlmPrice]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(account.id);
+    navigator.clipboard.writeText(accountId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -547,8 +580,8 @@ export default function AccountMobileView({ account, transactions, operations: i
     if (!effects || effects.length === 0) return null;
 
     // Get all credits and debits for this account
-    const credits = effects.filter(e => e.type === 'account_credited' && e.account === account.id && (e as any).amount);
-    const debits = effects.filter(e => e.type === 'account_debited' && e.account === account.id && (e as any).amount);
+    const credits = effects.filter(e => e.type === 'account_credited' && e.account === accountId && (e as any).amount);
+    const debits = effects.filter(e => e.type === 'account_debited' && e.account === accountId && (e as any).amount);
 
     // Find the largest credit and debit by amount
     let largestCredit = credits.reduce((max, e) => {
@@ -689,7 +722,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               onClick={() => setShowAddressDropdown(!showAddressDropdown)}
               className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-sm font-semibold text-[var(--text-secondary)] font-mono hover:text-[var(--text-primary)] transition-colors"
             >
-              {shortenAddress(account.id)}
+              {shortenAddress(accountId)}
               <svg className={`w-3.5 h-3.5 transition-transform ${showAddressDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -698,7 +731,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl shadow-lg overflow-hidden z-50 p-3 min-w-[280px]">
                 <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold mb-2">Full Address</div>
                 <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
-                  <p className="font-mono text-[11px] text-[var(--text-primary)] break-all leading-relaxed select-all">{account.id}</p>
+                  <p className="font-mono text-[11px] text-[var(--text-primary)] break-all leading-relaxed select-all">{accountId}</p>
                 </div>
                 <button
                   onClick={() => { handleCopy(); setShowAddressDropdown(false); }}
@@ -770,13 +803,23 @@ export default function AccountMobileView({ account, transactions, operations: i
             Total Balance
           </div>
           <div className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">
-            {currencySymbol}{convertCurrency(totalValueUSD).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {loading ? (
+              <InlineSkeleton width="w-48" height="h-10" />
+            ) : (
+              <>{currencySymbol}{convertCurrency(totalValueUSD).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</>
+            )}
           </div>
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-            <span className={`text-sm font-semibold ${isPositivePnl ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-              {isPositivePnl ? '+' : '-'}{currencySymbol}{Math.abs(convertCurrency(pnlData.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isPositivePnl ? '+' : ''}{pnlData.percent.toFixed(2)}%)
-            </span>
-            <span className="text-sm text-[var(--text-muted)]">24H</span>
+            {loading ? (
+              <InlineSkeleton width="w-24" height="h-5" />
+            ) : (
+              <>
+                <span className={`text-sm font-semibold ${isPositivePnl ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
+                  {isPositivePnl ? '+' : '-'}{currencySymbol}{Math.abs(convertCurrency(pnlData.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isPositivePnl ? '+' : ''}{pnlData.percent.toFixed(2)}%)
+                </span>
+                <span className="text-sm text-[var(--text-muted)]">24H</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -1115,7 +1158,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                       const isCreateAccount = op.type === 'create_account';
                       const destination = isCreateAccount ? (op as any).account : op.to;
                       const sender = op.from || (op as any).funder || op.source_account;
-                      const isReceive = destination === account.id;
+                      const isReceive = destination === accountId;
                       // Get counterparty address and label
                       const counterpartyAddress = isReceive ? sender : destination;
                       const counterpartyLabel = counterpartyAddress ? accountLabels[counterpartyAddress]?.name : null;
@@ -1158,7 +1201,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                       // Otherwise keep typeDisplay as the operation type name
                     }
 
-                    const isReceive = effectInfo?.type === 'received' || op.to === account.id;
+                    const isReceive = effectInfo?.type === 'received' || op.to === accountId;
                     const isSwapOrOffer = isSwap || isOffer;
                     const isSwapDisplay = typeDisplay.toLowerCase() === 'swap';
 
@@ -1308,7 +1351,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] text-[var(--text-muted)] font-medium">Account ID</div>
-                    <div className="text-sm font-mono text-[var(--text-primary)] truncate">{shortenAddress(account.id)}</div>
+                    <div className="text-sm font-mono text-[var(--text-primary)] truncate">{shortenAddress(accountId)}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1319,7 +1362,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                   <div className="flex-1">
                     <div className="text-[11px] text-[var(--text-muted)] font-medium">Sequence Number</div>
-                    <div className="text-sm font-mono text-[var(--text-primary)]">{account.sequence}</div>
+                    <div className="text-sm font-mono text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-24" /> : account?.sequence}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1330,10 +1373,10 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                   <div className="flex-1">
                     <div className="text-[11px] text-[var(--text-muted)] font-medium">Subentries</div>
-                    <div className="text-sm font-bold text-[var(--text-primary)]">{account.subentry_count}</div>
+                    <div className="text-sm font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-8" /> : account?.subentry_count}</div>
                   </div>
                 </div>
-                {account.home_domain && (
+                {account?.home_domain && (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-[var(--success)]/10 flex items-center justify-center text-[var(--success)]">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1342,8 +1385,8 @@ export default function AccountMobileView({ account, transactions, operations: i
                     </div>
                     <div className="flex-1">
                       <div className="text-[11px] text-[var(--text-muted)] font-medium">Home Domain</div>
-                      <a href={`https://${account.home_domain}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[var(--primary-blue)] hover:underline">
-                        {account.home_domain}
+                      <a href={`https://${account?.home_domain}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[var(--primary-blue)] hover:underline">
+                        {account?.home_domain}
                       </a>
                     </div>
                   </div>
@@ -1359,15 +1402,15 @@ export default function AccountMobileView({ account, transactions, operations: i
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 text-center border border-[var(--border-subtle)]">
                   <div className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Low</div>
-                  <div className="text-lg font-bold text-[var(--text-primary)]">{account.thresholds.low_threshold}</div>
+                  <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-8" /> : account?.thresholds.low_threshold}</div>
                 </div>
                 <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 text-center border border-[var(--border-subtle)]">
                   <div className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Medium</div>
-                  <div className="text-lg font-bold text-[var(--text-primary)]">{account.thresholds.med_threshold}</div>
+                  <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-8" /> : account?.thresholds.med_threshold}</div>
                 </div>
                 <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 text-center border border-[var(--border-subtle)]">
                   <div className="text-[11px] text-[var(--text-muted)] font-medium mb-1">High</div>
-                  <div className="text-lg font-bold text-[var(--text-primary)]">{account.thresholds.high_threshold}</div>
+                  <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-8" /> : account?.thresholds.high_threshold}</div>
                 </div>
               </div>
             </div>
@@ -1375,10 +1418,10 @@ export default function AccountMobileView({ account, transactions, operations: i
             {/* Signers Section */}
             <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4">
               <div className="text-[11px] uppercase tracking-widest text-[var(--text-muted)] font-bold pb-2 border-b border-[var(--border-subtle)] mb-3">
-                Signers ({account.signers.length})
+                Signers ({loading ? <InlineSkeleton width="w-4" /> : (account?.signers.length || 0)})
               </div>
               <div className="space-y-2">
-                {account.signers.map((signer, idx) => (
+                {(account?.signers || []).map((signer, idx) => (
                   <div key={idx} className="flex items-center gap-3 py-2 border-b border-[var(--border-subtle)] last:border-0">
                     <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-400">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1406,31 +1449,31 @@ export default function AccountMobileView({ account, transactions, operations: i
                 Account Flags
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div className={`rounded-xl p-3 border ${account.flags.auth_required ? 'bg-amber-500/10 border-amber-500/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
+                <div className={`rounded-xl p-3 border ${account?.flags?.auth_required ? 'bg-amber-500/10 border-amber-500/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_required ? 'bg-[var(--warning)]' : 'bg-[var(--text-muted)]'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_required ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>Auth Required</span>
+                    <div className={`w-2 h-2 rounded-full ${account?.flags?.auth_required ? 'bg-[var(--warning)]' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account?.flags?.auth_required ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>Auth Required</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)]">Requires authorization for trustlines</p>
                 </div>
-                <div className={`rounded-xl p-3 border ${account.flags.auth_revocable ? 'bg-[var(--warning-muted)] border-[var(--warning)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
+                <div className={`rounded-xl p-3 border ${account?.flags?.auth_revocable ? 'bg-[var(--warning-muted)] border-[var(--warning)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_revocable ? 'bg-[var(--warning)]' : 'bg-[var(--text-muted)]'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_revocable ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>Auth Revocable</span>
+                    <div className={`w-2 h-2 rounded-full ${account?.flags?.auth_revocable ? 'bg-[var(--warning)]' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account?.flags?.auth_revocable ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>Auth Revocable</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)]">Can revoke trustlines</p>
                 </div>
-                <div className={`rounded-xl p-3 border ${account.flags.auth_immutable ? 'bg-[var(--error)]/10 border-[var(--error)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
+                <div className={`rounded-xl p-3 border ${account?.flags?.auth_immutable ? 'bg-[var(--error)]/10 border-[var(--error)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_immutable ? 'bg-[var(--error)]' : 'bg-[var(--text-muted)]'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_immutable ? 'text-[var(--error)]' : 'text-[var(--text-muted)]'}`}>Auth Immutable</span>
+                    <div className={`w-2 h-2 rounded-full ${account?.flags?.auth_immutable ? 'bg-[var(--error)]' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account?.flags?.auth_immutable ? 'text-[var(--error)]' : 'text-[var(--text-muted)]'}`}>Auth Immutable</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)]">Flags cannot be changed</p>
                 </div>
-                <div className={`rounded-xl p-3 border ${account.flags.auth_clawback_enabled ? 'bg-[var(--purple-muted)] border-[var(--purple)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
+                <div className={`rounded-xl p-3 border ${account?.flags?.auth_clawback_enabled ? 'bg-[var(--purple-muted)] border-[var(--purple)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_clawback_enabled ? 'bg-[var(--purple)]' : 'bg-[var(--text-muted)]'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_clawback_enabled ? 'text-[var(--purple)]' : 'text-[var(--text-muted)]'}`}>Clawback</span>
+                    <div className={`w-2 h-2 rounded-full ${account?.flags?.auth_clawback_enabled ? 'bg-[var(--purple)]' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account?.flags?.auth_clawback_enabled ? 'text-[var(--purple)]' : 'text-[var(--text-muted)]'}`}>Clawback</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)]">Can clawback assets</p>
                 </div>
@@ -1458,7 +1501,7 @@ export default function AccountMobileView({ account, transactions, operations: i
             <div className="flex justify-center mb-4">
               <div className="bg-white p-4 rounded-2xl">
                 <QRCodeSVG
-                  value={account.id}
+                  value={accountId}
                   size={200}
                   level="H"
                   bgColor="#ffffff"
@@ -1469,13 +1512,13 @@ export default function AccountMobileView({ account, transactions, operations: i
 
             <div className="bg-[var(--bg-secondary)] rounded-xl p-3 mb-4 border border-[var(--border-subtle)]">
               <p className="text-xs text-[var(--text-muted)] mb-1">Account Address</p>
-              <p className="text-xs font-mono text-[var(--text-primary)] break-all">{account.id}</p>
+              <p className="text-xs font-mono text-[var(--text-primary)] break-all">{accountId}</p>
             </div>
 
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(account.id);
+                  navigator.clipboard.writeText(accountId);
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
                 }}
@@ -1527,7 +1570,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               <h3 className="text-lg font-bold text-[var(--text-primary)]">
                 {isCurrentFavorite ? 'Edit Favorite' : 'Add to Favorites'}
               </h3>
-              <p className="text-xs text-[var(--text-muted)] mt-1 font-mono">{shortenAddress(account.id)}</p>
+              <p className="text-xs text-[var(--text-muted)] mt-1 font-mono">{shortenAddress(accountId)}</p>
             </div>
 
             <div className="mb-4">
@@ -1548,7 +1591,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                 <>
                   <button
                     onClick={() => {
-                      updateFavoriteLabel(account.id, favoriteLabel);
+                      updateFavoriteLabel(accountId, favoriteLabel);
                       setShowFavoriteModal(false);
                     }}
                     className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-semibold text-sm"
@@ -1557,7 +1600,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </button>
                   <button
                     onClick={() => {
-                      removeFavorite(account.id);
+                      removeFavorite(accountId);
                       setFavoriteLabel('');
                       setShowFavoriteModal(false);
                     }}
@@ -1569,7 +1612,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               ) : (
                 <button
                   onClick={() => {
-                    addFavorite(account.id, favoriteLabel || undefined);
+                    addFavorite(accountId, favoriteLabel || undefined);
                     setFavoriteLabel('');
                     setShowFavoriteModal(false);
                   }}
