@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { getMarketAssets, getXLMUSDPriceFromHorizon } from '@/lib/stellar';
 import MarketsMobileView from '@/components/mobile/MarketsMobileView';
 import MarketsDesktopView from '@/components/desktop/MarketsDesktopView';
-import Loading from '@/components/ui/Loading';
 
 export default function MarketsPage() {
   const [assets, setAssets] = useState<any[]>([]);
@@ -32,11 +31,7 @@ export default function MarketsPage() {
     fetchData();
   }, []);
 
-  if (isLoading) {
-    return <Loading title="Loading markets" description="Fetching market assets and prices." />;
-  }
-
-  if (error) {
+  if (!isLoading && error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -51,12 +46,12 @@ export default function MarketsPage() {
     <>
       {/* Mobile View */}
       <div className="block md:hidden">
-        <MarketsMobileView initialAssets={assets} xlmPrice={xlmPrice} />
+        <MarketsMobileView initialAssets={assets} xlmPrice={xlmPrice} loading={isLoading} />
       </div>
 
       {/* Desktop View */}
       <div className="hidden md:block">
-        <MarketsDesktopView initialAssets={assets} xlmPrice={xlmPrice} />
+        <MarketsDesktopView initialAssets={assets} xlmPrice={xlmPrice} loading={isLoading} />
       </div>
     </>
   );

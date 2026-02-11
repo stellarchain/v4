@@ -8,26 +8,33 @@ import type { LiquidityPool, Operation, Transaction, LiquidityPoolTrade, Effect 
 import Link from 'next/link';
 import LiquidityPoolMobileView from '@/components/mobile/LiquidityPoolMobileView';
 import LiquidityPoolDesktopView from '@/components/desktop/LiquidityPoolDesktopView';
-import Loading from '@/components/ui/Loading';
+import { getDetailRouteValue } from '@/lib/routeDetail';
 
 
 export default function LiquidityPoolPage() {
   const params = useParams<{ id?: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const pathId = (() => {
-    const clean = pathname.replace(/\/+$/, '');
-    if (clean.startsWith('/liquidity-pool/')) return clean.slice('/liquidity-pool/'.length);
-    return '';
-  })();
-  const id = (searchParams.get('id') || params.id || pathId || '').trim();
+  const id = getDetailRouteValue({
+    pathname,
+    searchParams,
+    queryKey: 'id',
+    routeParam: params.id,
+    aliases: ['/liquidity-pool', '/liquidity-pools'],
+  });
   const [pool, setPool] = useState<LiquidityPool | null>(null);
   const [operations, setOperations] = useState<Operation[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [trades, setTrades] = useState<LiquidityPoolTrade[]>([]);
   const [effects, setEffects] = useState<Effect[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const isLoading = !pool && !error;
+  const [loadingSections, setLoadingSections] = useState({
+    operations: true,
+    transactions: true,
+    trades: true,
+    effects: true,
+  });
+  const isLoadingPool = !pool && !error;
 
   useEffect(() => {
     if (!id) {
@@ -37,51 +44,72 @@ export default function LiquidityPoolPage() {
 
     const loadPoolData = async () => {
       try {
+        setError(null);
+        setLoadingSections({
+          operations: true,
+          transactions: true,
+          trades: true,
+          effects: true,
+        });
         const server = new Horizon.Server(getBaseUrl());
 
-        const [poolRes, opsRes, txsRes, tradesRes, effectsRes] = await Promise.allSettled([
-          server.liquidityPools().liquidityPoolId(id).call(),
-          server.operations().forLiquidityPool(id).limit(20).order('desc').call(),
-          server.transactions().forLiquidityPool(id).limit(20).order('desc').call(),
-          server.trades().forLiquidityPool(id).limit(20).order('desc').call(),
-          server.effects().forLiquidityPool(id).limit(20).order('desc').call(),
-        ]);
+        // Load pool first so shell can render.
+        const poolRes = await server.liquidityPools().liquidityPoolId(id).call();
+        setPool(poolRes as unknown as LiquidityPool);
 
-        if (poolRes.status === 'fulfilled') {
-          setPool(poolRes.value as unknown as LiquidityPool);
-        } else {
-          setError('Pool not found');
-          return;
-        }
+        // Load remaining sections progressively.
+        void server.operations().forLiquidityPool(id).limit(20).order('desc').call()
+          .then((res) => {
+            setOperations(((res as any).records || []) as unknown as Operation[]);
+          })
+          .catch(() => {})
+          .finally(() => {
+            setLoadingSections((prev) => ({ ...prev, operations: false }));
+          });
 
-        if (opsRes.status === 'fulfilled') {
-          setOperations(((opsRes.value as any).records || []) as unknown as Operation[]);
-        }
+        void server.transactions().forLiquidityPool(id).limit(20).order('desc').call()
+          .then((res) => {
+            setTransactions(normalizeTransactions((res as any).records || []));
+          })
+          .catch(() => {})
+          .finally(() => {
+            setLoadingSections((prev) => ({ ...prev, transactions: false }));
+          });
 
-        if (txsRes.status === 'fulfilled') {
-          setTransactions(normalizeTransactions((txsRes.value as any).records || []));
-        }
+        void server.trades().forLiquidityPool(id).limit(20).order('desc').call()
+          .then((res) => {
+            setTrades(((res as any).records || []) as unknown as LiquidityPoolTrade[]);
+          })
+          .catch(() => {})
+          .finally(() => {
+            setLoadingSections((prev) => ({ ...prev, trades: false }));
+          });
 
-        if (tradesRes.status === 'fulfilled') {
-          setTrades(((tradesRes.value as any).records || []) as unknown as LiquidityPoolTrade[]);
-        }
-
-        if (effectsRes.status === 'fulfilled') {
-          setEffects(((effectsRes.value as any).records || []) as unknown as Effect[]);
-        }
+        void server.effects().forLiquidityPool(id).limit(20).order('desc').call()
+          .then((res) => {
+            setEffects(((res as any).records || []) as unknown as Effect[]);
+          })
+          .catch(() => {})
+          .finally(() => {
+            setLoadingSections((prev) => ({ ...prev, effects: false }));
+          });
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error fetching pool data');
+        if (!pool) {
+          setError('Pool not found');
+        }
+        setLoadingSections({
+          operations: false,
+          transactions: false,
+          trades: false,
+          effects: false,
+        });
       }
     };
 
     loadPoolData();
   }, [id]);
 
-  if (isLoading) {
-    return <Loading title="Loading liquidity pool" description="Fetching pool details and activity." />;
-  }
-
-  if (error || !pool) {
+  if (!isLoadingPool && (error || !pool)) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4 min-h-screen bg-[var(--bg-primary)]">
         <div className="w-20 h-20 bg-[var(--bg-secondary)] rounded-2xl flex items-center justify-center mb-4">
@@ -102,24 +130,43 @@ export default function LiquidityPoolPage() {
     );
   }
 
+  const poolForView: LiquidityPool = pool || {
+    id: id || '',
+    paging_token: '',
+    fee_bp: 30,
+    type: 'constant_product',
+    total_trustlines: 0,
+    total_shares: '0',
+    reserves: [
+      { asset: 'native', amount: '0' },
+      { asset: 'native', amount: '0' },
+    ],
+    last_modified_ledger: 0,
+    last_modified_time: '',
+  };
+
   return (
     <>
       <div className="hidden md:block">
         <LiquidityPoolDesktopView
-          pool={pool}
+          pool={poolForView}
           operations={operations}
           transactions={transactions}
           trades={trades}
           effects={effects}
+          loading={isLoadingPool}
+          loadingSections={loadingSections}
         />
       </div>
       <div className="md:hidden">
         <LiquidityPoolMobileView
-          pool={pool}
+          pool={poolForView}
           operations={operations}
           transactions={transactions}
           trades={trades}
           effects={effects}
+          loading={isLoadingPool}
+          loadingSections={loadingSections}
         />
       </div>
     </>

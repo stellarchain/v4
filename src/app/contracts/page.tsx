@@ -7,7 +7,6 @@ import { APIContract } from '@/lib/stellar';
 import ContractsClient from './ContractsClient';
 import ContractDetailsClientPage from '@/app/contract/[id]/client-page';
 import { StrKey } from '@stellar/stellar-sdk';
-import Loading from '@/components/ui/Loading';
 import { getDetailRouteValue } from '@/lib/routeDetail';
 
 // Convert hex contract ID to StrKey format (C...)
@@ -150,15 +149,28 @@ export default function ContractsPage() {
   const hasDetailsRoute = Boolean(detailsContractId);
 
   const [contracts, setContracts] = useState<EnhancedContract[]>([]);
-  const [stats, setStats] = useState<any>(null);
-  const [pagination, setPagination] = useState<any>(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    tokens: 0,
+    dex: 0,
+    verified: 0,
+  });
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    total: 0,
+    perPage: 30,
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const isLoading = !stats && !error;
 
   useEffect(() => {
     if (hasDetailsRoute) return;
 
     const loadContracts = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         // Fetch first page of contracts from API
         const initialData = await fetchContracts(1, 30);
@@ -188,6 +200,8 @@ export default function ContractsPage() {
         setPagination(paginationInfo);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load contracts.');
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -198,15 +212,11 @@ export default function ContractsPage() {
     return <ContractDetailsClientPage />;
   }
 
-  if (isLoading) {
-    return <Loading title="Loading contracts" description="Fetching contracts data." />;
-  }
-
-  if (error || !stats) {
+  if (!isLoading && error) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4">
         <h1 className="text-2xl font-bold mb-2">Error</h1>
-        <p className="text-muted">{error || 'Failed to load contracts.'}</p>
+        <p className="text-muted">{error}</p>
       </div>
     );
   }
@@ -217,6 +227,7 @@ export default function ContractsPage() {
       stats={stats}
       categories={verifiedContracts.categories}
       pagination={pagination}
+      loading={isLoading}
     />
   );
 }
