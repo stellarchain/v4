@@ -8,7 +8,7 @@ import type { AccountLabel, Transaction, Operation } from '@/lib/stellar';
 import Link from 'next/link';
 import AccountMobileView from '@/components/mobile/AccountMobileView';
 import AccountDesktopView from '@/components/desktop/AccountDesktopView';
-import Loading from '@/components/ui/Loading';
+
 import { getDetailRouteValue } from '@/lib/routeDetail';
 
 
@@ -162,11 +162,9 @@ export default function AccountPage() {
     }
   }, [id]);
 
-  if (loading) {
-    return <Loading title="Loading account" description="Fetching account details and activity." />;
-  }
 
-  if (error || !account) {
+
+  if (!loading && (error || !account)) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <div className="w-20 h-20 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mb-4">
@@ -187,7 +185,7 @@ export default function AccountPage() {
     );
   }
 
-  const accountData = {
+  const accountData = account ? {
     id,
     balances: account.balances,
     subentry_count: account.subentry_count,
@@ -200,27 +198,31 @@ export default function AccountPage() {
     thresholds: account.thresholds,
     flags: account.flags,
     home_domain: account.home_domain,
-  };
+  } : null;
 
   return (
     <>
       {isMobile ? (
         <AccountMobileView
           account={accountData}
+          accountId={id}
           transactions={transactions}
           operations={operations}
           xlmPrice={xlmPrice}
           accountLabels={accountLabels}
           currentAccountLabel={currentAccountLabel}
+          loading={loading}
         />
       ) : (
         <AccountDesktopView
           account={accountData}
+          accountId={id}
           transactions={transactions}
           operations={operations}
           xlmPrice={xlmPrice}
           accountLabels={accountLabels}
           currentAccountLabel={currentAccountLabel}
+          loading={loading}
         />
       )}
     </>

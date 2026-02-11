@@ -1413,6 +1413,7 @@ export async function getRichList(
 // Cache for all labeled accounts (fetched once and reused)
 let labeledAccountsCache: Map<string, AccountLabel> | null = null;
 let labelsCacheTimestamp: number = 0;
+let labeledAccountsFetchPromise: Promise<Map<string, AccountLabel>> | null = null;
 const LABELS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Fetch all labeled accounts and build a lookup map
@@ -1468,10 +1469,20 @@ async function getCachedLabels(): Promise<Map<string, AccountLabel>> {
     return labeledAccountsCache;
   }
 
-  labeledAccountsCache = await fetchAllLabeledAccounts();
-  labelsCacheTimestamp = now;
+  // De-duplicate concurrent fetches (common in client effects/StrictMode).
+  if (!labeledAccountsFetchPromise) {
+    labeledAccountsFetchPromise = fetchAllLabeledAccounts()
+      .then((labels) => {
+        labeledAccountsCache = labels;
+        labelsCacheTimestamp = Date.now();
+        return labels;
+      })
+      .finally(() => {
+        labeledAccountsFetchPromise = null;
+      });
+  }
 
-  return labeledAccountsCache;
+  return labeledAccountsFetchPromise;
 }
 
 function normalizeUnknownLabel(raw: unknown): AccountLabel | null {
@@ -1570,15 +1581,18 @@ export async function getAccountLabels(
 
   const uniqueAddresses = Array.from(new Set(addresses.filter(Boolean)));
 
-  // First, try direct batch lookup endpoint (fresh + precise)
+  // First, try direct lookup endpoint (fresh + precise).
+  // Use GET to match backend route methods and avoid POST preflight/405 noise.
   try {
-    const response = await fetch('https://api.stellarchain.io/v1/accounts/labels', {
-      method: 'POST',
+    const params = new URLSearchParams();
+    for (const address of uniqueAddresses) {
+      params.append('accounts[]', address);
+    }
+    const url = `https://api.stellarchain.io/v1/accounts/labels?${params.toString()}`;
+    const response = await fetch(url, {
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ addresses: uniqueAddresses }),
     });
 
     if (response.ok) {

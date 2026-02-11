@@ -8,6 +8,7 @@ import type { AccountLabel } from '@/lib/stellar';
 import type { ContractFunctionType } from '@/lib/types/token';
 import AccountBadges from '@/components/AccountBadges';
 import GliderTabs from '@/components/ui/GliderTabs';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 import { decodeTransactionMeta, decodeTransactionResources, type DecodedTransactionMeta, type SorobanMetrics } from '@/lib/xdrDecoder';
 
 interface Operation {
@@ -61,6 +62,7 @@ interface TransactionDesktopViewProps {
   operations: Operation[];
   effects: Effect[];
   accountLabels?: Record<string, AccountLabel>;
+  loading?: boolean;
 }
 
 const decodeContractFunctionName = (op: Operation): string => {
@@ -111,7 +113,7 @@ const getEffectCategory = (type: string): { label: string; color: string } => {
   return { label: 'Effect', color: 'text-[var(--text-muted)]' };
 };
 
-export default function TransactionDesktopView({ transaction, operations, effects, accountLabels = {} }: TransactionDesktopViewProps) {
+export default function TransactionDesktopView({ transaction, operations, effects, accountLabels = {}, loading = false }: TransactionDesktopViewProps) {
   const searchParams = useSearchParams();
   const [listTab, setListTab] = useState<'operations' | 'effects' | 'trace'>('operations');
   const [selectedOpIndex, setSelectedOpIndex] = useState<number>(() => {
@@ -264,7 +266,12 @@ export default function TransactionDesktopView({ transaction, operations, effect
       .catch(() => setIsDecodingXdr(false));
   }, [isContractCall, isDecodingXdr, xdrFetchAttempted, fetchedXdr, decodedMeta, transaction.result_meta_xdr, transaction.hash]);
 
-  const handleCopy = () => { navigator.clipboard.writeText(transaction.hash); setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  const handleCopy = () => {
+    if (loading) return;
+    navigator.clipboard.writeText(transaction.hash);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   const selectedOp = filteredOperations[selectedOpIndex];
   const selectedEffect = effects[selectedEffectIndex];
@@ -325,26 +332,37 @@ export default function TransactionDesktopView({ transaction, operations, effect
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Transaction</span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${transaction.successful ? 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400 border border-rose-100 dark:border-rose-800'}`}>
-                  <span className={`w-1 h-1 rounded-full mr-1.5 ${transaction.successful ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-                  {transaction.successful ? 'Success' : 'Failed'}
-                </span>
+                {loading ? (
+                  <InlineSkeleton width="w-16" height="h-5" />
+                ) : (
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${transaction.successful ? 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400 border border-rose-100 dark:border-rose-800'}`}>
+                    <span className={`w-1 h-1 rounded-full mr-1.5 ${transaction.successful ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                    {transaction.successful ? 'Success' : 'Failed'}
+                  </span>
+                )}
                 <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">{typeLabel}</span>
               </div>
               <button onClick={handleCopy} className="text-sm font-mono font-medium text-[var(--text-primary)] hover:text-[var(--text-secondary)] transition-colors text-left break-all">
-                {transaction.hash}
+                {loading ? <InlineSkeleton width="w-80" /> : transaction.hash}
                 {copied && <span className="ml-2 text-[9px] font-semibold text-emerald-500">Copied!</span>}
               </button>
               <div className="flex flex-wrap items-center gap-4 mt-2 text-[11px] text-[var(--text-tertiary)]">
                 <span className="flex items-center gap-1">
                   <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                  {formatDate(transaction.created_at)}
+                  {loading ? <InlineSkeleton width="w-28" /> : formatDate(transaction.created_at)}
                 </span>
                 <span className="flex items-center gap-1">
                   <svg className="w-3 h-3 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  {timeAgo(transaction.created_at)}
+                  {loading ? <InlineSkeleton width="w-20" /> : timeAgo(transaction.created_at)}
                 </span>
-                <span>Ledger <Link href={`/ledger/${transaction.ledger_attr}`} className="text-sky-500 hover:underline font-semibold">{transaction.ledger_attr.toLocaleString()}</Link></span>
+                <span>
+                  Ledger{' '}
+                  {loading ? (
+                    <InlineSkeleton width="w-16" />
+                  ) : (
+                    <Link href={`/ledger/${transaction.ledger_attr}`} className="text-sky-500 hover:underline font-semibold">{transaction.ledger_attr.toLocaleString()}</Link>
+                  )}
+                </span>
               </div>
             </div>
           </div>
@@ -798,11 +816,15 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   </div>
                   <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                     <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Fee</div>
-                    <div className="text-sm font-semibold text-[var(--text-primary)]">{feeXLM} XLM</div>
+                    <div className="text-sm font-semibold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-16" /> : `${feeXLM} XLM`}</div>
                   </div>
                   <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                     <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Ledger</div>
-                    <Link href={`/ledger/${transaction.ledger_attr}`} className="text-sm font-semibold text-sky-600 hover:underline">{transaction.ledger_attr.toLocaleString()}</Link>
+                    {loading ? (
+                      <InlineSkeleton width="w-14" />
+                    ) : (
+                      <Link href={`/ledger/${transaction.ledger_attr}`} className="text-sm font-semibold text-sky-600 hover:underline">{transaction.ledger_attr.toLocaleString()}</Link>
+                    )}
                   </div>
                 </div>
 
@@ -810,9 +832,9 @@ export default function TransactionDesktopView({ transaction, operations, effect
                 <div className="pt-4 border-t border-[var(--border-subtle)]">
                   <h3 className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">Technical</h3>
                   <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                    <div><span className="text-[var(--text-muted)] text-xs">Max Fee</span><div className="font-mono text-[var(--text-primary)]">{maxFeeXLM} XLM</div></div>
+                    <div><span className="text-[var(--text-muted)] text-xs">Max Fee</span><div className="font-mono text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-16" /> : `${maxFeeXLM} XLM`}</div></div>
                     <div><span className="text-[var(--text-muted)] text-xs">Memo</span><div className={transaction.memo ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] italic'}>{transaction.memo || 'None'}</div></div>
-                    <div><span className="text-[var(--text-muted)] text-xs">Sequence</span><div className="font-mono text-[var(--text-primary)]">{transaction.source_account_sequence || '--'}</div></div>
+                    <div><span className="text-[var(--text-muted)] text-xs">Sequence</span><div className="font-mono text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-20" /> : (transaction.source_account_sequence || '--')}</div></div>
                     <div><span className="text-[var(--text-muted)] text-xs">Fee Account</span><Link href={`/address/${transaction.source_account}`} className="font-mono text-sky-600 hover:underline block truncate">{shortenAddress(transaction.source_account)}</Link></div>
                   </div>
                   {transaction.signatures.length > 0 && (
@@ -985,9 +1007,8 @@ export default function TransactionDesktopView({ transaction, operations, effect
                               style={{ marginLeft: `${Math.min(call.depth, 6) * 24}px` }}
                             >
                               <div className="flex flex-col items-center shrink-0 mt-1">
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                                  call.type === 'fn_call' ? 'bg-sky-50 dark:bg-sky-900/30' : 'bg-amber-50 dark:bg-amber-900/30'
-                                }`}>
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${call.type === 'fn_call' ? 'bg-sky-50 dark:bg-sky-900/30' : 'bg-amber-50 dark:bg-amber-900/30'
+                                  }`}>
                                   {call.type === 'fn_call' ? (
                                     <svg className="w-2.5 h-2.5 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />

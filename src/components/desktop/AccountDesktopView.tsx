@@ -11,6 +11,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { addressRoute, assetRoute, txRoute } from '@/lib/routes';
 import GliderTabs from '@/components/ui/GliderTabs';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface Balance {
   asset_type: string;
@@ -41,12 +42,14 @@ interface AssetPriceData {
 }
 
 interface AccountDesktopViewProps {
-  account: AccountData;
+  account: AccountData | null;
+  accountId: string;
   transactions: Transaction[];
   operations: Operation[];
   xlmPrice: number;
   accountLabels?: Record<string, AccountLabel>;
   currentAccountLabel?: AccountLabel | null;
+  loading?: boolean;
 }
 
 function getAssetUrl(code: string | undefined, issuer: string | undefined): string {
@@ -79,7 +82,7 @@ const getOperationCategory = (type: string): { label: string; color: string; bgC
   return { label: 'Action', color: 'text-[var(--text-secondary)]', bgColor: 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]' };
 };
 
-export default function AccountDesktopView({ account, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel }: AccountDesktopViewProps) {
+export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, loading = false }: AccountDesktopViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -89,8 +92,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
   const [showTokensDropdown, setShowTokensDropdown] = useState(false);
   const tokensDropdownRef = useRef<HTMLDivElement>(null);
   const { favorites, addFavorite, removeFavorite, updateFavoriteLabel, isFavorite, getFavorite } = useFavorites();
-  const isCurrentFavorite = isFavorite(account.id);
-  const currentFavorite = getFavorite(account.id);
+  const isCurrentFavorite = isFavorite(accountId);
+  const currentFavorite = getFavorite(accountId);
   const accountLabelText = currentFavorite?.label || currentAccountLabel?.name || currentAccountLabel?.org_name;
 
   // Read initial tab from URL params
@@ -100,6 +103,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
   const [assetPrices, setAssetPrices] = useState<Record<string, AssetPriceData>>({});
   const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
   const fetchedEffectIds = useRef<Set<string>>(new Set());
+  const fetchedBalancePriceKeys = useRef<Set<string>>(new Set());
   const fetchedActivityPriceKeys = useRef<Set<string>>(new Set());
   const [xlmChange24h, setXlmChange24h] = useState(0);
   const [activityAssets, setActivityAssets] = useState<Array<{ code: string; issuer: string; type: string }>>([]);
@@ -159,6 +163,11 @@ export default function AccountDesktopView({ account, transactions, operations: 
     setLastTxCursor(transactions.length > 0 ? transactions[transactions.length - 1].paging_token : null);
   }, [TX_PAGE_SIZE, transactions]);
 
+  useEffect(() => {
+    fetchedBalancePriceKeys.current.clear();
+    fetchedActivityPriceKeys.current.clear();
+  }, [accountId]);
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -171,8 +180,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
   }, []);
 
   // Balances
-  const xlmBalance = account.balances.find(b => b.asset_type === 'native');
-  const otherBalancesUnsorted = account.balances.filter(b => b.asset_type !== 'native');
+  const xlmBalance = account?.balances.find(b => b.asset_type === 'native');
+  const otherBalancesUnsorted = account?.balances.filter(b => b.asset_type !== 'native') || [];
   const xlmAmount = parseFloat(xlmBalance?.balance || '0');
 
   // Sort other balances by USD value (highest first)
@@ -236,8 +245,21 @@ export default function AccountDesktopView({ account, transactions, operations: 
   useEffect(() => {
     const fetchPrices = async () => {
       const newPrices: Record<string, AssetPriceData> = {};
+      const balancesToFetch = (account?.balances || []).filter((b) => {
+        if (b.asset_type === 'native' || !b.asset_code || !b.asset_issuer) return false;
+        const key = `${b.asset_code}:${b.asset_issuer}`;
+        return !fetchedBalancePriceKeys.current.has(key);
+      });
 
-      await Promise.all(account.balances.filter(b => b.asset_type !== 'native').map(async (b) => {
+      if (balancesToFetch.length === 0) return;
+
+      // Mark immediately to prevent duplicate requests from repeated effect runs.
+      balancesToFetch.forEach((b) => {
+        if (!b.asset_code || !b.asset_issuer) return;
+        fetchedBalancePriceKeys.current.add(`${b.asset_code}:${b.asset_issuer}`);
+      });
+
+      await Promise.all(balancesToFetch.map(async (b) => {
         if (!b.asset_code || !b.asset_issuer) return;
         const key = `${b.asset_code}:${b.asset_issuer}`;
 
@@ -283,11 +305,13 @@ export default function AccountDesktopView({ account, transactions, operations: 
         }
       }));
 
-      setAssetPrices(prev => ({ ...prev, ...newPrices }));
+      if (Object.keys(newPrices).length > 0) {
+        setAssetPrices(prev => ({ ...prev, ...newPrices }));
+      }
     };
 
     fetchPrices();
-  }, [account.balances, xlmPrice, xlmChange24h]);
+  }, [account?.balances, xlmPrice, xlmChange24h]);
 
   // Fetch more operations for load more
   const fetchMoreOperations = useCallback(async () => {
@@ -296,7 +320,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
     setLoadingMore(true);
     try {
       const res = await fetch(
-        `${getBaseUrl()}/accounts/${account.id}/operations?limit=100&order=desc&cursor=${lastCursor}`
+        `${getBaseUrl()}/accounts/${accountId}/operations?limit=100&order=desc&cursor=${lastCursor}`
       );
       const data = await res.json();
       const newOps = data._embedded?.records || [];
@@ -317,7 +341,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
     } finally {
       setLoadingMore(false);
     }
-  }, [account.id, hasMoreToFetch, lastCursor, loadingMore]);
+  }, [accountId, hasMoreToFetch, lastCursor, loadingMore]);
 
   const fetchMoreTransactions = useCallback(async () => {
     if (!hasMoreTransactions || loadingMoreTx || !lastTxCursor) return;
@@ -325,7 +349,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
     setLoadingMoreTx(true);
     try {
       const res = await fetch(
-        `${getBaseUrl()}/accounts/${account.id}/transactions?limit=${TX_PAGE_SIZE}&order=desc&cursor=${lastTxCursor}`
+        `${getBaseUrl()}/accounts/${accountId}/transactions?limit=${TX_PAGE_SIZE}&order=desc&cursor=${lastTxCursor}`
       );
       const data = await res.json();
       const newTxs: Transaction[] = data?._embedded?.records || [];
@@ -346,7 +370,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
     } finally {
       setLoadingMoreTx(false);
     }
-  }, [TX_PAGE_SIZE, account.id, hasMoreTransactions, lastTxCursor, loadingMoreTx]);
+  }, [TX_PAGE_SIZE, accountId, hasMoreTransactions, lastTxCursor, loadingMoreTx]);
 
   useEffect(() => {
     if (activeTab !== 'transactions') return;
@@ -392,7 +416,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
 
     const fetchEffects = async () => {
       try {
-        const res = await fetch(`${getBaseUrl()}/accounts/${account.id}/effects?limit=200&order=desc`);
+        const res = await fetch(`${getBaseUrl()}/accounts/${accountId}/effects?limit=200&order=desc`);
         const data = await res.json();
         const records = data._embedded?.records || [];
 
@@ -415,7 +439,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
     };
 
     fetchEffects();
-  }, [allOperations, account.id]);
+  }, [allOperations, accountId]);
 
   // Extract unique assets from activity effects for price fetching
   useEffect(() => {
@@ -488,7 +512,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
   }, [activityAssets, xlmPrice]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(account.id);
+    navigator.clipboard.writeText(accountId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -510,8 +534,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
   const getAmountFromEffects = (effects: Effect[] | undefined) => {
     if (!effects || effects.length === 0) return null;
 
-    const credits = effects.filter(e => e.type === 'account_credited' && e.account === account.id && (e as any).amount);
-    const debits = effects.filter(e => e.type === 'account_debited' && e.account === account.id && (e as any).amount);
+    const credits = effects.filter(e => e.type === 'account_credited' && e.account === accountId && (e as any).amount);
+    const debits = effects.filter(e => e.type === 'account_debited' && e.account === accountId && (e as any).amount);
 
     let largestCredit = credits.reduce((max, e) => {
       const amount = parseFloat((e as any).amount) || 0;
@@ -579,7 +603,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <span className="text-sm text-[var(--text-tertiary)]">Address</span>
-            <span className="font-mono text-sm font-medium text-[var(--text-primary)]">{account.id}</span>
+            <span className="font-mono text-sm font-medium text-[var(--text-primary)]">{accountId}</span>
             <button
               onClick={handleCopy}
               className="p-1.5 rounded-md hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
@@ -637,15 +661,14 @@ export default function AccountDesktopView({ account, transactions, operations: 
                   <svg className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  <span className="text-sm font-semibold text-[var(--text-primary)]">{formatCompactNumber(xlmAmount)} XLM</span>
+                  <span className="text-sm font-semibold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-20" /> : <>{formatCompactNumber(xlmAmount)} XLM</>}</span>
                 </div>
               </div>
 
               <div>
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">XLM Value</div>
                 <div className="text-sm text-[var(--text-secondary)]">
-                  ${(xlmAmount * xlmPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  <span className="text-xs text-[var(--text-muted)] ml-1">(@ ${xlmPrice.toFixed(4)}/XLM)</span>
+                  {loading ? <InlineSkeleton width="w-28" /> : <>${(xlmAmount * xlmPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<span className="text-xs text-[var(--text-muted)] ml-1">(@ ${xlmPrice.toFixed(4)}/XLM)</span></>}
                 </div>
               </div>
 
@@ -655,8 +678,8 @@ export default function AccountDesktopView({ account, transactions, operations: 
                   onClick={() => setShowTokensDropdown(!showTokensDropdown)}
                   className="flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-sky-600 transition-colors"
                 >
-                  <span>${tokensValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  <span className="text-xs text-[var(--text-muted)]">({otherBalances.length} tokens)</span>
+                  {loading ? <InlineSkeleton width="w-24" /> : <><span>${tokensValueUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span className="text-xs text-[var(--text-muted)]">({otherBalances.length} tokens)</span></>}
                   <svg className={`w-3 h-3 text-[var(--text-muted)] transition-transform ${showTokensDropdown ? 'rotate-180' : ''}`} aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -705,9 +728,11 @@ export default function AccountDesktopView({ account, transactions, operations: 
                     )}
                     <span className="text-sm font-medium text-[var(--text-primary)]">{accountLabelText}</span>
                   </div>
+                ) : loading ? (
+                  <InlineSkeleton width="w-20" />
                 ) : (
                   <Link
-                    href={`/accounts/directory/update?account=${account.id}`}
+                    href={`/accounts/directory/update?account=${accountId}`}
                     className="text-sm text-sky-600 hover:text-sky-700 hover:underline"
                   >
                     + Add Label
@@ -718,14 +743,16 @@ export default function AccountDesktopView({ account, transactions, operations: 
               <div>
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Transactions</div>
                 <div className="text-sm text-[var(--text-secondary)]">
-                  {latestOpTime && <span>Latest: <span className="text-[var(--text-tertiary)]">{timeAgo(latestOpTime)}</span></span>}
-                  {firstOpTime && latestOpTime !== firstOpTime && (
-                    <span className="ml-3">First: <span className="text-[var(--text-tertiary)]">{timeAgo(firstOpTime)}</span></span>
-                  )}
+                  {loading ? <InlineSkeleton width="w-32" /> : <>
+                    {latestOpTime && <span>Latest: <span className="text-[var(--text-tertiary)]">{timeAgo(latestOpTime)}</span></span>}
+                    {firstOpTime && latestOpTime !== firstOpTime && (
+                      <span className="ml-3">First: <span className="text-[var(--text-tertiary)]">{timeAgo(firstOpTime)}</span></span>
+                    )}
+                  </>}
                 </div>
               </div>
 
-              {account.home_domain && (
+              {account?.home_domain && (
                 <div>
                   <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Home Domain</div>
                   <a
@@ -751,17 +778,17 @@ export default function AccountDesktopView({ account, transactions, operations: 
             <div className="space-y-3">
               <div>
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Sequence Number</div>
-                <div className="text-sm font-mono text-[var(--text-secondary)]">{account.sequence}</div>
+                <div className="text-sm font-mono text-[var(--text-secondary)]">{loading ? <InlineSkeleton width="w-36" /> : account?.sequence}</div>
               </div>
 
               <div>
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Sub-entries</div>
-                <div className="text-sm text-[var(--text-secondary)]">{account.subentry_count}</div>
+                <div className="text-sm text-[var(--text-secondary)]">{loading ? <InlineSkeleton width="w-8" /> : account?.subentry_count}</div>
               </div>
 
               <div>
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Signers</div>
-                <div className="text-sm text-[var(--text-secondary)]">{account.signers.length}</div>
+                <div className="text-sm text-[var(--text-secondary)]">{loading ? <InlineSkeleton width="w-8" /> : account?.signers.length}</div>
               </div>
             </div>
           </div>
@@ -938,7 +965,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                               onClick={(e) => e.stopPropagation()}
                             >
                               <AccountBadges address={fromAddress} labels={accountLabels} size="sm" />
-                              {fromAddress === account.id ? (
+                              {fromAddress === accountId ? (
                                 <span className="text-[var(--text-muted)]">Self</span>
                               ) : (
                                 accountLabels[fromAddress]?.name || shortenAddress(fromAddress)
@@ -963,7 +990,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <AccountBadges address={toAddress} labels={accountLabels} size="sm" />
-                                {toAddress === account.id ? (
+                                {toAddress === accountId ? (
                                   <span className="text-[var(--text-muted)]">Self</span>
                                 ) : (
                                   accountLabels[toAddress]?.name || shortenAddress(toAddress)
@@ -1132,15 +1159,15 @@ export default function AccountDesktopView({ account, transactions, operations: 
                     <div className="bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-default)] divide-y divide-[var(--border-default)]">
                       <div className="flex justify-between px-4 py-4">
                         <span className="text-sm text-[var(--text-secondary)]">Low Threshold</span>
-                        <span className="text-sm font-medium text-[var(--text-primary)]">{account.thresholds.low_threshold}</span>
+                        <span className="text-sm font-medium text-[var(--text-primary)]">{account?.thresholds.low_threshold}</span>
                       </div>
                       <div className="flex justify-between px-4 py-4">
                         <span className="text-sm text-[var(--text-secondary)]">Medium Threshold</span>
-                        <span className="text-sm font-medium text-[var(--text-primary)]">{account.thresholds.med_threshold}</span>
+                        <span className="text-sm font-medium text-[var(--text-primary)]">{account?.thresholds.med_threshold}</span>
                       </div>
                       <div className="flex justify-between px-4 py-4">
                         <span className="text-sm text-[var(--text-secondary)]">High Threshold</span>
-                        <span className="text-sm font-medium text-[var(--text-primary)]">{account.thresholds.high_threshold}</span>
+                        <span className="text-sm font-medium text-[var(--text-primary)]">{account?.thresholds.high_threshold}</span>
                       </div>
                     </div>
                   </div>
@@ -1149,7 +1176,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                   <div>
                     <h3 className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider font-medium mb-3">Flags</h3>
                     <div className="bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-default)] divide-y divide-[var(--border-default)]">
-                      {Object.entries(account.flags).map(([flag, enabled]) => (
+                      {Object.entries(account?.flags || {}).map(([flag, enabled]) => (
                         <div key={flag} className="flex justify-between px-4 py-4">
                           <span className="text-sm text-[var(--text-secondary)] capitalize">{flag.replace('auth_', '').replace(/_/g, ' ')}</span>
                           <span className={`text-sm font-medium ${enabled ? 'text-emerald-600' : 'text-[var(--text-muted)]'}`}>
@@ -1162,7 +1189,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
 
                   {/* Signers */}
                   <div className="md:col-span-2">
-                    <h3 className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider font-medium mb-3">Signers ({account.signers.length})</h3>
+                    <h3 className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider font-medium mb-3">Signers ({account?.signers.length || 0})</h3>
                     <div className="bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-default)] overflow-hidden">
                       <table className="w-full sc-table">
                         <thead>
@@ -1173,7 +1200,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--border-default)]">
-                          {account.signers.map((signer, idx) => (
+                          {(account?.signers || []).map((signer, idx) => (
                             <tr key={idx}>
                               <td className="px-4 py-3">
                                 <Link
@@ -1197,11 +1224,11 @@ export default function AccountDesktopView({ account, transactions, operations: 
                     <h3 className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider font-medium mb-3">Sponsorship Info</h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-default)] p-4 text-center">
-                        <div className="text-2xl font-bold text-emerald-600">{account.num_sponsoring}</div>
+                        <div className="text-2xl font-bold text-emerald-600">{account?.num_sponsoring}</div>
                         <div className="text-xs text-[var(--text-tertiary)] mt-1">Sponsoring</div>
                       </div>
                       <div className="bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-default)] p-4 text-center">
-                        <div className="text-2xl font-bold text-violet-600">{account.num_sponsored}</div>
+                        <div className="text-2xl font-bold text-violet-600">{account?.num_sponsored}</div>
                         <div className="text-xs text-[var(--text-tertiary)] mt-1">Sponsored</div>
                       </div>
                     </div>
@@ -1231,7 +1258,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
             <div className="flex justify-center mb-4">
               <div className="bg-white p-4 rounded-lg border border-[var(--border-default)]">
                 <QRCodeSVG
-                  value={account.id}
+                  value={accountId}
                   size={180}
                   level="H"
                   bgColor="#ffffff"
@@ -1242,13 +1269,13 @@ export default function AccountDesktopView({ account, transactions, operations: 
 
             <div className="bg-[var(--bg-tertiary)] rounded-lg p-3 mb-4 border border-[var(--border-default)]">
               <p className="text-xs text-[var(--text-muted)] mb-1 font-medium uppercase">Address</p>
-              <p className="text-xs font-mono text-[var(--text-secondary)] break-all">{account.id}</p>
+              <p className="text-xs font-mono text-[var(--text-secondary)] break-all">{accountId}</p>
             </div>
 
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(account.id);
+                  navigator.clipboard.writeText(accountId);
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
                 }}
@@ -1286,7 +1313,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
               <h3 className="text-lg font-bold text-[var(--text-primary)]">
                 {isCurrentFavorite ? 'Edit Favorite' : 'Add to Favorites'}
               </h3>
-              <p className="text-xs text-[var(--text-tertiary)] mt-1 font-mono">{shortenAddress(account.id)}</p>
+              <p className="text-xs text-[var(--text-tertiary)] mt-1 font-mono">{shortenAddress(accountId)}</p>
             </div>
 
             <div className="mb-4">
@@ -1307,7 +1334,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                 <>
                   <button
                     onClick={() => {
-                      updateFavoriteLabel(account.id, favoriteLabel);
+                      updateFavoriteLabel(accountId, favoriteLabel);
                       setShowFavoriteModal(false);
                     }}
                     className="flex-1 py-2.5 rounded-lg bg-amber-500 text-white font-medium text-sm hover:bg-amber-600 transition-colors"
@@ -1316,7 +1343,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
                   </button>
                   <button
                     onClick={() => {
-                      removeFavorite(account.id);
+                      removeFavorite(accountId);
                       setFavoriteLabel('');
                       setShowFavoriteModal(false);
                     }}
@@ -1328,7 +1355,7 @@ export default function AccountDesktopView({ account, transactions, operations: 
               ) : (
                 <button
                   onClick={() => {
-                    addFavorite(account.id, favoriteLabel || undefined);
+                    addFavorite(accountId, favoriteLabel || undefined);
                     setFavoriteLabel('');
                     setShowFavoriteModal(false);
                   }}
