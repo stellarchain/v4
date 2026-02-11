@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { shortenAddress, timeAgo } from '@/lib/stellar';
 import { StrKey } from '@stellar/stellar-sdk';
 import ContractsDesktopView from '@/components/desktop/ContractsDesktopView';
 import GliderTabs from '@/components/ui/GliderTabs';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 type ContractFilter = 'all' | 'verified' | 'token' | 'active';
 
@@ -65,18 +66,27 @@ interface ContractsClientProps {
   };
   categories: Category[];
   pagination: PaginationInfo;
+  loading?: boolean;
 }
 
 // Verified contracts data for client-side enrichment
 import verifiedContracts from '@/data/verified-contracts.json';
 
-export default function ContractsClient({ contracts: initialContracts, stats, categories, pagination: initialPagination }: ContractsClientProps) {
+export default function ContractsClient({ contracts: initialContracts, stats, categories, pagination: initialPagination, loading = false }: ContractsClientProps) {
   const [contracts, setContracts] = useState<EnhancedContract[]>(initialContracts);
   const [pagination, setPagination] = useState(initialPagination);
   const [filter, setFilter] = useState<ContractFilter>('all');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'activity' | 'name' | 'recent'>('recent');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setContracts(initialContracts);
+  }, [initialContracts]);
+
+  useEffect(() => {
+    setPagination(initialPagination);
+  }, [initialPagination]);
 
   // Fetch contracts for a specific page
   const fetchPage = useCallback(async (page: number) => {
@@ -183,6 +193,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
           stats={stats}
           categories={categories}
           pagination={initialPagination}
+          loading={loading}
         />
       </div>
 
@@ -198,7 +209,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
                   Smart Contracts
                 </span>
                 <span className="text-[10px] font-bold text-[var(--text-muted)] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded">
-                  {pagination.total.toLocaleString()}
+                  {loading ? <InlineSkeleton width="w-12" height="h-3" /> : pagination.total.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -230,7 +241,40 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
           )}
 
           {/* Mobile List View - Individual Cards */}
-          {filteredContracts.length === 0 ? (
+          {loading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <div
+                  key={`contract-mobile-skeleton-${idx}`}
+                  className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-3 py-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-start space-x-3">
+                      <div className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-bold leading-tight text-[var(--primary-blue)]">
+                          Contract
+                        </span>
+                        <span className="text-xs text-[var(--text-muted)] font-medium font-mono mt-0.5 flex items-center gap-1">
+                          <InlineSkeleton width="w-20" height="h-3" />
+                          <span className="text-[var(--text-muted)]">•</span>
+                          <span className="text-[9px] font-bold uppercase text-[var(--text-muted)]">Type</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-xs font-bold text-[var(--text-primary)]">
+                        <InlineSkeleton width="w-14" height="h-3" />
+                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)] mt-1">
+                        <InlineSkeleton width="w-12" height="h-3" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredContracts.length === 0 ? (
             <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4 text-center text-[var(--text-muted)] italic text-sm">
               No contracts found
             </div>
@@ -311,7 +355,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
             <div className="mt-4 flex items-center justify-center gap-2">
               <button
                 onClick={() => fetchPage(pagination.currentPage - 1)}
-                disabled={pagination.currentPage === 1 || isLoading}
+                disabled={pagination.currentPage === 1 || isLoading || loading}
                 className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -325,7 +369,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
 
               <button
                 onClick={() => fetchPage(pagination.currentPage + 1)}
-                disabled={pagination.currentPage === pagination.totalPages || isLoading}
+                disabled={pagination.currentPage === pagination.totalPages || isLoading || loading}
                 className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -104,10 +104,13 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   // Main page tab state
   const [activeTab, setActiveTab] = useState<'overview' | 'trades' | 'markets' | 'holders' | 'convert'>('overview');
 
-  // Asset holders state - pre-fetched on page load
-  const [allHolders, setAllHolders] = useState<AssetHolder[]>([]); // Full sorted list
-  const [displayedHoldersCount, setDisplayedHoldersCount] = useState(20); // How many to show
-  const [holdersLoading, setHoldersLoading] = useState(true); // Loading all holders
+  // Asset holders state - lazy-loaded on Holders tab
+  const [allHolders, setAllHolders] = useState<AssetHolder[]>([]);
+  const [displayedHoldersCount, setDisplayedHoldersCount] = useState(20);
+  const [holdersLoading, setHoldersLoading] = useState(false);
+  const [loadingMoreHolders, setLoadingMoreHolders] = useState(false);
+  const [holdersCursor, setHoldersCursor] = useState<string | null>(null);
+  const [hasMoreHolders, setHasMoreHolders] = useState(true);
   const [holdersTotalSupply, setHoldersTotalSupply] = useState(0);
   const [holderLabels, setHolderLabels] = useState<Map<string, AccountLabel>>(new Map());
   const holdersEndRef = useRef<HTMLDivElement>(null);
@@ -383,52 +386,79 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     setNavigatingTradeId(null);
   };
 
-  // Pre-fetch ALL asset holders on page load (runs in background)
+  // Fetch first holders page only when Holders tab is opened
   useEffect(() => {
+    if (activeTab !== 'holders' || allHolders.length > 0) return;
+
     if (!asset.issuer && asset.code !== 'XLM') {
       setHoldersLoading(false);
       return;
     }
 
-    const fetchAllHolders = async () => {
+    const fetchInitialHolders = async () => {
       setHoldersLoading(true);
-      const allFetched: AssetHolder[] = [];
-      let cursor: string | undefined;
-      const maxPages = 25; // Fetch up to 500 holders (25 pages × 20)
-      let pageCount = 0;
-
       try {
-        while (pageCount < maxPages) {
-          const data = asset.code === 'XLM'
-            ? await getXLMHoldersAction(20, cursor)
-            : await getAssetHolders(asset.code, asset.issuer || '', 20, cursor);
+        const data = asset.code === 'XLM'
+          ? await getXLMHoldersAction(20)
+          : await getAssetHolders(asset.code, asset.issuer || '', 20);
 
-          allFetched.push(...data.holders);
+        const initialHolders = [...data.holders].sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance));
+        setAllHolders(initialHolders);
+        setDisplayedHoldersCount(20);
+        setHoldersCursor(data.nextCursor || null);
+        setHasMoreHolders(!!data.nextCursor);
+        setHoldersTotalSupply(asset.total_supply || initialHolders.reduce((sum, h) => sum + parseFloat(h.balance), 0));
 
-          if (!data.nextCursor) break; // No more pages
-          cursor = data.nextCursor;
-          pageCount++;
+        if (initialHolders.length > 0) {
+          const topHolderAddresses = initialHolders.slice(0, 100).map(h => h.account_id);
+          const labels = await getAccountLabels(topHolderAddresses);
+          setHolderLabels(labels);
         }
-
-        // Sort all holders by balance descending
-        allFetched.sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance));
-        setAllHolders(allFetched);
-        setHoldersTotalSupply(asset.total_supply || allFetched.reduce((sum, h) => sum + parseFloat(h.balance), 0));
-
-        // Fetch labels for top holders (first 100)
-        const topHolderAddresses = allFetched.slice(0, 100).map(h => h.account_id);
-        const labels = await getAccountLabels(topHolderAddresses);
-        setHolderLabels(labels);
       } catch (e) {
         console.error('Failed to fetch holders', e);
       }
       setHoldersLoading(false);
     };
 
-    fetchAllHolders();
-  }, [asset]);
+    fetchInitialHolders();
+  }, [activeTab, allHolders.length, asset]);
 
-  // Show more holders (just increases the display count from pre-loaded list)
+  const loadMoreHolders = useCallback(async () => {
+    if (loadingMoreHolders || !hasMoreHolders || !holdersCursor) return;
+
+    setLoadingMoreHolders(true);
+    try {
+      const data = asset.code === 'XLM'
+        ? await getXLMHoldersAction(20, holdersCursor)
+        : await getAssetHolders(asset.code, asset.issuer || '', 20, holdersCursor);
+
+      if (data.holders.length > 0) {
+        const merged = [...allHolders, ...data.holders];
+        merged.sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance));
+        setAllHolders(merged);
+        setDisplayedHoldersCount(prev => Math.min(prev + 20, merged.length));
+        setHoldersCursor(data.nextCursor || null);
+        setHasMoreHolders(!!data.nextCursor);
+
+        const addresses = data.holders.map(h => h.account_id);
+        if (addresses.length > 0) {
+          const labels = await getAccountLabels(addresses);
+          setHolderLabels(prev => {
+            const next = new Map(prev);
+            labels.forEach((value, key) => next.set(key, value));
+            return next;
+          });
+        }
+      } else {
+        setHasMoreHolders(false);
+      }
+    } catch (e) {
+      console.error('Failed to load more holders', e);
+    }
+    setLoadingMoreHolders(false);
+  }, [allHolders, asset.code, asset.issuer, hasMoreHolders, holdersCursor, loadingMoreHolders]);
+
+  // Show more holders from already-loaded pages
   const showMoreHolders = useCallback(() => {
     setDisplayedHoldersCount(prev => Math.min(prev + 20, allHolders.length));
   }, [allHolders.length]);
@@ -436,14 +466,19 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   // Infinite scroll observer for holders - just shows more from pre-loaded list
   useEffect(() => {
     if (activeTab !== 'holders') return;
-    if (displayedHoldersCount >= allHolders.length) return; // All shown
     if (!holdersEndRef.current) return;
 
     const currentRef = holdersEndRef.current;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          showMoreHolders();
+          if (displayedHoldersCount < allHolders.length) {
+            showMoreHolders();
+            return;
+          }
+          if (hasMoreHolders && !loadingMoreHolders) {
+            loadMoreHolders();
+          }
         }
       },
       { threshold: 0.1, rootMargin: '200px' }
@@ -451,7 +486,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
     observer.observe(currentRef);
     return () => observer.disconnect();
-  }, [displayedHoldersCount, allHolders.length, activeTab, showMoreHolders]);
+  }, [displayedHoldersCount, allHolders.length, activeTab, showMoreHolders, hasMoreHolders, loadingMoreHolders, loadMoreHolders]);
 
   // Pre-fetch trading pairs/markets on page load
   useEffect(() => {
@@ -1396,8 +1431,12 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 })}
 
                 {/* Infinite scroll trigger */}
-                {displayedHoldersCount < allHolders.length && (
+                {(displayedHoldersCount < allHolders.length || hasMoreHolders) && (
                   <div ref={holdersEndRef} className="h-1" />
+                )}
+
+                {loadingMoreHolders && (
+                  <div className="py-3 text-center text-xs text-[var(--text-muted)]">Loading more holders...</div>
                 )}
               </>
             ) : (
