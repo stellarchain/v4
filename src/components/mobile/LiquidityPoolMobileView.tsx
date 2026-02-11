@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { LiquidityPool, Operation, Transaction, LiquidityPoolTrade, LiquidityPoolEffect, shortenAddress, timeAgo, enrichTradesWithTransactionHashes } from '@/lib/stellar';
 import GliderTabs from '@/components/ui/GliderTabs';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface LiquidityPoolMobileViewProps {
     pool: LiquidityPool;
@@ -11,9 +12,16 @@ interface LiquidityPoolMobileViewProps {
     transactions: Transaction[];
     trades: LiquidityPoolTrade[];
     effects: LiquidityPoolEffect[];
+    loading?: boolean;
+    loadingSections?: {
+        operations?: boolean;
+        transactions?: boolean;
+        trades?: boolean;
+        effects?: boolean;
+    };
 }
 
-export default function LiquidityPoolMobileView({ pool, operations, transactions, trades: initialTrades, effects }: LiquidityPoolMobileViewProps) {
+export default function LiquidityPoolMobileView({ pool, operations, transactions, trades: initialTrades, effects, loading = false, loadingSections = {} }: LiquidityPoolMobileViewProps) {
     const [activeTab, setActiveTab] = useState<'transactions' | 'operations' | 'trades' | 'effects'>('trades');
     const [copied, setCopied] = useState(false);
     const [trades, setTrades] = useState<LiquidityPoolTrade[]>(initialTrades);
@@ -36,6 +44,10 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                 setLoadingTxHashes(false);
             });
     }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        setTrades(initialTrades);
+    }, [initialTrades]);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(pool.id);
@@ -80,6 +92,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
     const amountA = parseFloat(assetA.amount);
     const amountB = parseFloat(assetB.amount);
     const priceRatio = amountA > 0 ? (amountB / amountA).toFixed(4) : '0';
+    const areTabCountsLoading = loadingSections.operations || loadingSections.transactions || loadingSections.trades || loadingSections.effects;
 
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -103,10 +116,30 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
     };
 
     const tabs = [
-        { id: 'trades', label: 'Trades', count: trades.length },
-        { id: 'effects', label: 'Effects', count: effects.length },
-        { id: 'transactions', label: 'Transactions', count: transactions.length },
-        { id: 'operations', label: 'Operations', count: operations.length },
+        {
+            id: 'trades',
+            label: 'Trades',
+            right: areTabCountsLoading ? <InlineSkeleton width="w-6" height="h-4" /> : undefined,
+            count: areTabCountsLoading ? undefined : trades.length
+        },
+        {
+            id: 'effects',
+            label: 'Effects',
+            right: areTabCountsLoading ? <InlineSkeleton width="w-6" height="h-4" /> : undefined,
+            count: areTabCountsLoading ? undefined : effects.length
+        },
+        {
+            id: 'transactions',
+            label: 'Transactions',
+            right: areTabCountsLoading ? <InlineSkeleton width="w-6" height="h-4" /> : undefined,
+            count: areTabCountsLoading ? undefined : transactions.length
+        },
+        {
+            id: 'operations',
+            label: 'Operations',
+            right: areTabCountsLoading ? <InlineSkeleton width="w-6" height="h-4" /> : undefined,
+            count: areTabCountsLoading ? undefined : operations.length
+        },
     ] as const;
 
     return (
@@ -157,7 +190,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                         {codeA} / {codeB}
                     </span>
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-                        Fee {(pool.fee_bp / 100).toFixed(2)}%
+                        Fee {loading ? <InlineSkeleton width="w-8" height="h-3" /> : `${(pool.fee_bp / 100).toFixed(2)}%`}
                     </span>
                     <button
                         onClick={handleCopy}
@@ -177,7 +210,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                         </div>
                         <div className="text-right">
                             <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Trustlines</div>
-                            <div className="text-base font-bold text-[var(--text-primary)] mt-1">{pool.total_trustlines}</div>
+                            <div className="text-base font-bold text-[var(--text-primary)] mt-1">{loading ? <InlineSkeleton width="w-10" /> : pool.total_trustlines}</div>
                         </div>
                     </div>
 
@@ -186,7 +219,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                         {/* Asset A */}
                         <div className="flex items-center justify-between">
                             <span className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Reserve A</span>
-                            <span className="text-base font-bold text-[var(--text-primary)] font-mono">{formatAmount(assetA.amount)} <span className="text-sm text-[var(--text-muted)]">{codeA}</span></span>
+                            <span className="text-base font-bold text-[var(--text-primary)] font-mono">{loading ? <InlineSkeleton width="w-16" /> : <>{formatAmount(assetA.amount)} <span className="text-sm text-[var(--text-muted)]">{codeA}</span></>}</span>
                         </div>
 
                         {/* Divider */}
@@ -195,7 +228,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                         {/* Asset B */}
                         <div className="flex items-center justify-between">
                             <span className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Reserve B</span>
-                            <span className="text-base font-bold text-[var(--text-primary)] font-mono">{formatAmount(assetB.amount)} <span className="text-sm text-[var(--text-muted)]">{codeB}</span></span>
+                            <span className="text-base font-bold text-[var(--text-primary)] font-mono">{loading ? <InlineSkeleton width="w-16" /> : <>{formatAmount(assetB.amount)} <span className="text-sm text-[var(--text-muted)]">{codeB}</span></>}</span>
                         </div>
                     </div>
 
@@ -203,7 +236,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                     <div className="mt-4 pt-4 border-t border-[var(--border-default)]/50">
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-[var(--text-muted)]">Exchange Rate</span>
-                            <span className="text-sm font-mono font-semibold" style={{ color: primaryColor }}>1 {codeA} = {formatFullAmount(priceRatio)} {codeB}</span>
+                            <span className="text-sm font-mono font-semibold" style={{ color: primaryColor }}>{loading ? <InlineSkeleton width="w-24" /> : `1 ${codeA} = ${formatFullAmount(priceRatio)} ${codeB}`}</span>
                         </div>
                     </div>
                 </div>
@@ -211,19 +244,22 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                 {/* Tabs - Glider Style */}
                 <GliderTabs
                   className="mt-3 mb-1"
-                  tabs={[
-                    { id: 'trades', label: 'Trades' },
-                    { id: 'effects', label: 'Effects' },
-                    { id: 'transactions', label: 'Transactions' },
-                    { id: 'operations', label: 'Operations' },
-                  ]}
+                  tabs={tabs}
                   activeId={activeTab}
                   onChange={setActiveTab}
                 />
 
                 {activeTab === 'transactions' && (
                     <div className="space-y-2 mt-2">
-                        {transactions.length === 0 ? (
+                        {loadingSections.transactions ? (
+                            <div className="space-y-2">
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={`tx-skeleton-${i}`} className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3">
+                                        <div className="h-8 rounded bg-[var(--bg-tertiary)] animate-pulse" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : transactions.length === 0 ? (
                             <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 text-center text-[var(--text-muted)] text-sm">
                                 No transactions found
                             </div>
@@ -249,7 +285,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="text-sm font-semibold text-[var(--text-primary)] truncate">
-                                                    {shortenAddress(tx.hash, 8)}
+                                                    {shortenAddress(tx.hash)}
                                                 </div>
                                                 <div className="text-[11px] text-[var(--text-muted)]">
                                                     {tx.operation_count} operation{tx.operation_count !== 1 ? 's' : ''}
@@ -271,7 +307,15 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
 
                 {activeTab === 'trades' && (
                     <div className="space-y-2 mt-2">
-                        {trades.length === 0 ? (
+                        {loadingSections.trades ? (
+                            <div className="space-y-2">
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={`trades-skeleton-${i}`} className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3">
+                                        <div className="h-8 rounded bg-[var(--bg-tertiary)] animate-pulse" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : trades.length === 0 ? (
                             <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 text-center text-[var(--text-muted)] text-sm">
                                 No trades found
                             </div>
@@ -316,7 +360,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                                     {account && (
                                                         <>
                                                             <span className="mx-1.5">·</span>
-                                                            <span className="font-mono">{shortenAddress(account, 4)}</span>
+                                                            <span className="font-mono">{shortenAddress(account)}</span>
                                                         </>
                                                     )}
                                                 </div>
@@ -343,7 +387,15 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
 
                 {activeTab === 'effects' && (
                     <div className="space-y-2 mt-2">
-                        {effects.length === 0 ? (
+                        {loadingSections.effects ? (
+                            <div className="space-y-2">
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={`effects-skeleton-${i}`} className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3">
+                                        <div className="h-8 rounded bg-[var(--bg-tertiary)] animate-pulse" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : effects.length === 0 ? (
                             <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 text-center text-[var(--text-muted)] text-sm">
                                 No effects found
                             </div>
@@ -390,7 +442,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                                             href={`/account/${effect.account}`}
                                                             className="font-mono hover:text-[var(--primary-blue)]"
                                                         >
-                                                            {shortenAddress(effect.account, 4)}
+                                                            {shortenAddress(effect.account)}
                                                         </Link>
                                                     </div>
                                                 </div>
@@ -405,7 +457,15 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
 
                 {activeTab === 'operations' && (
                     <div className="space-y-2 mt-2">
-                        {operations.length === 0 ? (
+                        {loadingSections.operations ? (
+                            <div className="space-y-2">
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={`operations-skeleton-${i}`} className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3">
+                                        <div className="h-8 rounded bg-[var(--bg-tertiary)] animate-pulse" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : operations.length === 0 ? (
                             <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 text-center text-[var(--text-muted)] text-sm">
                                 No operations found
                             </div>
@@ -430,7 +490,7 @@ export default function LiquidityPoolMobileView({ pool, operations, transactions
                                                 <div className="text-[11px] text-[var(--text-muted)]">
                                                     {timeAgo(op.created_at)}
                                                     <span className="mx-1.5">·</span>
-                                                    <span className="font-mono">{shortenAddress(op.source_account, 4)}</span>
+                                                    <span className="font-mono">{shortenAddress(op.source_account)}</span>
                                                 </div>
                                             </div>
                                         </div>

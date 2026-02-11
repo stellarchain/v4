@@ -1,12 +1,32 @@
+'use client';
 
-import { fetchProjects } from '@/lib/projects';
+import { useEffect, useState } from 'react';
+import { fetchProjects, Project } from '@/lib/projects';
 import ProjectList from '@/components/ProjectList';
 import Badge from '@/components/ui/Badge';
 
-export const revalidate = 3600;
+export default function ProjectsPage() {
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [loading, setLoading] = useState(true);
 
-export default async function ProjectsPage() {
-    const projects = await fetchProjects();
+    useEffect(() => {
+        fetchProjects()
+            .then((data) => {
+                setProjects(data);
+                setLoading(false);
+            })
+            .catch(() => {
+                setLoading(false);
+            });
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-8">
+                <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-4">

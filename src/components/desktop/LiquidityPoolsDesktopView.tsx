@@ -4,9 +4,11 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { LiquidityPool, PaginatedResponse, shortenAddress, getBaseUrl } from '@/lib/stellar';
 import { useNetwork } from '@/contexts/NetworkContext';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface LiquidityPoolsDesktopViewProps {
     initialPools: PaginatedResponse<LiquidityPool>;
+    loading?: boolean;
 }
 
 const PAGE_SIZE = 25;
@@ -113,17 +115,26 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
     );
 };
 
-export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoolsDesktopViewProps) {
+export default function LiquidityPoolsDesktopView({ initialPools, loading = false }: LiquidityPoolsDesktopViewProps) {
     const { network } = useNetwork();
 
     const [pools, setPools] = useState<LiquidityPool[]>(initialPools._embedded.records);
-    const [isInitialLoading, setIsInitialLoading] = useState(false);
+    const isInitialLoading = loading;
     const [currentPage, setCurrentPage] = useState(1);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [oldestCursor, setOldestCursor] = useState<string | null>(initialPools._links.next?.href || null);
     const [hasMore, setHasMore] = useState(!!initialPools._links.next?.href);
     const [searchQuery, setSearchQuery] = useState('');
     const seenIdsRef = useRef<Set<string>>(new Set(initialPools._embedded.records.map(p => p.id)));
+
+    useEffect(() => {
+        const incomingPools = initialPools._embedded.records;
+        setPools(incomingPools);
+        setOldestCursor(initialPools._links.next?.href || null);
+        setHasMore(!!initialPools._links.next?.href);
+        setCurrentPage(1);
+        seenIdsRef.current = new Set(incomingPools.map(p => p.id));
+    }, [initialPools]);
 
     const fetchMoreIfNeeded = useCallback(async (targetPage: number) => {
         const neededItems = targetPage * PAGE_SIZE;
@@ -254,15 +265,15 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                         <div className="flex gap-3 flex-wrap">
                             <div className="p-3 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] min-w-[90px]">
                                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Pools</div>
-                                <div className="text-lg font-bold text-[var(--text-primary)]">{stats.total.toLocaleString()}</div>
+                                <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-12" /> : stats.total.toLocaleString()}</div>
                             </div>
                             <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800/50 min-w-[100px]">
                                 <div className="text-[9px] font-bold text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-1">Total Shares</div>
-                                <div className="text-lg font-bold text-violet-700 dark:text-violet-400">{formatShares(stats.totalShares.toString())}</div>
+                                <div className="text-lg font-bold text-violet-700 dark:text-violet-400">{loading ? <InlineSkeleton width="w-16" /> : formatShares(stats.totalShares.toString())}</div>
                             </div>
                             <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[100px]">
                                 <div className="text-[9px] font-bold text-sky-700 dark:text-sky-400 uppercase tracking-widest mb-1">Liquidity</div>
-                                <div className="text-lg font-bold text-sky-700 dark:text-sky-400">{formatAmount(stats.totalLiquidity.toString())}</div>
+                                <div className="text-lg font-bold text-sky-700 dark:text-sky-400">{loading ? <InlineSkeleton width="w-16" /> : formatAmount(stats.totalLiquidity.toString())}</div>
                             </div>
                         </div>
                     </div>
@@ -296,7 +307,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                         )}
                     </div>
                     <div className="flex items-center gap-2 text-xs text-[var(--text-tertiary)]">
-                        <span className="font-medium">{filteredPools.length}</span>
+                        <span className="font-medium">{loading ? <InlineSkeleton width="w-8" height="h-3" /> : filteredPools.length}</span>
                         <span>pools found</span>
                     </div>
                 </div>
@@ -362,7 +373,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                                             {codeA} / {codeB}
                                                         </Link>
                                                         <div className="text-[10px] text-[var(--text-muted)] font-mono">
-                                                            {shortenAddress(pool.id, 6)}
+                                                            {shortenAddress(pool.id)}
                                                         </div>
                                                     </div>
                                                 </td>
@@ -374,7 +385,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                                     </div>
                                                     <div className="text-[10px] text-[var(--text-muted)]">{codeA}</div>
                                                     {issuerA && (
-                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerA, 3)}</div>
+                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerA)}</div>
                                                     )}
                                                 </td>
 
@@ -385,7 +396,7 @@ export default function LiquidityPoolsDesktopView({ initialPools }: LiquidityPoo
                                                     </div>
                                                     <div className="text-[10px] text-[var(--text-muted)]">{codeB}</div>
                                                     {issuerB && (
-                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerB, 3)}</div>
+                                                        <div className="text-[9px] text-[var(--text-muted)] font-mono">{shortenAddress(issuerB)}</div>
                                                     )}
                                                 </td>
 

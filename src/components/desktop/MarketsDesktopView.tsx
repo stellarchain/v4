@@ -6,10 +6,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { assetRoute } from '@/lib/routes';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface MarketsDesktopViewProps {
   initialAssets: MarketAsset[];
   xlmPrice: number;
+  loading?: boolean;
 }
 
 type SortField = 'rank' | 'market_cap' | 'price_usd' | 'change_24h' | 'change_7d' | 'volume_24h';
@@ -125,7 +127,7 @@ function getAssetUrl(asset: MarketAsset): string {
   return assetRoute(asset.code, asset.issuer);
 }
 
-export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsDesktopViewProps) {
+export default function MarketsDesktopView({ initialAssets, xlmPrice, loading = false }: MarketsDesktopViewProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('market_cap');
@@ -241,15 +243,15 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
             <div className="flex gap-3">
               <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[110px]">
                 <div className="text-[9px] font-bold text-sky-700 dark:text-sky-400 uppercase tracking-widest mb-1">Market Cap</div>
-                <div className="text-lg font-bold text-sky-700 dark:text-sky-400">{formatLargeNumber(marketTotals.totalMarketCap)}</div>
+                <div className="text-lg font-bold text-sky-700 dark:text-sky-400">{loading ? <InlineSkeleton width="w-20" /> : formatLargeNumber(marketTotals.totalMarketCap)}</div>
               </div>
               <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[110px]">
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Volume 24h</div>
-                <div className="text-lg font-bold text-[var(--text-primary)]">{formatLargeNumber(marketTotals.totalVolume)}</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-20" /> : formatLargeNumber(marketTotals.totalVolume)}</div>
               </div>
               <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Assets</div>
-                <div className="text-lg font-bold text-[var(--text-primary)]">{marketTotals.totalAssets}</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-10" /> : marketTotals.totalAssets}</div>
               </div>
             </div>
           </div>
@@ -272,7 +274,7 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
           </div>
 
           <div className="text-sm text-[var(--text-muted)]">
-            Showing {filteredAndSortedAssets.length} assets
+            {loading ? <InlineSkeleton width="w-32" /> : <>Showing {filteredAndSortedAssets.length} assets</>}
           </div>
         </div>
 
@@ -296,7 +298,22 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]">
-              {filteredAndSortedAssets.map((asset, index) => {
+              {loading ? (
+                Array.from({ length: 10 }).map((_, index) => (
+                  <tr key={`skeleton-${index}`}>
+                    <td className="py-3 px-3"><InlineSkeleton width="w-4" /></td>
+                    <td className="py-3 px-3"><InlineSkeleton width="w-6" /></td>
+                    <td className="py-3 px-3"><InlineSkeleton width="w-36" /></td>
+                    <td className="py-3 px-3 text-right"><InlineSkeleton width="w-20" /></td>
+                    <td className="py-3 px-3 text-right"><InlineSkeleton width="w-14" /></td>
+                    <td className="py-3 px-3 text-right"><InlineSkeleton width="w-14" /></td>
+                    <td className="py-3 px-3 text-right"><InlineSkeleton width="w-20" /></td>
+                    <td className="py-3 px-3 text-right"><InlineSkeleton width="w-20" /></td>
+                    <td className="py-3 px-3 text-right"><InlineSkeleton width="w-16" /></td>
+                    <td className="py-3 px-3 text-right"><InlineSkeleton width="w-24" /></td>
+                  </tr>
+                ))
+              ) : filteredAndSortedAssets.map((asset, index) => {
                 const assetId = `${asset.code}-${asset.issuer || 'native'}`;
                 const isFavorite = favorites.has(assetId);
                 const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
@@ -400,7 +417,7 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice }: MarketsD
         </div>
 
         {/* Empty State */}
-        {filteredAndSortedAssets.length === 0 && (
+        {!loading && filteredAndSortedAssets.length === 0 && (
           <div className="text-center py-16 bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
             <div className="w-14 h-14 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-7 h-7 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

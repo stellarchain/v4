@@ -9,6 +9,7 @@ import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
 import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isMintEventData, isBurnEventData, isApproveEventData, isCustomEventData, CustomEventData } from '@/lib/eventParser';
 import { ContractStorageResult } from '@/lib/contractStorage';
 import GliderTabs from '@/components/ui/GliderTabs';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface Operation {
   id: string;
@@ -54,14 +55,22 @@ interface ContractData {
   eventSummary?: EventSummary | null;
   storage?: ContractStorageResult | null;
   invocations?: ContractInvocation[];
+  spec?: unknown;
+  _loading?: {
+    events?: boolean;
+    invocations?: boolean;
+    storage?: boolean;
+    spec?: boolean;
+  };
 }
 
 interface ContractDesktopViewProps {
   contract: ContractData;
   operations: Operation[];
+  onTabChange?: (tabId: 'overview' | 'history' | 'events' | 'storage') => void;
 }
 
-export default function ContractDesktopView({ contract, operations }: ContractDesktopViewProps) {
+export default function ContractDesktopView({ contract, operations, onTabChange }: ContractDesktopViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'events' | 'storage' | 'history'>('overview');
   const [expandedStorageRows, setExpandedStorageRows] = useState<Set<number>>(new Set());
   const [copied, setCopied] = useState(false);
@@ -83,6 +92,12 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
   const isToken = contract.type === 'token' || contract.type === 'lending';
   const isNFT = contract.type === 'nft';
   const isVault = contract.type === 'vault';
+  const sectionLoading = contract._loading || {};
+
+  const handleTabChange = (tabId: 'overview' | 'history' | 'events' | 'storage') => {
+    setActiveTab(tabId);
+    onTabChange?.(tabId);
+  };
 
   // Get a meaningful display name for the contract
   const getContractDisplayName = (): string => {
@@ -212,7 +227,10 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
             {/* Contract Info */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-3">
-                <h1 className="text-lg font-semibold text-[var(--text-primary)]">
+                <h1
+                  className="text-lg font-semibold text-[var(--text-primary)] truncate max-w-[520px]"
+                  title={contractDisplayName}
+                >
                   {contractDisplayName}
                   {isToken && tokenInfo?.symbol && tokenInfo.name !== 'Unknown Token' && (
                     <span className="text-base font-medium text-[var(--text-muted)] ml-1.5">({tokenInfo.symbol})</span>
@@ -270,7 +288,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
               <button
                 type="button"
                 onClick={handleCopy}
-                className="group flex items-center gap-1.5 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-secondary)] mt-0.5"
+                className="group flex max-w-full items-center gap-1.5 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-secondary)] mt-0.5"
               >
                 <span className="truncate">{contract.id}</span>
                 <svg className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -368,7 +386,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                 <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Asset Address</div>
                   <div className="text-sm font-bold text-[var(--text-primary)] font-mono truncate" title={contract.vaultInfo.underlyingAsset}>
-                    {shortenAddress(contract.vaultInfo.underlyingAsset, 6)}
+                    {shortenAddress(contract.vaultInfo.underlyingAsset)}
                   </div>
                 </div>
                 <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
@@ -384,12 +402,12 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
               className="border-[var(--border-default)]"
               tabs={[
                 { id: 'overview', label: 'Overview' },
-                { id: 'history', label: 'History', count: contract.invocations?.length || 0, disabled: !contract.invocations || contract.invocations.length === 0 },
-                { id: 'events', label: 'Events', count: contract.events?.length || 0, disabled: !contract.events || contract.events.length === 0 },
-                { id: 'storage', label: 'Storage', count: contract.storage?.totalEntries || 0, disabled: !contract.storage || contract.storage.totalEntries <= 0 },
+                { id: 'history', label: 'History', count: sectionLoading.invocations ? undefined : (contract.invocations?.length || 0) },
+                { id: 'events', label: 'Events', count: sectionLoading.events ? undefined : (contract.events?.length || 0) },
+                { id: 'storage', label: 'Storage', count: sectionLoading.storage ? undefined : (contract.storage?.totalEntries || 0) },
               ] as const}
               activeId={activeTab as 'overview' | 'history' | 'events' | 'storage'}
-              onChange={(id) => setActiveTab(id)}
+              onChange={handleTabChange}
             />
 
             {/* Tab Content */}
@@ -407,10 +425,27 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                 <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                   <div className="flex items-center justify-between px-4 pt-4 pb-3">
                     <h3 className="text-sm font-bold text-[var(--text-primary)]">Recent Activity</h3>
-                    <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">{contract.events?.length || 0} events</span>
+                    <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
+                      {sectionLoading.events ? <InlineSkeleton width="w-12" height="h-3" /> : `${contract.events?.length || 0} events`}
+                    </span>
                   </div>
                   <div className="divide-y divide-[var(--border-subtle)]">
-                    {!contract.events || contract.events.length === 0 ? (
+                    {sectionLoading.events ? (
+                      Array.from({ length: 5 }).map((_, idx) => (
+                        <div key={`overview-events-skeleton-${idx}`} className="p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="h-8 w-8 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+                            <div className="flex-1 min-w-0">
+                              <InlineSkeleton width="w-28" />
+                              <div className="mt-2">
+                                <InlineSkeleton width="w-36" height="h-3" />
+                              </div>
+                            </div>
+                            <InlineSkeleton width="w-14" />
+                          </div>
+                        </div>
+                      ))
+                    ) : !contract.events || contract.events.length === 0 ? (
                       <div className="p-4 text-center text-sm text-[var(--text-muted)]">No recent activity found</div>
                     ) : (
                       contract.events.slice(0, 10).map((event, idx) => {
@@ -450,13 +485,13 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                 {isTransferEventData(event.data) && (
                                   <>
                                     <span className="text-[var(--text-muted)]">|</span>
-                                    <span className="font-mono">{shortenAddress(event.data.from, 4)} → {shortenAddress(event.data.to, 4)}</span>
+                                    <span className="font-mono">{shortenAddress(event.data.from)} → {shortenAddress(event.data.to)}</span>
                                   </>
                                 )}
                                 {customData?.account && (
                                   <>
                                     <span className="text-[var(--text-muted)]">|</span>
-                                    <span className="font-mono">{shortenAddress(customData.account, 4)}</span>
+                                    <span className="font-mono">{shortenAddress(customData.account)}</span>
                                   </>
                                 )}
                               </div>
@@ -482,7 +517,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                   </div>
                   {contract.events && contract.events.length > 10 && (
                     <button
-                      onClick={() => setActiveTab('events')}
+                      onClick={() => handleTabChange('events')}
                       className="w-full border-t border-[var(--border-subtle)] py-3 text-center text-xs font-bold text-sky-600 hover:bg-[var(--bg-tertiary)] transition-colors rounded-b-xl"
                     >
                       View All {contract.events.length} Events
@@ -498,7 +533,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                 <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">Transaction History</h3>
                   <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
-                    {contract.invocations?.length || 0} transactions
+                    {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${contract.invocations?.length || 0} transactions`}
                   </span>
                 </div>
                 <div className="overflow-x-auto">
@@ -510,7 +545,26 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--border-subtle)]">
-                      {!contract.invocations || contract.invocations.length === 0 ? (
+                      {sectionLoading.invocations ? (
+                        Array.from({ length: 6 }).map((_, idx) => (
+                          <tr key={`history-skeleton-${idx}`}>
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-9 w-9 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+                                <div className="min-w-0">
+                                  <InlineSkeleton width="w-44" />
+                                  <div className="mt-2">
+                                    <InlineSkeleton width="w-24" height="h-3" />
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 text-right">
+                              <InlineSkeleton width="w-28" />
+                            </td>
+                          </tr>
+                        ))
+                      ) : !contract.invocations || contract.invocations.length === 0 ? (
                         <tr>
                           <td colSpan={2} className="p-4 text-center text-sm text-[var(--text-muted)]">No transaction history found</td>
                         </tr>
@@ -536,7 +590,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                             const fn = invocation.functionName.toLowerCase();
                             const symbol = tokenInfo?.symbol || '';
                             const amount = displayAmount ? parseInt(displayAmount).toLocaleString() : '';
-                            const targetAddr = addressParams[0]?.decoded ? shortenAddress(addressParams[0].decoded, 4) : '';
+                            const targetAddr = addressParams[0]?.decoded ? shortenAddress(addressParams[0].decoded) : '';
 
                             switch (fn) {
                               case 'harvest':
@@ -584,7 +638,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
                                       <Link href={`/account/${invocation.sourceAccount}`} className="font-mono text-xs text-sky-600 hover:underline">
-                                        {shortenAddress(invocation.sourceAccount, 4)}
+                                        {shortenAddress(invocation.sourceAccount)}
                                       </Link>
                                       <span className="text-[var(--text-muted)] text-xs">invoked</span>
                                       <span className="font-mono text-sm font-bold text-indigo-600">
@@ -597,7 +651,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                       </div>
                                     )}
                                     <Link href={`/transaction/${invocation.txHash}`} className="font-mono text-[10px] text-[var(--text-muted)] hover:text-sky-600 hover:underline">
-                                      {shortenAddress(invocation.txHash, 6)}
+                                      {shortenAddress(invocation.txHash)}
                                     </Link>
                                   </div>
                                 </div>
@@ -630,11 +684,28 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                 <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract Events</h3>
                   <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
-                    {contract.events?.length || 0}
+                    {sectionLoading.events ? <InlineSkeleton width="w-10" height="h-3" /> : (contract.events?.length || 0)}
                   </span>
                 </div>
                 <div className="divide-y divide-[var(--border-subtle)]">
-                  {!contract.events || contract.events.length === 0 ? (
+                  {sectionLoading.events ? (
+                    Array.from({ length: 8 }).map((_, idx) => (
+                      <div key={`events-skeleton-${idx}`} className="p-4">
+                        <div className="flex items-start gap-4">
+                          <div className="h-8 w-8 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+                          <div className="flex-1 min-w-0">
+                            <InlineSkeleton width="w-20" />
+                            <div className="mt-2">
+                              <InlineSkeleton width="w-48" height="h-3" />
+                            </div>
+                            <div className="mt-2">
+                              <InlineSkeleton width="w-36" height="h-3" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : !contract.events || contract.events.length === 0 ? (
                     <div className="p-4 text-center text-sm text-[var(--text-muted)]">No events found</div>
                   ) : (
                     contract.events.map((event, idx) => {
@@ -687,13 +758,13 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">From:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.from, 6)}
+                                    {shortenAddress(event.data.from)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">To:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.to, 6)}
+                                    {shortenAddress(event.data.to)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
@@ -711,7 +782,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">To:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.to, 6)}
+                                    {shortenAddress(event.data.to)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
@@ -729,7 +800,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">From:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.from, 6)}
+                                    {shortenAddress(event.data.from)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
@@ -747,13 +818,13 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">Owner:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.from, 6)}
+                                    {shortenAddress(event.data.from)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">Spender:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.spender, 6)}
+                                    {shortenAddress(event.data.spender)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
@@ -778,7 +849,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                                   <div className="flex items-center gap-2 text-xs">
                                     <span className="text-[var(--text-tertiary)]">Account:</span>
                                     <span className="font-mono text-[var(--text-secondary)]">
-                                      {shortenAddress(customData.account, 6)}
+                                      {shortenAddress(customData.account)}
                                     </span>
                                   </div>
                                 )}
@@ -832,9 +903,27 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
               <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] overflow-hidden">
                 <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                   <h3 className="text-sm font-semibold text-[var(--text-primary)]">Contract Storage</h3>
-                  <p className="text-xs text-[var(--text-tertiary)]">{contract.storage?.totalEntries || 0} entries</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">
+                    {sectionLoading.storage ? <InlineSkeleton width="w-16" height="h-3" /> : `${contract.storage?.totalEntries || 0} entries`}
+                  </p>
                 </div>
-                {!contract.storage || contract.storage.entries.length === 0 ? (
+                {sectionLoading.storage ? (
+                  <div className="divide-y divide-[var(--border-subtle)]">
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                      <div key={`storage-skeleton-${idx}`} className="px-4 py-3">
+                        <div className="flex items-start gap-3">
+                          <InlineSkeleton width="w-16" height="h-5" />
+                          <div className="flex-1">
+                            <InlineSkeleton width="w-44" />
+                            <div className="mt-2">
+                              <InlineSkeleton width="w-56" height="h-3" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : !contract.storage || contract.storage.entries.length === 0 ? (
                   <div className="p-4 text-center text-sm text-[var(--text-muted)]">No storage entries found</div>
                 ) : (
                   <div className="divide-y divide-[var(--border-subtle)]">
@@ -1113,7 +1202,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                         href={`/account/${contract.accessControl.admin}`}
                         className="text-[11px] font-mono font-semibold text-sky-600 hover:text-sky-700"
                       >
-                        {shortenAddress(contract.accessControl.admin, 6)}
+                        {shortenAddress(contract.accessControl.admin)}
                       </Link>
                     </div>
                   )}
@@ -1124,7 +1213,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                         href={`/account/${contract.accessControl.owner}`}
                         className="text-[11px] font-mono font-semibold text-sky-600 hover:text-sky-700"
                       >
-                        {shortenAddress(contract.accessControl.owner, 6)}
+                        {shortenAddress(contract.accessControl.owner)}
                       </Link>
                     </div>
                   )}
@@ -1142,7 +1231,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                         href={`/account/${contract.accessControl.pendingOwner}`}
                         className="text-[11px] font-mono font-semibold text-sky-600 hover:text-sky-700"
                       >
-                        {shortenAddress(contract.accessControl.pendingOwner, 6)}
+                        {shortenAddress(contract.accessControl.pendingOwner)}
                       </Link>
                     </div>
                   )}

@@ -28,8 +28,6 @@ function useIsMobile(breakpoint: number = 768) {
 }
 
 interface TransactionPageClientProps {
-  initialTransactions: Transaction[];
-  initialPaymentTransactions?: Transaction[];
   limit?: number;
 }
 
@@ -56,12 +54,8 @@ function mergeTransactions(txs1: Transaction[], txs2: Transaction[]): Transactio
 }
 
 export default function TransactionPageClient({
-  initialTransactions,
-  initialPaymentTransactions = [],
   limit = 25
 }: TransactionPageClientProps) {
-  // Merge initial transactions with payment transactions
-  const mergedInitial = mergeTransactions(initialTransactions, initialPaymentTransactions);
   const { network } = useNetwork();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -102,6 +96,7 @@ export default function TransactionPageClient({
         successful: op.transaction_successful,
         hash: op.transaction_hash,
         ledger: 0,
+        ledger_attr: 0,
         created_at: op.created_at,
         source_account: op.source_account,
         source_account_sequence: '',
@@ -354,6 +349,7 @@ export default function TransactionPageClient({
             successful: op.transaction_successful,
             hash: op.transaction_hash,
             ledger: 0,
+            ledger_attr: 0,
             created_at: op.created_at,
             source_account: op.source_account,
             source_account_sequence: '',
@@ -495,12 +491,8 @@ export default function TransactionPageClient({
         animatedIdsRef.current = new Set(txsWithOps.map(t => t.hash));
       } catch (error) {
         console.error('Failed to fetch initial transactions:', error);
-        // Fallback to server data if fetch fails
-        const txsWithOps = mergedInitial.map((tx) => ({
-          ...tx,
-          displayInfo: tx.displayInfo || getTransactionDisplayInfo([]),
-        }));
-        setTransactions(txsWithOps);
+        // No fallback data available
+        console.error('Failed to fetch initial transactions, no fallback data');
       } finally {
         setIsInitialLoading(false);
       }
@@ -556,57 +548,65 @@ export default function TransactionPageClient({
 
     if (candidates.length === 0) return;
 
+    // Mark all candidates as processed immediately to prevent duplicate fetches
+    candidates.forEach(tx => processedIdsRef.current.add(tx.hash));
+
     const enrichTransactions = async () => {
-      // Process sequentially to be gentle on rate limits
-      for (const tx of candidates) {
+      // Process in parallel batches of 5 for speed without overwhelming the API
+      const BATCH_SIZE = 5;
+      for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
         if (!mounted) break;
-        processedIdsRef.current.add(tx.hash);
+        const batch = candidates.slice(i, i + BATCH_SIZE);
 
-        try {
-          // Fetches operations to determine if it's a contract call and what function
-          const opRes = await getTransactionOperations(tx.hash, 5);
-          const ops = opRes._embedded.records;
+        const results = await Promise.all(batch.map(async (tx) => {
+          try {
+            const opRes = await getTransactionOperations(tx.hash, 5);
+            const ops = opRes._embedded.records;
 
-          if (ops && ops.length > 0) {
-            const info = getTransactionDisplayInfo(ops);
+            if (ops && ops.length > 0) {
+              const info = getTransactionDisplayInfo(ops);
 
-            // If we found a contract transaction, also fetch effects to get the received/sent amount
-            if (info.type === 'contract') {
-              try {
-                const effectsRes = await fetch(`${getBaseUrl()}/transactions/${tx.hash}/effects?limit=10`);
-                const effectsData = await effectsRes.json();
-                const effects = effectsData._embedded?.records || [];
+              // If contract, also fetch effects for amounts
+              if (info.type === 'contract') {
+                try {
+                  const effectsRes = await fetch(`${getBaseUrl()}/transactions/${tx.hash}/effects?limit=10`);
+                  const effectsData = await effectsRes.json();
+                  const effects = effectsData._embedded?.records || [];
 
-                // Look for credit/debit effects
-                const credit = effects.find((e: { type: string; amount?: string }) => e.type === 'account_credited' && e.amount);
-                const debit = effects.find((e: { type: string; amount?: string }) => e.type === 'account_debited' && e.amount);
+                  const credit = effects.find((e: { type: string; amount?: string }) => e.type === 'account_credited' && e.amount);
+                  const debit = effects.find((e: { type: string; amount?: string }) => e.type === 'account_debited' && e.amount);
 
-                if (credit) {
-                  info.effectType = 'received';
-                  info.effectAmount = credit.amount;
-                  info.effectAsset = credit.asset_code || (credit.asset_type === 'native' ? 'XLM' : 'Unknown');
-                } else if (debit) {
-                  info.effectType = 'sent';
-                  info.effectAmount = debit.amount;
-                  info.effectAsset = debit.asset_code || (debit.asset_type === 'native' ? 'XLM' : 'Unknown');
+                  if (credit) {
+                    info.effectType = 'received';
+                    info.effectAmount = credit.amount;
+                    info.effectAsset = credit.asset_code || (credit.asset_type === 'native' ? 'XLM' : 'Unknown');
+                  } else if (debit) {
+                    info.effectType = 'sent';
+                    info.effectAmount = debit.amount;
+                    info.effectAsset = debit.asset_code || (debit.asset_type === 'native' ? 'XLM' : 'Unknown');
+                  }
+                } catch {
+                  // Ignore effects fetch errors
                 }
-              } catch {
-                // Ignore effects fetch errors
+              }
+
+              if (info.type !== 'other') {
+                return { hash: tx.hash, info };
               }
             }
-
-            // If we found something interesting (not 'other'), update the state
-            if (info.type !== 'other') {
-              setTransactions(prev => prev.map(t =>
-                t.hash === tx.hash ? { ...t, displayInfo: info } : t
-              ));
-            }
+          } catch {
+            // Ignore errors, keep default display
           }
+          return null;
+        }));
 
-          // Small delay between requests to avoid hitting rate limits too hard but fast enough for UI
-          await new Promise(r => setTimeout(r, 50));
-        } catch (e) {
-          // Ignore errors, we just keep default display
+        // Apply all batch updates at once
+        const updates = results.filter(Boolean) as { hash: string; info: any }[];
+        if (updates.length > 0 && mounted) {
+          setTransactions(prev => prev.map(t => {
+            const update = updates.find(u => u.hash === t.hash);
+            return update ? { ...t, displayInfo: update.info } : t;
+          }));
         }
       }
     };
@@ -930,11 +930,10 @@ export default function TransactionPageClient({
                       key={pageNum}
                       onClick={() => goToPage(pageNum)}
                       disabled={isLoadingMore}
-                      className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${
-                        currentPage === pageNum
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${currentPage === pageNum
                           ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-sm'
                           : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)]'
-                      }`}
+                        }`}
                     >
                       {pageNum}
                     </button>

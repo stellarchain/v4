@@ -1,6 +1,8 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // Keep dev flexible for dynamic routes; export static files in non-dev environments.
+  ...(process.env.NODE_ENV !== 'development' ? { output: 'export' as const } : {}),
   images: {
     remotePatterns: [
       {

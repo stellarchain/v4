@@ -67,7 +67,7 @@ const CompactTransactionRow = forwardRef<HTMLAnchorElement, CompactTransactionRo
                     : 'Transaction'}
               </span>
               <span className="text-xs text-[var(--text-muted)] font-medium font-mono mt-0.5 flex items-center">
-                {shortenAddress(transaction.hash, 4)}
+                {shortenAddress(transaction.hash)}
                 <span className="mx-1 text-[var(--text-muted)]">•</span>
                 {timeAgo(transaction.created_at)}
               </span>

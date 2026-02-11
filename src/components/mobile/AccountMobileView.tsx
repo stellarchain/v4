@@ -3,9 +3,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Transaction, Operation, Effect, shortenAddress, formatXLM, AccountLabel, getBaseUrl } from '@/lib/stellar';
+import { Transaction, Operation, Effect, shortenAddress, formatXLM, AccountLabel, getBaseUrl, getXLMStats } from '@/lib/stellar';
 import { containers, colors, coreColors, tabs, badges } from '@/lib/design-system';
 import GliderTabs from '@/components/ui/GliderTabs';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 import { QRCodeSVG } from 'qrcode.react';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { assetRoute } from '@/lib/routes';
@@ -63,12 +64,14 @@ interface AssetPriceData {
 }
 
 interface AccountMobileViewProps {
-  account: AccountData;
+  account: AccountData | null;
+  accountId: string;
   transactions: Transaction[];
   operations: Operation[];
   xlmPrice: number;
   accountLabels?: Record<string, AccountLabel>;
   currentAccountLabel?: AccountLabel | null;
+  loading?: boolean;
 }
 
 function getAssetUrl(code: string | undefined, issuer: string | undefined): string {
@@ -77,7 +80,7 @@ function getAssetUrl(code: string | undefined, issuer: string | undefined): stri
   return assetRoute(code, issuer);
 }
 
-export default function AccountMobileView({ account, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel }: AccountMobileViewProps) {
+export default function AccountMobileView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, loading = false }: AccountMobileViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -104,8 +107,9 @@ export default function AccountMobileView({ account, transactions, operations: i
   const [favoriteLabel, setFavoriteLabel] = useState('');
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   const { favorites, addFavorite, removeFavorite, updateFavoriteLabel, isFavorite, getFavorite } = useFavorites();
-  const isCurrentFavorite = isFavorite(account.id);
-  const currentFavorite = getFavorite(account.id);
+  const isCurrentFavorite = isFavorite(accountId);
+  const currentFavorite = getFavorite(accountId);
+  const accountLabelText = currentFavorite?.label || currentAccountLabel?.name || currentAccountLabel?.org_name;
 
   // Update URL when tab changes
   const handleTabChange = (tab: 'assets' | 'activity' | 'details') => {
@@ -121,6 +125,9 @@ export default function AccountMobileView({ account, transactions, operations: i
   };
   const [assetPrices, setAssetPrices] = useState<Record<string, AssetPriceData>>({});
   const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
+  const fetchedEffectIds = useRef<Set<string>>(new Set());
+  const fetchedBalancePriceKeys = useRef<Set<string>>(new Set());
+  const fetchedActivityPriceKeys = useRef<Set<string>>(new Set());
   const [xlmChange24h, setXlmChange24h] = useState(0);
   const [activityAssets, setActivityAssets] = useState<Array<{ code: string; issuer: string; type: string }>>([]);
 
@@ -144,6 +151,11 @@ export default function AccountMobileView({ account, transactions, operations: i
       initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
     );
   }, [initialOperations]);
+
+  useEffect(() => {
+    fetchedBalancePriceKeys.current.clear();
+    fetchedActivityPriceKeys.current.clear();
+  }, [accountId]);
 
   // Close activity filter dropdown when clicking outside
   useEffect(() => {
@@ -229,8 +241,8 @@ export default function AccountMobileView({ account, transactions, operations: i
   const activityContainerRef = useRef<HTMLDivElement>(null);
 
   // Balances
-  const xlmBalance = account.balances.find(b => b.asset_type === 'native');
-  const otherBalancesUnsorted = account.balances.filter(b => b.asset_type !== 'native');
+  const xlmBalance = account?.balances.find(b => b.asset_type === 'native');
+  const otherBalancesUnsorted = account?.balances.filter(b => b.asset_type !== 'native') || [];
   const xlmAmount = parseFloat(xlmBalance?.balance || '0');
 
   // Sort other balances by USD value (highest first)
@@ -290,9 +302,8 @@ export default function AccountMobileView({ account, transactions, operations: i
   useEffect(() => {
     const fetchXlmChange = async () => {
       try {
-        const res = await fetch('/api/coingecko/xlm', { cache: 'force-cache' });
-        const data = await res.json();
-        if (typeof data?.usd_24h_change === 'number') {
+        const data = await getXLMStats();
+        if (data && typeof data.usd_24h_change === 'number') {
           setXlmChange24h(data.usd_24h_change);
         }
       } catch {
@@ -306,8 +317,21 @@ export default function AccountMobileView({ account, transactions, operations: i
   useEffect(() => {
     const fetchPrices = async () => {
       const newPrices: Record<string, AssetPriceData> = {};
+      const balancesToFetch = (account?.balances || []).filter((b) => {
+        if (b.asset_type === 'native' || !b.asset_code || !b.asset_issuer) return false;
+        const key = `${b.asset_code}:${b.asset_issuer}`;
+        return !fetchedBalancePriceKeys.current.has(key);
+      });
 
-      await Promise.all(account.balances.filter(b => b.asset_type !== 'native').map(async (b) => {
+      if (balancesToFetch.length === 0) return;
+
+      // Mark immediately to prevent duplicate requests from repeated effect runs.
+      balancesToFetch.forEach((b) => {
+        if (!b.asset_code || !b.asset_issuer) return;
+        fetchedBalancePriceKeys.current.add(`${b.asset_code}:${b.asset_issuer}`);
+      });
+
+      await Promise.all(balancesToFetch.map(async (b) => {
         if (!b.asset_code || !b.asset_issuer) return;
         const key = `${b.asset_code}:${b.asset_issuer}`;
 
@@ -359,11 +383,13 @@ export default function AccountMobileView({ account, transactions, operations: i
         }
       }));
 
-      setAssetPrices(prev => ({ ...prev, ...newPrices }));
+      if (Object.keys(newPrices).length > 0) {
+        setAssetPrices(prev => ({ ...prev, ...newPrices }));
+      }
     };
 
     fetchPrices();
-  }, [account.balances, xlmPrice, xlmChange24h]);
+  }, [account?.balances, xlmPrice, xlmChange24h]);
 
   // Fetch more operations for infinite scroll
   const fetchMoreOperations = useCallback(async () => {
@@ -372,7 +398,7 @@ export default function AccountMobileView({ account, transactions, operations: i
     setLoadingMore(true);
     try {
       const res = await fetch(
-        `${getBaseUrl()}/accounts/${account.id}/operations?limit=100&order=desc&cursor=${lastCursor}`
+        `${getBaseUrl()}/accounts/${accountId}/operations?limit=100&order=desc&cursor=${lastCursor}`
       );
       const data = await res.json();
       const newOps = data._embedded?.records || [];
@@ -389,7 +415,7 @@ export default function AccountMobileView({ account, transactions, operations: i
     } finally {
       setLoadingMore(false);
     }
-  }, [account.id, hasMoreToFetch, lastCursor, loadingMore]);
+  }, [accountId, hasMoreToFetch, lastCursor, loadingMore]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -426,34 +452,38 @@ export default function AccountMobileView({ account, transactions, operations: i
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activityType]);
 
-  // Fetch effects for operations that don't have them yet
+  // Fetch effects for all operations in a single request
+  const effectsFetched = useRef(false);
   useEffect(() => {
+    if (effectsFetched.current || allOperations.length === 0) return;
+    effectsFetched.current = true;
+
     const fetchEffects = async () => {
-      // Get operations that need effects fetched (limit batch size for performance)
-      const opsNeedingEffects = allOperations
-        .filter(op => !opEffects[op.id])
-        .slice(0, 20); // Fetch effects in batches of 20
+      try {
+        const res = await fetch(`${getBaseUrl()}/accounts/${accountId}/effects?limit=200&order=desc`);
+        const data = await res.json();
+        const records = data._embedded?.records || [];
 
-      if (opsNeedingEffects.length === 0) return;
-
-      const newEffects: Record<string, Effect[]> = {};
-      await Promise.all(opsNeedingEffects.map(async (op) => {
-        try {
-          const res = await fetch(`${getBaseUrl()}/operations/${op.id}/effects`);
-          const data = await res.json();
-          if (data._embedded?.records) {
-            newEffects[op.id] = data._embedded.records;
+        // Group effects by operation_id
+        const grouped: Record<string, Effect[]> = {};
+        for (const effect of records) {
+          const opId = (effect as any).operation?.split('/').pop() || effect.id?.split('-')[0];
+          // Effects from Horizon have an operation link, extract operation ID
+          const operationId = (effect as any).operation_id || opId;
+          if (operationId) {
+            if (!grouped[operationId]) grouped[operationId] = [];
+            grouped[operationId].push(effect);
           }
-        } catch { /* ignore */ }
-      }));
+        }
 
-      if (Object.keys(newEffects).length > 0) {
-        setOpEffects(prev => ({ ...prev, ...newEffects }));
-      }
+        if (Object.keys(grouped).length > 0) {
+          setOpEffects(grouped);
+        }
+      } catch { /* ignore */ }
     };
 
     fetchEffects();
-  }, [allOperations, opEffects]);
+  }, [allOperations, accountId]);
 
   // Extract unique assets from activity effects for price fetching
   useEffect(() => {
@@ -486,10 +516,13 @@ export default function AccountMobileView({ account, transactions, operations: i
       // Filter to assets we don't have prices for yet
       const assetsToFetch = activityAssets.filter(a => {
         const key = `${a.code}:${a.issuer}`;
-        return !assetPrices[key];
+        return !fetchedActivityPriceKeys.current.has(key);
       });
 
       if (assetsToFetch.length === 0) return;
+
+      // Mark as fetched immediately to prevent duplicate requests
+      assetsToFetch.forEach(a => fetchedActivityPriceKeys.current.add(`${a.code}:${a.issuer}`));
 
       await Promise.all(assetsToFetch.map(async (asset) => {
         const key = `${asset.code}:${asset.issuer}`;
@@ -521,10 +554,10 @@ export default function AccountMobileView({ account, transactions, operations: i
     if (activityAssets.length > 0 && xlmPrice > 0) {
       fetchActivityPrices();
     }
-  }, [activityAssets, xlmPrice, assetPrices]);
+  }, [activityAssets, xlmPrice]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(account.id);
+    navigator.clipboard.writeText(accountId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -547,8 +580,8 @@ export default function AccountMobileView({ account, transactions, operations: i
     if (!effects || effects.length === 0) return null;
 
     // Get all credits and debits for this account
-    const credits = effects.filter(e => e.type === 'account_credited' && e.account === account.id && (e as any).amount);
-    const debits = effects.filter(e => e.type === 'account_debited' && e.account === account.id && (e as any).amount);
+    const credits = effects.filter(e => e.type === 'account_credited' && e.account === accountId && (e as any).amount);
+    const debits = effects.filter(e => e.type === 'account_debited' && e.account === accountId && (e as any).amount);
 
     // Find the largest credit and debit by amount
     let largestCredit = credits.reduce((max, e) => {
@@ -659,7 +692,7 @@ export default function AccountMobileView({ account, transactions, operations: i
           {/* Title - Center */}
           <div className="text-center flex-1 min-w-0 px-2">
             <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] leading-tight">
-              {currentFavorite?.label || currentAccountLabel?.name || 'Account'}
+              {accountLabelText || 'Account'}
             </h1>
           </div>
 
@@ -671,11 +704,10 @@ export default function AccountMobileView({ account, transactions, operations: i
               }
               setShowFavoriteModal(true);
             }}
-            className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors border ${
-              isCurrentFavorite
-                ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-amber-500 border-[var(--border-default)]'
-            }`}
+            className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors border ${isCurrentFavorite
+              ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+              : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-amber-500 border-[var(--border-default)]'
+              }`}
           >
             <svg className="w-5 h-5" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -690,7 +722,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               onClick={() => setShowAddressDropdown(!showAddressDropdown)}
               className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-sm font-semibold text-[var(--text-secondary)] font-mono hover:text-[var(--text-primary)] transition-colors"
             >
-              {shortenAddress(account.id, 6)}
+              {shortenAddress(accountId)}
               <svg className={`w-3.5 h-3.5 transition-transform ${showAddressDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -699,7 +731,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl shadow-lg overflow-hidden z-50 p-3 min-w-[280px]">
                 <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold mb-2">Full Address</div>
                 <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
-                  <p className="font-mono text-[11px] text-[var(--text-primary)] break-all leading-relaxed select-all">{account.id}</p>
+                  <p className="font-mono text-[11px] text-[var(--text-primary)] break-all leading-relaxed select-all">{accountId}</p>
                 </div>
                 <button
                   onClick={() => { handleCopy(); setShowAddressDropdown(false); }}
@@ -726,37 +758,37 @@ export default function AccountMobileView({ account, transactions, operations: i
                 {isHack ? (
                   // Hack/Malicious badge - red
                   <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#EF4444">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
-                    <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+                    <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 ) : isScam ? (
                   // Scam badge - red
                   <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#EF4444">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
-                    <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+                    <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 ) : isSpam ? (
                   // Spam badge - orange
                   <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#F97316">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
-                    <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+                    <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 ) : currentAccountLabel?.verified ? (
                   // Verified badge - blue (only if NOT dangerous)
                   <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#1D9BF0">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z"/>
+                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
                   </svg>
-                ) : currentAccountLabel?.name ? (
+                ) : (currentAccountLabel?.name || currentAccountLabel?.org_name) ? (
                   // User labeled (has name but not verified, not dangerous) - gray
                   <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#6B7280">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
-                    <circle cx="12" cy="10" r="3" fill="white"/>
-                    <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+                    <circle cx="12" cy="10" r="3" fill="white" />
+                    <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
                   </svg>
                 ) : (
                   // Unknown - gray
                   <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#6B7280">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
+                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
                     <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
                   </svg>
                 )}
@@ -771,13 +803,23 @@ export default function AccountMobileView({ account, transactions, operations: i
             Total Balance
           </div>
           <div className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">
-            {currencySymbol}{convertCurrency(totalValueUSD).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {loading ? (
+              <InlineSkeleton width="w-48" height="h-10" />
+            ) : (
+              <>{currencySymbol}{convertCurrency(totalValueUSD).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</>
+            )}
           </div>
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-            <span className={`text-sm font-semibold ${isPositivePnl ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-              {isPositivePnl ? '+' : '-'}{currencySymbol}{Math.abs(convertCurrency(pnlData.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isPositivePnl ? '+' : ''}{pnlData.percent.toFixed(2)}%)
-            </span>
-            <span className="text-sm text-[var(--text-muted)]">24H</span>
+            {loading ? (
+              <InlineSkeleton width="w-24" height="h-5" />
+            ) : (
+              <>
+                <span className={`text-sm font-semibold ${isPositivePnl ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
+                  {isPositivePnl ? '+' : '-'}{currencySymbol}{Math.abs(convertCurrency(pnlData.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isPositivePnl ? '+' : ''}{pnlData.percent.toFixed(2)}%)
+                </span>
+                <span className="text-sm text-[var(--text-muted)]">24H</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -803,11 +845,10 @@ export default function AccountMobileView({ account, transactions, operations: i
               <div ref={assetsFilterRef} className="relative">
                 <button
                   onClick={() => setShowAssetsFilterDropdown(!showAssetsFilterDropdown)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold ${
-                    (hideSmallAssets || hidePnl)
-                      ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)] border-[var(--primary-blue)]/20'
-                      : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-subtle)]'
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold ${(hideSmallAssets || hidePnl)
+                    ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)] border-[var(--primary-blue)]/20'
+                    : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-subtle)]'
+                    }`}
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -820,9 +861,8 @@ export default function AccountMobileView({ account, transactions, operations: i
                   <div className="absolute left-0 top-full mt-1 min-w-[140px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
                     <button
                       onClick={() => setHidePnl(!hidePnl)}
-                      className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${
-                        hidePnl ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-                      }`}
+                      className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${hidePnl ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+                        }`}
                     >
                       <span>Hide PNL</span>
                       {hidePnl && (
@@ -833,9 +873,8 @@ export default function AccountMobileView({ account, transactions, operations: i
                     </button>
                     <button
                       onClick={() => setHideSmallAssets(!hideSmallAssets)}
-                      className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${
-                        hideSmallAssets ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-                      }`}
+                      className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${hideSmallAssets ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+                        }`}
                     >
                       <span>Hide &lt;$1</span>
                       {hideSmallAssets && (
@@ -957,7 +996,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                           {priceData ? `@${currencySymbol}${convertCurrency(priceData.price).toFixed(priceData.price >= 1 ? 2 : 6)}` : (
                             balance.asset_issuer ? (
                               <Link href={`/account/${balance.asset_issuer}`} onClick={(e) => e.stopPropagation()} className="hover:text-[var(--primary-blue)]">
-                                {shortenAddress(balance.asset_issuer, 4)}
+                                {shortenAddress(balance.asset_issuer)}
                               </Link>
                             ) : 'LP'
                           )}
@@ -1006,11 +1045,10 @@ export default function AccountMobileView({ account, transactions, operations: i
               <div ref={currencyDropdownRef} className="relative">
                 <button
                   onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold ${
-                    showUsdValue
-                      ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)] border-[var(--primary-blue)]/20'
-                      : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-subtle)]'
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-semibold ${showUsdValue
+                    ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)] border-[var(--primary-blue)]/20'
+                    : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-subtle)]'
+                    }`}
                 >
                   <span>{currencySymbol}</span>
                   <span>{selectedCurrency}</span>
@@ -1022,9 +1060,8 @@ export default function AccountMobileView({ account, transactions, operations: i
                   <div className="absolute right-0 top-full mt-1 min-w-[100px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
                     <button
                       onClick={() => { setShowUsdValue(!showUsdValue); setShowCurrencyDropdown(false); }}
-                      className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${
-                        showUsdValue ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-                      }`}
+                      className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${showUsdValue ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+                        }`}
                     >
                       <span>Show Value</span>
                       {showUsdValue && (
@@ -1038,9 +1075,8 @@ export default function AccountMobileView({ account, transactions, operations: i
                         <button
                           key={currency}
                           onClick={() => { setSelectedCurrency(currency); setShowCurrencyDropdown(false); }}
-                          className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${
-                            selectedCurrency === currency ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-                          }`}
+                          className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${selectedCurrency === currency ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+                            }`}
                         >
                           <span>{currency === 'USD' ? '$ USD' : currency === 'EUR' ? '€ EUR' : '£ GBP'}</span>
                           {selectedCurrency === currency && (
@@ -1122,11 +1158,11 @@ export default function AccountMobileView({ account, transactions, operations: i
                       const isCreateAccount = op.type === 'create_account';
                       const destination = isCreateAccount ? (op as any).account : op.to;
                       const sender = op.from || (op as any).funder || op.source_account;
-                      const isReceive = destination === account.id;
+                      const isReceive = destination === accountId;
                       // Get counterparty address and label
                       const counterpartyAddress = isReceive ? sender : destination;
                       const counterpartyLabel = counterpartyAddress ? accountLabels[counterpartyAddress]?.name : null;
-                      typeDisplay = counterpartyLabel || (counterpartyAddress ? shortenAddress(counterpartyAddress, 4) : (isReceive ? 'Received' : 'Sent'));
+                      typeDisplay = counterpartyLabel || (counterpartyAddress ? shortenAddress(counterpartyAddress) : (isReceive ? 'Received' : 'Sent'));
                       counterpartyLink = counterpartyAddress || null;
                       amount = formatXLM(op.amount || (op as any).starting_balance || '0');
                       asset = op.asset_type === 'native' ? 'XLM' : op.asset_code || 'XLM';
@@ -1158,14 +1194,14 @@ export default function AccountMobileView({ account, transactions, operations: i
                         const counterpartyAddress = isReceive ? sender : destination;
                         if (counterpartyAddress) {
                           const counterpartyLabel = accountLabels[counterpartyAddress]?.name;
-                          typeDisplay = counterpartyLabel || shortenAddress(counterpartyAddress, 4);
+                          typeDisplay = counterpartyLabel || shortenAddress(counterpartyAddress);
                           counterpartyLink = counterpartyAddress;
                         }
                       }
                       // Otherwise keep typeDisplay as the operation type name
                     }
 
-                    const isReceive = effectInfo?.type === 'received' || op.to === account.id;
+                    const isReceive = effectInfo?.type === 'received' || op.to === accountId;
                     const isSwapOrOffer = isSwap || isOffer;
                     const isSwapDisplay = typeDisplay.toLowerCase() === 'swap';
 
@@ -1315,7 +1351,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] text-[var(--text-muted)] font-medium">Account ID</div>
-                    <div className="text-sm font-mono text-[var(--text-primary)] truncate">{shortenAddress(account.id, 10)}</div>
+                    <div className="text-sm font-mono text-[var(--text-primary)] truncate">{shortenAddress(accountId)}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1326,7 +1362,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                   <div className="flex-1">
                     <div className="text-[11px] text-[var(--text-muted)] font-medium">Sequence Number</div>
-                    <div className="text-sm font-mono text-[var(--text-primary)]">{account.sequence}</div>
+                    <div className="text-sm font-mono text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-24" /> : account?.sequence}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1337,10 +1373,10 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </div>
                   <div className="flex-1">
                     <div className="text-[11px] text-[var(--text-muted)] font-medium">Subentries</div>
-                    <div className="text-sm font-bold text-[var(--text-primary)]">{account.subentry_count}</div>
+                    <div className="text-sm font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-8" /> : account?.subentry_count}</div>
                   </div>
                 </div>
-                {account.home_domain && (
+                {account?.home_domain && (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-[var(--success)]/10 flex items-center justify-center text-[var(--success)]">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1349,8 +1385,8 @@ export default function AccountMobileView({ account, transactions, operations: i
                     </div>
                     <div className="flex-1">
                       <div className="text-[11px] text-[var(--text-muted)] font-medium">Home Domain</div>
-                      <a href={`https://${account.home_domain}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[var(--primary-blue)] hover:underline">
-                        {account.home_domain}
+                      <a href={`https://${account?.home_domain}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[var(--primary-blue)] hover:underline">
+                        {account?.home_domain}
                       </a>
                     </div>
                   </div>
@@ -1366,15 +1402,15 @@ export default function AccountMobileView({ account, transactions, operations: i
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 text-center border border-[var(--border-subtle)]">
                   <div className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Low</div>
-                  <div className="text-lg font-bold text-[var(--text-primary)]">{account.thresholds.low_threshold}</div>
+                  <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-8" /> : account?.thresholds.low_threshold}</div>
                 </div>
                 <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 text-center border border-[var(--border-subtle)]">
                   <div className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Medium</div>
-                  <div className="text-lg font-bold text-[var(--text-primary)]">{account.thresholds.med_threshold}</div>
+                  <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-8" /> : account?.thresholds.med_threshold}</div>
                 </div>
                 <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 text-center border border-[var(--border-subtle)]">
                   <div className="text-[11px] text-[var(--text-muted)] font-medium mb-1">High</div>
-                  <div className="text-lg font-bold text-[var(--text-primary)]">{account.thresholds.high_threshold}</div>
+                  <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-8" /> : account?.thresholds.high_threshold}</div>
                 </div>
               </div>
             </div>
@@ -1382,10 +1418,10 @@ export default function AccountMobileView({ account, transactions, operations: i
             {/* Signers Section */}
             <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4">
               <div className="text-[11px] uppercase tracking-widest text-[var(--text-muted)] font-bold pb-2 border-b border-[var(--border-subtle)] mb-3">
-                Signers ({account.signers.length})
+                Signers ({loading ? <InlineSkeleton width="w-4" /> : (account?.signers.length || 0)})
               </div>
               <div className="space-y-2">
-                {account.signers.map((signer, idx) => (
+                {(account?.signers || []).map((signer, idx) => (
                   <div key={idx} className="flex items-center gap-3 py-2 border-b border-[var(--border-subtle)] last:border-0">
                     <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-400">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1394,7 +1430,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                     </div>
                     <div className="flex-1 min-w-0">
                       <Link href={`/account/${signer.key}`} className="text-sm font-mono text-[var(--text-primary)] hover:text-[var(--primary-blue)] truncate block">
-                        {shortenAddress(signer.key, 8)}
+                        {shortenAddress(signer.key)}
                       </Link>
                       <div className="text-[11px] text-[var(--text-muted)] capitalize">{signer.type.replace(/_/g, ' ')}</div>
                     </div>
@@ -1413,31 +1449,31 @@ export default function AccountMobileView({ account, transactions, operations: i
                 Account Flags
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div className={`rounded-xl p-3 border ${account.flags.auth_required ? 'bg-amber-500/10 border-amber-500/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
+                <div className={`rounded-xl p-3 border ${account?.flags?.auth_required ? 'bg-amber-500/10 border-amber-500/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_required ? 'bg-[var(--warning)]' : 'bg-[var(--text-muted)]'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_required ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>Auth Required</span>
+                    <div className={`w-2 h-2 rounded-full ${account?.flags?.auth_required ? 'bg-[var(--warning)]' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account?.flags?.auth_required ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>Auth Required</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)]">Requires authorization for trustlines</p>
                 </div>
-                <div className={`rounded-xl p-3 border ${account.flags.auth_revocable ? 'bg-[var(--warning-muted)] border-[var(--warning)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
+                <div className={`rounded-xl p-3 border ${account?.flags?.auth_revocable ? 'bg-[var(--warning-muted)] border-[var(--warning)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_revocable ? 'bg-[var(--warning)]' : 'bg-[var(--text-muted)]'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_revocable ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>Auth Revocable</span>
+                    <div className={`w-2 h-2 rounded-full ${account?.flags?.auth_revocable ? 'bg-[var(--warning)]' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account?.flags?.auth_revocable ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}`}>Auth Revocable</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)]">Can revoke trustlines</p>
                 </div>
-                <div className={`rounded-xl p-3 border ${account.flags.auth_immutable ? 'bg-[var(--error)]/10 border-[var(--error)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
+                <div className={`rounded-xl p-3 border ${account?.flags?.auth_immutable ? 'bg-[var(--error)]/10 border-[var(--error)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_immutable ? 'bg-[var(--error)]' : 'bg-[var(--text-muted)]'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_immutable ? 'text-[var(--error)]' : 'text-[var(--text-muted)]'}`}>Auth Immutable</span>
+                    <div className={`w-2 h-2 rounded-full ${account?.flags?.auth_immutable ? 'bg-[var(--error)]' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account?.flags?.auth_immutable ? 'text-[var(--error)]' : 'text-[var(--text-muted)]'}`}>Auth Immutable</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)]">Flags cannot be changed</p>
                 </div>
-                <div className={`rounded-xl p-3 border ${account.flags.auth_clawback_enabled ? 'bg-[var(--purple-muted)] border-[var(--purple)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
+                <div className={`rounded-xl p-3 border ${account?.flags?.auth_clawback_enabled ? 'bg-[var(--purple-muted)] border-[var(--purple)]/20' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className={`w-2 h-2 rounded-full ${account.flags.auth_clawback_enabled ? 'bg-[var(--purple)]' : 'bg-[var(--text-muted)]'}`} />
-                    <span className={`text-xs font-semibold ${account.flags.auth_clawback_enabled ? 'text-[var(--purple)]' : 'text-[var(--text-muted)]'}`}>Clawback</span>
+                    <div className={`w-2 h-2 rounded-full ${account?.flags?.auth_clawback_enabled ? 'bg-[var(--purple)]' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`text-xs font-semibold ${account?.flags?.auth_clawback_enabled ? 'text-[var(--purple)]' : 'text-[var(--text-muted)]'}`}>Clawback</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-tertiary)]">Can clawback assets</p>
                 </div>
@@ -1465,7 +1501,7 @@ export default function AccountMobileView({ account, transactions, operations: i
             <div className="flex justify-center mb-4">
               <div className="bg-white p-4 rounded-2xl">
                 <QRCodeSVG
-                  value={account.id}
+                  value={accountId}
                   size={200}
                   level="H"
                   bgColor="#ffffff"
@@ -1476,13 +1512,13 @@ export default function AccountMobileView({ account, transactions, operations: i
 
             <div className="bg-[var(--bg-secondary)] rounded-xl p-3 mb-4 border border-[var(--border-subtle)]">
               <p className="text-xs text-[var(--text-muted)] mb-1">Account Address</p>
-              <p className="text-xs font-mono text-[var(--text-primary)] break-all">{account.id}</p>
+              <p className="text-xs font-mono text-[var(--text-primary)] break-all">{accountId}</p>
             </div>
 
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(account.id);
+                  navigator.clipboard.writeText(accountId);
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
                 }}
@@ -1534,7 +1570,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               <h3 className="text-lg font-bold text-[var(--text-primary)]">
                 {isCurrentFavorite ? 'Edit Favorite' : 'Add to Favorites'}
               </h3>
-              <p className="text-xs text-[var(--text-muted)] mt-1 font-mono">{shortenAddress(account.id, 8)}</p>
+              <p className="text-xs text-[var(--text-muted)] mt-1 font-mono">{shortenAddress(accountId)}</p>
             </div>
 
             <div className="mb-4">
@@ -1555,7 +1591,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                 <>
                   <button
                     onClick={() => {
-                      updateFavoriteLabel(account.id, favoriteLabel);
+                      updateFavoriteLabel(accountId, favoriteLabel);
                       setShowFavoriteModal(false);
                     }}
                     className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-semibold text-sm"
@@ -1564,7 +1600,7 @@ export default function AccountMobileView({ account, transactions, operations: i
                   </button>
                   <button
                     onClick={() => {
-                      removeFavorite(account.id);
+                      removeFavorite(accountId);
                       setFavoriteLabel('');
                       setShowFavoriteModal(false);
                     }}
@@ -1576,7 +1612,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               ) : (
                 <button
                   onClick={() => {
-                    addFavorite(account.id, favoriteLabel || undefined);
+                    addFavorite(accountId, favoriteLabel || undefined);
                     setFavoriteLabel('');
                     setShowFavoriteModal(false);
                   }}
@@ -1619,7 +1655,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               {/* Verified */}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
                 <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" fill="#1D9BF0">
-                  <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z"/>
+                  <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
                 </svg>
                 <div>
                   <div className="font-semibold text-sm text-[var(--text-primary)]">Verified</div>
@@ -1630,8 +1666,8 @@ export default function AccountMobileView({ account, transactions, operations: i
               {/* Hack */}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
                 <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" fill="#EF4444">
-                  <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
-                  <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+                  <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
                 </svg>
                 <div>
                   <div className="font-semibold text-sm text-[var(--text-primary)]">Hack</div>
@@ -1642,8 +1678,8 @@ export default function AccountMobileView({ account, transactions, operations: i
               {/* Spam */}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
                 <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" fill="#F97316">
-                  <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
-                  <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+                  <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
                 </svg>
                 <div>
                   <div className="font-semibold text-sm text-[var(--text-primary)]">Spam</div>
@@ -1654,9 +1690,9 @@ export default function AccountMobileView({ account, transactions, operations: i
               {/* User Labeled */}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
                 <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
-                  <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
-                  <circle cx="12" cy="10" r="3" fill="white"/>
-                  <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                  <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+                  <circle cx="12" cy="10" r="3" fill="white" />
+                  <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
                 </svg>
                 <div>
                   <div className="font-semibold text-sm text-[var(--text-primary)]">User Labeled</div>
@@ -1667,7 +1703,7 @@ export default function AccountMobileView({ account, transactions, operations: i
               {/* Unknown */}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
                 <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
-                  <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
+                  <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
                   <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
                 </svg>
                 <div>
