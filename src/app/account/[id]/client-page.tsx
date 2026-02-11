@@ -8,7 +8,7 @@ import type { AccountLabel, Transaction, Operation } from '@/lib/stellar';
 import Link from 'next/link';
 import AccountMobileView from '@/components/mobile/AccountMobileView';
 import AccountDesktopView from '@/components/desktop/AccountDesktopView';
-import Loading from '@/components/ui/Loading';
+
 import { getDetailRouteValue } from '@/lib/routeDetail';
 
 
@@ -62,6 +62,16 @@ export default function AccountPage() {
   const [currentAccountLabel, setCurrentAccountLabel] = useState<AccountLabel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+
+  // Detect mobile/desktop to conditionally render only one component
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   useEffect(() => {
     const fetchAccountData = async () => {
@@ -152,11 +162,9 @@ export default function AccountPage() {
     }
   }, [id]);
 
-  if (loading) {
-    return <Loading title="Loading account" description="Fetching account details and activity." />;
-  }
 
-  if (error || !account) {
+
+  if (!loading && (error || !account)) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <div className="w-20 h-20 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mb-4">
@@ -177,7 +185,7 @@ export default function AccountPage() {
     );
   }
 
-  const accountData = {
+  const accountData = account ? {
     id,
     balances: account.balances,
     subentry_count: account.subentry_count,
@@ -190,30 +198,33 @@ export default function AccountPage() {
     thresholds: account.thresholds,
     flags: account.flags,
     home_domain: account.home_domain,
-  };
+  } : null;
 
   return (
     <>
-      <div className="hidden lg:block">
-        <AccountDesktopView
-          account={accountData}
-          transactions={transactions}
-          operations={operations}
-          xlmPrice={xlmPrice}
-          accountLabels={accountLabels}
-          currentAccountLabel={currentAccountLabel}
-        />
-      </div>
-      <div className="block lg:hidden">
+      {isMobile ? (
         <AccountMobileView
           account={accountData}
+          accountId={id}
           transactions={transactions}
           operations={operations}
           xlmPrice={xlmPrice}
           accountLabels={accountLabels}
           currentAccountLabel={currentAccountLabel}
+          loading={loading}
         />
-      </div>
+      ) : (
+        <AccountDesktopView
+          account={accountData}
+          accountId={id}
+          transactions={transactions}
+          operations={operations}
+          xlmPrice={xlmPrice}
+          accountLabels={accountLabels}
+          currentAccountLabel={currentAccountLabel}
+          loading={loading}
+        />
+      )}
     </>
   );
 }

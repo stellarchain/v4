@@ -9,6 +9,7 @@ import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
 import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isMintEventData, isBurnEventData, isApproveEventData, isCustomEventData, CustomEventData } from '@/lib/eventParser';
 import { ContractStorageResult } from '@/lib/contractStorage';
 import GliderTabs from '@/components/ui/GliderTabs';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface Operation {
   id: string;
@@ -54,14 +55,22 @@ interface ContractData {
   eventSummary?: EventSummary | null;
   storage?: ContractStorageResult | null;
   invocations?: ContractInvocation[];
+  spec?: unknown;
+  _loading?: {
+    events?: boolean;
+    invocations?: boolean;
+    storage?: boolean;
+    spec?: boolean;
+  };
 }
 
 interface ContractDesktopViewProps {
   contract: ContractData;
   operations: Operation[];
+  onTabChange?: (tabId: 'overview' | 'history' | 'events' | 'storage') => void;
 }
 
-export default function ContractDesktopView({ contract, operations }: ContractDesktopViewProps) {
+export default function ContractDesktopView({ contract, operations, onTabChange }: ContractDesktopViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'events' | 'storage' | 'history'>('overview');
   const [expandedStorageRows, setExpandedStorageRows] = useState<Set<number>>(new Set());
   const [copied, setCopied] = useState(false);
@@ -83,6 +92,12 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
   const isToken = contract.type === 'token' || contract.type === 'lending';
   const isNFT = contract.type === 'nft';
   const isVault = contract.type === 'vault';
+  const sectionLoading = contract._loading || {};
+
+  const handleTabChange = (tabId: 'overview' | 'history' | 'events' | 'storage') => {
+    setActiveTab(tabId);
+    onTabChange?.(tabId);
+  };
 
   // Get a meaningful display name for the contract
   const getContractDisplayName = (): string => {
@@ -212,7 +227,10 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
             {/* Contract Info */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-3">
-                <h1 className="text-lg font-semibold text-[var(--text-primary)]">
+                <h1
+                  className="text-lg font-semibold text-[var(--text-primary)] truncate max-w-[520px]"
+                  title={contractDisplayName}
+                >
                   {contractDisplayName}
                   {isToken && tokenInfo?.symbol && tokenInfo.name !== 'Unknown Token' && (
                     <span className="text-base font-medium text-[var(--text-muted)] ml-1.5">({tokenInfo.symbol})</span>
@@ -270,7 +288,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
               <button
                 type="button"
                 onClick={handleCopy}
-                className="group flex items-center gap-1.5 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-secondary)] mt-0.5"
+                className="group flex max-w-full items-center gap-1.5 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-secondary)] mt-0.5"
               >
                 <span className="truncate">{contract.id}</span>
                 <svg className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -384,12 +402,12 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
               className="border-[var(--border-default)]"
               tabs={[
                 { id: 'overview', label: 'Overview' },
-                { id: 'history', label: 'History', count: contract.invocations?.length || 0, disabled: !contract.invocations || contract.invocations.length === 0 },
-                { id: 'events', label: 'Events', count: contract.events?.length || 0, disabled: !contract.events || contract.events.length === 0 },
-                { id: 'storage', label: 'Storage', count: contract.storage?.totalEntries || 0, disabled: !contract.storage || contract.storage.totalEntries <= 0 },
+                { id: 'history', label: 'History', count: sectionLoading.invocations ? undefined : (contract.invocations?.length || 0) },
+                { id: 'events', label: 'Events', count: sectionLoading.events ? undefined : (contract.events?.length || 0) },
+                { id: 'storage', label: 'Storage', count: sectionLoading.storage ? undefined : (contract.storage?.totalEntries || 0) },
               ] as const}
               activeId={activeTab as 'overview' | 'history' | 'events' | 'storage'}
-              onChange={(id) => setActiveTab(id)}
+              onChange={handleTabChange}
             />
 
             {/* Tab Content */}
@@ -407,10 +425,27 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                 <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                   <div className="flex items-center justify-between px-4 pt-4 pb-3">
                     <h3 className="text-sm font-bold text-[var(--text-primary)]">Recent Activity</h3>
-                    <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">{contract.events?.length || 0} events</span>
+                    <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
+                      {sectionLoading.events ? <InlineSkeleton width="w-12" height="h-3" /> : `${contract.events?.length || 0} events`}
+                    </span>
                   </div>
                   <div className="divide-y divide-[var(--border-subtle)]">
-                    {!contract.events || contract.events.length === 0 ? (
+                    {sectionLoading.events ? (
+                      Array.from({ length: 5 }).map((_, idx) => (
+                        <div key={`overview-events-skeleton-${idx}`} className="p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="h-8 w-8 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+                            <div className="flex-1 min-w-0">
+                              <InlineSkeleton width="w-28" />
+                              <div className="mt-2">
+                                <InlineSkeleton width="w-36" height="h-3" />
+                              </div>
+                            </div>
+                            <InlineSkeleton width="w-14" />
+                          </div>
+                        </div>
+                      ))
+                    ) : !contract.events || contract.events.length === 0 ? (
                       <div className="p-4 text-center text-sm text-[var(--text-muted)]">No recent activity found</div>
                     ) : (
                       contract.events.slice(0, 10).map((event, idx) => {
@@ -482,7 +517,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                   </div>
                   {contract.events && contract.events.length > 10 && (
                     <button
-                      onClick={() => setActiveTab('events')}
+                      onClick={() => handleTabChange('events')}
                       className="w-full border-t border-[var(--border-subtle)] py-3 text-center text-xs font-bold text-sky-600 hover:bg-[var(--bg-tertiary)] transition-colors rounded-b-xl"
                     >
                       View All {contract.events.length} Events
@@ -498,7 +533,7 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                 <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">Transaction History</h3>
                   <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
-                    {contract.invocations?.length || 0} transactions
+                    {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${contract.invocations?.length || 0} transactions`}
                   </span>
                 </div>
                 <div className="overflow-x-auto">
@@ -510,7 +545,26 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--border-subtle)]">
-                      {!contract.invocations || contract.invocations.length === 0 ? (
+                      {sectionLoading.invocations ? (
+                        Array.from({ length: 6 }).map((_, idx) => (
+                          <tr key={`history-skeleton-${idx}`}>
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-9 w-9 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+                                <div className="min-w-0">
+                                  <InlineSkeleton width="w-44" />
+                                  <div className="mt-2">
+                                    <InlineSkeleton width="w-24" height="h-3" />
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 text-right">
+                              <InlineSkeleton width="w-28" />
+                            </td>
+                          </tr>
+                        ))
+                      ) : !contract.invocations || contract.invocations.length === 0 ? (
                         <tr>
                           <td colSpan={2} className="p-4 text-center text-sm text-[var(--text-muted)]">No transaction history found</td>
                         </tr>
@@ -630,11 +684,28 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
                 <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract Events</h3>
                   <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
-                    {contract.events?.length || 0}
+                    {sectionLoading.events ? <InlineSkeleton width="w-10" height="h-3" /> : (contract.events?.length || 0)}
                   </span>
                 </div>
                 <div className="divide-y divide-[var(--border-subtle)]">
-                  {!contract.events || contract.events.length === 0 ? (
+                  {sectionLoading.events ? (
+                    Array.from({ length: 8 }).map((_, idx) => (
+                      <div key={`events-skeleton-${idx}`} className="p-4">
+                        <div className="flex items-start gap-4">
+                          <div className="h-8 w-8 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+                          <div className="flex-1 min-w-0">
+                            <InlineSkeleton width="w-20" />
+                            <div className="mt-2">
+                              <InlineSkeleton width="w-48" height="h-3" />
+                            </div>
+                            <div className="mt-2">
+                              <InlineSkeleton width="w-36" height="h-3" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : !contract.events || contract.events.length === 0 ? (
                     <div className="p-4 text-center text-sm text-[var(--text-muted)]">No events found</div>
                   ) : (
                     contract.events.map((event, idx) => {
@@ -832,9 +903,27 @@ export default function ContractDesktopView({ contract, operations }: ContractDe
               <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] overflow-hidden">
                 <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                   <h3 className="text-sm font-semibold text-[var(--text-primary)]">Contract Storage</h3>
-                  <p className="text-xs text-[var(--text-tertiary)]">{contract.storage?.totalEntries || 0} entries</p>
+                  <p className="text-xs text-[var(--text-tertiary)]">
+                    {sectionLoading.storage ? <InlineSkeleton width="w-16" height="h-3" /> : `${contract.storage?.totalEntries || 0} entries`}
+                  </p>
                 </div>
-                {!contract.storage || contract.storage.entries.length === 0 ? (
+                {sectionLoading.storage ? (
+                  <div className="divide-y divide-[var(--border-subtle)]">
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                      <div key={`storage-skeleton-${idx}`} className="px-4 py-3">
+                        <div className="flex items-start gap-3">
+                          <InlineSkeleton width="w-16" height="h-5" />
+                          <div className="flex-1">
+                            <InlineSkeleton width="w-44" />
+                            <div className="mt-2">
+                              <InlineSkeleton width="w-56" height="h-3" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : !contract.storage || contract.storage.entries.length === 0 ? (
                   <div className="p-4 text-center text-sm text-[var(--text-muted)]">No storage entries found</div>
                 ) : (
                   <div className="divide-y divide-[var(--border-subtle)]">

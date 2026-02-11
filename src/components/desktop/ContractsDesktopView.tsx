@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { shortenAddress, timeAgo } from '@/lib/stellar';
 import { StrKey } from '@stellar/stellar-sdk';
 import GliderTabs from '@/components/ui/GliderTabs';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 // Convert hex contract ID to StrKey format (C...)
 function hexToContractStrKey(hexId: string): string {
@@ -60,6 +61,7 @@ interface ContractsDesktopViewProps {
   };
   categories: Category[];
   pagination: PaginationInfo;
+  loading?: boolean;
 }
 
 import verifiedContracts from '@/data/verified-contracts.json';
@@ -149,7 +151,8 @@ export default function ContractsDesktopView({
   contracts: initialContracts,
   stats,
   categories,
-  pagination: initialPagination
+  pagination: initialPagination,
+  loading = false,
 }: ContractsDesktopViewProps) {
   const [contracts, setContracts] = useState<EnhancedContract[]>(initialContracts);
   const [pagination, setPagination] = useState(initialPagination);
@@ -157,6 +160,14 @@ export default function ContractsDesktopView({
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'activity' | 'name' | 'recent'>('recent');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setContracts(initialContracts);
+  }, [initialContracts]);
+
+  useEffect(() => {
+    setPagination(initialPagination);
+  }, [initialPagination]);
 
   // Fetch contracts for a specific page
   const fetchPage = useCallback(async (page: number) => {
@@ -308,7 +319,7 @@ export default function ContractsDesktopView({
                 </div>
                 <div className="text-xl font-bold text-[var(--text-primary)]">Smart Contracts</div>
                 <div className="mt-1 text-xs text-[var(--text-tertiary)]">
-                  {pagination.total.toLocaleString()} smart contracts deployed on Stellar
+                  {loading ? <InlineSkeleton width="w-48" height="h-3" /> : `${pagination.total.toLocaleString()} smart contracts deployed on Stellar`}
                 </div>
               </div>
             </div>
@@ -317,19 +328,19 @@ export default function ContractsDesktopView({
             <div className="flex gap-3">
               <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total</div>
-                <div className="text-lg font-bold text-[var(--text-primary)]">{pagination.total.toLocaleString()}</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-16" /> : pagination.total.toLocaleString()}</div>
               </div>
               <div className="p-3 rounded-xl bg-indigo-100/70 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800/50 min-w-[90px]">
                 <div className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1">Tokens</div>
-                <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{currentStats.tokens}</div>
+                <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{loading ? <InlineSkeleton width="w-12" /> : currentStats.tokens}</div>
               </div>
               <div className="p-3 rounded-xl bg-violet-100/70 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800/50 min-w-[90px]">
                 <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">DEXs</div>
-                <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{currentStats.dex}</div>
+                <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{loading ? <InlineSkeleton width="w-10" /> : currentStats.dex}</div>
               </div>
               <div className="p-3 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 min-w-[90px]">
                 <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Verified</div>
-                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{currentStats.verified}</div>
+                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{loading ? <InlineSkeleton width="w-10" /> : currentStats.verified}</div>
               </div>
             </div>
           </div>
@@ -408,7 +419,24 @@ export default function ContractsDesktopView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--bg-primary)]">
-                {filteredContracts.length > 0 ? (
+                {loading ? (
+                  Array.from({ length: 8 }).map((_, idx) => (
+                    <tr key={`contracts-skeleton-row-${idx}`}>
+                      <td className="py-3 px-4"><InlineSkeleton width="w-20" /></td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2">
+                          <InlineSkeleton width="w-28" />
+                          <InlineSkeleton width="w-10" height="h-3" />
+                        </div>
+                      </td>
+                      <td className="py-3 px-3"><InlineSkeleton width="w-16" /></td>
+                      <td className="py-3 px-3"><InlineSkeleton width="w-14" /></td>
+                      <td className="py-3 px-3 text-right"><InlineSkeleton width="w-12" /></td>
+                      <td className="py-3 px-3"><InlineSkeleton width="w-12" /></td>
+                      <td className="py-3 px-4 text-center"><InlineSkeleton width="w-6" height="h-6" /></td>
+                    </tr>
+                  ))
+                ) : filteredContracts.length > 0 ? (
                   filteredContracts.map((contract) => {
                     const typeBadge = getTypeBadge(contract.type);
 
@@ -525,7 +553,7 @@ export default function ContractsDesktopView({
             currentPage={pagination.currentPage}
             totalPages={pagination.totalPages}
             onPageChange={fetchPage}
-            loading={isLoading}
+            loading={isLoading || loading}
           />
         </div>
       </div>

@@ -5,7 +5,7 @@ import { useParams, usePathname, useSearchParams, notFound, useRouter } from 'ne
 import { getAssetDetails, getMarketAssets } from '@/lib/stellar';
 import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
-import Loading from '@/components/ui/Loading';
+import AssetLoadingShell from '@/components/ui/AssetLoadingShell';
 import { getDetailRouteValue } from '@/lib/routeDetail';
 
 
@@ -82,7 +82,7 @@ export default function AssetDetailsRoute() {
   }, [asset, router]);
 
   if (isLoading) {
-    return <Loading title="Loading asset" description="Fetching asset details." />;
+    return <AssetLoadingShell />;
   }
 
   if (error || !details) {

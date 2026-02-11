@@ -59,6 +59,10 @@ const storageCache: Map<string, StorageCacheEntry<ContractStorageResult>> = new 
 const entryCache: Map<string, StorageCacheEntry<StorageEntry>> = new Map();
 const instanceCache: Map<string, StorageCacheEntry<Record<string, unknown>>> = new Map();
 
+function getStorageCacheKey(contractId: string, includeCommonKeyScan: boolean): string {
+  return `${contractId}:${includeCommonKeyScan ? 'full' : 'instance'}`;
+}
+
 // ============================================================================
 // Cache Helpers
 // ============================================================================
@@ -98,7 +102,11 @@ export function clearStorageCaches(): void {
 
 // Invalidate cache for a specific contract
 export function invalidateStorageCache(contractId: string): void {
-  storageCache.delete(contractId);
+  for (const key of storageCache.keys()) {
+    if (key.startsWith(`${contractId}:`)) {
+      storageCache.delete(key);
+    }
+  }
   instanceCache.delete(contractId);
   // Clear all entry caches for this contract
   for (const key of entryCache.keys()) {
@@ -599,12 +607,26 @@ export function parseStorageValue(value: xdr.ScVal): ParsedValue {
  * Get all storage entries for a contract
  */
 export async function getContractStorage(contractId: string): Promise<ContractStorageResult | null> {
+  return getContractStorageWithOptions(contractId, { includeCommonKeyScan: false });
+}
+
+/**
+ * Get contract storage entries with optional deep key probing.
+ * `includeCommonKeyScan=false` keeps requests minimal and is the recommended default.
+ */
+export async function getContractStorageWithOptions(
+  contractId: string,
+  options?: { includeCommonKeyScan?: boolean }
+): Promise<ContractStorageResult | null> {
   if (!contractId || !isContractAddress(contractId)) {
     return null;
   }
 
+  const includeCommonKeyScan = options?.includeCommonKeyScan ?? false;
+  const storageCacheKey = getStorageCacheKey(contractId, includeCommonKeyScan);
+
   // Check cache
-  const cached = getCached(storageCache, contractId);
+  const cached = getCached(storageCache, storageCacheKey);
   if (cached !== undefined) {
     return cached;
   }
@@ -674,86 +696,90 @@ export async function getContractStorage(contractId: string): Promise<ContractSt
       }
     }
 
-    // For each durability type, we need to discover keys
-    // Since we can't enumerate all keys directly, we look for common patterns
-    // This is a limitation of the Soroban RPC - we can only fetch known keys
+    // Optional deep scan: probes a dictionary of common keys.
+    // This can generate many RPC calls, so it is disabled by default.
+    if (includeCommonKeyScan) {
+      // For each durability type, we need to discover keys
+      // Since we can't enumerate all keys directly, we look for common patterns
+      // This is a limitation of the Soroban RPC - we can only fetch known keys
 
-    // Common key patterns to check
-    const commonKeys: Array<{ scVal: xdr.ScVal; name: string }> = [
-      { scVal: xdr.ScVal.scvSymbol('Admin'), name: 'Admin' },
-      { scVal: xdr.ScVal.scvSymbol('admin'), name: 'admin' },
-      { scVal: xdr.ScVal.scvSymbol('Owner'), name: 'Owner' },
-      { scVal: xdr.ScVal.scvSymbol('owner'), name: 'owner' },
-      { scVal: xdr.ScVal.scvSymbol('Balance'), name: 'Balance' },
-      { scVal: xdr.ScVal.scvSymbol('balance'), name: 'balance' },
-      { scVal: xdr.ScVal.scvSymbol('Allowance'), name: 'Allowance' },
-      { scVal: xdr.ScVal.scvSymbol('allowance'), name: 'allowance' },
-      { scVal: xdr.ScVal.scvSymbol('TotalSupply'), name: 'TotalSupply' },
-      { scVal: xdr.ScVal.scvSymbol('total_supply'), name: 'total_supply' },
-      { scVal: xdr.ScVal.scvSymbol('Name'), name: 'Name' },
-      { scVal: xdr.ScVal.scvSymbol('name'), name: 'name' },
-      { scVal: xdr.ScVal.scvSymbol('Symbol'), name: 'Symbol' },
-      { scVal: xdr.ScVal.scvSymbol('symbol'), name: 'symbol' },
-      { scVal: xdr.ScVal.scvSymbol('Decimals'), name: 'Decimals' },
-      { scVal: xdr.ScVal.scvSymbol('decimals'), name: 'decimals' },
-      { scVal: xdr.ScVal.scvSymbol('Paused'), name: 'Paused' },
-      { scVal: xdr.ScVal.scvSymbol('paused'), name: 'paused' },
-      { scVal: xdr.ScVal.scvSymbol('Config'), name: 'Config' },
-      { scVal: xdr.ScVal.scvSymbol('config'), name: 'config' },
-      { scVal: xdr.ScVal.scvSymbol('State'), name: 'State' },
-      { scVal: xdr.ScVal.scvSymbol('state'), name: 'state' },
-      { scVal: xdr.ScVal.scvSymbol('Metadata'), name: 'Metadata' },
-      { scVal: xdr.ScVal.scvSymbol('metadata'), name: 'metadata' },
-      { scVal: xdr.ScVal.scvSymbol('Counter'), name: 'Counter' },
-      { scVal: xdr.ScVal.scvSymbol('counter'), name: 'counter' },
-      { scVal: xdr.ScVal.scvSymbol('Nonce'), name: 'Nonce' },
-      { scVal: xdr.ScVal.scvSymbol('nonce'), name: 'nonce' },
-    ];
+      // Common key patterns to check
+      const commonKeys: Array<{ scVal: xdr.ScVal; name: string }> = [
+        { scVal: xdr.ScVal.scvSymbol('Admin'), name: 'Admin' },
+        { scVal: xdr.ScVal.scvSymbol('admin'), name: 'admin' },
+        { scVal: xdr.ScVal.scvSymbol('Owner'), name: 'Owner' },
+        { scVal: xdr.ScVal.scvSymbol('owner'), name: 'owner' },
+        { scVal: xdr.ScVal.scvSymbol('Balance'), name: 'Balance' },
+        { scVal: xdr.ScVal.scvSymbol('balance'), name: 'balance' },
+        { scVal: xdr.ScVal.scvSymbol('Allowance'), name: 'Allowance' },
+        { scVal: xdr.ScVal.scvSymbol('allowance'), name: 'allowance' },
+        { scVal: xdr.ScVal.scvSymbol('TotalSupply'), name: 'TotalSupply' },
+        { scVal: xdr.ScVal.scvSymbol('total_supply'), name: 'total_supply' },
+        { scVal: xdr.ScVal.scvSymbol('Name'), name: 'Name' },
+        { scVal: xdr.ScVal.scvSymbol('name'), name: 'name' },
+        { scVal: xdr.ScVal.scvSymbol('Symbol'), name: 'Symbol' },
+        { scVal: xdr.ScVal.scvSymbol('symbol'), name: 'symbol' },
+        { scVal: xdr.ScVal.scvSymbol('Decimals'), name: 'Decimals' },
+        { scVal: xdr.ScVal.scvSymbol('decimals'), name: 'decimals' },
+        { scVal: xdr.ScVal.scvSymbol('Paused'), name: 'Paused' },
+        { scVal: xdr.ScVal.scvSymbol('paused'), name: 'paused' },
+        { scVal: xdr.ScVal.scvSymbol('Config'), name: 'Config' },
+        { scVal: xdr.ScVal.scvSymbol('config'), name: 'config' },
+        { scVal: xdr.ScVal.scvSymbol('State'), name: 'State' },
+        { scVal: xdr.ScVal.scvSymbol('state'), name: 'state' },
+        { scVal: xdr.ScVal.scvSymbol('Metadata'), name: 'Metadata' },
+        { scVal: xdr.ScVal.scvSymbol('metadata'), name: 'metadata' },
+        { scVal: xdr.ScVal.scvSymbol('Counter'), name: 'Counter' },
+        { scVal: xdr.ScVal.scvSymbol('counter'), name: 'counter' },
+        { scVal: xdr.ScVal.scvSymbol('Nonce'), name: 'Nonce' },
+        { scVal: xdr.ScVal.scvSymbol('nonce'), name: 'nonce' },
+      ];
 
-    // Query each common key for each durability type
-    for (const { type: durabilityType, xdrType: durabilityXdr } of durabilities) {
-      for (const { scVal: keyScVal } of commonKeys) {
-        try {
-          const ledgerKey = xdr.LedgerKey.contractData(
-            new xdr.LedgerKeyContractData({
-              contract: contractAddress.toScAddress(),
-              key: keyScVal,
-              durability: durabilityXdr,
-            })
-          );
-
-          const response = await server.getLedgerEntries(ledgerKey);
-
-          if (response.entries && response.entries.length > 0) {
-            const ledgerEntry = response.entries[0];
-            const contractData = ledgerEntry.val.contractData();
-            const key = contractData.key();
-            const val = contractData.val();
-
-            const keyInfo = parseStorageKey(key);
-            const valueInfo = parseStorageValue(val);
-
-            // Check if we already have this entry (from instance storage)
-            const exists = entries.some(
-              (e) => e.key === keyInfo.raw && e.durability === durabilityType
+      // Query each common key for each durability type
+      for (const { type: durabilityType, xdrType: durabilityXdr } of durabilities) {
+        for (const { scVal: keyScVal } of commonKeys) {
+          try {
+            const ledgerKey = xdr.LedgerKey.contractData(
+              new xdr.LedgerKeyContractData({
+                contract: contractAddress.toScAddress(),
+                key: keyScVal,
+                durability: durabilityXdr,
+              })
             );
 
-            if (!exists) {
-              entries.push({
-                key: keyInfo.raw,
-                keyDisplay: formatStorageKey(keyInfo),
-                keyType: keyInfo.type,
-                value: valueInfo.raw,
-                valueDisplay: valueInfo.display,
-                valueType: valueInfo.type,
-                durability: durabilityType,
-                ttl: ledgerEntry.liveUntilLedgerSeq,
-                expirationLedger: ledgerEntry.liveUntilLedgerSeq,
-              });
+            const response = await server.getLedgerEntries(ledgerKey);
+
+            if (response.entries && response.entries.length > 0) {
+              const ledgerEntry = response.entries[0];
+              const contractData = ledgerEntry.val.contractData();
+              const key = contractData.key();
+              const val = contractData.val();
+
+              const keyInfo = parseStorageKey(key);
+              const valueInfo = parseStorageValue(val);
+
+              // Check if we already have this entry (from instance storage)
+              const exists = entries.some(
+                (e) => e.key === keyInfo.raw && e.durability === durabilityType
+              );
+
+              if (!exists) {
+                entries.push({
+                  key: keyInfo.raw,
+                  keyDisplay: formatStorageKey(keyInfo),
+                  keyType: keyInfo.type,
+                  value: valueInfo.raw,
+                  valueDisplay: valueInfo.display,
+                  valueType: valueInfo.type,
+                  durability: durabilityType,
+                  ttl: ledgerEntry.liveUntilLedgerSeq,
+                  expirationLedger: ledgerEntry.liveUntilLedgerSeq,
+                });
+              }
             }
+          } catch {
+            // Key doesn't exist, continue
           }
-        } catch {
-          // Key doesn't exist, continue
         }
       }
     }
@@ -774,11 +800,11 @@ export async function getContractStorage(contractId: string): Promise<ContractSt
       fetchedAt: Date.now(),
     };
 
-    setCache(storageCache, contractId, result);
+    setCache(storageCache, storageCacheKey, result);
     return result;
   } catch (error) {
     console.error('Error fetching contract storage:', error);
-    setCache(storageCache, contractId, null, true);
+    setCache(storageCache, storageCacheKey, null, true);
     return null;
   }
 }

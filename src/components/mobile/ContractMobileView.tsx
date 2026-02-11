@@ -9,6 +9,7 @@ import type { ContractMetadataResult, ContractAccessControlResult, ContractSpecR
 import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
 import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isCustomEventData, CustomEventData } from '@/lib/eventParser';
 import type { ContractStorageResult } from '@/lib/contractStorage';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface Operation {
   id: string;
@@ -66,9 +67,10 @@ interface ContractData {
 interface ContractMobileViewProps {
   contract: ContractData;
   operations: Operation[];
+  onTabChange?: (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface') => void;
 }
 
-export default function ContractMobileView({ contract, operations }: ContractMobileViewProps) {
+export default function ContractMobileView({ contract, operations, onTabChange }: ContractMobileViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'details' | 'history' | 'interface'>('overview');
   const [copied, setCopied] = useState(false);
   const [copiedName, setCopiedName] = useState(false);
@@ -112,6 +114,11 @@ export default function ContractMobileView({ contract, operations }: ContractMob
   const isToken = contract.type === 'token' || contract.type === 'lending';
   const isNFT = contract.type === 'nft';
   const isVault = contract.type === 'vault';
+  const sectionLoading = contract._loading || {};
+  const changeTab = (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface') => {
+    setActiveTab(tabId);
+    onTabChange?.(tabId);
+  };
 
   const getContractDisplayName = (): string => {
     // Helper to check if a name is an asset string (CODE:ISSUER format)
@@ -189,8 +196,8 @@ export default function ContractMobileView({ contract, operations }: ContractMob
 
   const tabs: ContractTab[] = [
     { id: 'overview', label: 'Overview' },
-    { id: 'history', label: 'History', count: contract.invocations?.length || 0, hide: !contract.invocations || contract.invocations.length === 0 },
-    { id: 'operations', label: 'Events', count: contract.events?.length || 0 },
+    { id: 'history', label: 'History', count: sectionLoading.invocations ? undefined : (contract.invocations?.length || 0) },
+    { id: 'operations', label: 'Events', count: sectionLoading.events ? undefined : (contract.events?.length || 0) },
     { id: 'interface', label: 'Interface' },
     { id: 'details', label: 'Details' },
   ];
@@ -285,7 +292,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                 onClick={() => handleCopyName(contractDisplayName)}
                 className="text-lg font-bold text-[var(--text-primary)] truncate block text-left hover:opacity-80 transition-opacity"
               >
-                {contractDisplayName}
+                {sectionLoading.spec ? <InlineSkeleton width="w-28" /> : contractDisplayName}
                 {copiedName && <span className="text-xs text-[var(--success)] ml-2 font-normal">Copied!</span>}
               </button>
               <button
@@ -320,7 +327,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Decimals</span>
                   <span className="text-base font-bold text-[var(--text-primary)] font-mono">
-                    {contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7}
+                    {sectionLoading.spec ? <InlineSkeleton width="w-8" /> : (contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7)}
                   </span>
                 </div>
                 {contract.verifiedContract?.description && (
@@ -430,7 +437,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
           className="mt-3 mb-1"
           tabs={visibleTabs}
           activeId={activeTab}
-          onChange={setActiveTab}
+          onChange={changeTab}
         />
 
         {/* Tab Content */}
@@ -518,7 +525,7 @@ export default function ContractMobileView({ contract, operations }: ContractMob
                 )}
                 {contract.events && contract.events.length > 5 && (
                   <button
-                    onClick={() => setActiveTab('operations')}
+                    onClick={() => changeTab('operations')}
                     className="w-full mt-3 py-2 text-center text-xs font-semibold"
                     style={{ color: primaryColor }}
                   >
@@ -588,7 +595,21 @@ export default function ContractMobileView({ contract, operations }: ContractMob
           {/* HISTORY TAB */}
           {activeTab === 'history' && (
             <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
-              {!contract.invocations || contract.invocations.length === 0 ? (
+              {sectionLoading.invocations ? (
+                <div className="divide-y divide-[var(--border-subtle)]">
+                  {Array.from({ length: 5 }).map((_, idx) => (
+                    <div key={`history-skeleton-${idx}`} className="flex items-center gap-3 p-4">
+                      <div className="w-9 h-9 rounded-lg bg-[var(--bg-tertiary)] animate-pulse flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <InlineSkeleton width="w-20" />
+                        <div className="mt-2">
+                          <InlineSkeleton width="w-40" height="h-3" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : !contract.invocations || contract.invocations.length === 0 ? (
                 <div className="text-center py-4 text-[var(--text-muted)] text-sm">No transaction history found</div>
               ) : (
                 <div className="divide-y divide-[var(--border-subtle)]">
@@ -669,7 +690,22 @@ export default function ContractMobileView({ contract, operations }: ContractMob
           {/* EVENTS TAB */}
           {activeTab === 'operations' && (
             <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
-              {!contract.events || contract.events.length === 0 ? (
+              {sectionLoading.events ? (
+                <div className="divide-y divide-[var(--border-subtle)]">
+                  {Array.from({ length: 6 }).map((_, idx) => (
+                    <div key={`events-skeleton-${idx}`} className="flex items-center gap-3 p-4">
+                      <div className="w-9 h-9 rounded-lg bg-[var(--bg-tertiary)] animate-pulse flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <InlineSkeleton width="w-24" />
+                        <div className="mt-2">
+                          <InlineSkeleton width="w-36" height="h-3" />
+                        </div>
+                      </div>
+                      <InlineSkeleton width="w-10" />
+                    </div>
+                  ))}
+                </div>
+              ) : !contract.events || contract.events.length === 0 ? (
                 <div className="text-center py-4 text-[var(--text-muted)] text-sm">No events found</div>
               ) : (
                 <div className="divide-y divide-[var(--border-subtle)]">
@@ -747,7 +783,19 @@ export default function ContractMobileView({ contract, operations }: ContractMob
           {/* INTERFACE TAB */}
           {activeTab === 'interface' && (
             <div className="space-y-4">
-              {contract.spec ? (
+              {sectionLoading.spec ? (
+                <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-default)] p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <InlineSkeleton width="w-28" />
+                    <InlineSkeleton width="w-14" height="h-5" />
+                  </div>
+                  <div className="space-y-3">
+                    {Array.from({ length: 8 }).map((_, idx) => (
+                      <InlineSkeleton key={`spec-skeleton-${idx}`} width="w-full" height="h-3" />
+                    ))}
+                  </div>
+                </div>
+              ) : contract.spec ? (
                 <div className="bg-[var(--bg-tertiary)] rounded-xl shadow-md border border-[var(--border-default)] overflow-hidden font-mono text-xs text-[var(--text-secondary)] relative group">
                   <div className="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <button
