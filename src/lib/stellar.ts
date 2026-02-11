@@ -936,16 +936,81 @@ function getPriceAtHoursAgo(price7d: [number, number][], hoursAgo: number): numb
   return closestPrice;
 }
 
-// Fetch XLM price from StellarExpert
+interface StellarCoinApiResponse {
+  coingecko_stellar?: {
+    market_cap_rank?: number;
+    market_data?: {
+      current_price?: { usd?: number };
+      market_cap?: { usd?: number };
+      total_volume?: { usd?: number };
+      circulating_supply?: number;
+      price_change_percentage_24h?: number;
+      price_change_percentage_30d?: number;
+      price_change_percentage_1y?: number;
+      sparkline_7d?: { price?: number[] };
+    };
+  };
+  stellar_expert?: {
+    _embedded?: {
+      records?: Array<Record<string, unknown>>;
+    };
+  };
+}
+
+const STELLAR_COIN_API_URL = 'https://api.stellarchain.dev/api/coins/stellar';
+const STELLAR_COIN_API_TTL_MS = 60_000;
+let stellarCoinApiCache: {
+  data: StellarCoinApiResponse | null;
+  expiresAt: number;
+  inFlight: Promise<StellarCoinApiResponse | null> | null;
+} = {
+  data: null,
+  expiresAt: 0,
+  inFlight: null,
+};
+
+async function getStellarCoinApiData(): Promise<StellarCoinApiResponse | null> {
+  const now = Date.now();
+  if (stellarCoinApiCache.data && stellarCoinApiCache.expiresAt > now) {
+    return stellarCoinApiCache.data;
+  }
+
+  if (stellarCoinApiCache.inFlight) {
+    return stellarCoinApiCache.inFlight;
+  }
+
+  stellarCoinApiCache.inFlight = (async () => {
+    try {
+      const response = await fetch(STELLAR_COIN_API_URL, {
+        headers: { 'Accept': 'application/json' },
+        next: { revalidate: 60 },
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const json = await response.json() as StellarCoinApiResponse;
+      stellarCoinApiCache.data = json;
+      stellarCoinApiCache.expiresAt = Date.now() + STELLAR_COIN_API_TTL_MS;
+      return json;
+    } catch {
+      return null;
+    } finally {
+      stellarCoinApiCache.inFlight = null;
+    }
+  })();
+
+  return stellarCoinApiCache.inFlight;
+}
+
+// Fetch XLM price from Stellarchain coins API
 async function getXLMPrice(): Promise<number> {
   try {
-    const response = await fetch('https://api.stellar.expert/explorer/public/xlm-price', {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 },
-    });
-    if (response.ok) {
-      const data = await response.json();
-      return Number(data[0]?.[1]) || 0.1; // Default to 0.1 if not found
+    const json = await getStellarCoinApiData();
+    const xlmPrice = Number(json?.coingecko_stellar?.market_data?.current_price?.usd || 0);
+    if (xlmPrice > 0) {
+      return xlmPrice;
     }
   } catch {
     // Ignore error, use default
@@ -958,22 +1023,16 @@ async function getXLMPrice(): Promise<number> {
 // Fetch XLM data from Stellarchain (CoinGecko Proxy)
 async function getCoinGeckoXLMData() {
   try {
-    const response = await fetch('https://api.stellarchain.dev/api/coins/stellar', {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 },
-    });
-    if (response.ok) {
-      const json = await response.json();
-      const marketData = json?.coingecko_stellar?.market_data;
+    const json = await getStellarCoinApiData();
+    const marketData = json?.coingecko_stellar?.market_data;
 
-      if (marketData) {
-        return {
-          usd: marketData.current_price?.usd || 0,
-          usd_market_cap: marketData.market_cap?.usd || 0,
-          usd_24h_vol: marketData.total_volume?.usd || 0,
-          usd_24h_change: marketData.price_change_percentage_24h || 0
-        };
-      }
+    if (marketData) {
+      return {
+        usd: marketData.current_price?.usd || 0,
+        usd_market_cap: marketData.market_cap?.usd || 0,
+        usd_24h_vol: marketData.total_volume?.usd || 0,
+        usd_24h_change: marketData.price_change_percentage_24h || 0
+      };
     }
   } catch (error) {
     console.error('Error fetching CoinGecko data from Stellarchain:', error);
@@ -984,20 +1043,13 @@ async function getCoinGeckoXLMData() {
 // Client-side helper to fetch XLM stats
 export async function getXLMStats(): Promise<{ usd: number; usd_24h_change: number } | null> {
   try {
-    const response = await fetch('https://api.stellarchain.dev/api/coins/stellar', {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 },
-    });
-
-    if (response.ok) {
-      const json = await response.json();
-      const marketData = json?.coingecko_stellar?.market_data;
-      if (marketData) {
-        return {
-          usd: Number(marketData.current_price?.usd || 0),
-          usd_24h_change: Number(marketData.price_change_percentage_24h || 0)
-        };
-      }
+    const json = await getStellarCoinApiData();
+    const marketData = json?.coingecko_stellar?.market_data;
+    if (marketData) {
+      return {
+        usd: Number(marketData.current_price?.usd || 0),
+        usd_24h_change: Number(marketData.price_change_percentage_24h || 0)
+      };
     }
   } catch (error) {
     console.error('Error fetching XLM stats:', error);
@@ -1008,25 +1060,20 @@ export async function getXLMStats(): Promise<{ usd: number; usd_24h_change: numb
 // Fetch market data from StellarExpert API (aggregated market data)
 export async function getMarketAssets(): Promise<MarketAsset[]> {
   try {
-    // Fetch XLM price and assets in parallel
-    // Sort by rating to get legitimate assets (filters out spam)
-    const [xlmPrice, assetsResponse, coinGeckoData] = await Promise.all([
+    // Fetch from unified Stellarchain endpoint (includes CoinGecko + Stellar Expert payloads)
+    const [xlmPrice, coinApiData, coinGeckoData] = await Promise.all([
       getXLMPrice(),
-      fetch('https://api.stellar.expert/explorer/public/asset?sort=rating&order=desc&limit=200', {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 60 },
-      }),
+      getStellarCoinApiData(),
       getCoinGeckoXLMData()
     ]);
 
-    if (!assetsResponse.ok) {
-      throw new Error(`HTTP error! status: ${assetsResponse.status}`);
+    const records = coinApiData?.stellar_expert?._embedded?.records;
+    if (!Array.isArray(records)) {
+      throw new Error('Invalid stellar_expert payload in coins endpoint');
     }
 
-    const data = await assetsResponse.json();
-
     // Transform StellarExpert data to our MarketAsset format
-    const assets = data._embedded?.records?.map((asset: Record<string, unknown>, index: number) => {
+    const assets = records.map((asset: Record<string, unknown>, index: number) => {
       const toml = asset.tomlInfo as Record<string, unknown> | undefined;
       const currentPrice = Number(asset.price) || 0;
 
@@ -1077,7 +1124,7 @@ export async function getMarketAssets(): Promise<MarketAsset[]> {
         circulating_supply: supply,
         sparkline: sparklineData.length > 0 ? sparklineData : [],
       };
-    }) || [];
+    });
 
     // Override XLM data with CoinGecko if available
     if (coinGeckoData && assets.length > 0) {
@@ -1145,24 +1192,10 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
 
     // Handle native XLM
     if (code === 'XLM' && !issuer) {
-      const [priceResponse, statsResponse] = await Promise.all([
-        fetch('https://api.stellar.expert/explorer/public/xlm-price', {
-          headers: { 'Accept': 'application/json' },
-          next: { revalidate: 60 },
-        }),
-        fetchCoinGeckoData(),
-      ]);
+      const statsResponse = await fetchCoinGeckoData();
+      const priceHistory: [number, number][] = [];
 
-      let priceHistory: [number, number][] = [];
-      if (priceResponse.ok) {
-        const priceData = await priceResponse.json();
-        if (Array.isArray(priceData)) {
-          priceHistory = priceData;
-        }
-      }
-
-      // IMPORTANT: priceHistory from stellar.expert is in BTC terms, not USD!
-      // Always use CoinGecko for the current USD price
+      // Use CoinGecko for XLM USD price and movement
       const currentPrice = statsResponse.price > 0 ? statsResponse.price : xlmPrice;
 
       // Use CoinGecko sparkline for 24h high/low (it's in USD)
@@ -1204,15 +1237,18 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       };
     }
 
-    // Fetch asset from StellarExpert (as backup for description/history)
-    const response = await fetch(`https://api.stellar.expert/explorer/public/asset/${assetId}`, {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 },
-    });
+    const coinApiData = await getStellarCoinApiData();
+    const cachedAsset = coinApiData?.stellar_expert?._embedded?.records?.find((record) => {
+      const recordAsset = String(record.asset || '');
+      if (!recordAsset) return false;
+      if (recordAsset === assetId) return true;
+      // Some records append a suffix like "-1" / "-2"; match by CODE-ISSUER prefix.
+      return parsedIssuer ? recordAsset.startsWith(`${parsedCode}-${parsedIssuer}`) : recordAsset === parsedCode;
+    }) as Record<string, unknown> | undefined;
 
-    if (!response.ok) {
+    if (!cachedAsset) {
       if (stellarChainData) {
-        // If we have SC data but no expert data, return what we have
+        // No asset payload from our coins API. Return only Stellarchain-side data.
         return {
           rank: stellarChainData.rating || 0,
           code: parsedCode,
@@ -1246,23 +1282,14 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       return null;
     }
 
-    const asset = await response.json();
-    const toml = asset.tomlInfo || {};
+    const asset = cachedAsset;
+
+    const toml = (asset.tomlInfo as Record<string, unknown> | undefined) || {};
 
     // Get price history for chart
-    const priceResponse = await fetch(`https://api.stellar.expert/explorer/public/asset/${assetId}/price`, {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 },
-    });
-
     let priceHistory: [number, number][] = [];
-    if (priceResponse.ok) {
-      const priceData = await priceResponse.json();
-      if (priceData.price7d) {
-        priceHistory = priceData.price7d;
-      } else if (Array.isArray(priceData)) {
-        priceHistory = priceData;
-      }
+    if (Array.isArray(asset.price7d)) {
+      priceHistory = asset.price7d as [number, number][];
     }
 
     // Fallback to price7d from main asset response if specific price endpoint failed or returned empty
@@ -1279,6 +1306,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
     // Note: StellarExpert volume is 7d in stroops, SC is 24h USD. We prefer SC volume if available.
     const volume7d = (Number(asset.volume7d) || 0) / 1e7;
     const volume24h = stellarChainData?.volume_usd !== undefined ? Number(stellarChainData.volume_usd) : (volume7d / 7);
+    const trustlines = Array.isArray(asset.trustlines) ? asset.trustlines : [];
 
     // Calculate price changes using Horizon current price
     const price24hAgo = getPriceAtHoursAgo(priceHistory, 24);
@@ -1314,7 +1342,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       market_cap: supply * currentPrice,
       circulating_supply: supply,
       total_supply: supply,
-      holders: stellarChainData?.holders || Number(asset.trustlines?.[0]) || Number(asset.accounts) || 0,
+      holders: stellarChainData?.holders || Number(trustlines[0]) || Number(asset.accounts) || 0,
       payments_24h: Number(asset.payments) || 0,
       trades_24h: Number(asset.trades) || 0,
       price_high_24h: high24h,
@@ -1879,22 +1907,7 @@ async function fetchCoinGeckoData(): Promise<{
   };
 
   try {
-    const response = await fetch(
-      'https://api.stellarchain.dev/api/coins/stellar',
-      {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 60 },
-      }
-    );
-
-    if (!response.ok) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('Stellarchain CoinGecko proxy fetch warning:', response.status, response.statusText);
-      }
-      return fallback;
-    }
-
-    const json = await response.json();
+    const json = await getStellarCoinApiData();
     const data = json?.coingecko_stellar;
 
     if (!data) return fallback;

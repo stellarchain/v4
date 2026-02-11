@@ -1293,17 +1293,6 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
               <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">External Links</h3>
               <div className="space-y-2">
                 <a
-                  href={`https://stellar.expert/explorer/public/contract/${contract.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] transition-colors"
-                >
-                  <span className="text-xs font-semibold text-[var(--text-secondary)]">Stellar Expert</span>
-                  <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-                <a
                   href={`https://stellarchain.io/accounts/${contract.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
