@@ -7,7 +7,6 @@ import { getBaseUrl, getAccountLabels, normalizeTransactions } from '@/lib/stell
 import type { AccountLabel, Transaction } from '@/lib/stellar';
 import TransactionMobileView from '@/components/mobile/TransactionMobileView';
 import TransactionDesktopView from '@/components/desktop/TransactionDesktopView';
-import Loading from '@/components/ui/Loading';
 import { notFound } from 'next/navigation';
 import { getDetailRouteValue } from '@/lib/routeDetail';
 
@@ -125,32 +124,48 @@ export default function TransactionPage() {
       });
   }, [hash]);
 
-  if (isLoading) {
-    return <Loading title="Loading transaction" description="Fetching transaction details and operations." />;
-  }
-
-  if (error || !transaction) {
+  if (!isLoading && (error || !transaction)) {
     notFound();
   }
 
-  const transactionData = transaction as any;
+  const transactionData: Transaction = transaction || {
+    hash: hash || ''.padEnd(64, '0'),
+    source_account: ''.padEnd(56, 'G'),
+    source_account_sequence: '',
+    successful: false,
+    created_at: new Date(0).toISOString(),
+    ledger: 0,
+    ledger_attr: 0,
+    operation_count: 0,
+    fee_charged: '0',
+    max_fee: '0',
+    memo: '',
+    memo_type: 'none',
+    signatures: [],
+    envelope_xdr: '',
+    result_xdr: '',
+    result_meta_xdr: '',
+    fee_meta_xdr: '',
+  };
 
   return (
     <>
       <div className="md:hidden">
         <TransactionMobileView
           transaction={transactionData}
-          operations={operations as any}
-          effects={effects as any}
+          operations={operations}
+          effects={effects}
           accountLabels={accountLabels}
+          loading={isLoading}
         />
       </div>
       <div className="hidden md:block">
         <TransactionDesktopView
           transaction={transactionData}
-          operations={operations as any}
-          effects={effects as any}
+          operations={operations}
+          effects={effects}
           accountLabels={accountLabels}
+          loading={isLoading}
         />
       </div>
     </>
