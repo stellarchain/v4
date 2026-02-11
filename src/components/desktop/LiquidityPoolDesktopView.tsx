@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { LiquidityPool, Operation, Transaction, LiquidityPoolTrade, LiquidityPoolEffect, shortenAddress, timeAgo, enrichTradesWithTransactionHashes } from '@/lib/stellar';
 import GliderTabs from '@/components/ui/GliderTabs';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface LiquidityPoolDesktopViewProps {
     pool: LiquidityPool;
@@ -11,9 +12,16 @@ interface LiquidityPoolDesktopViewProps {
     transactions: Transaction[];
     trades: LiquidityPoolTrade[];
     effects: LiquidityPoolEffect[];
+    loading?: boolean;
+    loadingSections?: {
+        operations?: boolean;
+        transactions?: boolean;
+        trades?: boolean;
+        effects?: boolean;
+    };
 }
 
-export default function LiquidityPoolDesktopView({ pool, operations, transactions, trades: initialTrades, effects }: LiquidityPoolDesktopViewProps) {
+export default function LiquidityPoolDesktopView({ pool, operations, transactions, trades: initialTrades, effects, loading = false, loadingSections = {} }: LiquidityPoolDesktopViewProps) {
     const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'operations' | 'trades' | 'effects'>('overview');
     const [copied, setCopied] = useState(false);
     const [trades, setTrades] = useState<LiquidityPoolTrade[]>(initialTrades);
@@ -33,6 +41,10 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                 setLoadingTxHashes(false);
             });
     }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        setTrades(initialTrades);
+    }, [initialTrades]);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(pool.id);
@@ -93,13 +105,34 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
     const amountB = parseFloat(assetB.amount);
     const priceRatio = amountA > 0 ? (amountB / amountA).toFixed(6) : '0';
     const priceRatioReverse = amountB > 0 ? (amountA / amountB).toFixed(6) : '0';
+    const areTabCountsLoading = loadingSections.operations || loadingSections.transactions || loadingSections.trades || loadingSections.effects;
 
     const tabs = [
         { id: 'overview', label: 'Overview' },
-        { id: 'trades', label: 'Trades', count: trades.length },
-        { id: 'effects', label: 'Effects', count: effects.length },
-        { id: 'transactions', label: 'Transactions', count: transactions.length },
-        { id: 'operations', label: 'Operations', count: operations.length },
+        {
+            id: 'trades',
+            label: 'Trades',
+            right: areTabCountsLoading ? <InlineSkeleton width="w-6" height="h-4" /> : undefined,
+            count: areTabCountsLoading ? undefined : trades.length
+        },
+        {
+            id: 'effects',
+            label: 'Effects',
+            right: areTabCountsLoading ? <InlineSkeleton width="w-6" height="h-4" /> : undefined,
+            count: areTabCountsLoading ? undefined : effects.length
+        },
+        {
+            id: 'transactions',
+            label: 'Transactions',
+            right: areTabCountsLoading ? <InlineSkeleton width="w-6" height="h-4" /> : undefined,
+            count: areTabCountsLoading ? undefined : transactions.length
+        },
+        {
+            id: 'operations',
+            label: 'Operations',
+            right: areTabCountsLoading ? <InlineSkeleton width="w-6" height="h-4" /> : undefined,
+            count: areTabCountsLoading ? undefined : operations.length
+        },
     ] as const;
 
     return (
@@ -123,11 +156,11 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                         <div className="flex items-center gap-2 ml-auto">
                             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-subtle)]">
                                 <span className="text-xs text-[var(--text-muted)]">Fee</span>
-                                <span className="text-sm font-semibold text-[var(--text-primary)]">{(pool.fee_bp / 100).toFixed(2)}%</span>
+                                <span className="text-sm font-semibold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-12" height="h-4" /> : `${(pool.fee_bp / 100).toFixed(2)}%`}</span>
                             </div>
                             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-subtle)]">
                                 <span className="text-xs text-[var(--text-muted)]">Trustlines</span>
-                                <span className="text-sm font-semibold text-[var(--text-primary)]">{pool.total_trustlines.toLocaleString()}</span>
+                                <span className="text-sm font-semibold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-12" height="h-4" /> : pool.total_trustlines.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>
@@ -154,14 +187,14 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                             {/* Asset A */}
                             <div className="bg-[var(--bg-tertiary)] rounded-lg p-3">
                                 <div className="flex items-center justify-between mb-1">
-                                    <span className="text-sm font-bold text-[var(--text-primary)]">{codeA}</span>
-                                    <span className="font-mono text-sm font-semibold text-[var(--text-primary)]">{formatAmount(assetA.amount)}</span>
+                                <span className="text-sm font-bold text-[var(--text-primary)]">{codeA}</span>
+                                    <span className="font-mono text-sm font-semibold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-14" height="h-4" /> : formatAmount(assetA.amount)}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <div>
                                         {issuerA ? (
                                             <Link href={`/account/${issuerA}`} className="text-xs font-mono text-sky-600 hover:underline">
-                                                {shortenAddress(issuerA, 8)}
+                                                {shortenAddress(issuerA)}
                                             </Link>
                                         ) : (
                                             <span className="text-xs text-[var(--text-muted)]">Native Asset (XLM)</span>
@@ -183,14 +216,14 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                             {/* Asset B */}
                             <div className="bg-[var(--bg-tertiary)] rounded-lg p-3">
                                 <div className="flex items-center justify-between mb-1">
-                                    <span className="text-sm font-bold text-[var(--text-primary)]">{codeB}</span>
-                                    <span className="font-mono text-sm font-semibold text-[var(--text-primary)]">{formatAmount(assetB.amount)}</span>
+                                <span className="text-sm font-bold text-[var(--text-primary)]">{codeB}</span>
+                                    <span className="font-mono text-sm font-semibold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-14" height="h-4" /> : formatAmount(assetB.amount)}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <div>
                                         {issuerB ? (
                                             <Link href={`/account/${issuerB}`} className="text-xs font-mono text-sky-600 hover:underline">
-                                                {shortenAddress(issuerB, 8)}
+                                                {shortenAddress(issuerB)}
                                             </Link>
                                         ) : (
                                             <span className="text-xs text-[var(--text-muted)]">Native Asset (XLM)</span>
@@ -205,10 +238,10 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                 <div className="text-xs text-[var(--text-muted)] mb-2">Exchange Rate</div>
                                 <div className="space-y-1">
                                     <div className="font-mono text-sm text-[var(--text-primary)]">
-                                        1 {codeA} = {priceRatio} {codeB}
+                                        {loading ? <InlineSkeleton width="w-36" height="h-4" /> : `1 ${codeA} = ${priceRatio} ${codeB}`}
                                     </div>
                                     <div className="font-mono text-sm text-[var(--text-secondary)]">
-                                        1 {codeB} = {priceRatioReverse} {codeA}
+                                        {loading ? <InlineSkeleton width="w-36" height="h-4" /> : `1 ${codeB} = ${priceRatioReverse} ${codeA}`}
                                     </div>
                                 </div>
                             </div>
@@ -300,7 +333,13 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                     <p className="text-xs text-[var(--text-tertiary)] mt-1">Recent trades on Stellar DEX</p>
                                 </div>
 
-                                {trades.length === 0 ? (
+                                {loadingSections.trades ? (
+                                    <div className="p-4 space-y-3">
+                                        {Array.from({ length: 8 }).map((_, i) => (
+                                            <div key={`trades-skeleton-${i}`} className="h-8 rounded bg-[var(--bg-tertiary)] animate-pulse" />
+                                        ))}
+                                    </div>
+                                ) : trades.length === 0 ? (
                                     <div className="text-center py-16 text-[var(--text-muted)]">
                                         No trades found
                                     </div>
@@ -372,7 +411,13 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                     <p className="text-xs text-[var(--text-tertiary)] mt-1">Deposits and withdrawals</p>
                                 </div>
 
-                                {effects.length === 0 ? (
+                                {loadingSections.effects ? (
+                                    <div className="p-4 space-y-3">
+                                        {Array.from({ length: 8 }).map((_, i) => (
+                                            <div key={`effects-skeleton-${i}`} className="h-8 rounded bg-[var(--bg-tertiary)] animate-pulse" />
+                                        ))}
+                                    </div>
+                                ) : effects.length === 0 ? (
                                     <div className="text-center py-16 text-[var(--text-muted)]">
                                         No effects found
                                     </div>
@@ -405,7 +450,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                                         </td>
                                                         <td className="py-3 px-4">
                                                             <Link href={`/account/${effect.account}`} className="font-mono text-sm text-sky-600 hover:underline">
-                                                                {shortenAddress(effect.account, 6)}
+                                                                {shortenAddress(effect.account)}
                                                             </Link>
                                                         </td>
                                                         <td className="py-3 px-4 text-right">
@@ -435,7 +480,13 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                     <p className="text-xs text-[var(--text-tertiary)] mt-1">Recent pool transactions</p>
                                 </div>
 
-                                {transactions.length === 0 ? (
+                                {loadingSections.transactions ? (
+                                    <div className="p-4 space-y-3">
+                                        {Array.from({ length: 8 }).map((_, i) => (
+                                            <div key={`transactions-skeleton-${i}`} className="h-8 rounded bg-[var(--bg-tertiary)] animate-pulse" />
+                                        ))}
+                                    </div>
+                                ) : transactions.length === 0 ? (
                                     <div className="text-center py-16 text-[var(--text-muted)]">
                                         No transactions found
                                     </div>
@@ -454,7 +505,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                                 <tr key={tx.id} className="hover:bg-sky-50/30 cursor-pointer transition-colors" onClick={() => window.location.href = `/transaction/${tx.hash}`}>
                                                     <td className="py-3 px-4">
                                                         <span className="font-mono text-sm text-sky-600 hover:underline">
-                                                            {shortenAddress(tx.hash, 8)}
+                                                            {shortenAddress(tx.hash)}
                                                         </span>
                                                     </td>
                                                     <td className="py-3 px-4">
@@ -487,7 +538,13 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                     <p className="text-xs text-[var(--text-tertiary)] mt-1">Recent pool operations</p>
                                 </div>
 
-                                {operations.length === 0 ? (
+                                {loadingSections.operations ? (
+                                    <div className="p-4 space-y-3">
+                                        {Array.from({ length: 8 }).map((_, i) => (
+                                            <div key={`operations-skeleton-${i}`} className="h-8 rounded bg-[var(--bg-tertiary)] animate-pulse" />
+                                        ))}
+                                    </div>
+                                ) : operations.length === 0 ? (
                                     <div className="text-center py-16 text-[var(--text-muted)]">
                                         No operations found
                                     </div>
@@ -514,7 +571,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
                                                     </td>
                                                     <td className="py-3 px-4">
                                                         <Link href={`/account/${op.source_account}`} className="font-mono text-sm text-sky-600 hover:underline">
-                                                            {shortenAddress(op.source_account, 6)}
+                                                            {shortenAddress(op.source_account)}
                                                         </Link>
                                                     </td>
                                                     <td className="py-3 px-4 text-sm text-[var(--text-tertiary)]">

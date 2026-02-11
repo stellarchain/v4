@@ -574,7 +574,7 @@ export default function FloatingBottomNav() {
                               {fav.label || 'Unnamed'}
                             </div>
                             <div className="text-[10px] font-mono text-[var(--text-muted)]">
-                              {shortenAddress(fav.address, 4)}
+                              {shortenAddress(fav.address)}
                             </div>
                           </div>
                         </Link>
@@ -654,7 +654,7 @@ export default function FloatingBottomNav() {
                                 {fav.label || 'Unnamed'}
                               </div>
                               <div className="text-xs font-mono text-[var(--text-muted)]">
-                                {shortenAddress(fav.address, 6)}
+                                {shortenAddress(fav.address)}
                               </div>
                             </div>
                             <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

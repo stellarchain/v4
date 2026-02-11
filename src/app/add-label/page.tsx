@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 type VerificationType = 'user_defined' | 'verified';
 
 export default function AddLabelPage() {
-  const [accountId, setAccountId] = useState('');
+  const searchParams = useSearchParams();
+  const [accountId, setAccountId] = useState(searchParams.get('account') || '');
   const [label, setLabel] = useState('');
   const [email, setEmail] = useState('');
   const [verificationType, setVerificationType] = useState<VerificationType>('user_defined');

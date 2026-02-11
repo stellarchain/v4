@@ -398,9 +398,9 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                                 </div>
                                                 {/* Row 2: Hash + From */}
                                                 <div className="flex items-center gap-1.5 text-[11px] mt-1">
-                                                    <span className="font-mono text-[var(--text-muted)]">#{shortenAddress(tx.hash, 4)}</span>
+                                                    <span className="font-mono text-[var(--text-muted)]">#{shortenAddress(tx.hash)}</span>
                                                     <span className="text-[var(--text-muted)]">·</span>
-                                                    <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(tx.source_account, 4)}</span></span>
+                                                    <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(tx.source_account)}</span></span>
                                                     <span className="text-[var(--text-muted)]">·</span>
                                                     <span className="text-[11px] font-medium text-[var(--text-muted)]">{tx.operation_count} ops</span>
                                                 </div>
@@ -523,9 +523,9 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
                                                 </div>
                                                 <div className="flex items-center justify-between mt-1">
                                                     <div className="flex items-center gap-1.5 text-[11px]">
-                                                        <span className="font-mono text-[var(--text-muted)]">#{shortenAddress(op.transaction_hash, 4)}</span>
+                                                        <span className="font-mono text-[var(--text-muted)]">#{shortenAddress(op.transaction_hash)}</span>
                                                         <span className="text-[var(--text-muted)]">·</span>
-                                                        <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(op.source_account, 4)}</span></span>
+                                                        <span className="text-[var(--text-muted)]">From <span className="font-mono">{shortenAddress(op.source_account)}</span></span>
                                                     </div>
                                                     {summary && (
                                                         <span className="text-xs font-semibold text-[var(--text-primary)] shrink-0">{summary}</span>

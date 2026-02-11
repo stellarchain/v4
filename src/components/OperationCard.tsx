@@ -71,13 +71,13 @@ export default function OperationCard({ operation }: OperationCardProps) {
           {details.from && (
             <div className="text-right hidden sm:block">
               <p className="text-[var(--text-muted)] text-xs">From</p>
-              <p className="text-[var(--text-primary)] font-mono text-xs">{shortenAddress(details.from, 4)}</p>
+              <p className="text-[var(--text-primary)] font-mono text-xs">{shortenAddress(details.from)}</p>
             </div>
           )}
           {details.to && (
             <div className="text-right hidden md:block">
               <p className="text-[var(--text-muted)] text-xs">To</p>
-              <p className="text-[var(--text-primary)] font-mono text-xs">{shortenAddress(details.to, 4)}</p>
+              <p className="text-[var(--text-primary)] font-mono text-xs">{shortenAddress(details.to)}</p>
             </div>
           )}
           <svg className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--primary)] group-hover:translate-x-1 transition-[color,transform]" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">

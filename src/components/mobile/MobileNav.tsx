@@ -217,13 +217,33 @@ export default function MobileNav() {
     }
   };
 
-  const isActive = (href: string) => {
+  const isActive = (href: string, allItems?: MenuItem[]) => {
     if (href === '/') return pathname === '/';
-    return pathname.startsWith(href);
+
+    // If we have all menu items, check for most specific match
+    if (allItems) {
+      // Find all matching items
+      const matches = allItems.filter(item => {
+        const itemHref = item.href;
+        return pathname === itemHref || pathname.startsWith(itemHref + '/') || pathname.startsWith(itemHref + '?');
+      });
+
+      // Only return true if this href is the longest (most specific) match
+      if (matches.length > 0) {
+        const longestMatch = matches.reduce((longest, current) =>
+          current.href.length > longest.href.length ? current : longest
+        );
+        return href === longestMatch.href;
+      }
+      return false;
+    }
+
+    // For non-menu items, use simple matching
+    return pathname === href || pathname.startsWith(href + '/') || pathname.startsWith(href + '?');
   };
 
   const isMoreActive = menuCategories.some(cat =>
-    cat.href ? isActive(cat.href) : cat.items?.some(item => isActive(item.href))
+    cat.href ? isActive(cat.href) : cat.items?.some(item => isActive(item.href, cat.items))
   );
 
   return (
@@ -296,7 +316,7 @@ export default function MobileNav() {
                               className={`flex items-center gap-3 px-4 py-3 transition-colors ${
                                 index !== category.items!.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''
                               } ${
-                                isActive(item.href)
+                                isActive(item.href, category.items)
                                   ? 'bg-[var(--bg-tertiary)]'
                                   : 'hover:bg-[var(--bg-tertiary)]'
                               }`}
@@ -305,7 +325,7 @@ export default function MobileNav() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <span className={`font-medium ${
-                                    isActive(item.href) ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
+                                    isActive(item.href, category.items) ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
                                   }`}>
                                     {item.name}
                                   </span>

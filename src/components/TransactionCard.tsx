@@ -31,7 +31,7 @@ export default function TransactionCard({ transaction }: TransactionCardProps) {
           </div>
           <div className="min-w-0">
             <p className="text-[13px] font-mono text-[var(--primary)] group-hover:text-[var(--primary-light)] transition-colors truncate">
-              {shortenAddress(transaction.hash, 8)}
+              {shortenAddress(transaction.hash)}
             </p>
             <p className="text-[12px] text-[var(--text-tertiary)]">{timeAgo(transaction.created_at)}</p>
           </div>
@@ -41,7 +41,7 @@ export default function TransactionCard({ transaction }: TransactionCardProps) {
           <div className="text-right hidden sm:block">
             <p className="data-label">From</p>
             <p className="text-[var(--text-primary)] font-mono text-[12px]">
-              {shortenAddress(transaction.source_account, 4)}
+              {shortenAddress(transaction.source_account)}
             </p>
           </div>
           <div className="text-center">
@@ -50,7 +50,7 @@ export default function TransactionCard({ transaction }: TransactionCardProps) {
           </div>
           <div className="text-center hidden md:block">
             <p className="data-label">Ledger</p>
-            <p className="text-[var(--text-primary)] font-mono">#{transaction.ledger.toLocaleString()}</p>
+            <p className="text-[var(--text-primary)] font-mono">#{transaction.ledger_attr.toLocaleString()}</p>
           </div>
           <svg className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--primary)] group-hover:translate-x-1 transition-[color,transform]" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

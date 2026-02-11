@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation';
 import AssetCandlestickChart from '@/components/AssetCandlestickChart';
 import AssetOrderBook from '@/components/AssetOrderBook';
 import GliderTabs from '@/components/ui/GliderTabs';
-import { AssetDetails, AssetHolder, AssetTrade, AccountLabel, TradingPair, shortenAddress, timeAgo, getAssetHolders, getAssetTrades, getAccountLabels, getAssetTradingPairs, getLiquidityPoolByAssets } from '@/lib/stellar';
-import { getXLMHoldersAction } from '@/app/actions/stellar';
+import { AssetDetails, AssetHolder, AssetTrade, AccountLabel, TradingPair, shortenAddress, timeAgo, getAssetHolders, getAssetTrades, getAccountLabels, getAssetTradingPairs, getLiquidityPoolByAssets, getOperation } from '@/lib/stellar';
+import { getXLMHoldersAction } from '@/lib/helpers';
 
 interface AssetDesktopViewProps {
   asset: AssetDetails;
@@ -63,6 +63,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
   const [loadingMarkets, setLoadingMarkets] = useState(false);
 
   const [copied, setCopied] = useState(false);
+  const [tradeTxMap, setTradeTxMap] = useState<Record<string, string>>({}); // opId → txHash
 
   // Converter state
   const [assetAmount, setAssetAmount] = useState<string>('1');
@@ -136,6 +137,23 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
 
     fetchTrades();
   }, [activeTab, asset.code, asset.issuer, trades.length]);
+
+  // Resolve operation IDs to transaction hashes for trade links
+  useEffect(() => {
+    if (trades.length === 0) return;
+    const opIds = [...new Set(trades.map(t => t.id.split('-')[0]))];
+    const newIds = opIds.filter(id => !tradeTxMap[id]);
+    if (newIds.length === 0) return;
+
+    Promise.all(newIds.map(id => getOperation(id).then(op => ({ id, hash: op.transaction_hash })).catch(() => null)))
+      .then(results => {
+        const map: Record<string, string> = {};
+        for (const r of results) {
+          if (r) map[r.id] = r.hash;
+        }
+        setTradeTxMap(prev => ({ ...prev, ...map }));
+      });
+  }, [trades]);
 
   const loadMoreTrades = async () => {
     if (!tradesCursor || loadingMoreTrades) return;
@@ -248,10 +266,10 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1400px] px-4 py-4">
-        {/* Main Grid: 2×2 proportional layout */}
+        {/* Main Grid: 2-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-4">
-          {/* Row 1 Left: Price + Stats */}
-          <div className="space-y-4">
+          {/* Left Column: all sidebar cards */}
+          <div className="space-y-4 self-start">
             {/* Asset Header + Price */}
             <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-3">
               <div className="flex items-center gap-3">
@@ -369,12 +387,6 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                 <div className="mt-1.5 font-semibold text-[var(--text-primary)]">{formatNumber(asset.circulating_supply)} {asset.code}</div>
               </div>
             </div>
-          </div>
-
-          {/* Row 1 Right: injected below via grid order */}
-
-          {/* Row 2 Left: Links + Converter + Price Performance */}
-          <div className="space-y-4 lg:col-start-1">
             {/* Links Section */}
             {(asset.domain || asset.issuer) && (
               <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-3 space-y-3">
@@ -424,7 +436,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none" />
                         </svg>
                       </div>
-                      {shortenAddress(asset.issuer, 4)}
+                      {shortenAddress(asset.issuer)}
                     </Link>
                   </div>
                 )}
@@ -451,7 +463,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider">You pay</label>
-                <div className="flex items-center bg-[var(--bg-primary)] rounded-lg px-3 py-2.5 border border-[var(--border-subtle)] focus-within:border-sky-400 focus-within:ring-1 focus-within:ring-sky-400/20 transition-all">
+                <div className="flex items-center bg-[var(--bg-primary)] rounded-lg px-3 py-2.5 border border-[var(--border-subtle)]">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-6 h-6 bg-sky-50 rounded-full flex items-center justify-center flex-shrink-0 border border-sky-100">
                       {asset.image ? (
@@ -466,7 +478,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                     type="number"
                     value={assetAmount}
                     onChange={(e) => { setActiveInput('asset'); setAssetAmount(e.target.value); }}
-                    className="text-right bg-transparent font-semibold text-[var(--text-primary)] flex-1 min-w-0 ml-2"
+                    className="text-right bg-transparent font-semibold text-[var(--text-primary)] flex-1 min-w-0 ml-2 outline-none! [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
                     placeholder="0"
                   />
                 </div>
@@ -480,7 +492,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-wider">You get</label>
-                <div className="flex items-center bg-[var(--bg-primary)] rounded-lg px-3 py-2.5 border border-[var(--border-subtle)] focus-within:border-sky-400 focus-within:ring-1 focus-within:ring-sky-400/20 transition-colors">
+                <div className="flex items-center bg-[var(--bg-primary)] rounded-lg px-3 py-2.5 border border-[var(--border-subtle)]">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-6 h-6 bg-emerald-50 rounded-full flex items-center justify-center flex-shrink-0 border border-emerald-100">
                       <span className="text-emerald-600 font-bold text-[9px]">$</span>
@@ -491,7 +503,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                     type="number"
                     value={usdAmount}
                     onChange={(e) => { setActiveInput('usd'); setUsdAmount(e.target.value); }}
-                    className="text-right bg-transparent font-semibold text-[var(--text-primary)] flex-1 min-w-0 ml-2"
+                    className="text-right bg-transparent font-semibold text-[var(--text-primary)] flex-1 min-w-0 ml-2 outline-none! [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
                     placeholder="0"
                   />
                 </div>
@@ -525,8 +537,8 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
             </div>
           </div>
 
-          {/* Row 1 Right: Tabs + Chart/Content */}
-          <div className="flex flex-col gap-4 min-w-0 overflow-hidden lg:row-start-1 lg:col-start-2">
+          {/* Right Column: Tabs + Chart/Content */}
+          <div className="flex flex-col gap-4 min-w-0 overflow-hidden">
             {/* Tab Navigation */}
             <GliderTabs
               size="md"
@@ -603,7 +615,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium text-sky-600">{asset.code} / {pair.counterAsset.code}</span>
                                 {pair.counterAsset.issuer && (
-                                  <span className="text-[10px] text-[var(--text-muted)] font-mono">{shortenAddress(pair.counterAsset.issuer, 4)}</span>
+                                  <span className="text-[10px] text-[var(--text-muted)] font-mono">{shortenAddress(pair.counterAsset.issuer)}</span>
                                 )}
                               </div>
                             </td>
@@ -650,7 +662,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                     <table className="w-full sc-table">
                       <thead>
                         <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
-                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">#</th>
+                          <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Trade ID</th>
                           <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Type</th>
                           <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-left">Pair</th>
                           <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">{asset.code} Amount</th>
@@ -683,7 +695,18 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                               key={trade.id}
                               className="hover:bg-sky-50/30 transition-colors"
                             >
-                              <td className="py-3 px-4 text-sm text-[var(--text-tertiary)]">{idx + 1}</td>
+                              <td className="py-3 px-4 text-sm">
+                                {(() => {
+                                  const opId = trade.id.split('-')[0];
+                                  const txHash = tradeTxMap[opId];
+                                  const href = txHash ? `/tx/${txHash}?op=${opId}` : `/operations/${opId}`;
+                                  return (
+                                    <Link href={href} className="text-sky-600 hover:text-sky-700 font-mono">
+                                      {txHash ? `${txHash.slice(0, 6)}...${txHash.slice(-4)}` : `${opId.slice(0, 6)}...${opId.slice(-4)}`}
+                                    </Link>
+                                  );
+                                })()}
+                              </td>
                               <td className="py-3 px-4">
                                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${
                                   isBuy
@@ -798,7 +821,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                                   </div>
                                 ) : (
                                   <span className="font-mono text-sm text-sky-600 hover:underline">
-                                    {shortenAddress(holder.account_id, 8)}
+                                    {shortenAddress(holder.account_id)}
                                   </span>
                                 )}
                               </td>
@@ -899,7 +922,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                     {asset.issuer && (
                       <div>
                         <span className="text-[var(--text-tertiary)]">Issuer</span>
-                        <p className="font-mono text-sky-600 text-xs">{shortenAddress(asset.issuer, 12)}</p>
+                        <p className="font-mono text-sky-600 text-xs">{shortenAddress(asset.issuer)}</p>
                       </div>
                     )}
                     {asset.domain && (
@@ -928,16 +951,14 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Row 2 Right: Order Book (chart tab only) */}
-          {activeTab === 'chart' ? (
-            <div className="min-w-0 overflow-hidden lg:col-start-2">
-              <AssetOrderBook asset={asset} />
-            </div>
-          ) : (
-            <div className="hidden lg:block" />
-          )}
+            {/* Order Book (chart tab only) */}
+            {activeTab === 'chart' && (
+              <div className="min-w-0 overflow-hidden">
+                <AssetOrderBook asset={asset} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -86,13 +86,33 @@ export default function DesktopNavbar() {
         setShowFavoritesDropdown(false);
     }, [pathname]);
 
-    const isActive = (href: string) => {
+    const isActive = (href: string, allItems?: MenuItem[]) => {
         if (href === '/') return pathname === '/';
-        return pathname.startsWith(href);
+
+        // If we have all dropdown items, check for most specific match
+        if (allItems) {
+            // Find all matching items
+            const matches = allItems.filter(item => {
+                const itemHref = item.href;
+                return pathname === itemHref || pathname.startsWith(itemHref + '/') || pathname.startsWith(itemHref + '?');
+            });
+
+            // Only return true if this href is the longest (most specific) match
+            if (matches.length > 0) {
+                const longestMatch = matches.reduce((longest, current) =>
+                    current.href.length > longest.href.length ? current : longest
+                );
+                return href === longestMatch.href;
+            }
+            return false;
+        }
+
+        // For non-dropdown items, use simple matching
+        return pathname === href || pathname.startsWith(href + '/') || pathname.startsWith(href + '?');
     };
 
     const isDropdownActive = (items: MenuItem[]) => {
-        return items.some(item => isActive(item.href));
+        return items.some(item => isActive(item.href, items));
     };
 
     const handleSearch = (e: React.FormEvent) => {
@@ -152,12 +172,12 @@ export default function DesktopNavbar() {
                                                             <Link
                                                                 key={subItem.href}
                                                                 href={subItem.href}
-                                                                className={`flex flex-col px-4 py-2.5 transition-colors ${isActive(subItem.href)
+                                                                className={`flex flex-col px-4 py-2.5 transition-colors ${isActive(subItem.href, item.dropdown)
                                                                     ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30'
                                                                     : 'hover:bg-[var(--bg-primary)]'
                                                                     }`}
                                                             >
-                                                                <span className={`text-sm font-medium ${isActive(subItem.href) ? 'text-blue-600' : 'text-[var(--text-primary)]'}`}>
+                                                                <span className={`text-sm font-medium ${isActive(subItem.href, item.dropdown) ? 'text-blue-600' : 'text-[var(--text-primary)]'}`}>
                                                                     {subItem.name}
                                                                 </span>
                                                                 {subItem.description && (
@@ -273,7 +293,7 @@ export default function DesktopNavbar() {
                                                                     {fav.label || 'Unnamed Account'}
                                                                 </div>
                                                                 <div className="text-xs font-mono text-[var(--text-tertiary)] truncate">
-                                                                    {shortenAddress(fav.address, 6)}
+                                                                    {shortenAddress(fav.address)}
                                                                 </div>
                                                             </div>
                                                             <svg className="w-4 h-4 text-[var(--text-muted)]" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">

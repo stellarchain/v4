@@ -174,6 +174,27 @@ def _safe_extract(zip_path: Path, dest_dir: Path) -> None:
                 raise SkillBundleError(f"Path traversal in bundle: {name}")
         zf.extractall(dest_dir)
 
+        # Restore Unix permission bits from the zip metadata (best effort).
+        for info in zf.infolist():
+            name = info.filename
+            if not name:
+                continue
+            is_dir = False
+            try:
+                is_dir = info.is_dir()
+            except AttributeError:
+                is_dir = name.endswith("/")
+            if is_dir:
+                continue
+            mode = (info.external_attr >> 16) & 0o7777
+            if not mode:
+                continue
+            out_path = dest_dir / name
+            try:
+                os.chmod(out_path, mode)
+            except OSError:
+                pass
+
 
 def _find_extracted_skill_root(tmp_extract_dir: Path) -> Path:
     # Expect exactly one top-level directory.
@@ -273,4 +294,3 @@ def main(argv: list[str]) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main(os.sys.argv[1:]))
-

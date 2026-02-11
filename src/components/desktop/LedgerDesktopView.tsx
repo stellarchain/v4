@@ -243,7 +243,7 @@ export default function LedgerDesktopView({
                     onClick={handleCopyHash}
                     className="group flex items-center gap-1.5 font-mono text-[11px] text-[var(--text-muted)] hover:text-sky-600 transition-colors"
                   >
-                    <span className="truncate">{shortenAddress(ledger.hash, 6)}</span>
+                    <span className="truncate">{shortenAddress(ledger.hash)}</span>
                     <svg className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
@@ -527,10 +527,10 @@ export default function LedgerDesktopView({
                             {description}
                           </span>
                           <span className="text-[var(--text-muted)]">→</span>
-                          <span className="text-xs font-mono text-[var(--text-tertiary)] truncate">{shortenAddress(tx.source_account, 6)}</span>
+                          <span className="text-xs font-mono text-[var(--text-tertiary)] truncate">{shortenAddress(tx.source_account)}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-[10px] text-[var(--text-muted)]">
-                          <span className="font-mono">{shortenAddress(tx.hash, 8)}</span>
+                          <span className="font-mono">{shortenAddress(tx.hash)}</span>
                           <span className="text-[var(--text-muted)]">•</span>
                           <span>{timeAgo(tx.created_at)}</span>
                         </div>
@@ -578,7 +578,7 @@ export default function LedgerDesktopView({
                   if (op.type === 'payment') {
                     const asset = (op as any).asset_code || ((op as any).asset_type === 'native' ? 'XLM' : '');
                     summary = `${formatTokenAmount((op as any).amount, 2)} ${asset}`;
-                    summaryLabel = (op as any).to ? `→ ${shortenAddress((op as any).to, 4)}` : '';
+                    summaryLabel = (op as any).to ? `→ ${shortenAddress((op as any).to)}` : '';
                     typeDisplay = 'Payment';
                     accentClass = 'text-emerald-600 dark:text-emerald-400';
                     bgClass = 'bg-emerald-100 dark:bg-emerald-900/40';
@@ -674,7 +674,7 @@ export default function LedgerDesktopView({
                           {op.source_account && (
                             <>
                               <span className="text-xs text-[var(--text-tertiary)]">from</span>
-                              <span className="text-xs font-mono font-medium text-[var(--text-secondary)]">{shortenAddress(op.source_account, 6)}</span>
+                              <span className="text-xs font-mono font-medium text-[var(--text-secondary)]">{shortenAddress(op.source_account)}</span>
                             </>
                           )}
                           <span className="text-[var(--text-muted)]">•</span>
