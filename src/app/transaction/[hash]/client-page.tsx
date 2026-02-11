@@ -4,15 +4,11 @@ import { useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
 import { getBaseUrl, getAccountLabels, normalizeTransactions } from '@/lib/stellar';
-import type { AccountLabel, Transaction } from '@/lib/stellar';
+import type { AccountLabel, Transaction, Operation, Effect } from '@/lib/stellar';
 import TransactionMobileView from '@/components/mobile/TransactionMobileView';
 import TransactionDesktopView from '@/components/desktop/TransactionDesktopView';
 import { notFound } from 'next/navigation';
 import { getDetailRouteValue } from '@/lib/routeDetail';
-
-
-type Operation = Horizon.ServerApi.OperationRecord;
-type Effect = Horizon.ServerApi.EffectRecord;
 
 // Extract all unique account addresses from transaction data
 function extractAccountAddresses(
@@ -129,9 +125,12 @@ export default function TransactionPage() {
   }
 
   const transactionData: Transaction = transaction || {
+    id: '',
+    paging_token: '',
     hash: hash || ''.padEnd(64, '0'),
     source_account: ''.padEnd(56, 'G'),
     source_account_sequence: '',
+    fee_account: ''.padEnd(56, 'G'),
     successful: false,
     created_at: new Date(0).toISOString(),
     ledger: 0,
