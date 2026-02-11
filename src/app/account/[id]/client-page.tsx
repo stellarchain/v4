@@ -62,6 +62,16 @@ export default function AccountPage() {
   const [currentAccountLabel, setCurrentAccountLabel] = useState<AccountLabel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+
+  // Detect mobile/desktop to conditionally render only one component
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   useEffect(() => {
     const fetchAccountData = async () => {
@@ -194,17 +204,7 @@ export default function AccountPage() {
 
   return (
     <>
-      <div className="hidden lg:block">
-        <AccountDesktopView
-          account={accountData}
-          transactions={transactions}
-          operations={operations}
-          xlmPrice={xlmPrice}
-          accountLabels={accountLabels}
-          currentAccountLabel={currentAccountLabel}
-        />
-      </div>
-      <div className="block lg:hidden">
+      {isMobile ? (
         <AccountMobileView
           account={accountData}
           transactions={transactions}
@@ -213,7 +213,16 @@ export default function AccountPage() {
           accountLabels={accountLabels}
           currentAccountLabel={currentAccountLabel}
         />
-      </div>
+      ) : (
+        <AccountDesktopView
+          account={accountData}
+          transactions={transactions}
+          operations={operations}
+          xlmPrice={xlmPrice}
+          accountLabels={accountLabels}
+          currentAccountLabel={currentAccountLabel}
+        />
+      )}
     </>
   );
 }

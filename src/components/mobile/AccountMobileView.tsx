@@ -122,6 +122,8 @@ export default function AccountMobileView({ account, transactions, operations: i
   };
   const [assetPrices, setAssetPrices] = useState<Record<string, AssetPriceData>>({});
   const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
+  const fetchedEffectIds = useRef<Set<string>>(new Set());
+  const fetchedActivityPriceKeys = useRef<Set<string>>(new Set());
   const [xlmChange24h, setXlmChange24h] = useState(0);
   const [activityAssets, setActivityAssets] = useState<Array<{ code: string; issuer: string; type: string }>>([]);
 
@@ -426,34 +428,38 @@ export default function AccountMobileView({ account, transactions, operations: i
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activityType]);
 
-  // Fetch effects for operations that don't have them yet
+  // Fetch effects for all operations in a single request
+  const effectsFetched = useRef(false);
   useEffect(() => {
+    if (effectsFetched.current || allOperations.length === 0) return;
+    effectsFetched.current = true;
+
     const fetchEffects = async () => {
-      // Get operations that need effects fetched (limit batch size for performance)
-      const opsNeedingEffects = allOperations
-        .filter(op => !opEffects[op.id])
-        .slice(0, 20); // Fetch effects in batches of 20
+      try {
+        const res = await fetch(`${getBaseUrl()}/accounts/${account.id}/effects?limit=200&order=desc`);
+        const data = await res.json();
+        const records = data._embedded?.records || [];
 
-      if (opsNeedingEffects.length === 0) return;
-
-      const newEffects: Record<string, Effect[]> = {};
-      await Promise.all(opsNeedingEffects.map(async (op) => {
-        try {
-          const res = await fetch(`${getBaseUrl()}/operations/${op.id}/effects`);
-          const data = await res.json();
-          if (data._embedded?.records) {
-            newEffects[op.id] = data._embedded.records;
+        // Group effects by operation_id
+        const grouped: Record<string, Effect[]> = {};
+        for (const effect of records) {
+          const opId = (effect as any).operation?.split('/').pop() || effect.id?.split('-')[0];
+          // Effects from Horizon have an operation link, extract operation ID
+          const operationId = (effect as any).operation_id || opId;
+          if (operationId) {
+            if (!grouped[operationId]) grouped[operationId] = [];
+            grouped[operationId].push(effect);
           }
-        } catch { /* ignore */ }
-      }));
+        }
 
-      if (Object.keys(newEffects).length > 0) {
-        setOpEffects(prev => ({ ...prev, ...newEffects }));
-      }
+        if (Object.keys(grouped).length > 0) {
+          setOpEffects(grouped);
+        }
+      } catch { /* ignore */ }
     };
 
     fetchEffects();
-  }, [allOperations, opEffects]);
+  }, [allOperations, account.id]);
 
   // Extract unique assets from activity effects for price fetching
   useEffect(() => {
@@ -486,10 +492,13 @@ export default function AccountMobileView({ account, transactions, operations: i
       // Filter to assets we don't have prices for yet
       const assetsToFetch = activityAssets.filter(a => {
         const key = `${a.code}:${a.issuer}`;
-        return !assetPrices[key];
+        return !fetchedActivityPriceKeys.current.has(key);
       });
 
       if (assetsToFetch.length === 0) return;
+
+      // Mark as fetched immediately to prevent duplicate requests
+      assetsToFetch.forEach(a => fetchedActivityPriceKeys.current.add(`${a.code}:${a.issuer}`));
 
       await Promise.all(assetsToFetch.map(async (asset) => {
         const key = `${asset.code}:${asset.issuer}`;
@@ -521,7 +530,7 @@ export default function AccountMobileView({ account, transactions, operations: i
     if (activityAssets.length > 0 && xlmPrice > 0) {
       fetchActivityPrices();
     }
-  }, [activityAssets, xlmPrice, assetPrices]);
+  }, [activityAssets, xlmPrice]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(account.id);
