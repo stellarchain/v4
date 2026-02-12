@@ -12,6 +12,9 @@ interface MarketsDesktopViewProps {
   initialAssets: MarketAsset[];
   xlmPrice: number;
   loading?: boolean;
+  currentPage: number;
+  hasNextPage: boolean;
+  onPageChange: (page: number) => void;
 }
 
 type SortField = 'rank' | 'market_cap' | 'price_usd' | 'change_24h' | 'change_7d' | 'volume_24h';
@@ -127,7 +130,14 @@ function getAssetUrl(asset: MarketAsset): string {
   return assetRoute(asset.code, asset.issuer);
 }
 
-export default function MarketsDesktopView({ initialAssets, xlmPrice, loading = false }: MarketsDesktopViewProps) {
+export default function MarketsDesktopView({
+  initialAssets,
+  xlmPrice,
+  loading = false,
+  currentPage,
+  hasNextPage,
+  onPageChange
+}: MarketsDesktopViewProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('market_cap');
@@ -415,6 +425,29 @@ export default function MarketsDesktopView({ initialAssets, xlmPrice, loading = 
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {!loading && filteredAndSortedAssets.length > 0 && (
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <button
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-4 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-[var(--text-muted)] font-medium px-4">
+              Page {currentPage}
+            </span>
+            <button
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={!hasNextPage}
+              className="px-4 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+            >
+              Next
+            </button>
+          </div>
+        )}
 
         {/* Empty State */}
         {!loading && filteredAndSortedAssets.length === 0 && (

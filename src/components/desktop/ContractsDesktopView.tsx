@@ -227,10 +227,20 @@ export default function ContractsDesktopView({
     setIsLoading(true);
     const currentFilter = activeFilter ?? filter;
     try {
+      // Build URL with optional sorting
+      const buildUrl = (pageNum: number) => {
+        let url = `https://api.stellarchain.dev/v1/contracts?page=${pageNum}`;
+        // Add sorting parameter if "Most Recent" is selected
+        if (sortBy === 'recent') {
+          url += '&order[createdAt]=desc';
+        }
+        return url;
+      };
+
       // For 'all' filter or search, single page fetch is fine
       if (currentFilter === 'all') {
         const response = await fetch(
-          `https://api.stellarchain.dev/v1/contracts?page=${page}`,
+          buildUrl(page),
           { headers: { 'Accept': 'application/ld+json' } }
         );
         const data = await response.json();
@@ -254,7 +264,7 @@ export default function ContractsDesktopView({
 
         while (accumulated.length < MIN_DISPLAY_COUNT && pagesChecked < MAX_PAGES_TO_FETCH) {
           const response = await fetch(
-            `https://api.stellarchain.dev/v1/contracts?page=${apiPage}`,
+            buildUrl(apiPage),
             { headers: { 'Accept': 'application/ld+json' } }
           );
           const data = await response.json();
@@ -285,18 +295,18 @@ export default function ContractsDesktopView({
     } finally {
       setIsLoading(false);
     }
-  }, [filter, transformContracts, matchesFilter]);
+  }, [filter, sortBy, transformContracts, matchesFilter]);
 
-  // Re-fetch when filter changes (except for initial load)
+  // Re-fetch when filter or sort changes (except for initial load)
   const [hasInitialized, setHasInitialized] = useState(false);
   useEffect(() => {
     if (!hasInitialized) {
       setHasInitialized(true);
       return;
     }
-    // When filter changes, re-fetch from page 1 with the new filter
+    // When filter or sort changes, re-fetch from page 1
     fetchPage(1, filter);
-  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filter, sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredContracts = useMemo(() => {
     let result = [...contracts];
@@ -305,8 +315,10 @@ export default function ContractsDesktopView({
       result = result.filter(c => c.operationCount > 0);
     } else if (filter === 'verified') {
       result = result.filter(c => c.verified);
-    } else if (filter !== 'all') {
-      result = result.filter(c => c.type === filter);
+    } else if (filter === 'token') {
+      result = result.filter(c => c.type === 'token');
+    } else if (filter === 'contract') {
+      result = result.filter(c => c.type !== 'token');
     }
 
     if (search.trim()) {
@@ -318,11 +330,13 @@ export default function ContractsDesktopView({
       );
     }
 
+    // Client-side sorting for options not supported by API
     if (sortBy === 'name') {
       result.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortBy === 'activity') {
       result.sort((a, b) => b.operationCount - a.operationCount);
     }
+    // 'recent' is handled by API with order[createdAt]=desc
 
     return result;
   }, [contracts, filter, search, sortBy]);
@@ -397,18 +411,6 @@ export default function ContractsDesktopView({
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total</div>
                 <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-16" /> : pagination.total.toLocaleString()}</div>
               </div>
-              <div className="p-3 rounded-xl bg-indigo-100/70 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800/50 min-w-[90px]">
-                <div className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1">Tokens</div>
-                <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{loading ? <InlineSkeleton width="w-12" /> : currentStats.tokens}</div>
-              </div>
-              <div className="p-3 rounded-xl bg-violet-100/70 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800/50 min-w-[90px]">
-                <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">Contracts</div>
-                <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{loading ? <InlineSkeleton width="w-10" /> : currentStats.contracts}</div>
-              </div>
-              <div className="p-3 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 min-w-[90px]">
-                <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Verified</div>
-                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{loading ? <InlineSkeleton width="w-10" /> : currentStats.verified}</div>
-              </div>
             </div>
           </div>
         </div>
@@ -445,9 +447,9 @@ export default function ContractsDesktopView({
             className="border-[var(--border-default)]"
             tabs={[
               { id: 'all', label: 'All', count: pagination.total },
-              { id: 'verified', label: 'Verified', count: currentStats.verified },
-              { id: 'token', label: 'Tokens', count: currentStats.tokens },
-              { id: 'contract', label: 'Contracts', count: currentStats.contracts },
+              { id: 'verified', label: 'Verified' },
+              { id: 'token', label: 'Tokens' },
+              { id: 'contract', label: 'Contracts' },
             ]}
             activeId={filter}
             onChange={setFilter}

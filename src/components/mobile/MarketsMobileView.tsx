@@ -12,6 +12,9 @@ interface MarketsMobileViewProps {
   initialAssets: MarketAsset[];
   xlmPrice: number;
   loading?: boolean;
+  currentPage: number;
+  hasNextPage: boolean;
+  onPageChange: (page: number) => void;
 }
 
 type SortField = 'market_cap' | 'price_usd' | 'change_24h' | 'change_7d' | 'volume_24h';
@@ -119,7 +122,14 @@ function getAssetUrl(asset: MarketAsset): string {
 
 const ASSETS_PER_PAGE = 50;
 
-export default function MarketsMobileView({ initialAssets, xlmPrice, loading = false }: MarketsMobileViewProps) {
+export default function MarketsMobileView({
+  initialAssets,
+  xlmPrice,
+  loading = false,
+  currentPage,
+  hasNextPage,
+  onPageChange
+}: MarketsMobileViewProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('market_cap');
@@ -482,6 +492,29 @@ export default function MarketsMobileView({ initialAssets, xlmPrice, loading = f
             <span className="text-xs font-medium text-[var(--text-muted)]">
               All {totalItems} assets displayed
             </span>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && filteredAndSortedAssets.length > 0 && (
+          <div className="flex items-center justify-center gap-2 py-4 pb-20">
+            <button
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] active:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-[var(--text-muted)] font-medium px-2">
+              Page {currentPage}
+            </span>
+            <button
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={!hasNextPage}
+              className="px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] active:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+            >
+              Next
+            </button>
           </div>
         )}
 
