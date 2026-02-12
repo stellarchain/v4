@@ -6,6 +6,7 @@ import { RichListAccount, shortenAddress } from '@/lib/stellar';
 
 interface TopAccountsDesktopViewProps {
   initialAccounts: RichListAccount[];
+  totalAccounts: number;
 }
 
 type SortField = 'rank' | 'balance' | 'percent';
@@ -34,7 +35,7 @@ function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
   );
 }
 
-export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsDesktopViewProps) {
+export default function TopAccountsDesktopView({ initialAccounts, totalAccounts }: TopAccountsDesktopViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('rank');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
@@ -44,8 +45,8 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
     const totalBalance = initialAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
     const totalPercent = initialAccounts.reduce((sum, acc) => sum + parseFloat(acc.percent_of_coins || '0'), 0);
     const verifiedCount = initialAccounts.filter(acc => acc.label?.verified).length;
-    return { totalBalance, totalPercent, verifiedCount, totalAccounts: initialAccounts.length };
-  }, [initialAccounts]);
+    return { totalBalance, totalPercent, verifiedCount, totalAccounts, displayedAccounts: initialAccounts.length };
+  }, [initialAccounts, totalAccounts]);
 
   const filteredAndSortedAccounts = useMemo(() => {
     let accounts = [...initialAccounts];

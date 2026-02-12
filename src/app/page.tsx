@@ -7,7 +7,6 @@ import type { Ledger, Transaction, Operation, NetworkStats } from '@/lib/stellar
 import DesktopHomePage from '@/components/desktop/DesktopHomePage';
 import StatsSection from '@/components/mobile/sections/StatsSection';
 import TransactionsSection from '@/components/mobile/sections/TransactionsSection';
-import Loading from '@/components/ui/Loading';
 import { fetchStellarCoinData } from '@/services/api';
 
 interface MarketAsset {
@@ -33,6 +32,54 @@ interface XLMMarketData {
 }
 
 export default function HomePage() {
+  const emptyLedger: Ledger = {
+    id: '',
+    paging_token: '',
+    hash: '',
+    prev_hash: '',
+    sequence: 0,
+    successful_transaction_count: 0,
+    failed_transaction_count: 0,
+    operation_count: 0,
+    tx_set_operation_count: 0,
+    closed_at: new Date(0).toISOString(),
+    total_coins: '0',
+    fee_pool: '0',
+    base_fee_in_stroops: 100,
+    base_reserve_in_stroops: 5000000,
+    max_tx_set_size: 1000,
+    protocol_version: 0,
+    header_xdr: '',
+  };
+
+  const emptyStats: NetworkStats = {
+    ledger_count: 0,
+    latest_ledger: emptyLedger,
+    total_coins: '0',
+    fee_pool: '0',
+    base_fee: 100,
+    base_reserve: 5000000,
+    protocol_version: 0,
+    ledger_capacity_usage: 0,
+  };
+
+  const emptyXlmMarketData: XLMMarketData = {
+    price: 0,
+    priceChange24h: 0,
+    marketCap: 0,
+    marketCapChange24h: 0,
+    volume24h: 0,
+    circulatingSupply: 0,
+    totalSupply: 0,
+    dominance: 0,
+    rank: 0,
+    sparkline: [],
+    burnedLumens: 0,
+    sdfMandate: 0,
+    feePool: 0,
+    upgradeReserve: 0,
+  };
+
   const [stats, setStats] = useState<NetworkStats | null>(null);
   const [ledgers, setLedgers] = useState<Ledger[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -145,10 +192,6 @@ export default function HomePage() {
     loadData();
   }, []);
 
-  if (isLoading) {
-    return <Loading title="Loading homepage" description="Fetching network data and activity." />;
-  }
-
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -161,33 +204,42 @@ export default function HomePage() {
 
   return (
     <>
+      {/*
+        Keep the full interface visible while data loads.
+        Values are skeletonized in child components.
+      */}
+      {(() => {
+        const resolvedStats = stats ?? emptyStats;
+        const resolvedXlm = xlmMarketData ?? emptyXlmMarketData;
+
+        return (
+          <>
       {/* Mobile Homepage */}
       <div className="md:hidden min-h-screen bg-[var(--bg-primary)] pb-20">
-        {stats && xlmMarketData && (
-          <>
-            <StatsSection
-              stats={stats}
-              xlmVolume={xlmVolume}
-              xlmPrice={xlmMarketData.price}
-            />
-            <TransactionsSection transactions={transactions} />
-          </>
-        )}
+        <StatsSection
+          stats={resolvedStats}
+          xlmVolume={xlmVolume}
+          xlmPrice={resolvedXlm.price}
+          loading={isLoading}
+        />
+        <TransactionsSection transactions={transactions} />
       </div>
 
       {/* Desktop Homepage */}
       <div className="hidden md:block w-full">
-        {stats && xlmMarketData && (
-          <DesktopHomePage
-            stats={stats}
-            initialTransactions={transactions}
-            initialLedgers={ledgers}
-            initialOperations={operations}
-            xlmVolume={xlmVolume}
-            xlmMarketData={xlmMarketData}
-          />
-        )}
+        <DesktopHomePage
+          stats={resolvedStats}
+          initialTransactions={transactions}
+          initialLedgers={ledgers}
+          initialOperations={operations}
+          xlmVolume={xlmVolume}
+          xlmMarketData={resolvedXlm}
+          loading={isLoading}
+        />
       </div>
+          </>
+        );
+      })()}
     </>
   );
 }

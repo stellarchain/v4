@@ -564,98 +564,63 @@ function decodeSymbol(value: string): string | null {
 export async function getContractInvocations(
   contractId: string,
   limit: number = 50,
-  maxOperationsToScan: number = 5000
+  startCursor?: string
 ): Promise<ContractInvocation[]> {
   try {
+    // Import the event parser functions
+    const { getContractEvents } = await import('./eventParser');
+
+    // Get events for this contract
+    const events = await getContractEvents(contractId, limit);
+
+    // Convert events to invocations by extracting transaction data
     const invocations: ContractInvocation[] = [];
-    let cursor: string | undefined;
-    let totalScanned = 0;
-    const pageSize = 200;
+    const seenTxHashes = new Set<string>();
 
-    // Scan invoke_host_function operations and filter by contract
-    while (totalScanned < maxOperationsToScan && invocations.length < limit) {
-      let url = `${getBaseUrl()}/operations?limit=${pageSize}&order=desc&type=invoke_host_function`;
-      if (cursor) url += `&cursor=${cursor}`;
+    for (const event of events) {
+      if (invocations.length >= limit) break;
+      if (!event.txHash) continue;
+      if (seenTxHashes.has(event.txHash)) continue;
 
-      const response = await fetchJSON<PaginatedResponse<Operation>>(url);
-      const operations = response._embedded.records;
+      seenTxHashes.add(event.txHash);
 
-      if (operations.length === 0) break;
+      // Determine function name from event type
+      let functionName = 'unknown';
+      if (event.type === 'transfer') functionName = 'transfer';
+      else if (event.type === 'mint') functionName = 'mint';
+      else if (event.type === 'burn') functionName = 'burn';
+      else if (event.type === 'approve') functionName = 'approve';
+      else if (event.type === 'clawback') functionName = 'clawback';
 
-      for (const op of operations) {
-        const params = op.parameters as Array<{ type: string; value: string }> | undefined;
-        if (!params || !Array.isArray(params)) continue;
-
-        // Decode contract address from first Address parameter
-        const addressParam = params.find(p => p.type === 'Address');
-        if (!addressParam?.value) continue;
-
-        const decodedContract = decodeContractAddress(addressParam.value);
-        if (decodedContract !== contractId) continue;
-
-        // Decode function name
-        let functionName = 'unknown';
-        const symParam = params.find(p => p.type === 'Sym');
-        if (symParam?.value) {
-          const decoded = decodeSymbol(symParam.value);
-          if (decoded) functionName = decoded;
+      // Build parameters from event data
+      const parameters: Array<{ type: string; value: string; decoded?: string }> = [];
+      if (event.data && typeof event.data === 'object') {
+        const data = event.data as Record<string, any>;
+        if (data.from) {
+          parameters.push({ type: 'Address', value: '', decoded: data.from });
         }
-
-        // Decode other parameters for display
-        const decodedParams = params.map(p => {
-          const decoded: { type: string; value: string; decoded?: string } = { type: p.type, value: p.value };
-
-          if (p.type === 'Address') {
-            const addr = decodeContractAddress(p.value);
-            if (addr) decoded.decoded = addr;
-          } else if (p.type === 'Sym') {
-            const sym = decodeSymbol(p.value);
-            if (sym) decoded.decoded = sym;
-          } else if (p.type === 'I128' || p.type === 'U128') {
-            // Try to decode i128/u128 values
-            try {
-              const scVal = xdr.ScVal.fromXDR(p.value, 'base64');
-              if (scVal.switch().name === 'scvI128') {
-                const i128 = scVal.i128();
-                const lo = BigInt(i128.lo().toXDR().readBigUInt64BE(0));
-                const hi = BigInt(i128.hi().toXDR().readBigInt64BE(0));
-                const value = (hi << BigInt(64)) | lo;
-                decoded.decoded = value.toString();
-              } else if (scVal.switch().name === 'scvU128') {
-                const u128 = scVal.u128();
-                const lo = BigInt(u128.lo().toXDR().readBigUInt64BE(0));
-                const hi = BigInt(u128.hi().toXDR().readBigUInt64BE(0));
-                const value = (hi << BigInt(64)) | lo;
-                decoded.decoded = value.toString();
-              }
-            } catch {
-              // Keep original value if decoding fails
-            }
-          }
-
-          return decoded;
-        });
-
-        invocations.push({
-          id: op.id,
-          txHash: op.transaction_hash || '',
-          sourceAccount: op.source_account,
-          contractId: decodedContract,
-          functionName,
-          parameters: decodedParams,
-          createdAt: op.created_at,
-          ledger: typeof op.ledger === 'number' ? op.ledger : 0,
-          successful: op.transaction_successful,
-        });
-
-        if (invocations.length >= limit) break;
+        if (data.to) {
+          parameters.push({ type: 'Address', value: '', decoded: data.to });
+        }
+        if (data.amount) {
+          parameters.push({ type: 'I128', value: '', decoded: data.amount });
+        }
       }
 
-      totalScanned += operations.length;
-      cursor = operations[operations.length - 1]?.paging_token;
-
-      if (operations.length < pageSize) break;
+      invocations.push({
+        id: `${event.ledger}-${event.txHash}`,
+        txHash: event.txHash,
+        sourceAccount: event.contractId || contractId,
+        contractId: contractId,
+        functionName,
+        parameters,
+        createdAt: event.timestamp || new Date().toISOString(),
+        ledger: event.ledger,
+        successful: true,
+      });
     }
+
+    console.log(`[getContractInvocations] Found ${invocations.length} invocations from events for ${contractId}`);
 
     // Fetch effects for each invocation to get credited amounts (for harvest/claim)
     // Do this in parallel batches to avoid overwhelming the API
@@ -936,16 +901,143 @@ function getPriceAtHoursAgo(price7d: [number, number][], hoursAgo: number): numb
   return closestPrice;
 }
 
-// Fetch XLM price from StellarExpert
+interface StellarCoinApiResponse {
+  coingecko_stellar?: {
+    market_cap_rank?: number;
+    market_data?: {
+      current_price?: { usd?: number };
+      market_cap?: { usd?: number };
+      total_volume?: { usd?: number };
+      circulating_supply?: number;
+      price_change_percentage_24h?: number;
+      price_change_percentage_30d?: number;
+      price_change_percentage_1y?: number;
+      sparkline_7d?: { price?: number[] };
+    };
+  };
+  stellar_expert?: {
+    _embedded?: {
+      records?: Array<Record<string, unknown>>;
+    };
+  };
+}
+
+type NormalizedStellarchainAsset = {
+  code?: string;
+  domain?: string;
+  image?: string;
+  holders: number;
+  trades_24h: number;
+  payments_24h: number;
+  price_usd: number;
+  price_usd_change: number;
+  volume_usd: number;
+  supply: number;
+  rating: number;
+};
+
+function parseStellarchainV1AssetData(payload: unknown): NormalizedStellarchainAsset | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const root = payload as Record<string, unknown>;
+  const stellarData = (root.stellarData as Record<string, unknown>) || {};
+  const stats = Array.isArray(root.statisticHistory) ? root.statisticHistory as Record<string, unknown>[] : [];
+  const latest = stats.length > 0 ? stats[stats.length - 1] : null;
+  const first = stats.length > 0 ? stats[0] : null;
+  const decimals = Number(stellarData.decimals ?? 7) || 7;
+  const scalar = 10 ** decimals;
+
+  const latestPrice = Number(latest?.price ?? stellarData.price ?? 0);
+  const firstPrice = Number(first?.price ?? latestPrice ?? 0);
+  const priceChange = firstPrice > 0 ? ((latestPrice - firstPrice) / firstPrice) * 100 : 0;
+
+  const rawSupply = Number(latest?.supply ?? stellarData.supply ?? 0);
+  const supply = rawSupply > 0 ? rawSupply / scalar : 0;
+
+  const volume7dRaw = Number(stellarData.volume7d ?? 0);
+  const volume7d = volume7dRaw > 0 ? volume7dRaw / scalar : 0;
+  const volume24hUsd = volume7d > 0 && latestPrice > 0 ? (volume7d / 7) * latestPrice : 0;
+
+  const ratingFromStats = Number(latest?.ratingAverage ?? 0);
+  const ratingNode = (stellarData.rating as Record<string, unknown>) || {};
+  const ratingFromStellar = Number(ratingNode.average ?? 0);
+  const rating = ratingFromStats || ratingFromStellar || 0;
+
+  const toml = (stellarData.toml_info as Record<string, unknown>) || {};
+  const image = (toml.image || toml.orgLogo) as string | undefined;
+  const trustlines = (stellarData.trustlines as Record<string, unknown>) || {};
+
+  return {
+    code: (root.code || toml.code) as string | undefined,
+    domain: stellarData.home_domain as string | undefined,
+    image,
+    holders: Number(latest?.trustlinesTotal ?? trustlines.total ?? 0),
+    trades_24h: Number(latest?.trades ?? stellarData.trades ?? 0),
+    payments_24h: Number(latest?.payments ?? stellarData.payments ?? 0),
+    price_usd: latestPrice,
+    price_usd_change: priceChange,
+    volume_usd: volume24hUsd,
+    supply,
+    rating,
+  };
+}
+
+const STELLAR_COIN_API_URL = 'https://api.stellarchain.dev/api/coins/stellar';
+const STELLAR_COIN_API_TTL_MS = 60_000;
+let stellarCoinApiCache: {
+  data: StellarCoinApiResponse | null;
+  expiresAt: number;
+  inFlight: Promise<StellarCoinApiResponse | null> | null;
+} = {
+  data: null,
+  expiresAt: 0,
+  inFlight: null,
+};
+
+async function getStellarCoinApiData(): Promise<StellarCoinApiResponse | null> {
+  const now = Date.now();
+  if (stellarCoinApiCache.data && stellarCoinApiCache.expiresAt > now) {
+    return stellarCoinApiCache.data;
+  }
+
+  if (stellarCoinApiCache.inFlight) {
+    return stellarCoinApiCache.inFlight;
+  }
+
+  stellarCoinApiCache.inFlight = (async () => {
+    try {
+      const response = await fetch(STELLAR_COIN_API_URL, {
+        headers: { 'Accept': 'application/json' },
+        next: { revalidate: 60 },
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const json = await response.json() as StellarCoinApiResponse;
+      stellarCoinApiCache.data = json;
+      stellarCoinApiCache.expiresAt = Date.now() + STELLAR_COIN_API_TTL_MS;
+      return json;
+    } catch {
+      return null;
+    } finally {
+      stellarCoinApiCache.inFlight = null;
+    }
+  })();
+
+  return stellarCoinApiCache.inFlight;
+}
+
+// Fetch XLM price from Stellarchain coins API
 async function getXLMPrice(): Promise<number> {
   try {
-    const response = await fetch('https://api.stellar.expert/explorer/public/xlm-price', {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 },
-    });
-    if (response.ok) {
-      const data = await response.json();
-      return Number(data[0]?.[1]) || 0.1; // Default to 0.1 if not found
+    const json = await getStellarCoinApiData();
+    const xlmPrice = Number(json?.coingecko_stellar?.market_data?.current_price?.usd || 0);
+    if (xlmPrice > 0) {
+      return xlmPrice;
     }
   } catch {
     // Ignore error, use default
@@ -958,22 +1050,16 @@ async function getXLMPrice(): Promise<number> {
 // Fetch XLM data from Stellarchain (CoinGecko Proxy)
 async function getCoinGeckoXLMData() {
   try {
-    const response = await fetch('https://api.stellarchain.dev/api/coins/stellar', {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 },
-    });
-    if (response.ok) {
-      const json = await response.json();
-      const marketData = json?.coingecko_stellar?.market_data;
+    const json = await getStellarCoinApiData();
+    const marketData = json?.coingecko_stellar?.market_data;
 
-      if (marketData) {
-        return {
-          usd: marketData.current_price?.usd || 0,
-          usd_market_cap: marketData.market_cap?.usd || 0,
-          usd_24h_vol: marketData.total_volume?.usd || 0,
-          usd_24h_change: marketData.price_change_percentage_24h || 0
-        };
-      }
+    if (marketData) {
+      return {
+        usd: marketData.current_price?.usd || 0,
+        usd_market_cap: marketData.market_cap?.usd || 0,
+        usd_24h_vol: marketData.total_volume?.usd || 0,
+        usd_24h_change: marketData.price_change_percentage_24h || 0
+      };
     }
   } catch (error) {
     console.error('Error fetching CoinGecko data from Stellarchain:', error);
@@ -984,20 +1070,13 @@ async function getCoinGeckoXLMData() {
 // Client-side helper to fetch XLM stats
 export async function getXLMStats(): Promise<{ usd: number; usd_24h_change: number } | null> {
   try {
-    const response = await fetch('https://api.stellarchain.dev/api/coins/stellar', {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 },
-    });
-
-    if (response.ok) {
-      const json = await response.json();
-      const marketData = json?.coingecko_stellar?.market_data;
-      if (marketData) {
-        return {
-          usd: Number(marketData.current_price?.usd || 0),
-          usd_24h_change: Number(marketData.price_change_percentage_24h || 0)
-        };
-      }
+    const json = await getStellarCoinApiData();
+    const marketData = json?.coingecko_stellar?.market_data;
+    if (marketData) {
+      return {
+        usd: Number(marketData.current_price?.usd || 0),
+        usd_24h_change: Number(marketData.price_change_percentage_24h || 0)
+      };
     }
   } catch (error) {
     console.error('Error fetching XLM stats:', error);
@@ -1008,25 +1087,20 @@ export async function getXLMStats(): Promise<{ usd: number; usd_24h_change: numb
 // Fetch market data from StellarExpert API (aggregated market data)
 export async function getMarketAssets(): Promise<MarketAsset[]> {
   try {
-    // Fetch XLM price and assets in parallel
-    // Sort by rating to get legitimate assets (filters out spam)
-    const [xlmPrice, assetsResponse, coinGeckoData] = await Promise.all([
+    // Fetch from unified Stellarchain endpoint (includes CoinGecko + Stellar Expert payloads)
+    const [xlmPrice, coinApiData, coinGeckoData] = await Promise.all([
       getXLMPrice(),
-      fetch('https://api.stellar.expert/explorer/public/asset?sort=rating&order=desc&limit=200', {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 60 },
-      }),
+      getStellarCoinApiData(),
       getCoinGeckoXLMData()
     ]);
 
-    if (!assetsResponse.ok) {
-      throw new Error(`HTTP error! status: ${assetsResponse.status}`);
+    const records = coinApiData?.stellar_expert?._embedded?.records;
+    if (!Array.isArray(records)) {
+      throw new Error('Invalid stellar_expert payload in coins endpoint');
     }
 
-    const data = await assetsResponse.json();
-
     // Transform StellarExpert data to our MarketAsset format
-    const assets = data._embedded?.records?.map((asset: Record<string, unknown>, index: number) => {
+    const assets = records.map((asset: Record<string, unknown>, index: number) => {
       const toml = asset.tomlInfo as Record<string, unknown> | undefined;
       const currentPrice = Number(asset.price) || 0;
 
@@ -1077,7 +1151,7 @@ export async function getMarketAssets(): Promise<MarketAsset[]> {
         circulating_supply: supply,
         sparkline: sparklineData.length > 0 ? sparklineData : [],
       };
-    }) || [];
+    });
 
     // Override XLM data with CoinGecko if available
     if (coinGeckoData && assets.length > 0) {
@@ -1123,20 +1197,20 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
   const assetId = parsedIssuer ? `${parsedCode}-${parsedIssuer}` : parsedCode;
   let stellarChainData: any = null;
 
-  // 1. Try fetching from StellarChain.io API first
-  // It provides accurate USD prices and ratings for yXLM etc.
+  // 1. Try fetching from Stellarchain v1 API first
+  // It provides asset-level stats and metadata for most issued assets.
   try {
-    const scResponse = await fetch(`https://api.stellarchain.io/v1/assets/${assetId}/show`, {
+    const scResponse = await fetch(`https://api.stellarchain.dev/v1/assets/${assetId}`, {
       headers: { 'Accept': 'application/json' },
       next: { revalidate: 60 }
     });
 
     if (scResponse.ok) {
       const json = await scResponse.json();
-      stellarChainData = json.data;
+      stellarChainData = parseStellarchainV1AssetData(json);
     }
   } catch (e) {
-    console.error('Error fetching from StellarChain.io:', e);
+    console.error('Error fetching from Stellarchain.dev v1:', e);
   }
 
   // 2. Fallback/Concurrent Fetch to Stellar Expert & CoinGecko (for XLM)
@@ -1145,24 +1219,10 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
 
     // Handle native XLM
     if (code === 'XLM' && !issuer) {
-      const [priceResponse, statsResponse] = await Promise.all([
-        fetch('https://api.stellar.expert/explorer/public/xlm-price', {
-          headers: { 'Accept': 'application/json' },
-          next: { revalidate: 60 },
-        }),
-        fetchCoinGeckoData(),
-      ]);
+      const statsResponse = await fetchCoinGeckoData();
+      const priceHistory: [number, number][] = [];
 
-      let priceHistory: [number, number][] = [];
-      if (priceResponse.ok) {
-        const priceData = await priceResponse.json();
-        if (Array.isArray(priceData)) {
-          priceHistory = priceData;
-        }
-      }
-
-      // IMPORTANT: priceHistory from stellar.expert is in BTC terms, not USD!
-      // Always use CoinGecko for the current USD price
+      // Use CoinGecko for XLM USD price and movement
       const currentPrice = statsResponse.price > 0 ? statsResponse.price : xlmPrice;
 
       // Use CoinGecko sparkline for 24h high/low (it's in USD)
@@ -1204,15 +1264,18 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       };
     }
 
-    // Fetch asset from StellarExpert (as backup for description/history)
-    const response = await fetch(`https://api.stellar.expert/explorer/public/asset/${assetId}`, {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 },
-    });
+    const coinApiData = await getStellarCoinApiData();
+    const cachedAsset = coinApiData?.stellar_expert?._embedded?.records?.find((record) => {
+      const recordAsset = String(record.asset || '');
+      if (!recordAsset) return false;
+      if (recordAsset === assetId) return true;
+      // Some records append a suffix like "-1" / "-2"; match by CODE-ISSUER prefix.
+      return parsedIssuer ? recordAsset.startsWith(`${parsedCode}-${parsedIssuer}`) : recordAsset === parsedCode;
+    }) as Record<string, unknown> | undefined;
 
-    if (!response.ok) {
+    if (!cachedAsset) {
       if (stellarChainData) {
-        // If we have SC data but no expert data, return what we have
+        // No asset payload from our coins API. Return only Stellarchain-side data.
         return {
           rank: stellarChainData.rating || 0,
           code: parsedCode,
@@ -1246,23 +1309,14 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       return null;
     }
 
-    const asset = await response.json();
-    const toml = asset.tomlInfo || {};
+    const asset = cachedAsset;
+
+    const toml = (asset.tomlInfo as Record<string, unknown> | undefined) || {};
 
     // Get price history for chart
-    const priceResponse = await fetch(`https://api.stellar.expert/explorer/public/asset/${assetId}/price`, {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 },
-    });
-
     let priceHistory: [number, number][] = [];
-    if (priceResponse.ok) {
-      const priceData = await priceResponse.json();
-      if (priceData.price7d) {
-        priceHistory = priceData.price7d;
-      } else if (Array.isArray(priceData)) {
-        priceHistory = priceData;
-      }
+    if (Array.isArray(asset.price7d)) {
+      priceHistory = asset.price7d as [number, number][];
     }
 
     // Fallback to price7d from main asset response if specific price endpoint failed or returned empty
@@ -1279,6 +1333,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
     // Note: StellarExpert volume is 7d in stroops, SC is 24h USD. We prefer SC volume if available.
     const volume7d = (Number(asset.volume7d) || 0) / 1e7;
     const volume24h = stellarChainData?.volume_usd !== undefined ? Number(stellarChainData.volume_usd) : (volume7d / 7);
+    const trustlines = Array.isArray(asset.trustlines) ? asset.trustlines : [];
 
     // Calculate price changes using Horizon current price
     const price24hAgo = getPriceAtHoursAgo(priceHistory, 24);
@@ -1314,7 +1369,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       market_cap: supply * currentPrice,
       circulating_supply: supply,
       total_supply: supply,
-      holders: stellarChainData?.holders || Number(asset.trustlines?.[0]) || Number(asset.accounts) || 0,
+      holders: stellarChainData?.holders || Number(trustlines[0]) || Number(asset.accounts) || 0,
       payments_24h: Number(asset.payments) || 0,
       trades_24h: Number(asset.trades) || 0,
       price_high_24h: high24h,
@@ -1339,12 +1394,10 @@ export async function getXLMHolders(
 ): Promise<{ holders: AssetHolder[]; nextCursor?: string }> {
   try {
     const page = cursor ? parseInt(cursor) : 1;
-    // API only accepts specific pagination values, 50 is known to work
-    const safeLimit = 50;
-    const url = `https://api.stellarchain.io/v1/accounts/top?page=${page}&paginate=${safeLimit}`;
+    const url = `https://api.stellarchain.dev/v1/accounts?page=${page}&order[accountMetric.rankPosition]=asc`;
 
     const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/ld+json' },
       next: { revalidate: 300 }, // Cache for 5 minutes
     });
 
@@ -1353,18 +1406,18 @@ export async function getXLMHolders(
     }
 
     const data = await response.json();
-    const records = data.data || [];
+    const records = data.member || [];
 
     const holders: AssetHolder[] = records.map((record: any) => ({
-      account_id: record.account,
-      balance: record.balance?.toString() || '0',
+      account_id: record.address,
+      balance: record.accountMetric?.nativeBalance?.toString() || '0',
       paging_token: (page + 1).toString(), // generic token
     }));
 
     return {
       holders,
-      // If we got full page, assume there is next page
-      nextCursor: records.length === safeLimit ? (page + 1).toString() : undefined
+      // Check if there's a next page in the view
+      nextCursor: data.view?.next ? (page + 1).toString() : undefined
     };
   } catch (error) {
     console.error('Failed to fetch XLM holders:', error);
@@ -1377,9 +1430,9 @@ export async function getRichList(
   limit: number = 50
 ): Promise<RichListAccount[]> {
   try {
-    const url = `https://api.stellarchain.io/v1/accounts/top?page=${page}&paginate=${limit}`;
+    const url = `https://api.stellarchain.dev/v1/accounts?page=${page}&order[accountMetric.rankPosition]=asc`;
     const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/ld+json' },
       next: { revalidate: 300 },
     });
 
@@ -1388,16 +1441,16 @@ export async function getRichList(
     }
 
     const data = await response.json();
-    return (data.data || []).map((record: any, index: number) => ({
-      rank: record.rank || ((page - 1) * limit + index + 1),
-      account: record.account,
-      balance: parseFloat(record.balance || '0'),
-      percent_of_coins: record.percent_of_coins,
-      transactions: parseInt(record.transactions || '0'),
+    return (data.member || []).map((record: any) => ({
+      rank: record.accountMetric?.rankPosition || 0,
+      account: record.address,
+      balance: parseFloat(record.accountMetric?.nativeBalance || '0'),
+      percent_of_coins: undefined, // Not available in new API
+      transactions: parseInt(record.accountMetric?.totalTransactions || '0'),
       label: record.label ? {
-        name: record.label.name,
-        verified: record.label.verified === 1,
-        description: record.label.description
+        name: record.label,
+        verified: record.verified === true,
+        description: undefined // Not available in new API
       } : undefined
     }));
   } catch (error) {
@@ -1426,31 +1479,46 @@ async function fetchAllLabeledAccounts(): Promise<Map<string, AccountLabel>> {
     let page = 1;
     let hasMore = true;
 
-    while (hasMore && page <= 10) { // Safety limit of 10 pages
-      const url = `https://api.stellarchain.io/v1/accounts?page=${page}&labels[]=undefined&paginate=100`;
+    while (hasMore && page <= 30) { // Increased limit for new API
+      const url = `https://api.stellarchain.dev/v1/accounts?page=${page}`;
       const response = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
+        headers: { 'Accept': 'application/ld+json' },
         next: { revalidate: 300 }, // Cache for 5 minutes
       });
 
       if (!response.ok) break;
 
       const json = await response.json();
-      const data = json.data || [];
-      allAccounts.push(...data);
+      const data = json.member || [];
 
-      hasMore = data.length === 100;
+      // Transform new API format to old LabeledAccount format
+      const transformedData = data.map((record: any) => ({
+        account: record.address,
+        org_name: null, // Not available in new API
+        label: record.label ? {
+          name: record.label,
+          description: null, // Not available in new API
+          verified: record.verified ? 1 : 0
+        } : null,
+        balance: parseFloat(record.accountMetric?.nativeBalance || '0'),
+        transactions: record.accountMetric?.totalTransactions || '0',
+        rank: record.accountMetric?.rankPosition || 0
+      }));
+
+      allAccounts.push(...transformedData);
+
+      hasMore = !!json.view?.next; // Check if there's a next page
       page++;
     }
 
     // Build lookup map
     for (const account of allAccounts) {
-      if (account.label || account.org_name) {
+      if (account.label) {
         labels.set(account.account, {
-          name: account.label?.name || '',
-          verified: account.label?.verified === 1,
+          name: account.label.name || '',
+          verified: account.label.verified === 1,
           org_name: account.org_name || null,
-          description: account.label?.description || null,
+          description: account.label.description,
         });
       }
     }
@@ -1582,26 +1650,30 @@ export async function getAccountLabels(
   const uniqueAddresses = Array.from(new Set(addresses.filter(Boolean)));
 
   // First, try direct lookup endpoint (fresh + precise).
-  // Use GET to match backend route methods and avoid POST preflight/405 noise.
   try {
     const params = new URLSearchParams();
     for (const address of uniqueAddresses) {
-      params.append('accounts[]', address);
+      params.append('address[]', address);
     }
-    const url = `https://api.stellarchain.io/v1/accounts/labels?${params.toString()}`;
+    const url = `https://api.stellarchain.dev/v1/accounts?${params.toString()}`;
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/json',
+        'Accept': 'application/ld+json',
       },
     });
 
     if (response.ok) {
       const payload = await response.json();
-      const directLabels = collectLabelsFromPayload(payload);
-      for (const address of uniqueAddresses) {
-        const label = directLabels.get(address) || directLabels.get(address.toUpperCase()) || directLabels.get(address.toLowerCase());
-        if (label) {
-          result.set(address, label);
+      const accounts = payload.member || [];
+
+      for (const account of accounts) {
+        if (account.label) {
+          result.set(account.address, {
+            name: account.label,
+            verified: account.verified === true,
+            org_name: null, // Not available in new API
+            description: null, // Not available in new API
+          });
         }
       }
 
@@ -1879,22 +1951,7 @@ async function fetchCoinGeckoData(): Promise<{
   };
 
   try {
-    const response = await fetch(
-      'https://api.stellarchain.dev/api/coins/stellar',
-      {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 60 },
-      }
-    );
-
-    if (!response.ok) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('Stellarchain CoinGecko proxy fetch warning:', response.status, response.statusText);
-      }
-      return fallback;
-    }
-
-    const json = await response.json();
+    const json = await getStellarCoinApiData();
     const data = json?.coingecko_stellar;
 
     if (!data) return fallback;

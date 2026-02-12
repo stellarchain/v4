@@ -13,6 +13,7 @@ import { getOperationColors } from '@/lib/design-system';
 import { getRouteFromSearchQuery } from '@/lib/searchRouting';
 import GliderTabs from '@/components/ui/GliderTabs';
 import { assetRoute } from '@/lib/routes';
+import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface XLMMarketData {
     price: number;
@@ -38,6 +39,7 @@ interface DesktopHomePageProps {
     initialOperations: Operation[];
     xlmVolume: number;
     xlmMarketData: XLMMarketData;
+    loading?: boolean;
 }
 
 export default function DesktopHomePage({
@@ -46,7 +48,8 @@ export default function DesktopHomePage({
     initialLedgers,
     initialOperations,
     xlmVolume,
-    xlmMarketData
+    xlmMarketData,
+    loading = false
 }: DesktopHomePageProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -156,6 +159,8 @@ export default function DesktopHomePage({
 
     // Poll for latest stats AND operations based on active tab
     useEffect(() => {
+        if (loading) return;
+
         const dedupeById = (items: Operation[]) => {
             const seen = new Set<string>();
             const out: Operation[] = [];
@@ -319,7 +324,7 @@ export default function DesktopHomePage({
             if (interval) clearInterval(interval);
             document.removeEventListener('visibilitychange', handleVisibility);
         };
-    }, [activeTab]);
+    }, [activeTab, loading]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -387,6 +392,18 @@ export default function DesktopHomePage({
 
     // Track failed images
     const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        setLiveStats(stats);
+    }, [stats]);
+
+    useEffect(() => {
+        setLiveLedgers(initialLedgers);
+    }, [initialLedgers]);
+
+    useEffect(() => {
+        setOperations(initialOperations);
+    }, [initialOperations]);
 
     return (
         <div className="min-h-screen bg-[var(--bg-primary)]">
@@ -476,49 +493,51 @@ export default function DesktopHomePage({
                             <div className="flex items-center gap-1 mb-1">
                                 <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Market Cap</span>} content="Total value of all XLM in circulation" />
                             </div>
-                            <div className="text-lg font-bold text-[var(--text-primary)] tabular-nums">${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(marketCap)}</div>
+                            <div className="text-lg font-bold text-[var(--text-primary)] tabular-nums">
+                                {loading ? <InlineSkeleton width="w-24" height="h-6" /> : `$${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(marketCap)}`}
+                            </div>
                             <div className={`text-xs font-medium ${marketCapChange >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-                                {marketCapChange >= 0 ? '+' : ''}{marketCapChange.toFixed(2)}%
+                                {loading ? <InlineSkeleton width="w-12" height="h-3" /> : `${marketCapChange >= 0 ? '+' : ''}${marketCapChange.toFixed(2)}%`}
                             </div>
                         </div>
                         <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center gap-1 mb-1">
                                 <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Circulating</span>} content="Current XLM tokens in circulation" />
                             </div>
-                            <div className="text-lg font-bold text-[var(--text-primary)]">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(circulatingSupply)} XLM</div>
+                            <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-24" height="h-6" /> : `${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(circulatingSupply)} XLM`}</div>
                         </div>
                         <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center gap-1 mb-1">
                                 <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Dominance</span>} content="Stellar's share of total crypto market cap" />
                             </div>
-                            <div className="text-lg font-bold text-[var(--text-primary)]">{dominance.toFixed(3)} %</div>
+                            <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-16" height="h-6" /> : `${dominance.toFixed(3)} %`}</div>
                         </div>
                         <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center gap-1 mb-1">
                                 <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Total Supply</span>} content="Total XLM that exists" />
                             </div>
-                            <div className="text-lg font-bold text-[var(--text-primary)]">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(totalSupply)} XLM</div>
-                            <div className="text-xs text-[var(--text-muted)]">${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(totalSupply * xlmPrice)}</div>
+                            <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-24" height="h-6" /> : `${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(totalSupply)} XLM`}</div>
+                            <div className="text-xs text-[var(--text-muted)]">{loading ? <InlineSkeleton width="w-16" height="h-3" /> : `$${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(totalSupply * xlmPrice)}`}</div>
                         </div>
                         <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)]">
                             <div className="flex items-center gap-1 mb-1">
                                 <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">24H Volume</span>} content="Trading volume in the last 24 hours" />
                             </div>
-                            <div className="text-lg font-bold text-[var(--text-primary)]">{formattedVolume}</div>
+                            <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-20" height="h-6" /> : formattedVolume}</div>
                             <div className="text-[10px] text-[var(--text-muted)]">via CoinGecko</div>
                         </div>
                         <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)] relative">
                             <div className="flex items-center gap-1 mb-1">
                                 <span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">XLM Price</span>
                             </div>
-                            <div className="text-lg font-bold text-[var(--text-primary)]">${xlmPrice.toFixed(4)}</div>
+                            <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-20" height="h-6" /> : `$${xlmPrice.toFixed(4)}`}</div>
                             <div className="flex items-center gap-1">
                                 <span className="text-[10px] text-[var(--text-muted)]">24H</span>
                                 <span className={`text-xs font-medium ${priceChange24h >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-                                    {priceChange24h >= 0 ? '+' : ''}{priceChange24h.toFixed(2)}%
+                                    {loading ? <InlineSkeleton width="w-12" height="h-3" /> : `${priceChange24h >= 0 ? '+' : ''}${priceChange24h.toFixed(2)}%`}
                                 </span>
                             </div>
-                            {sparklineData.length > 0 && (
+                            {!loading && sparklineData.length > 0 && (
                                 <div className="absolute top-2 right-2 w-16 h-8">
                                     <svg className="w-full h-full overflow-visible" viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true">
                                         {(() => {
@@ -546,12 +565,12 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Current Ledger</span>} content="Latest confirmed ledger on Stellar network" />
                                     </div>
-                                    <div ref={ledgerCountRef} className="text-xl font-bold text-[var(--info)] tabular-nums">{liveStats.ledger_count.toLocaleString()}</div>
+                                    <div ref={ledgerCountRef} className="text-xl font-bold text-[var(--info)] tabular-nums">{loading ? <InlineSkeleton width="w-20" height="h-6" /> : liveStats.ledger_count.toLocaleString()}</div>
                                     <div className="flex items-center gap-2 mt-1">
                                         <div className="w-12 bg-[var(--bg-tertiary)] rounded-full h-1.5 overflow-hidden">
                                             <div ref={progressBarRef} className="bg-[var(--success)] h-1.5 rounded-full transition-[width] duration-100 ease-linear" style={{ width: `${ledgerProgress}%` }} />
                                         </div>
-                                        <span className="text-[10px] text-[var(--text-muted)]">~{Math.max(0, Math.round((100 - ledgerProgress) / 100 * 5))}s</span>
+                                        <span className="text-[10px] text-[var(--text-muted)]">{loading ? <InlineSkeleton width="w-8" height="h-3" /> : `~${Math.max(0, Math.round((100 - ledgerProgress) / 100 * 5))}s`}</span>
                                     </div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--info-muted)] rounded-lg flex items-center justify-center text-[var(--info)] group-hover:bg-[var(--info)] group-hover:text-white transition-colors">
@@ -565,8 +584,8 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">TPS Current</span>} content="Transactions per second" />
                                     </div>
-                                    <div className="text-xl font-bold text-[var(--info)] tabular-nums">{tps}</div>
-                                    <div className="text-[10px] text-[var(--success)] font-medium">{txCount} tx/ledger</div>
+                                    <div className="text-xl font-bold text-[var(--info)] tabular-nums">{loading ? <InlineSkeleton width="w-14" height="h-6" /> : tps}</div>
+                                    <div className="text-[10px] text-[var(--success)] font-medium">{loading ? <InlineSkeleton width="w-16" height="h-3" /> : `${txCount} tx/ledger`}</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--info-muted)] rounded-lg flex items-center justify-center text-[var(--info)] group-hover:bg-[var(--info)] group-hover:text-white transition-colors">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
@@ -579,7 +598,7 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Network Load</span>} content="Current ledger capacity usage" />
                                     </div>
-                                    <div className="text-xl font-bold text-[var(--text-primary)] tabular-nums">{liveStats.ledger_capacity_usage ? `${(liveStats.ledger_capacity_usage * 100).toFixed(0)}%` : '—'}</div>
+                                    <div className="text-xl font-bold text-[var(--text-primary)] tabular-nums">{loading ? <InlineSkeleton width="w-14" height="h-6" /> : (liveStats.ledger_capacity_usage ? `${(liveStats.ledger_capacity_usage * 100).toFixed(0)}%` : '—')}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">capacity used</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--warning-muted)] rounded-lg flex items-center justify-center text-[var(--warning)]">
@@ -593,7 +612,7 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Protocol</span>} content="Current Stellar protocol version" />
                                     </div>
-                                    <div className="text-xl font-bold text-[var(--text-primary)] tabular-nums">{liveStats.protocol_version}</div>
+                                    <div className="text-xl font-bold text-[var(--text-primary)] tabular-nums">{loading ? <InlineSkeleton width="w-10" height="h-6" /> : liveStats.protocol_version}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">version</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--purple-muted)] rounded-lg flex items-center justify-center text-[var(--purple)]">
@@ -611,7 +630,7 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Burned Lumens</span>} content="XLM permanently removed from circulation" />
                                     </div>
-                                    <div className="text-xl font-bold text-[var(--error)] tabular-nums">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.burnedLumens)}</div>
+                                    <div className="text-xl font-bold text-[var(--error)] tabular-nums">{loading ? <InlineSkeleton width="w-20" height="h-6" /> : new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.burnedLumens)}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">XLM burned</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--error-muted)] rounded-lg flex items-center justify-center text-[var(--error)]">
@@ -625,7 +644,7 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">SDF Mandate</span>} content="Lumens held by Stellar Development Foundation" />
                                     </div>
-                                    <div className="text-xl font-bold text-[var(--indigo)] tabular-nums">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.sdfMandate)}</div>
+                                    <div className="text-xl font-bold text-[var(--indigo)] tabular-nums">{loading ? <InlineSkeleton width="w-20" height="h-6" /> : new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.sdfMandate)}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">XLM held</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--indigo-muted)] rounded-lg flex items-center justify-center text-[var(--indigo)]">
@@ -639,7 +658,7 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Fee Pool</span>} content="Accumulated network transaction fees" />
                                     </div>
-                                    <div className="text-xl font-bold text-[var(--success)] tabular-nums">{new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.feePool)}</div>
+                                    <div className="text-xl font-bold text-[var(--success)] tabular-nums">{loading ? <InlineSkeleton width="w-20" height="h-6" /> : new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(xlmMarketData.feePool)}</div>
                                     <div className="text-[10px] text-[var(--text-muted)]">XLM in fees</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--success-muted)] rounded-lg flex items-center justify-center text-[var(--success)]">
@@ -653,8 +672,8 @@ export default function DesktopHomePage({
                                     <div className="flex items-center gap-1 mb-1">
                                         <InfoTooltip label={<span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Base Fee</span>} content="Minimum transaction fee (in stroops)" />
                                     </div>
-                                    <div className="text-xl font-bold text-[var(--text-primary)]">{(liveStats.base_fee / 10000000).toFixed(7)}</div>
-                                    <div className="text-[10px] text-[var(--text-muted)]">XLM ({liveStats.base_fee.toLocaleString()} stroops)</div>
+                                    <div className="text-xl font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-24" height="h-6" /> : (liveStats.base_fee / 10000000).toFixed(7)}</div>
+                                    <div className="text-[10px] text-[var(--text-muted)]">{loading ? <InlineSkeleton width="w-20" height="h-3" /> : `XLM (${liveStats.base_fee.toLocaleString()} stroops)`}</div>
                                 </div>
                                 <div className="w-9 h-9 bg-[var(--bg-tertiary)] rounded-lg flex items-center justify-center text-[var(--text-tertiary)]">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
@@ -723,7 +742,19 @@ export default function DesktopHomePage({
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[var(--border-subtle)]">
-                                    {filteredOperations.length === 0 ? (
+                                    {loading ? (
+                                        Array.from({ length: 8 }).map((_, idx) => (
+                                            <tr key={`home-activity-skeleton-${idx}`}>
+                                                <td className="py-2 px-4"><InlineSkeleton width="w-24" height="h-3" /></td>
+                                                <td className="py-2 px-3"><InlineSkeleton width="w-16" height="h-4" /></td>
+                                                <td className="py-2 px-3"><InlineSkeleton width="w-10" height="h-3" /></td>
+                                                <td className="py-2 px-3"><InlineSkeleton width="w-24" height="h-3" /></td>
+                                                <td className="py-2 px-1 text-center"><InlineSkeleton width="w-4" height="h-4" /></td>
+                                                <td className="py-2 px-3"><InlineSkeleton width="w-20" height="h-3" /></td>
+                                                <td className="py-2 px-4 text-right"><InlineSkeleton width="w-16" height="h-3" /></td>
+                                            </tr>
+                                        ))
+                                    ) : filteredOperations.length === 0 ? (
                                         <tr>
                                             <td colSpan={7} className="text-center py-4 text-[var(--text-muted)] text-sm">
                                                 No {activeTab === 'All Activity' ? 'activity' : activeTab.toLowerCase()} found

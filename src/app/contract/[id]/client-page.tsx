@@ -9,7 +9,7 @@ import { getContractInvocations } from '@/lib/stellar';
 import Link from 'next/link';
 import verifiedContracts from '@/data/verified-contracts.json';
 import { verifyContract, toContractVerification } from '@/lib/contractVerification';
-import { getContractMetadata, getContractAccessControl, detectContractType, getContractSpec } from '@/lib/contractMetadata';
+import { getContractMetadata, getContractAccessControl, getContractSpec } from '@/lib/contractMetadata';
 import { getNFTInfo, getVaultInfo } from '@/lib/contractExtensions';
 import { getContractEvents, getEventSummary, ParsedEvent } from '@/lib/eventParser';
 import { getContractStorage, ContractStorageResult } from '@/lib/contractStorage';
@@ -35,6 +35,19 @@ interface VerifiedContract {
   iconUrl?: string;
 }
 
+interface APIContractData {
+  contractId: string;
+  contractIdHex: string;
+  assetIssuer: string | null;
+  contractCode: string | null;
+  wasmId: string | null;
+  sourceCodeVerified: boolean;
+  createdAt: string;
+  totalTransactions: number;
+  sac: boolean;
+  network: number;
+}
+
 interface QuickData {
   id: string;
   tokenMetadata: TokenRegistryEntry | null;
@@ -42,6 +55,7 @@ interface QuickData {
   type: string;
   accessControl: ContractAccessControlResult | null;
   isVerified: boolean;
+  apiContractData: APIContractData | null;
 }
 
 interface FullContractData extends QuickData {
@@ -103,21 +117,51 @@ export default function ContractPage() {
       try {
         // Load quick data first
         const verifiedContract = verifiedContracts.contracts.find(c => c.id === id);
-        const [tokenMetadata, accessControl] = await Promise.all([
+
+        // Fetch basic contract data from new API
+        const fetchAPIContractData = async (): Promise<APIContractData | null> => {
+          try {
+            const response = await fetch(`https://api.stellarchain.dev/v1/contracts/${id}`, {
+              headers: { 'Accept': 'application/ld+json' },
+            });
+            if (!response.ok) return null;
+            const data = await response.json();
+            return {
+              contractId: data.contractId,
+              contractIdHex: data.contractIdHex,
+              assetIssuer: data.assetIssuer,
+              contractCode: data.contractCode,
+              wasmId: data.wasmId,
+              sourceCodeVerified: data.sourceCodeVerified,
+              createdAt: data.createdAt,
+              totalTransactions: data.totalTransactions,
+              sac: data.sac,
+              network: data.network,
+            };
+          } catch {
+            return null;
+          }
+        };
+
+        const [tokenMetadata, accessControl, apiContractData] = await Promise.all([
           getTokenMetadata(id).catch(() => null),
           getContractAccessControl(id).catch(() => null),
+          fetchAPIContractData(),
         ]);
 
-        const contractType =
-          verifiedContract?.type ||
-          tokenMetadata?.isSAC ||
-          tokenMetadata
-            ? null
-            : await detectContractType(id).catch(() => null);
-        const inferredType =
-          contractType ||
-          verifiedContract?.type ||
-          (tokenMetadata?.isSAC ? 'token' : tokenMetadata ? 'token' : 'contract');
+        // Determine type using the same logic as the contracts list view:
+        // 1. If API says it's a SAC → token
+        // 2. If verified contract has a type → use that
+        // 3. Otherwise default to 'contract'
+        // Note: we only check `sac`, not `assetIssuer`, because the API can
+        // return an assetIssuer for non-token contracts. The list view checks
+        // `sac || assetCode` but the detail API doesn't return assetCode.
+        let inferredType = 'contract';
+        if (apiContractData?.sac) {
+          inferredType = 'token';
+        } else if (verifiedContract?.type) {
+          inferredType = verifiedContract.type;
+        }
 
         const quickData: QuickData = {
           id,
@@ -125,7 +169,8 @@ export default function ContractPage() {
           verifiedContract,
           type: inferredType,
           accessControl,
-          isVerified: !!verifiedContract,
+          isVerified: apiContractData?.sourceCodeVerified || !!verifiedContract,
+          apiContractData,
         };
 
         // Set quick data first so UI can render
@@ -305,6 +350,7 @@ export default function ContractPage() {
     type: 'contract',
     accessControl: null,
     isVerified: false,
+    apiContractData: null,
     events: [],
     eventSummary: null,
     invocations: [],
@@ -334,6 +380,14 @@ export default function ContractPage() {
     storage: baseData.storage,
     invocations: baseData.invocations,
     spec: baseData.spec,
+    // Include API data for use in views
+    totalTransactions: baseData.apiContractData?.totalTransactions,
+    createdAt: baseData.apiContractData?.createdAt,
+    wasmId: baseData.apiContractData?.wasmId || undefined,
+    contractCode: baseData.apiContractData?.contractCode || undefined,
+    sourceCodeVerified: baseData.apiContractData?.sourceCodeVerified,
+    assetIssuer: baseData.apiContractData?.assetIssuer || undefined,
+    isSAC: baseData.apiContractData?.sac,
     _loading: isValidating
       ? { events: true, invocations: true, storage: true, spec: true }
       : loadingSections,

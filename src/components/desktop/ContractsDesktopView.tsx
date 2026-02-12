@@ -54,9 +54,8 @@ interface ContractsDesktopViewProps {
   contracts: EnhancedContract[];
   stats: {
     total: number;
-    active: number;
+    contracts: number;
     tokens: number;
-    dex: number;
     verified: number;
   };
   categories: Category[];
@@ -114,8 +113,8 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading }: 
             onClick={() => onPageChange(page as number)}
             disabled={loading}
             className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${currentPage === page
-                ? 'bg-sky-600 text-white shadow-sm'
-                : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
+              ? 'bg-sky-600 text-white shadow-sm'
+              : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
               }`}
           >
             {page}
@@ -169,66 +168,135 @@ export default function ContractsDesktopView({
     setPagination(initialPagination);
   }, [initialPagination]);
 
-  // Fetch contracts for a specific page
-  const fetchPage = useCallback(async (page: number) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `https://api.stellarchain.io/v1/contracts/env/public?page=${page}&paginate=${pagination.perPage}`
+  // Transform raw API contracts into EnhancedContract[]
+  const transformContracts = useCallback((apiContracts: any[]): EnhancedContract[] => {
+    return apiContracts.map((apiContract: any) => {
+      const verifiedContract = verifiedContracts.contracts.find(
+        c => c.id.toLowerCase() === apiContract.contractId.toLowerCase()
       );
-      const data = await response.json();
 
-      const newContracts: EnhancedContract[] = (data.data || []).map((apiContract: any) => {
-        const verifiedContract = verifiedContracts.contracts.find(
-          c => c.id.toLowerCase() === apiContract.contract_id.toLowerCase()
+      let type = 'contract';
+      if (apiContract.sac || apiContract.assetCode) {
+        type = 'token';
+      } else if (verifiedContract?.type) {
+        type = verifiedContract.type;
+      }
+
+      let name = 'Unknown Contract';
+      if (verifiedContract?.name) {
+        name = verifiedContract.name;
+      } else if (apiContract.assetCode) {
+        name = apiContract.assetCode;
+      }
+
+      const contractId = apiContract.contractId;
+
+      return {
+        id: contractId,
+        name,
+        type,
+        symbol: apiContract.assetCode || verifiedContract?.symbol,
+        description: verifiedContract?.description,
+        verified: apiContract.sourceCodeVerified || verifiedContract?.verified || false,
+        sep41: apiContract.sac || !!apiContract.assetCode || verifiedContract?.sep41,
+        website: verifiedContract?.website,
+        operationCount: apiContract.totalTransactions || 0,
+        lastActivity: apiContract.createdAt,
+        wasmId: apiContract.wasmId || undefined,
+        createdAt: apiContract.createdAt,
+        createTxHash: undefined,
+      };
+    });
+  }, []);
+
+  // Check if a contract matches the current filter
+  const matchesFilter = useCallback((contract: EnhancedContract, activeFilter: string): boolean => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'verified') return contract.verified;
+    if (activeFilter === 'token') return contract.type === 'token';
+    if (activeFilter === 'contract') return contract.type !== 'token';
+    return contract.type === activeFilter;
+  }, []);
+
+  const MIN_DISPLAY_COUNT = 10;
+  const MAX_PAGES_TO_FETCH = 5;
+
+  // Fetch contracts — when a filter is active, fetches multiple API pages
+  // to ensure we have enough matching items to display
+  const fetchPage = useCallback(async (page: number, activeFilter?: string) => {
+    setIsLoading(true);
+    const currentFilter = activeFilter ?? filter;
+    try {
+      // For 'all' filter or search, single page fetch is fine
+      if (currentFilter === 'all') {
+        const response = await fetch(
+          `https://api.stellarchain.dev/v1/contracts?page=${page}`,
+          { headers: { 'Accept': 'application/ld+json' } }
         );
+        const data = await response.json();
+        const newContracts = transformContracts(data.member || []);
+        const itemsPerPage = 30;
+        const totalPages = Math.ceil((data.totalItems || 0) / itemsPerPage);
+        setContracts(newContracts);
+        setPagination({
+          currentPage: page,
+          totalPages,
+          total: data.totalItems || 0,
+          perPage: itemsPerPage,
+        });
+      } else {
+        // For type filters, accumulate items from multiple pages
+        const accumulated: EnhancedContract[] = [];
+        let apiPage = page;
+        let totalItems = 0;
+        let totalPages = 1;
+        let pagesChecked = 0;
 
-        let type = 'contract';
-        if (apiContract.contract_type === 1 || apiContract.asset_code) {
-          type = 'token';
-        } else if (verifiedContract?.type) {
-          type = verifiedContract.type;
+        while (accumulated.length < MIN_DISPLAY_COUNT && pagesChecked < MAX_PAGES_TO_FETCH) {
+          const response = await fetch(
+            `https://api.stellarchain.dev/v1/contracts?page=${apiPage}`,
+            { headers: { 'Accept': 'application/ld+json' } }
+          );
+          const data = await response.json();
+          totalItems = data.totalItems || 0;
+          totalPages = Math.ceil(totalItems / 30);
+
+          const pageContracts = transformContracts(data.member || []);
+          const matching = pageContracts.filter(c => matchesFilter(c, currentFilter));
+          accumulated.push(...matching);
+
+          pagesChecked++;
+          apiPage++;
+
+          // Stop if we've reached the last API page
+          if (apiPage > totalPages) break;
         }
 
-        let name = 'Unknown Contract';
-        if (verifiedContract?.name) {
-          name = verifiedContract.name;
-        } else if (apiContract.asset_code) {
-          name = apiContract.asset_code;
-        }
-
-        const contractId = hexToContractStrKey(apiContract.contract_id);
-
-        return {
-          id: contractId,
-          name,
-          type,
-          symbol: apiContract.asset_code || verifiedContract?.symbol,
-          description: verifiedContract?.description,
-          verified: apiContract.source_code_verified || verifiedContract?.verified || false,
-          sep41: apiContract.contract_type === 1 || !!apiContract.asset_code || verifiedContract?.sep41,
-          website: verifiedContract?.website,
-          operationCount: apiContract.transactions_count || 0,
-          lastActivity: apiContract.created_at,
-          wasmId: apiContract.wasm_id || undefined,
-          createdAt: apiContract.created_at,
-          createTxHash: apiContract.create_transaction?.hash,
-        };
-      });
-
-      setContracts(newContracts);
-      setPagination({
-        currentPage: data.current_page || page,
-        totalPages: data.last_page || 1,
-        total: data.total || 0,
-        perPage: data.per_page || pagination.perPage,
-      });
+        setContracts(accumulated);
+        setPagination({
+          currentPage: page,
+          totalPages,
+          total: totalItems,
+          perPage: 30,
+        });
+      }
     } catch (error) {
       console.error('Error fetching contracts:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [pagination.perPage]);
+  }, [filter, transformContracts, matchesFilter]);
+
+  // Re-fetch when filter changes (except for initial load)
+  const [hasInitialized, setHasInitialized] = useState(false);
+  useEffect(() => {
+    if (!hasInitialized) {
+      setHasInitialized(true);
+      return;
+    }
+    // When filter changes, re-fetch from page 1 with the new filter
+    fetchPage(1, filter);
+  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredContracts = useMemo(() => {
     let result = [...contracts];
@@ -277,14 +345,13 @@ export default function ContractsDesktopView({
     }
   };
 
-  // Count stats from current filtered view
+  // Use stats from parent (calculated from sample of pages) for accurate counts
   const currentStats = useMemo(() => ({
     total: pagination.total,
-    tokens: contracts.filter(c => c.type === 'token').length,
-    dex: contracts.filter(c => c.type === 'dex').length,
-    verified: contracts.filter(c => c.verified).length,
-    active: contracts.filter(c => c.operationCount > 0).length,
-  }), [contracts, pagination.total]);
+    tokens: stats.tokens,
+    contracts: stats.contracts,
+    verified: stats.verified,
+  }), [stats, pagination.total]);
 
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -335,8 +402,8 @@ export default function ContractsDesktopView({
                 <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{loading ? <InlineSkeleton width="w-12" /> : currentStats.tokens}</div>
               </div>
               <div className="p-3 rounded-xl bg-violet-100/70 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800/50 min-w-[90px]">
-                <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">DEXs</div>
-                <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{loading ? <InlineSkeleton width="w-10" /> : currentStats.dex}</div>
+                <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">Contracts</div>
+                <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{loading ? <InlineSkeleton width="w-10" /> : currentStats.contracts}</div>
               </div>
               <div className="p-3 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 min-w-[90px]">
                 <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Verified</div>
@@ -379,11 +446,8 @@ export default function ContractsDesktopView({
             tabs={[
               { id: 'all', label: 'All', count: pagination.total },
               { id: 'verified', label: 'Verified', count: currentStats.verified },
-              ...categories.map((cat) => ({
-                id: cat.id,
-                label: cat.name,
-                count: (typeCounts[cat.id] ?? 0) > 0 ? (typeCounts[cat.id] ?? 0) : undefined,
-              })),
+              { id: 'token', label: 'Tokens', count: currentStats.tokens },
+              { id: 'contract', label: 'Contracts', count: currentStats.contracts },
             ]}
             activeId={filter}
             onChange={setFilter}

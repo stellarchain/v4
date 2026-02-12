@@ -60,7 +60,11 @@ export default function LiquidityPoolsPage() {
 
     const emptyPools: PaginatedResponse<LiquidityPool> = {
         _embedded: { records: [] },
-        _links: {},
+        _links: {
+            self: { href: '' },
+            next: { href: '' },
+            prev: { href: '' },
+        },
     };
     const poolsData = pools || emptyPools;
 
