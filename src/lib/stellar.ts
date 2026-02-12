@@ -564,98 +564,63 @@ function decodeSymbol(value: string): string | null {
 export async function getContractInvocations(
   contractId: string,
   limit: number = 50,
-  maxOperationsToScan: number = 5000
+  startCursor?: string
 ): Promise<ContractInvocation[]> {
   try {
+    // Import the event parser functions
+    const { getContractEvents } = await import('./eventParser');
+
+    // Get events for this contract
+    const events = await getContractEvents(contractId, limit);
+
+    // Convert events to invocations by extracting transaction data
     const invocations: ContractInvocation[] = [];
-    let cursor: string | undefined;
-    let totalScanned = 0;
-    const pageSize = 200;
+    const seenTxHashes = new Set<string>();
 
-    // Scan invoke_host_function operations and filter by contract
-    while (totalScanned < maxOperationsToScan && invocations.length < limit) {
-      let url = `${getBaseUrl()}/operations?limit=${pageSize}&order=desc&type=invoke_host_function`;
-      if (cursor) url += `&cursor=${cursor}`;
+    for (const event of events) {
+      if (invocations.length >= limit) break;
+      if (!event.txHash) continue;
+      if (seenTxHashes.has(event.txHash)) continue;
 
-      const response = await fetchJSON<PaginatedResponse<Operation>>(url);
-      const operations = response._embedded.records;
+      seenTxHashes.add(event.txHash);
 
-      if (operations.length === 0) break;
+      // Determine function name from event type
+      let functionName = 'unknown';
+      if (event.type === 'transfer') functionName = 'transfer';
+      else if (event.type === 'mint') functionName = 'mint';
+      else if (event.type === 'burn') functionName = 'burn';
+      else if (event.type === 'approve') functionName = 'approve';
+      else if (event.type === 'clawback') functionName = 'clawback';
 
-      for (const op of operations) {
-        const params = op.parameters as Array<{ type: string; value: string }> | undefined;
-        if (!params || !Array.isArray(params)) continue;
-
-        // Decode contract address from first Address parameter
-        const addressParam = params.find(p => p.type === 'Address');
-        if (!addressParam?.value) continue;
-
-        const decodedContract = decodeContractAddress(addressParam.value);
-        if (decodedContract !== contractId) continue;
-
-        // Decode function name
-        let functionName = 'unknown';
-        const symParam = params.find(p => p.type === 'Sym');
-        if (symParam?.value) {
-          const decoded = decodeSymbol(symParam.value);
-          if (decoded) functionName = decoded;
+      // Build parameters from event data
+      const parameters: Array<{ type: string; value: string; decoded?: string }> = [];
+      if (event.data && typeof event.data === 'object') {
+        const data = event.data as Record<string, any>;
+        if (data.from) {
+          parameters.push({ type: 'Address', value: '', decoded: data.from });
         }
-
-        // Decode other parameters for display
-        const decodedParams = params.map(p => {
-          const decoded: { type: string; value: string; decoded?: string } = { type: p.type, value: p.value };
-
-          if (p.type === 'Address') {
-            const addr = decodeContractAddress(p.value);
-            if (addr) decoded.decoded = addr;
-          } else if (p.type === 'Sym') {
-            const sym = decodeSymbol(p.value);
-            if (sym) decoded.decoded = sym;
-          } else if (p.type === 'I128' || p.type === 'U128') {
-            // Try to decode i128/u128 values
-            try {
-              const scVal = xdr.ScVal.fromXDR(p.value, 'base64');
-              if (scVal.switch().name === 'scvI128') {
-                const i128 = scVal.i128();
-                const lo = BigInt(i128.lo().toXDR().readBigUInt64BE(0));
-                const hi = BigInt(i128.hi().toXDR().readBigInt64BE(0));
-                const value = (hi << BigInt(64)) | lo;
-                decoded.decoded = value.toString();
-              } else if (scVal.switch().name === 'scvU128') {
-                const u128 = scVal.u128();
-                const lo = BigInt(u128.lo().toXDR().readBigUInt64BE(0));
-                const hi = BigInt(u128.hi().toXDR().readBigUInt64BE(0));
-                const value = (hi << BigInt(64)) | lo;
-                decoded.decoded = value.toString();
-              }
-            } catch {
-              // Keep original value if decoding fails
-            }
-          }
-
-          return decoded;
-        });
-
-        invocations.push({
-          id: op.id,
-          txHash: op.transaction_hash || '',
-          sourceAccount: op.source_account,
-          contractId: decodedContract,
-          functionName,
-          parameters: decodedParams,
-          createdAt: op.created_at,
-          ledger: typeof op.ledger === 'number' ? op.ledger : 0,
-          successful: op.transaction_successful,
-        });
-
-        if (invocations.length >= limit) break;
+        if (data.to) {
+          parameters.push({ type: 'Address', value: '', decoded: data.to });
+        }
+        if (data.amount) {
+          parameters.push({ type: 'I128', value: '', decoded: data.amount });
+        }
       }
 
-      totalScanned += operations.length;
-      cursor = operations[operations.length - 1]?.paging_token;
-
-      if (operations.length < pageSize) break;
+      invocations.push({
+        id: `${event.ledger}-${event.txHash}`,
+        txHash: event.txHash,
+        sourceAccount: event.contractId || contractId,
+        contractId: contractId,
+        functionName,
+        parameters,
+        createdAt: event.timestamp || new Date().toISOString(),
+        ledger: event.ledger,
+        successful: true,
+      });
     }
+
+    console.log(`[getContractInvocations] Found ${invocations.length} invocations from events for ${contractId}`);
 
     // Fetch effects for each invocation to get credited amounts (for harvest/claim)
     // Do this in parallel batches to avoid overwhelming the API
@@ -1248,23 +1213,6 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
     console.error('Error fetching from Stellarchain.dev v1:', e);
   }
 
-  // 1b. Fallback to the legacy Stellarchain API shape if v1 is unavailable.
-  try {
-    if (!stellarChainData) {
-      const legacyResponse = await fetch(`https://api.stellarchain.io/v1/assets/${assetId}/show`, {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 60 }
-      });
-
-      if (legacyResponse.ok) {
-        const json = await legacyResponse.json();
-        stellarChainData = json.data;
-      }
-    }
-  } catch (e) {
-    console.error('Error fetching from legacy StellarChain.io:', e);
-  }
-
   // 2. Fallback/Concurrent Fetch to Stellar Expert & CoinGecko (for XLM)
   try {
     const xlmPrice = await getXLMPrice();
@@ -1446,12 +1394,10 @@ export async function getXLMHolders(
 ): Promise<{ holders: AssetHolder[]; nextCursor?: string }> {
   try {
     const page = cursor ? parseInt(cursor) : 1;
-    // API only accepts specific pagination values, 50 is known to work
-    const safeLimit = 50;
-    const url = `https://api.stellarchain.io/v1/accounts/top?page=${page}&paginate=${safeLimit}`;
+    const url = `https://api.stellarchain.dev/v1/accounts?page=${page}&order[accountMetric.rankPosition]=asc`;
 
     const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/ld+json' },
       next: { revalidate: 300 }, // Cache for 5 minutes
     });
 
@@ -1460,18 +1406,18 @@ export async function getXLMHolders(
     }
 
     const data = await response.json();
-    const records = data.data || [];
+    const records = data.member || [];
 
     const holders: AssetHolder[] = records.map((record: any) => ({
-      account_id: record.account,
-      balance: record.balance?.toString() || '0',
+      account_id: record.address,
+      balance: record.accountMetric?.nativeBalance?.toString() || '0',
       paging_token: (page + 1).toString(), // generic token
     }));
 
     return {
       holders,
-      // If we got full page, assume there is next page
-      nextCursor: records.length === safeLimit ? (page + 1).toString() : undefined
+      // Check if there's a next page in the view
+      nextCursor: data.view?.next ? (page + 1).toString() : undefined
     };
   } catch (error) {
     console.error('Failed to fetch XLM holders:', error);
@@ -1484,9 +1430,9 @@ export async function getRichList(
   limit: number = 50
 ): Promise<RichListAccount[]> {
   try {
-    const url = `https://api.stellarchain.io/v1/accounts/top?page=${page}&paginate=${limit}`;
+    const url = `https://api.stellarchain.dev/v1/accounts?page=${page}&order[accountMetric.rankPosition]=asc`;
     const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/ld+json' },
       next: { revalidate: 300 },
     });
 
@@ -1495,16 +1441,16 @@ export async function getRichList(
     }
 
     const data = await response.json();
-    return (data.data || []).map((record: any, index: number) => ({
-      rank: record.rank || ((page - 1) * limit + index + 1),
-      account: record.account,
-      balance: parseFloat(record.balance || '0'),
-      percent_of_coins: record.percent_of_coins,
-      transactions: parseInt(record.transactions || '0'),
+    return (data.member || []).map((record: any) => ({
+      rank: record.accountMetric?.rankPosition || 0,
+      account: record.address,
+      balance: parseFloat(record.accountMetric?.nativeBalance || '0'),
+      percent_of_coins: undefined, // Not available in new API
+      transactions: parseInt(record.accountMetric?.totalTransactions || '0'),
       label: record.label ? {
-        name: record.label.name,
-        verified: record.label.verified === 1,
-        description: record.label.description
+        name: record.label,
+        verified: record.verified === true,
+        description: undefined // Not available in new API
       } : undefined
     }));
   } catch (error) {
@@ -1533,31 +1479,46 @@ async function fetchAllLabeledAccounts(): Promise<Map<string, AccountLabel>> {
     let page = 1;
     let hasMore = true;
 
-    while (hasMore && page <= 10) { // Safety limit of 10 pages
-      const url = `https://api.stellarchain.io/v1/accounts?page=${page}&labels[]=undefined&paginate=100`;
+    while (hasMore && page <= 30) { // Increased limit for new API
+      const url = `https://api.stellarchain.dev/v1/accounts?page=${page}`;
       const response = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
+        headers: { 'Accept': 'application/ld+json' },
         next: { revalidate: 300 }, // Cache for 5 minutes
       });
 
       if (!response.ok) break;
 
       const json = await response.json();
-      const data = json.data || [];
-      allAccounts.push(...data);
+      const data = json.member || [];
 
-      hasMore = data.length === 100;
+      // Transform new API format to old LabeledAccount format
+      const transformedData = data.map((record: any) => ({
+        account: record.address,
+        org_name: null, // Not available in new API
+        label: record.label ? {
+          name: record.label,
+          description: null, // Not available in new API
+          verified: record.verified ? 1 : 0
+        } : null,
+        balance: parseFloat(record.accountMetric?.nativeBalance || '0'),
+        transactions: record.accountMetric?.totalTransactions || '0',
+        rank: record.accountMetric?.rankPosition || 0
+      }));
+
+      allAccounts.push(...transformedData);
+
+      hasMore = !!json.view?.next; // Check if there's a next page
       page++;
     }
 
     // Build lookup map
     for (const account of allAccounts) {
-      if (account.label || account.org_name) {
+      if (account.label) {
         labels.set(account.account, {
-          name: account.label?.name || '',
-          verified: account.label?.verified === 1,
+          name: account.label.name || '',
+          verified: account.label.verified === 1,
           org_name: account.org_name || null,
-          description: account.label?.description || null,
+          description: account.label.description,
         });
       }
     }
@@ -1689,26 +1650,30 @@ export async function getAccountLabels(
   const uniqueAddresses = Array.from(new Set(addresses.filter(Boolean)));
 
   // First, try direct lookup endpoint (fresh + precise).
-  // Use GET to match backend route methods and avoid POST preflight/405 noise.
   try {
     const params = new URLSearchParams();
     for (const address of uniqueAddresses) {
-      params.append('accounts[]', address);
+      params.append('address[]', address);
     }
-    const url = `https://api.stellarchain.io/v1/accounts/labels?${params.toString()}`;
+    const url = `https://api.stellarchain.dev/v1/accounts?${params.toString()}`;
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/json',
+        'Accept': 'application/ld+json',
       },
     });
 
     if (response.ok) {
       const payload = await response.json();
-      const directLabels = collectLabelsFromPayload(payload);
-      for (const address of uniqueAddresses) {
-        const label = directLabels.get(address) || directLabels.get(address.toUpperCase()) || directLabels.get(address.toLowerCase());
-        if (label) {
-          result.set(address, label);
+      const accounts = payload.member || [];
+
+      for (const account of accounts) {
+        if (account.label) {
+          result.set(account.address, {
+            name: account.label,
+            verified: account.verified === true,
+            org_name: null, // Not available in new API
+            description: null, // Not available in new API
+          });
         }
       }
 

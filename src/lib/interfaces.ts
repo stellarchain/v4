@@ -349,11 +349,26 @@ export interface LabeledAccount {
 }
 
 export interface LabeledAccountsAPIResponse {
-  current_page: number;
-  total: number;
-  per_page: number;
-  last_page: number;
-  data: LabeledAccount[];
+  // Old API structure
+  current_page?: number;
+  total?: number;
+  per_page?: number;
+  last_page?: number;
+  data?: LabeledAccount[];
+
+  // New API structure (JSON-LD)
+  '@context'?: string;
+  '@id'?: string;
+  '@type'?: string;
+  totalItems?: number;
+  member?: any[]; // Will be transformed to LabeledAccount[]
+  view?: {
+    '@type': string;
+    first?: string;
+    last?: string;
+    next?: string;
+    previous?: string;
+  };
 }
 
 // Account Label type for badge display
@@ -364,25 +379,22 @@ export interface AccountLabel {
   description: string | null;
 }
 
-// Contracts API types
+// Contracts API types (new JSON-LD API format)
 export interface APIContract {
+  '@id': string;
+  '@type': string;
   id: number;
-  contract_id: string;
-  contract_code: string | null;
-  asset_code: string | null;
-  asset_issuer: string | null;
-  created_at: string;
-  wasm_id: string | null;
-  contract_type: number; // 0 = wasm/address, 1 = asset/SAC
-  network: string;
-  source_code_verified: boolean;
-  transactions_count: number;
-  create_transaction: {
-    hash: string;
-    fee: string;
-    source_account: string;
-    host_functions: string[];
-  } | null;
+  contractId: string; // Base32-encoded StrKey format (C...)
+  contractIdHex: string; // Hexadecimal version
+  contractCode: string | null;
+  assetCode: string | null;
+  assetIssuer: string | null;
+  createdAt: string;
+  wasmId: string | null;
+  sac: boolean; // Stellar Asset Contract flag
+  network: number;
+  sourceCodeVerified: boolean;
+  totalTransactions: number;
 }
 
 // Statistics interfaces

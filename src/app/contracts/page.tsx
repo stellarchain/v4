@@ -8,6 +8,7 @@ import ContractsClient from './ContractsClient';
 import ContractDetailsClientPage from '@/app/contract/[id]/client-page';
 import { StrKey } from '@stellar/stellar-sdk';
 import { getDetailRouteValue } from '@/lib/routeDetail';
+import { isContractAddress } from '@/lib/soroban';
 
 // Convert hex contract ID to StrKey format (C...)
 function hexToContractStrKey(hexId: string): string {
@@ -44,23 +45,30 @@ export interface EnhancedContract {
 }
 
 interface ContractsAPIResponse {
-  current_page: number;
-  total: number;
-  per_page: number;
-  last_page: number;
-  data: APIContract[];
+  '@context': string;
+  '@id': string;
+  '@type': string;
+  totalItems: number;
+  member: APIContract[];
+  view?: {
+    '@type': string;
+    first?: string;
+    last?: string;
+    next?: string;
+    previous?: string;
+  };
 }
 
 // Transform API contract to display format
 function transformContract(apiContract: APIContract): EnhancedContract {
   // Check if this is a verified contract from static data
   const verifiedContract = verifiedContracts.contracts.find(
-    c => c.id.toLowerCase() === apiContract.contract_id.toLowerCase()
+    c => c.id.toLowerCase() === apiContract.contractId.toLowerCase()
   );
 
   // Determine contract type
   let type = 'contract';
-  if (apiContract.contract_type === 1 || apiContract.asset_code) {
+  if (apiContract.sac || apiContract.assetCode) {
     type = 'token';
   } else if (verifiedContract?.type) {
     type = verifiedContract.type;
@@ -70,43 +78,43 @@ function transformContract(apiContract: APIContract): EnhancedContract {
   let name = 'Unknown Contract';
   if (verifiedContract?.name) {
     name = verifiedContract.name;
-  } else if (apiContract.asset_code) {
-    name = apiContract.asset_code;
+  } else if (apiContract.assetCode) {
+    name = apiContract.assetCode;
   }
 
-  // Convert hex contract ID to StrKey format
-  const contractId = hexToContractStrKey(apiContract.contract_id);
+  // Use contractId directly (already in StrKey format from API)
+  const contractId = apiContract.contractId;
 
   return {
     id: contractId,
     name,
     type,
-    symbol: apiContract.asset_code || verifiedContract?.symbol,
+    symbol: apiContract.assetCode || verifiedContract?.symbol,
     description: verifiedContract?.description,
-    verified: apiContract.source_code_verified || verifiedContract?.verified || false,
-    sep41: apiContract.contract_type === 1 || !!apiContract.asset_code || verifiedContract?.sep41,
+    verified: apiContract.sourceCodeVerified || verifiedContract?.verified || false,
+    sep41: apiContract.sac || !!apiContract.assetCode || verifiedContract?.sep41,
     website: verifiedContract?.website,
-    operationCount: apiContract.transactions_count || 0,
-    lastActivity: apiContract.created_at,
-    wasmId: apiContract.wasm_id || undefined,
-    createdAt: apiContract.created_at,
-    createTxHash: apiContract.create_transaction?.hash,
+    operationCount: apiContract.totalTransactions || 0,
+    lastActivity: apiContract.createdAt,
+    wasmId: apiContract.wasmId || undefined,
+    createdAt: apiContract.createdAt,
+    createTxHash: undefined, // Not available in new API
   };
 }
 
 // Fetch contracts from Stellarchain API
 async function fetchContracts(
   page: number = 1,
-  perPage: number = 20
+  perPage: number = 30
 ): Promise<ContractsAPIResponse> {
   try {
-    const url = `https://api.stellarchain.io/v1/contracts/env/public?page=${page}&paginate=${perPage}`;
+    const url = `https://api.stellarchain.dev/v1/contracts?page=${page}`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
 
     const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/ld+json' },
       signal: controller.signal,
     });
 
@@ -119,20 +127,21 @@ async function fetchContracts(
     const data = await response.json();
 
     return {
-      current_page: data.current_page || 1,
-      total: data.total || 0,
-      per_page: data.per_page || perPage,
-      last_page: data.last_page || 1,
-      data: data.data || [],
+      '@context': data['@context'] || '',
+      '@id': data['@id'] || '',
+      '@type': data['@type'] || '',
+      totalItems: data.totalItems || 0,
+      member: data.member || [],
+      view: data.view,
     };
   } catch (error) {
     console.error('Error fetching contracts:', error);
     return {
-      current_page: 1,
-      total: 0,
-      per_page: perPage,
-      last_page: 1,
-      data: [],
+      '@context': '',
+      '@id': '',
+      '@type': '',
+      totalItems: 0,
+      member: [],
     };
   }
 }
@@ -175,24 +184,30 @@ export default function ContractsPage() {
         // Fetch first page of contracts from API
         const initialData = await fetchContracts(1, 30);
 
-        // Transform API contracts to display format
-        const transformedContracts = initialData.data.map(transformContract);
+        // Transform API contracts to display format, filtering out invalid IDs
+        const transformedContracts = initialData.member
+          .filter(c => isContractAddress(c.contractId))
+          .map(transformContract);
 
         // Calculate stats from current page (will be approximate for now)
         const calculatedStats = {
-          total: initialData.total,
+          total: initialData.totalItems,
           active: transformedContracts.filter(c => c.operationCount > 0).length,
           tokens: transformedContracts.filter(c => c.type === 'token').length,
           dex: transformedContracts.filter(c => c.type === 'dex').length,
           verified: transformedContracts.filter(c => c.verified).length,
         };
 
+        // Calculate total pages (assuming 30 items per page)
+        const itemsPerPage = 30;
+        const totalPages = Math.ceil(initialData.totalItems / itemsPerPage);
+
         // Pagination info
         const paginationInfo = {
-          currentPage: initialData.current_page,
-          totalPages: initialData.last_page,
-          total: initialData.total,
-          perPage: initialData.per_page,
+          currentPage: 1,
+          totalPages: totalPages,
+          total: initialData.totalItems,
+          perPage: itemsPerPage,
         };
 
         setContracts(transformedContracts);

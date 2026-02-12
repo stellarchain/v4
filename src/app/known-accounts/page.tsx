@@ -15,7 +15,9 @@ export default function KnownAccountsPage() {
     const fetchLabeledAccounts = async () => {
       try {
         setLoading(true);
-        const response = await fetch('https://api.stellarchain.io/v1/accounts?page=1&labels[]=undefined&paginate=25');
+        const response = await fetch('https://api.stellarchain.dev/v1/accounts?page=1', {
+          headers: { 'Accept': 'application/ld+json' }
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch labeled accounts');
         }

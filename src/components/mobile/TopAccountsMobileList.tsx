@@ -6,9 +6,10 @@ import { RichListAccount, shortenAddress } from '@/lib/stellar';
 
 interface TopAccountsMobileListProps {
     initialAccounts: RichListAccount[];
+    totalAccounts: number;
 }
 
-export default function TopAccountsMobileList({ initialAccounts }: TopAccountsMobileListProps) {
+export default function TopAccountsMobileList({ initialAccounts, totalAccounts }: TopAccountsMobileListProps) {
     const [accounts] = useState<RichListAccount[]>(initialAccounts || []);
 
     const formatBalance = (balance: number) => {
@@ -28,7 +29,7 @@ export default function TopAccountsMobileList({ initialAccounts }: TopAccountsMo
                             Top Accounts
                         </span>
                         <span className="bg-[var(--primary-blue)]/10 text-[var(--primary-blue)] text-[10px] px-1.5 py-0.5 rounded font-bold">
-                            Top 50
+                            {totalAccounts.toLocaleString()}
                         </span>
                     </div>
                 </div>
