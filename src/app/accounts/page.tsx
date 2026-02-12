@@ -21,6 +21,7 @@ export default function AccountsPage() {
     const hasDetailsRoute = Boolean(detailsAccountId);
 
     const [richListAccounts, setRichListAccounts] = useState<RichListAccount[]>([]);
+    const [totalAccounts, setTotalAccounts] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -30,29 +31,46 @@ export default function AccountsPage() {
         const fetchRichList = async () => {
             try {
                 setLoading(true);
-                const response = await fetch('https://api.stellarchain.io/v1/accounts/top?page=1&paginate=50', {
-                    headers: { 'Accept': 'application/json' }
+                const response = await fetch('https://api.stellarchain.dev/v1/accounts?page=1&order[accountMetric.rankPosition]=asc', {
+                    headers: { 'Accept': 'application/ld+json' }
                 });
                 if (!response.ok) {
-                    throw new Error('Failed to fetch rich list');
+                    throw new Error('Failed to fetch accounts');
                 }
                 const result = await response.json();
-                const accounts = (result.data || []).map((record: any, index: number) => ({
-                    rank: record.rank || (index + 1),
-                    account: record.account,
-                    balance: parseFloat(record.balance || '0'),
-                    percent_of_coins: record.percent_of_coins,
-                    transactions: parseInt(record.transactions || '0'),
-                    label: record.label ? {
-                        name: record.label.name,
-                        verified: record.label.verified === 1,
-                        description: record.label.description
-                    } : undefined
-                }));
+
+                // Calculate total supply from all accounts (sum of balances on this page as approximation)
+                const TOTAL_XLM_SUPPLY = 50_000_000_000; // 50 billion XLM
+
+                const accounts = (result.member || [])
+                    .filter((record: any) => {
+                        // Filter out burn account
+                        const isBurnAccount = record.label?.toLowerCase().includes('burn');
+                        return !isBurnAccount;
+                    })
+                    .map((record: any) => {
+                        const balance = parseFloat(record.accountMetric?.nativeBalance || '0');
+                        const percentOfCoins = balance > 0 ? ((balance / TOTAL_XLM_SUPPLY) * 100).toFixed(4) : '0.0000';
+
+                        return {
+                            rank: record.accountMetric?.rankPosition || 0,
+                            account: record.address,
+                            balance,
+                            percent_of_coins: percentOfCoins,
+                            transactions: parseInt(record.accountMetric?.totalTransactions || '0'),
+                            label: record.label ? {
+                                name: record.label,
+                                verified: record.verified === true,
+                                description: undefined // Not available in new API
+                            } : undefined
+                        };
+                    });
+
                 setRichListAccounts(accounts);
+                setTotalAccounts(result.totalItems || accounts.length);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load accounts');
-                console.error('Error fetching rich list:', err);
+                console.error('Error fetching accounts:', err);
             } finally {
                 setLoading(false);
             }
@@ -81,12 +99,12 @@ export default function AccountsPage() {
         <>
             {/* Mobile View */}
             <div className="block md:hidden">
-                <TopAccountsMobileList initialAccounts={richListAccounts} />
+                <TopAccountsMobileList initialAccounts={richListAccounts} totalAccounts={totalAccounts} />
             </div>
 
             {/* Desktop View */}
             <div className="hidden md:block">
-                <TopAccountsDesktopView initialAccounts={richListAccounts} />
+                <TopAccountsDesktopView initialAccounts={richListAccounts} totalAccounts={totalAccounts} />
             </div>
         </>
     );

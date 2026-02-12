@@ -36,10 +36,25 @@ function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
 }
 
 export default function KnownAccountsDesktopView({ initialData }: KnownAccountsDesktopViewProps) {
-  const [accounts, setAccounts] = useState<LabeledAccount[]>(initialData?.data || []);
-  const [currentPage, setCurrentPage] = useState(initialData?.current_page || 1);
-  const [totalPages, setTotalPages] = useState(initialData?.last_page || 1);
-  const [total, setTotal] = useState(initialData?.total || 0);
+  // Transform new API structure to old format
+  const transformedData = initialData?.member?.map((acc: any) => ({
+    account: acc.address,
+    org_name: null,
+    label: acc.label ? {
+      name: acc.label,
+      description: null,
+      verified: acc.verified ? 1 : 0
+    } : null,
+    balance: parseFloat(acc.accountMetric?.nativeBalance || '0'),
+    transactions: acc.accountMetric?.totalTransactions || '0',
+    rank: acc.accountMetric?.rankPosition || 0
+  })) || [];
+
+  const [accounts, setAccounts] = useState<LabeledAccount[]>(transformedData);
+  const itemsPerPage = 30;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(Math.ceil((initialData?.totalItems || 0) / itemsPerPage));
+  const [total, setTotal] = useState(initialData?.totalItems || 0);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('balance');
@@ -49,14 +64,28 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://api.stellarchain.io/v1/accounts?page=${page}&labels[]=undefined&paginate=25`
+        `https://api.stellarchain.dev/v1/accounts?page=${page}`,
+        { headers: { 'Accept': 'application/ld+json' } }
       );
       const json = await response.json();
 
-      setAccounts(json.data || []);
-      setCurrentPage(json.meta?.current_page || 1);
-      setTotalPages(json.meta?.last_page || 1);
-      setTotal(json.meta?.total || 0);
+      const transformedAccounts = json.member?.map((acc: any) => ({
+        account: acc.address,
+        org_name: null,
+        label: acc.label ? {
+          name: acc.label,
+          description: null,
+          verified: acc.verified ? 1 : 0
+        } : null,
+        balance: parseFloat(acc.accountMetric?.nativeBalance || '0'),
+        transactions: acc.accountMetric?.totalTransactions || '0',
+        rank: acc.accountMetric?.rankPosition || 0
+      })) || [];
+
+      setAccounts(transformedAccounts);
+      setCurrentPage(page);
+      setTotalPages(Math.ceil((json.totalItems || 0) / itemsPerPage));
+      setTotal(json.totalItems || 0);
     } catch (error) {
       console.error('Error fetching accounts:', error);
     } finally {
@@ -66,10 +95,8 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
 
   // Calculate totals
   const totals = useMemo(() => {
-    const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
-    const totalTxs = accounts.reduce((sum, acc) => sum + parseInt(acc.transactions || '0'), 0);
     const verifiedCount = accounts.filter(acc => acc.label?.verified === 1).length;
-    return { totalBalance, totalTxs, verifiedCount };
+    return { verifiedCount };
   }, [accounts]);
 
   const filteredAndSortedAccounts = useMemo(() => {
@@ -179,17 +206,6 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
 
             {/* Right: Quick Stats */}
             <div className="flex gap-3">
-              <div className="p-3 rounded-xl bg-sky-100/70 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[120px]">
-                <div className="text-[9px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest mb-1">Total Balance</div>
-                <div className="text-lg font-bold text-sky-600 dark:text-sky-400">
-                  {formatBalance(totals.totalBalance)}
-                  <span className="text-[10px] font-medium text-[var(--text-muted)] ml-1">XLM</span>
-                </div>
-              </div>
-              <div className="p-3 rounded-xl bg-violet-100/70 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800/50 min-w-[110px]">
-                <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">Transactions</div>
-                <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{formatBalance(totals.totalTxs)}</div>
-              </div>
               <div className="p-3 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 min-w-[90px]">
                 <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Verified</div>
                 <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{totals.verifiedCount}</div>

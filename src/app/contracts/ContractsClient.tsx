@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { shortenAddress, timeAgo } from '@/lib/stellar';
 import { StrKey } from '@stellar/stellar-sdk';
+import { isContractAddress } from '@/lib/soroban';
 import ContractsDesktopView from '@/components/desktop/ContractsDesktopView';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
@@ -93,18 +94,23 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://api.stellarchain.io/v1/contracts/env/public?page=${page}&paginate=${pagination.perPage}`
+        `https://api.stellarchain.dev/v1/contracts?page=${page}`,
+        {
+          headers: { 'Accept': 'application/ld+json' },
+        }
       );
       const data = await response.json();
 
-      // Transform API contracts
-      const newContracts: EnhancedContract[] = (data.data || []).map((apiContract: any) => {
+      // Transform API contracts, filtering out invalid IDs
+      const newContracts: EnhancedContract[] = (data.member || [])
+        .filter((apiContract: any) => isContractAddress(apiContract.contractId))
+        .map((apiContract: any) => {
         const verifiedContract = verifiedContracts.contracts.find(
-          c => c.id.toLowerCase() === apiContract.contract_id.toLowerCase()
+          c => c.id.toLowerCase() === apiContract.contractId.toLowerCase()
         );
 
         let type = 'contract';
-        if (apiContract.contract_type === 1 || apiContract.asset_code) {
+        if (apiContract.sac || apiContract.assetCode) {
           type = 'token';
         } else if (verifiedContract?.type) {
           type = verifiedContract.type;
@@ -113,43 +119,47 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
         let name = 'Unknown Contract';
         if (verifiedContract?.name) {
           name = verifiedContract.name;
-        } else if (apiContract.asset_code) {
-          name = apiContract.asset_code;
+        } else if (apiContract.assetCode) {
+          name = apiContract.assetCode;
         }
 
-        // Convert hex contract ID to StrKey format
-        const contractId = hexToContractStrKey(apiContract.contract_id);
+        // Use contractId directly (already in StrKey format from API)
+        const contractId = apiContract.contractId;
 
         return {
           id: contractId,
           name,
           type,
-          symbol: apiContract.asset_code || verifiedContract?.symbol,
+          symbol: apiContract.assetCode || verifiedContract?.symbol,
           description: verifiedContract?.description,
-          verified: apiContract.source_code_verified || verifiedContract?.verified || false,
-          sep41: apiContract.contract_type === 1 || !!apiContract.asset_code || verifiedContract?.sep41,
+          verified: apiContract.sourceCodeVerified || verifiedContract?.verified || false,
+          sep41: apiContract.sac || !!apiContract.assetCode || verifiedContract?.sep41,
           website: verifiedContract?.website,
-          operationCount: apiContract.transactions_count || 0,
-          lastActivity: apiContract.created_at,
-          wasmId: apiContract.wasm_id || undefined,
-          createdAt: apiContract.created_at,
-          createTxHash: apiContract.create_transaction?.hash,
+          operationCount: apiContract.totalTransactions || 0,
+          lastActivity: apiContract.createdAt,
+          wasmId: apiContract.wasmId || undefined,
+          createdAt: apiContract.createdAt,
+          createTxHash: undefined, // Not available in new API
         };
       });
 
+      // Calculate total pages (assuming 30 items per page)
+      const itemsPerPage = 30;
+      const totalPages = Math.ceil((data.totalItems || 0) / itemsPerPage);
+
       setContracts(newContracts);
       setPagination({
-        currentPage: data.current_page || page,
-        totalPages: data.last_page || 1,
-        total: data.total || 0,
-        perPage: data.per_page || pagination.perPage,
+        currentPage: page,
+        totalPages: totalPages,
+        total: data.totalItems || 0,
+        perPage: itemsPerPage,
       });
     } catch (error) {
       console.error('Error fetching contracts:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [pagination.perPage]);
+  }, []);
 
   const filteredContracts = useMemo(() => {
     let result = [...contracts];

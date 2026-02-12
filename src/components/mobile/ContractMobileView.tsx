@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { shortenAddress, timeAgo, ContractInvocation } from '@/lib/stellar';
 import GliderTabs from '@/components/ui/GliderTabs';
 import type { TokenRegistryEntry, ContractVerification } from '@/lib/types/token';
@@ -56,6 +58,14 @@ interface ContractData {
   storage?: ContractStorageResult | null;
   invocations?: ContractInvocation[];
   spec?: ContractSpecResult | null;
+  // API data fields
+  totalTransactions?: number;
+  createdAt?: string;
+  wasmId?: string;
+  contractCode?: string;
+  sourceCodeVerified?: boolean;
+  assetIssuer?: string;
+  isSAC?: boolean;
   _loading?: {
     events?: boolean;
     invocations?: boolean;
@@ -71,10 +81,13 @@ interface ContractMobileViewProps {
 }
 
 export default function ContractMobileView({ contract, operations, onTabChange }: ContractMobileViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'details' | 'history' | 'interface'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'details' | 'history' | 'interface' | 'code'>('overview');
   const [copied, setCopied] = useState(false);
   const [copiedName, setCopiedName] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sourceCode, setSourceCode] = useState<string | null>(null);
+  const [sourceCodeLoading, setSourceCodeLoading] = useState(false);
+  const [sourceCodeError, setSourceCodeError] = useState<string | null>(null);
 
   // Primary color for consistency with other pages
   const primaryColor = '#0F4C81';
@@ -110,14 +123,52 @@ export default function ContractMobileView({ contract, operations, onTabChange }
     setSearchQuery('');
   };
 
+  const fetchSourceCode = async () => {
+    if (sourceCode || sourceCodeLoading) return;
+
+    setSourceCodeLoading(true);
+    setSourceCodeError(null);
+
+    try {
+      const response = await fetch(
+        `https://api.stellarchain.dev/v1/contracts/${contract.id}?source_code=1&network=mainnet`,
+        {
+          headers: { 'Accept': 'application/ld+json' },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch source code: ${response.status}`);
+      }
+
+      const data = await response.json();
+      // Source code is in contractDecoded.contractSourceCode
+      const sourceCodeText = data.contractDecoded?.contractSourceCode || data.contractSourceCode;
+      setSourceCode(sourceCodeText || 'No source code available');
+    } catch (error) {
+      console.error('Error fetching source code:', error);
+      setSourceCodeError(error instanceof Error ? error.message : 'Failed to load source code');
+    } finally {
+      setSourceCodeLoading(false);
+    }
+  };
+
   const tokenInfo = contract.tokenMetadata || contract.verifiedContract;
   const isToken = contract.type === 'token' || contract.type === 'lending';
   const isNFT = contract.type === 'nft';
   const isVault = contract.type === 'vault';
   const sectionLoading = contract._loading || {};
-  const changeTab = (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface') => {
+  const changeTab = (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface' | 'code') => {
     setActiveTab(tabId);
-    onTabChange?.(tabId);
+
+    // Fetch source code when Code tab is clicked
+    if (tabId === 'code') {
+      fetchSourceCode();
+    }
+
+    if (tabId !== 'code') {
+      onTabChange?.(tabId as 'overview' | 'operations' | 'details' | 'history' | 'interface');
+    }
   };
 
   const getContractDisplayName = (): string => {
@@ -191,13 +242,14 @@ export default function ContractMobileView({ contract, operations, onTabChange }
     return 'unknown';
   };
 
-  type ContractTabId = 'overview' | 'history' | 'operations' | 'interface' | 'details';
+  type ContractTabId = 'overview' | 'history' | 'operations' | 'interface' | 'details' | 'code';
   type ContractTab = { id: ContractTabId; label: string; count?: number; hide?: boolean };
 
   const tabs: ContractTab[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'history', label: 'History', count: sectionLoading.invocations ? undefined : (contract.invocations?.length || 0) },
     { id: 'operations', label: 'Events', count: sectionLoading.events ? undefined : (contract.events?.length || 0) },
+    { id: 'code', label: 'Code', hide: contract.type !== 'contract' }, // Only show for actual contracts (not tokens)
     { id: 'interface', label: 'Interface' },
     { id: 'details', label: 'Details' },
   ];
@@ -959,6 +1011,62 @@ export default function ContractMobileView({ contract, operations, onTabChange }
                     )}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* CODE TAB */}
+          {activeTab === 'code' && (
+            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
+              <div className="p-4 border-b border-[var(--border-subtle)]">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Source Code</h3>
+                <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                  {sourceCodeLoading ? 'Decompiling...' : 'Decompiled contract source code'}
+                </p>
+              </div>
+              <div className="p-4">
+                {sourceCodeLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <svg className="animate-spin h-8 w-8 mx-auto mb-3" style={{ color: primaryColor }} fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      <p className="text-sm text-[var(--text-secondary)]">Decompiling contract...</p>
+                      <p className="text-xs text-[var(--text-muted)] mt-1">This may take a few seconds</p>
+                    </div>
+                  </div>
+                ) : sourceCodeError ? (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-red-500">{sourceCodeError}</p>
+                  </div>
+                ) : sourceCode ? (
+                  <div className="w-full overflow-hidden">
+                    <SyntaxHighlighter
+                      language="rust"
+                      style={vscDarkPlus}
+                      customStyle={{
+                        margin: 0,
+                        borderRadius: '0.5rem',
+                        fontSize: '10px',
+                        maxHeight: '500px',
+                        maxWidth: '100%',
+                        width: '100%',
+                        border: '1px solid var(--border-subtle)',
+                        overflow: 'auto',
+                      }}
+                      showLineNumbers
+                      wrapLines={false}
+                      wrapLongLines={false}
+                    >
+                      {sourceCode}
+                    </SyntaxHighlighter>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-sm text-[var(--text-muted)]">
+                    No source code available
+                  </div>
+                )}
               </div>
             </div>
           )}
