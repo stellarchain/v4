@@ -9,7 +9,7 @@ import ContractsDesktopView from '@/components/desktop/ContractsDesktopView';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
-type ContractFilter = 'all' | 'verified' | 'token' | 'active';
+type ContractFilter = 'all' | 'verified' | 'token' | 'contract';
 
 // Convert hex contract ID to StrKey format (C...)
 function hexToContractStrKey(hexId: string): string {
@@ -60,9 +60,8 @@ interface ContractsClientProps {
   contracts: EnhancedContract[];
   stats: {
     total: number;
-    active: number;
+    contracts: number;
     tokens: number;
-    dex: number;
     verified: number;
   };
   categories: Category[];
@@ -165,13 +164,14 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
     let result = [...contracts];
 
     // Filter by type
-    if (filter === 'active') {
-      result = result.filter(c => c.operationCount > 0);
-    } else if (filter === 'verified') {
+    if (filter === 'verified') {
       result = result.filter(c => c.verified);
-    } else if (filter !== 'all') {
-      result = result.filter(c => c.type === filter);
+    } else if (filter === 'token') {
+      result = result.filter(c => c.type === 'token');
+    } else if (filter === 'contract') {
+      result = result.filter(c => c.type !== 'token'); // All non-token contracts
     }
+    // 'all' shows everything (no filter)
 
     // Filter by search
     if (search.trim()) {

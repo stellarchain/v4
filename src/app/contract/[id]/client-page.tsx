@@ -9,7 +9,7 @@ import { getContractInvocations } from '@/lib/stellar';
 import Link from 'next/link';
 import verifiedContracts from '@/data/verified-contracts.json';
 import { verifyContract, toContractVerification } from '@/lib/contractVerification';
-import { getContractMetadata, getContractAccessControl, detectContractType, getContractSpec } from '@/lib/contractMetadata';
+import { getContractMetadata, getContractAccessControl, getContractSpec } from '@/lib/contractMetadata';
 import { getNFTInfo, getVaultInfo } from '@/lib/contractExtensions';
 import { getContractEvents, getEventSummary, ParsedEvent } from '@/lib/eventParser';
 import { getContractStorage, ContractStorageResult } from '@/lib/contractStorage';
@@ -149,16 +149,19 @@ export default function ContractPage() {
           fetchAPIContractData(),
         ]);
 
-        const contractType =
-          verifiedContract?.type ||
-          tokenMetadata?.isSAC ||
-          tokenMetadata
-            ? null
-            : await detectContractType(id).catch(() => null);
-        const inferredType =
-          contractType ||
-          verifiedContract?.type ||
-          (tokenMetadata?.isSAC ? 'token' : tokenMetadata ? 'token' : 'contract');
+        // Determine type using the same logic as the contracts list view:
+        // 1. If API says it's a SAC → token
+        // 2. If verified contract has a type → use that
+        // 3. Otherwise default to 'contract'
+        // Note: we only check `sac`, not `assetIssuer`, because the API can
+        // return an assetIssuer for non-token contracts. The list view checks
+        // `sac || assetCode` but the detail API doesn't return assetCode.
+        let inferredType = 'contract';
+        if (apiContractData?.sac) {
+          inferredType = 'token';
+        } else if (verifiedContract?.type) {
+          inferredType = verifiedContract.type;
+        }
 
         const quickData: QuickData = {
           id,
