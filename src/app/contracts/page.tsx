@@ -180,44 +180,32 @@ export default function ContractsPage() {
       setIsLoading(true);
       setError(null);
       try {
-        // Fetch first 3 pages to get accurate stats (90 contracts sample)
-        const [page1, page2, page3] = await Promise.all([
-          fetchContracts(1, 30),
-          fetchContracts(2, 30),
-          fetchContracts(3, 30),
-        ]);
+        // Fetch first page of contracts from API
+        const initialData = await fetchContracts(1, 30);
 
-        // Transform all contracts for stats calculation
-        const allSampleContracts = [
-          ...page1.member,
-          ...page2.member,
-          ...page3.member,
-        ]
+        // Transform API contracts to display format, filtering out invalid IDs
+        const transformedContracts = initialData.member
           .filter(c => isContractAddress(c.contractId))
           .map(transformContract);
 
-        // Calculate stats from the larger sample (90 contracts)
+        // Only show total count (API provides accurate totalItems)
+        // Don't calculate subset counts as they would be misleading without fetching all pages
         const calculatedStats = {
-          total: page1.totalItems,
-          tokens: allSampleContracts.filter(c => c.type === 'token').length,
-          contracts: allSampleContracts.filter(c => c.type !== 'token').length,
-          verified: allSampleContracts.filter(c => c.verified).length,
+          total: initialData.totalItems,
+          tokens: 0, // Don't show count
+          contracts: 0, // Don't show count
+          verified: 0, // Don't show count
         };
-
-        // Only display first page contracts initially
-        const transformedContracts = page1.member
-          .filter(c => isContractAddress(c.contractId))
-          .map(transformContract);
 
         // Calculate total pages (assuming 30 items per page)
         const itemsPerPage = 30;
-        const totalPages = Math.ceil(page1.totalItems / itemsPerPage);
+        const totalPages = Math.ceil(initialData.totalItems / itemsPerPage);
 
         // Pagination info
         const paginationInfo = {
           currentPage: 1,
           totalPages: totalPages,
-          total: page1.totalItems,
+          total: initialData.totalItems,
           perPage: itemsPerPage,
         };
 
