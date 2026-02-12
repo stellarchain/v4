@@ -168,7 +168,7 @@ export default function LedgerDesktopView({
     const lastCursor = operations[operations.length - 1].paging_token;
     try {
       const response = await getLedgerOperations(ledger.sequence, ITEMS_PER_PAGE, 'desc', lastCursor);
-      const nextBatch = response._embedded.records;
+      const nextBatch = response.records;
       if (nextBatch.length > 0) {
         setOperations(prev => [...prev, ...nextBatch]);
         setHasMoreOps(nextBatch.length >= ITEMS_PER_PAGE);

@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { shortenAddress, timeAgo, getOperationTypeLabel, ContractInvocation } from '@/lib/stellar';
-import type { TokenRegistryEntry, ContractVerification } from '@/lib/types/token';
-import type { ContractMetadataResult, ContractAccessControlResult } from '@/lib/contractMetadata';
-import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
-import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isMintEventData, isBurnEventData, isApproveEventData, isCustomEventData, CustomEventData } from '@/lib/eventParser';
-import { ContractStorageResult } from '@/lib/contractStorage';
+import type { TokenRegistryEntry, ContractVerification } from '@/lib/shared/interfaces';
+import type { ContractMetadataResult, ContractAccessControlResult } from '@/lib/soroban/contractMetadata';
+import type { NFTInfo, VaultInfo } from '@/lib/soroban/contractExtensions';
+import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isMintEventData, isBurnEventData, isApproveEventData, isCustomEventData, CustomEventData } from '@/lib/soroban/events';
+import { ContractStorageResult } from '@/lib/soroban/storage';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
+import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 interface Operation {
   id: string;
@@ -108,18 +109,9 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
     setSourceCodeError(null);
 
     try {
-      const response = await fetch(
-        `https://api.stellarchain.dev/v1/contracts/${contract.id}?source_code=1&network=mainnet`,
-        {
-          headers: { 'Accept': 'application/ld+json' },
-        }
+      const data = await getApiV1Data(
+        apiEndpoints.v1.contractById(contract.id, { source_code: 1, network: 'mainnet' })
       );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch source code: ${response.status}`);
-      }
-
-      const data = await response.json();
       // Source code is in contractDecoded.contractSourceCode
       const sourceCodeText = data.contractDecoded?.contractSourceCode || data.contractSourceCode;
       setSourceCode(sourceCodeText || 'No source code available');

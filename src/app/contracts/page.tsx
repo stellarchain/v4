@@ -7,8 +7,9 @@ import { APIContract } from '@/lib/stellar';
 import ContractsClient from './ContractsClient';
 import ContractDetailsClientPage from '@/app/contract/[id]/client-page';
 import { StrKey } from '@stellar/stellar-sdk';
-import { getDetailRouteValue } from '@/lib/routeDetail';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { isContractAddress } from '@/lib/soroban';
+import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 // Convert hex contract ID to StrKey format (C...)
 function hexToContractStrKey(hexId: string): string {
@@ -107,24 +108,22 @@ async function fetchContracts(
   page: number = 1,
   perPage: number = 30
 ): Promise<ContractsAPIResponse> {
+  void perPage;
   try {
-    const url = `https://api.stellarchain.dev/v1/contracts?page=${page}`;
-
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
-
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/ld+json' },
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch contracts: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await (async () => {
+      try {
+        return await getApiV1Data(
+          apiEndpoints.v1.contracts({ page }),
+          {
+            signal: controller.signal,
+          }
+        );
+      } finally {
+        clearTimeout(timeout);
+      }
+    })();
 
     return {
       '@context': data['@context'] || '',

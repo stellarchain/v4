@@ -2,25 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
-import { getTokenMetadata } from '@/lib/tokenRegistry';
+import { getTokenMetadata } from '@/lib/soroban/tokens';
 import { isContractAddress, normalizeContractAddress } from '@/lib/soroban';
 import type { ContractInvocation } from '@/lib/stellar';
 import { getContractInvocations } from '@/lib/stellar';
 import Link from 'next/link';
 import verifiedContracts from '@/data/verified-contracts.json';
-import { verifyContract, toContractVerification } from '@/lib/contractVerification';
-import { getContractMetadata, getContractAccessControl, getContractSpec } from '@/lib/contractMetadata';
-import { getNFTInfo, getVaultInfo } from '@/lib/contractExtensions';
-import { getContractEvents, getEventSummary, ParsedEvent } from '@/lib/eventParser';
-import { getContractStorage, ContractStorageResult } from '@/lib/contractStorage';
+import { verifyContract, toContractVerification } from '@/lib/soroban/verification';
+import { getContractMetadata, getContractAccessControl, getContractSpec } from '@/lib/soroban/contractMetadata';
+import { getNFTInfo, getVaultInfo } from '@/lib/soroban/contractExtensions';
+import { getContractEvents, getEventSummary, ParsedEvent } from '@/lib/soroban/events';
+import { getContractStorage, ContractStorageResult } from '@/lib/soroban/storage';
 import ContractMobileView from '@/components/mobile/ContractMobileView';
 import ContractDesktopView from '@/components/desktop/ContractDesktopView';
-import type { TokenRegistryEntry, ContractVerification } from '@/lib/types/token';
-import type { ContractMetadataResult, ContractAccessControlResult, ContractSpecResult } from '@/lib/contractMetadata';
-import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
-import type { EventSummary } from '@/lib/eventParser';
-import { getDetailRouteValue } from '@/lib/routeDetail';
-
+import type { TokenRegistryEntry, ContractVerification } from '@/lib/shared/interfaces';
+import type { ContractMetadataResult, ContractAccessControlResult, ContractSpecResult } from '@/lib/soroban/contractMetadata';
+import type { NFTInfo, VaultInfo } from '@/lib/soroban/contractExtensions';
+import type { EventSummary } from '@/lib/soroban/events';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
+import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 interface VerifiedContract {
   id: string;
@@ -70,7 +70,168 @@ interface FullContractData extends QuickData {
   contractMetadata: ContractMetadataResult | null;
 }
 
+type LazySection = 'history' | 'storage' | 'spec';
+type ContractTab = 'overview' | 'history' | 'events' | 'storage' | 'operations' | 'interface' | 'details';
+type LoadingSectionsState = {
+  events: boolean;
+  invocations: boolean;
+  storage: boolean;
+  spec: boolean;
+};
+type LoadedSectionsState = {
+  overview: boolean;
+  history: boolean;
+  storage: boolean;
+  spec: boolean;
+};
+
+const INITIAL_LOADING_SECTIONS: LoadingSectionsState = {
+  events: true,
+  invocations: true,
+  storage: true,
+  spec: true,
+};
+
+const INITIAL_LOADED_SECTIONS: LoadedSectionsState = {
+  overview: false,
+  history: false,
+  storage: false,
+  spec: false,
+};
+
+function emptyContractData(contractId: string): FullContractData {
+  return {
+    id: contractId,
+    tokenMetadata: null,
+    verifiedContract: undefined,
+    type: 'contract',
+    accessControl: null,
+    isVerified: false,
+    apiContractData: null,
+    events: [],
+    eventSummary: null,
+    invocations: [],
+    storage: null,
+    spec: null,
+    verification: null,
+    nftInfo: null,
+    vaultInfo: null,
+    contractMetadata: null,
+  };
+}
+
+function getFetchKey(contractId: string, section: 'overview' | LazySection): string {
+  return `${contractId}:${section}`;
+}
+
+function inferContractType(
+  apiContractData: APIContractData | null,
+  verifiedContract: VerifiedContract | undefined
+): string {
+  if (apiContractData?.sac) return 'token';
+  if (verifiedContract?.type) return verifiedContract.type;
+  return 'contract';
+}
+
+async function fetchApiContractData(contractId: string): Promise<APIContractData | null> {
+  try {
+    const data = await getApiV1Data(apiEndpoints.v1.contractById(contractId)) as Partial<APIContractData>;
+    return {
+      contractId: data.contractId || contractId,
+      contractIdHex: data.contractIdHex || '',
+      assetIssuer: data.assetIssuer || null,
+      contractCode: data.contractCode || null,
+      wasmId: data.wasmId || null,
+      sourceCodeVerified: Boolean(data.sourceCodeVerified),
+      createdAt: data.createdAt || '',
+      totalTransactions: Number(data.totalTransactions || 0),
+      sac: Boolean(data.sac),
+      network: Number(data.network || 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchQuickData(contractId: string): Promise<QuickData> {
+  const verifiedContract = verifiedContracts.contracts.find((contract) => contract.id === contractId);
+  const [tokenMetadata, accessControl, apiContractData] = await Promise.all([
+    getTokenMetadata(contractId).catch(() => null),
+    getContractAccessControl(contractId).catch(() => null),
+    fetchApiContractData(contractId),
+  ]);
+
+  const type = inferContractType(apiContractData, verifiedContract);
+
+  return {
+    id: contractId,
+    tokenMetadata,
+    verifiedContract,
+    type,
+    accessControl,
+    isVerified: Boolean(apiContractData?.sourceCodeVerified || verifiedContract),
+    apiContractData,
+  };
+}
+
+async function fetchOverviewData(contractId: string, inferredType: string): Promise<Partial<FullContractData>> {
+  const shouldFetchNftInfo = inferredType === 'nft';
+  const shouldFetchVaultInfo = inferredType === 'vault';
+
+  const [eventsRes, verificationRes, nftInfoRes, vaultInfoRes, contractMetaRes] = await Promise.allSettled([
+    getContractEvents(contractId, 50).catch(() => [] as ParsedEvent[]),
+    verifyContract(contractId),
+    shouldFetchNftInfo ? getNFTInfo(contractId) : Promise.resolve(null),
+    shouldFetchVaultInfo ? getVaultInfo(contractId) : Promise.resolve(null),
+    getContractMetadata(contractId),
+  ]);
+
+  const eventsData = eventsRes.status === 'fulfilled' ? eventsRes.value : [];
+  return {
+    events: eventsData,
+    eventSummary: getEventSummary(eventsData),
+    verification: verificationRes.status === 'fulfilled' ? toContractVerification(verificationRes.value) : null,
+    nftInfo: nftInfoRes.status === 'fulfilled' ? nftInfoRes.value : null,
+    vaultInfo: vaultInfoRes.status === 'fulfilled' ? vaultInfoRes.value : null,
+    contractMetadata: contractMetaRes.status === 'fulfilled' ? contractMetaRes.value : null,
+  };
+}
+
+async function fetchLazySectionData(contractId: string, section: LazySection): Promise<Partial<FullContractData>> {
+  if (section === 'history') {
+    return {
+      invocations: await getContractInvocations(contractId, 50).catch(() => [] as ContractInvocation[]),
+    };
+  }
+  if (section === 'storage') {
+    return {
+      storage: await getContractStorage(contractId).catch(() => null as ContractStorageResult | null),
+    };
+  }
+  return {
+    spec: await getContractSpec(contractId).catch(() => null),
+  };
+}
+
 const inFlightSectionFetches = new Map<string, Promise<Partial<FullContractData>>>();
+
+async function fetchWithDedup(
+  key: string,
+  fetcher: () => Promise<Partial<FullContractData>>
+): Promise<Partial<FullContractData>> {
+  const existingFetch = inFlightSectionFetches.get(key);
+  if (existingFetch) {
+    return existingFetch;
+  }
+
+  const fetchPromise = fetcher();
+  inFlightSectionFetches.set(key, fetchPromise);
+  try {
+    return await fetchPromise;
+  } finally {
+    inFlightSectionFetches.delete(key);
+  }
+}
 
 export default function ContractPage() {
   const params = useParams<{ id?: string }>();
@@ -89,18 +250,8 @@ export default function ContractPage() {
   const [contractData, setContractData] = useState<FullContractData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(() => !isInvalidId);
-  const [loadingSections, setLoadingSections] = useState({
-    events: true,
-    invocations: true,
-    storage: true,
-    spec: true,
-  });
-  const [loadedSections, setLoadedSections] = useState({
-    overview: false,
-    history: false,
-    storage: false,
-    spec: false,
-  });
+  const [loadingSections, setLoadingSections] = useState<LoadingSectionsState>(INITIAL_LOADING_SECTIONS);
+  const [loadedSections, setLoadedSections] = useState<LoadedSectionsState>(INITIAL_LOADED_SECTIONS);
 
   useEffect(() => {
     if (isInvalidId) {
@@ -112,115 +263,20 @@ export default function ContractPage() {
     const loadContractData = async () => {
       setIsValidating(true);
       setError(null);
-      setLoadedSections({ overview: false, history: false, storage: false, spec: false });
-      setLoadingSections({ events: true, invocations: true, storage: true, spec: true });
+      setLoadedSections(INITIAL_LOADED_SECTIONS);
+      setLoadingSections(INITIAL_LOADING_SECTIONS);
       try {
-        // Load quick data first
-        const verifiedContract = verifiedContracts.contracts.find(c => c.id === id);
-
-        // Fetch basic contract data from new API
-        const fetchAPIContractData = async (): Promise<APIContractData | null> => {
-          try {
-            const response = await fetch(`https://api.stellarchain.dev/v1/contracts/${id}`, {
-              headers: { 'Accept': 'application/ld+json' },
-            });
-            if (!response.ok) return null;
-            const data = await response.json();
-            return {
-              contractId: data.contractId,
-              contractIdHex: data.contractIdHex,
-              assetIssuer: data.assetIssuer,
-              contractCode: data.contractCode,
-              wasmId: data.wasmId,
-              sourceCodeVerified: data.sourceCodeVerified,
-              createdAt: data.createdAt,
-              totalTransactions: data.totalTransactions,
-              sac: data.sac,
-              network: data.network,
-            };
-          } catch {
-            return null;
-          }
-        };
-
-        const [tokenMetadata, accessControl, apiContractData] = await Promise.all([
-          getTokenMetadata(id).catch(() => null),
-          getContractAccessControl(id).catch(() => null),
-          fetchAPIContractData(),
-        ]);
-
-        // Determine type using the same logic as the contracts list view:
-        // 1. If API says it's a SAC → token
-        // 2. If verified contract has a type → use that
-        // 3. Otherwise default to 'contract'
-        // Note: we only check `sac`, not `assetIssuer`, because the API can
-        // return an assetIssuer for non-token contracts. The list view checks
-        // `sac || assetCode` but the detail API doesn't return assetCode.
-        let inferredType = 'contract';
-        if (apiContractData?.sac) {
-          inferredType = 'token';
-        } else if (verifiedContract?.type) {
-          inferredType = verifiedContract.type;
-        }
-
-        const quickData: QuickData = {
-          id,
-          tokenMetadata,
-          verifiedContract,
-          type: inferredType,
-          accessControl,
-          isVerified: apiContractData?.sourceCodeVerified || !!verifiedContract,
-          apiContractData,
-        };
-
-        // Set quick data first so UI can render
+        // Stage 1: Soroban quick data required for first render.
+        const quickData = await fetchQuickData(id);
         if (cancelled) return;
-        setContractData({
-          ...quickData,
-          events: [],
-          eventSummary: null,
-          invocations: [],
-          storage: null,
-          spec: null,
-          verification: null,
-          nftInfo: null,
-          vaultInfo: null,
-          contractMetadata: null,
-        });
+        setContractData({ ...emptyContractData(id), ...quickData });
         setIsValidating(false);
 
-        // Load only overview-related data initially.
-        const overviewKey = `${id}:overview`;
-        const existingOverviewFetch = inFlightSectionFetches.get(overviewKey);
-        const overviewFetch = existingOverviewFetch || (async () => {
-          const shouldFetchNftInfo = inferredType === 'nft';
-          const shouldFetchVaultInfo = inferredType === 'vault';
-
-          const [eventsRes, verificationRes, nftInfoRes, vaultInfoRes, contractMetaRes] = await Promise.allSettled([
-            getContractEvents(id, 50).catch(() => [] as ParsedEvent[]),
-            verifyContract(id),
-            shouldFetchNftInfo ? getNFTInfo(id) : Promise.resolve(null),
-            shouldFetchVaultInfo ? getVaultInfo(id) : Promise.resolve(null),
-            getContractMetadata(id),
-          ]);
-
-          const eventsData = eventsRes.status === 'fulfilled' ? eventsRes.value : [];
-          return {
-            events: eventsData,
-            eventSummary: getEventSummary(eventsData),
-            verification: verificationRes.status === 'fulfilled' ? toContractVerification(verificationRes.value) : null,
-            nftInfo: nftInfoRes.status === 'fulfilled' ? nftInfoRes.value : null,
-            vaultInfo: vaultInfoRes.status === 'fulfilled' ? vaultInfoRes.value : null,
-            contractMetadata: contractMetaRes.status === 'fulfilled' ? contractMetaRes.value : null,
-          } as Partial<FullContractData>;
-        })();
-
-        if (!existingOverviewFetch) {
-          inFlightSectionFetches.set(overviewKey, overviewFetch);
-        }
-
-        const overviewData = await overviewFetch;
-        inFlightSectionFetches.delete(overviewKey);
+        // Stage 2: Overview data (events + metadata + verification).
+        const overviewData = await fetchWithDedup(
+          getFetchKey(id, 'overview'),
+          () => fetchOverviewData(id, quickData.type)
+        );
 
         if (cancelled) return;
         setContractData((prev) => (prev ? { ...prev, ...overviewData } : prev));
@@ -230,7 +286,7 @@ export default function ContractPage() {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : 'Failed to load contract data');
         setIsValidating(false);
-        setLoadingSections({ events: false, invocations: false, storage: false, spec: false });
+      setLoadingSections({ events: false, invocations: false, storage: false, spec: false });
       }
     };
 
@@ -240,15 +296,14 @@ export default function ContractPage() {
     };
   }, [id, isInvalidId]);
 
-  const loadLazySection = async (section: 'history' | 'storage' | 'spec') => {
+  const loadLazySection = async (section: LazySection) => {
     if (!id || isInvalidId) return;
 
     if (section === 'history' && loadedSections.history) return;
     if (section === 'storage' && loadedSections.storage) return;
     if (section === 'spec' && loadedSections.spec) return;
 
-    const fetchKey = `${id}:${section}`;
-    const existingFetch = inFlightSectionFetches.get(fetchKey);
+    const fetchKey = getFetchKey(id, section);
 
     if (section === 'history') {
       setLoadingSections((prev) => ({ ...prev, invocations: true }));
@@ -258,43 +313,32 @@ export default function ContractPage() {
       setLoadingSections((prev) => ({ ...prev, spec: true }));
     }
 
-    const sectionFetch = existingFetch || (async () => {
+    try {
+      const sectionData = await fetchWithDedup(fetchKey, () => fetchLazySectionData(id, section));
+      setContractData((prev) => (prev ? { ...prev, ...sectionData } : prev));
+
       if (section === 'history') {
-        return {
-          invocations: await getContractInvocations(id, 50).catch(() => [] as ContractInvocation[]),
-        } as Partial<FullContractData>;
+        setLoadedSections((prev) => ({ ...prev, history: true }));
+        setLoadingSections((prev) => ({ ...prev, invocations: false }));
+      } else if (section === 'storage') {
+        setLoadedSections((prev) => ({ ...prev, storage: true }));
+        setLoadingSections((prev) => ({ ...prev, storage: false }));
+      } else if (section === 'spec') {
+        setLoadedSections((prev) => ({ ...prev, spec: true }));
+        setLoadingSections((prev) => ({ ...prev, spec: false }));
       }
-      if (section === 'storage') {
-        return {
-          storage: await getContractStorage(id).catch(() => null as ContractStorageResult | null),
-        } as Partial<FullContractData>;
+    } catch {
+      if (section === 'history') {
+        setLoadingSections((prev) => ({ ...prev, invocations: false }));
+      } else if (section === 'storage') {
+        setLoadingSections((prev) => ({ ...prev, storage: false }));
+      } else {
+        setLoadingSections((prev) => ({ ...prev, spec: false }));
       }
-      return {
-        spec: await getContractSpec(id).catch(() => null),
-      } as Partial<FullContractData>;
-    })();
-
-    if (!existingFetch) {
-      inFlightSectionFetches.set(fetchKey, sectionFetch);
-    }
-
-    const sectionData = await sectionFetch;
-    inFlightSectionFetches.delete(fetchKey);
-    setContractData((prev) => (prev ? { ...prev, ...sectionData } : prev));
-
-    if (section === 'history') {
-      setLoadedSections((prev) => ({ ...prev, history: true }));
-      setLoadingSections((prev) => ({ ...prev, invocations: false }));
-    } else if (section === 'storage') {
-      setLoadedSections((prev) => ({ ...prev, storage: true }));
-      setLoadingSections((prev) => ({ ...prev, storage: false }));
-    } else if (section === 'spec') {
-      setLoadedSections((prev) => ({ ...prev, spec: true }));
-      setLoadingSections((prev) => ({ ...prev, spec: false }));
     }
   };
 
-  const handleTabChange = (tabId: 'overview' | 'history' | 'events' | 'storage' | 'operations' | 'interface' | 'details') => {
+  const handleTabChange = (tabId: ContractTab) => {
     if (tabId === 'history') {
       void loadLazySection('history');
       return;
@@ -343,24 +387,7 @@ export default function ContractPage() {
   }
 
   // Always render page shell; show per-section skeletons while values are loading.
-  const baseData = contractData || {
-    id,
-    tokenMetadata: null,
-    verifiedContract: undefined,
-    type: 'contract',
-    accessControl: null,
-    isVerified: false,
-    apiContractData: null,
-    events: [],
-    eventSummary: null,
-    invocations: [],
-    storage: null,
-    spec: null,
-    verification: null,
-    nftInfo: null,
-    vaultInfo: null,
-    contractMetadata: null,
-  };
+  const baseData = contractData || emptyContractData(id);
 
   // Transform data to match component props
   const contractForView = {

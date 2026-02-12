@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl } from '@/lib/stellar';
 import StatisticsView from '@/components/StatisticsView';
 import Loading from '@/components/ui/Loading';
+import { createHorizonServer } from '@/services/horizon';
 
 export default function StatisticsPage() {
   const [stats, setStats] = useState<any>(null);
@@ -14,7 +14,7 @@ export default function StatisticsPage() {
   useEffect(() => {
     const loadStatistics = async () => {
       try {
-        const server = new Horizon.Server(getBaseUrl());
+        const server = createHorizonServer();
 
         // Fetch latest ledger to get network statistics
         const ledgerResponse = await server.ledgers().order('desc').limit(1).call();

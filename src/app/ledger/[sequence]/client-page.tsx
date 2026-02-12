@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl, normalizeTransactions } from '@/lib/stellar';
+import { normalizeTransactions } from '@/lib/stellar';
 import type { Ledger, Transaction, Operation } from '@/lib/stellar';
 import LedgerMobileView from '@/components/mobile/LedgerMobileView';
 import LedgerDesktopView from '@/components/desktop/LedgerDesktopView';
 import Loading from '@/components/ui/Loading';
 import { notFound } from 'next/navigation';
-import { getDetailRouteValue } from '@/lib/routeDetail';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
+import { createHorizonServer } from '@/services/horizon';
 
 
 export default function LedgerPage() {
@@ -35,7 +36,7 @@ export default function LedgerPage() {
   const isLoading = !errorMessage && (!ledger || ledger.sequence !== sequenceNum);
 
   const loadLedgerData = async (targetSequence: number) => {
-    const server = new Horizon.Server(getBaseUrl());
+    const server = createHorizonServer();
     const [ledgerResponse, transactionsResponse, operationsResponse] = await Promise.all([
       server.ledgers().ledger(targetSequence).call(),
       server.transactions().forLedger(targetSequence).order('desc').limit(10).call(),
@@ -51,18 +52,23 @@ export default function LedgerPage() {
 
   useEffect(() => {
     if (isInvalidSequence) return;
-    loadLedgerData(sequenceNum)
-      .then(({ ledger: ledgerResult, transactions, operations }) => {
+
+    const fetchLedgerData = async () => {
+      try {
+        setError(null);
+        const { ledger: ledgerResult, transactions, operations } = await loadLedgerData(sequenceNum);
         setLedger(ledgerResult);
         setTransactions(transactions);
         setOperations(operations);
-      })
-      .catch((err) => {
+      } catch (err) {
         setError({
           sequence: sequenceNum,
           message: err instanceof Error ? err.message : 'Failed to load ledger.',
         });
-      });
+      }
+    };
+
+    fetchLedgerData();
   }, [sequenceNum, isInvalidSequence]);
 
   if (isLoading) {

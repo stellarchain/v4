@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
 import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, getAssetTrades, getAssetTradeTransactionHash, getAssetHolders, getAssetTradingPairs, getLiquidityPoolByAssets, USDC_ISSUER, shortenAddress, OrderBook as OrderBookType, AssetTrade, AssetHolder, TradingPair, getAccountLabels, AccountLabel } from '@/lib/stellar';
 import { getXLMHoldersAction } from '@/lib/helpers';
-import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/design-system';
+import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/shared/designSystem';
 import GliderTabs from '@/components/ui/GliderTabs';
 
 interface AssetMobileViewProps {
@@ -318,9 +318,9 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
       setHasMoreTrades(true);
       try {
         const data = await getAssetTrades(asset.code, asset.issuer, 20);
-        setTrades(data._embedded.records);
+        setTrades(data.records);
         // Set cursor for next page from last record's paging_token
-        const records = data._embedded.records;
+        const records = data.records;
         if (records.length > 0) {
           setTradesCursor(records[records.length - 1].paging_token);
         }
@@ -342,7 +342,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     setLoadingMoreTrades(true);
     try {
       const data = await getAssetTrades(asset.code, asset.issuer, 20, 'desc', tradesCursor);
-      const newRecords = data._embedded.records;
+      const newRecords = data.records;
       setTrades(prev => [...prev, ...newRecords]);
       if (newRecords.length > 0) {
         setTradesCursor(newRecords[newRecords.length - 1].paging_token);

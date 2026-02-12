@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl, getAccountLabels, normalizeTransactions } from '@/lib/stellar';
+import { getAccountLabels, normalizeTransactions } from '@/lib/stellar';
 import type { AccountLabel, Transaction, Operation, Effect } from '@/lib/stellar';
 import TransactionMobileView from '@/components/mobile/TransactionMobileView';
 import TransactionDesktopView from '@/components/desktop/TransactionDesktopView';
 import { notFound } from 'next/navigation';
-import { getDetailRouteValue } from '@/lib/routeDetail';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
+import { createHorizonServer } from '@/services/horizon';
 
 // Extract all unique account addresses from transaction data
 function extractAccountAddresses(
@@ -74,7 +75,7 @@ export default function TransactionPage() {
   });
 
   const loadTransactionData = async (txHash: string) => {
-    const server = new Horizon.Server(getBaseUrl());
+    const server = createHorizonServer();
     const [txResponse, operationsResponse, effectsResponse] = await Promise.all([
       server.transactions().transaction(txHash).call(),
       server.operations().forTransaction(txHash).limit(200).call(),
@@ -89,13 +90,14 @@ export default function TransactionPage() {
   };
 
   useEffect(() => {
-    if (!hash) {
-      setError('Missing transaction hash.');
-      return;
-    }
+    const run = async () => {
+      if (!hash) {
+        setError('Missing transaction hash.');
+        return;
+      }
 
-    loadTransactionData(hash)
-      .then(async ({ transaction: txResult, operations: ops, effects: effs }) => {
+      try {
+        const { transaction: txResult, operations: ops, effects: effs } = await loadTransactionData(hash);
         setTransaction(txResult);
         setOperations(ops);
         setEffects(effs);
@@ -114,10 +116,12 @@ export default function TransactionPage() {
           labels[address] = label;
         });
         setAccountLabels(labels);
-      })
-      .catch((err) => {
+      } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load transaction.');
-      });
+      }
+    };
+
+    void run();
   }, [hash]);
 
   if (!isLoading && (error || !transaction)) {

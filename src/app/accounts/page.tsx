@@ -7,7 +7,8 @@ import TopAccountsMobileList from '@/components/mobile/TopAccountsMobileList';
 import TopAccountsDesktopView from '@/components/desktop/TopAccountsDesktopView';
 import AccountDetailsClientPage from '@/app/account/[id]/client-page';
 import Loading from '@/components/ui/Loading';
-import { getDetailRouteValue } from '@/lib/routeDetail';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
+import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 export default function AccountsPage() {
     const pathname = usePathname();
@@ -31,13 +32,9 @@ export default function AccountsPage() {
         const fetchRichList = async () => {
             try {
                 setLoading(true);
-                const response = await fetch('https://api.stellarchain.dev/v1/accounts?page=1&order[accountMetric.rankPosition]=asc', {
-                    headers: { 'Accept': 'application/ld+json' }
-                });
-                if (!response.ok) {
-                    throw new Error('Failed to fetch accounts');
-                }
-                const result = await response.json();
+                const result = await getApiV1Data(
+                    apiEndpoints.v1.accounts({ page: 1, 'order[accountMetric.rankPosition]': 'asc' })
+                );
 
                 // Calculate total supply from all accounts (sum of balances on this page as approximation)
                 const TOTAL_XLM_SUPPLY = 50_000_000_000; // 50 billion XLM

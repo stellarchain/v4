@@ -23,14 +23,16 @@ export default function ProjectDetailPage() {
     useEffect(() => {
         if (!slug) return;
 
-        fetchProjectBySlug(slug)
-            .then((data) => {
+        const loadProject = async () => {
+            try {
+                const data = await fetchProjectBySlug(slug);
                 setProject(data);
+            } finally {
                 setLoading(false);
-            })
-            .catch(() => {
-                setLoading(false);
-            });
+            }
+        };
+
+        loadProject();
     }, [slug]);
 
     if (loading) {

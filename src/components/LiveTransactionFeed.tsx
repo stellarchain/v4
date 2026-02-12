@@ -3,7 +3,16 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
 import CompactTransactionRow from './CompactTransactionRow';
-import { Transaction, getTransactionDisplayInfo, getTransactionOperations, TransactionDisplayInfo, Operation, getBaseUrl, getNetwork } from '@/lib/stellar';
+import {
+  Transaction,
+  getTransactionDisplayInfo,
+  getTransactionOperations,
+  TransactionDisplayInfo,
+  Operation,
+  getTransactions,
+  getPayments,
+  getNetwork
+} from '@/lib/stellar';
 
 interface LiveTransactionFeedProps {
   initialTransactions: Transaction[];
@@ -109,8 +118,8 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
       await Promise.allSettled(batch.map(async (tx) => {
         try {
           const opsData = await getTransactionOperations(tx.hash, 10);
-          if (opsData?._embedded?.records && opsData._embedded.records.length > 0) {
-            const info = getTransactionDisplayInfo(opsData._embedded.records);
+          if (opsData?.records && opsData.records.length > 0) {
+            const info = getTransactionDisplayInfo(opsData.records);
             displayInfoCache.current.set(tx.hash, info);
           }
         } catch (e) {
@@ -130,10 +139,8 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
   // Fetch payments directly from /payments endpoint
   const fetchPayments = useCallback(async (isInitial = false) => {
     try {
-      const res = await fetch(`${getBaseUrl()}/payments?limit=${limit}&order=desc`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const paymentOps: Operation[] = data._embedded?.records || [];
+      const data = await getPayments(limit, 'desc');
+      const paymentOps: Operation[] = data.records || [];
 
       // Convert to transactions and filter to only show actual payments (not contract calls)
       const allTransactions = convertPaymentsToTransactions(paymentOps);
@@ -205,9 +212,8 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
   // Fetch all transactions
   const fetchAllTransactions = useCallback(async (isInitial = false) => {
     try {
-      const res = await fetch(`${getBaseUrl()}/transactions?limit=${limit}&order=desc`);
-      const data = await res.json();
-      const rawTransactions: Transaction[] = data._embedded.records;
+      const data = await getTransactions(limit, 'desc');
+      const rawTransactions: Transaction[] = data.records;
       const newTransactions = await enrichTransactions(rawTransactions);
 
       if (isInitial) {
@@ -281,7 +287,7 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
     // Start polling immediately (shorter interval for better UX)
     const interval = setInterval(() => fetchFn(false), 5000);
     return () => clearInterval(interval);
-  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filter]);  
 
   const setRowRef = useCallback((id: string) => (el: HTMLAnchorElement | null) => {
     if (el) {
@@ -335,4 +341,3 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
     </div>
   );
 }
-

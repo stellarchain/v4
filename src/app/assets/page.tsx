@@ -2,15 +2,16 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { getAssetDetails, getBaseUrl, getMarketAssets } from '@/lib/stellar';
+import { getAssetDetails, getMarketAssets } from '@/lib/stellar';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
 import Loading from '@/components/ui/Loading';
 import ShowError from '@/components/ui/ShowError';
 import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
-import { assetRoute } from '@/lib/routes';
-import { getDetailRouteValue } from '@/lib/routeDetail';
+import { assetRoute } from '@/lib/shared/routes';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
+import { createHorizonServer } from '@/services/horizon';
 
 type Asset = Horizon.ServerApi.AssetRecord;
 
@@ -67,7 +68,8 @@ export default function AssetsPage() {
           let code = parsed.code;
           let issuer = parsed.issuer;
 
-          const marketAssets = await getMarketAssets();
+          const marketAssetsResult = await getMarketAssets();
+          const marketAssets = marketAssetsResult.assets;
 
           if (issuer === undefined) {
             if (code.toUpperCase() === 'XLM') {
@@ -95,7 +97,7 @@ export default function AssetsPage() {
           setRank(assetRank);
           setAssets(null);
         } else {
-          const server = new Horizon.Server(getBaseUrl());
+          const server = createHorizonServer();
           const res = await server.assets().order('desc').limit(50).call();
           if (!isMounted) return;
           setAssets(res.records || []);

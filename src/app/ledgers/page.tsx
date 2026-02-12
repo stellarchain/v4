@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl } from '@/lib/stellar';
 import type { Ledger } from '@/lib/stellar';
 import LedgersPageClient from '@/components/LedgersPageClient';
 import LedgerDetailsClientPage from '@/app/ledger/[sequence]/client-page';
 import Loading from '@/components/ui/Loading';
-import { getDetailRouteValue } from '@/lib/routeDetail';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
+import { createHorizonServer } from '@/services/horizon';
 
 export default function LedgersPage() {
   const pathname = usePathname();
@@ -30,7 +30,7 @@ export default function LedgersPage() {
 
     const loadLedgers = async () => {
       try {
-        const server = new Horizon.Server(getBaseUrl());
+        const server = createHorizonServer();
         const ledgersResponse = await server.ledgers().order('desc').limit(50).call();
         const ledgersData = (ledgersResponse.records || []) as unknown as Ledger[];
 

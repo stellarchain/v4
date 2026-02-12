@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { gsap } from 'gsap';
 import Link from 'next/link';
-import { Ledger, timeAgo, getBaseUrl } from '@/lib/stellar';
+import { Ledger, timeAgo, getLedgers } from '@/lib/stellar';
 import LedgersDesktopView from '@/components/desktop/LedgersDesktopView';
 
 // Custom hook to detect mobile viewport
@@ -47,9 +47,8 @@ export default function LedgersPageClient({
   // Fetch latest ledgers for live updates
   const fetchLedgers = useCallback(async (isInitial = false) => {
     try {
-      const res = await fetch(`${getBaseUrl()}/ledgers?limit=${limit}&order=desc`);
-      const data = await res.json();
-      const newLedgers: Ledger[] = data._embedded.records;
+      const data = await getLedgers(limit, 'desc');
+      const newLedgers: Ledger[] = data.records;
 
       if (isInitial) {
         // Initial load - just set the data, no animation
@@ -127,11 +126,8 @@ export default function LedgersPageClient({
         return;
       }
 
-      const res = await fetch(
-        `${getBaseUrl()}/ledgers?limit=${PAGE_SIZE}&order=desc&cursor=${oldestLedger.paging_token}`
-      );
-      const data = await res.json();
-      const olderLedgers: Ledger[] = data._embedded.records;
+      const data = await getLedgers(PAGE_SIZE, 'desc', oldestLedger.paging_token);
+      const olderLedgers: Ledger[] = data.records;
 
       if (olderLedgers.length === 0) {
         setIsLoadingMore(false);

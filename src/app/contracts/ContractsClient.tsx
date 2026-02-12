@@ -8,6 +8,7 @@ import { isContractAddress } from '@/lib/soroban';
 import ContractsDesktopView from '@/components/desktop/ContractsDesktopView';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
+import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 type ContractFilter = 'all' | 'verified' | 'token' | 'contract';
 
@@ -92,13 +93,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
   const fetchPage = useCallback(async (page: number) => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `https://api.stellarchain.dev/v1/contracts?page=${page}`,
-        {
-          headers: { 'Accept': 'application/ld+json' },
-        }
-      );
-      const data = await response.json();
+      const data = await getApiV1Data(apiEndpoints.v1.contracts({ page }));
 
       // Transform API contracts, filtering out invalid IDs
       const newContracts: EnhancedContract[] = (data.member || [])

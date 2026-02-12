@@ -121,7 +121,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
       try {
         const PAGE_SIZE = 20;
         const data = await getAssetTrades(asset.code, asset.issuer || undefined, PAGE_SIZE, 'desc');
-        const records = data._embedded?.records || [];
+        const records = data.records || [];
         setTrades(records);
         if (records.length === PAGE_SIZE) {
           setTradesCursor(records[records.length - 1].paging_token);
@@ -145,14 +145,25 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
     const newIds = opIds.filter(id => !tradeTxMap[id]);
     if (newIds.length === 0) return;
 
-    Promise.all(newIds.map(id => getOperation(id).then(op => ({ id, hash: op.transaction_hash })).catch(() => null)))
-      .then(results => {
-        const map: Record<string, string> = {};
-        for (const r of results) {
-          if (r) map[r.id] = r.hash;
-        }
-        setTradeTxMap(prev => ({ ...prev, ...map }));
-      });
+    const loadTradeTxMap = async () => {
+      const results = await Promise.all(
+        newIds.map(async (id) => {
+          try {
+            const op = await getOperation(id);
+            return { id, hash: op.transaction_hash };
+          } catch {
+            return null;
+          }
+        })
+      );
+      const map: Record<string, string> = {};
+      for (const r of results) {
+        if (r) map[r.id] = r.hash;
+      }
+      setTradeTxMap(prev => ({ ...prev, ...map }));
+    };
+
+    void loadTradeTxMap();
   }, [trades]);
 
   const loadMoreTrades = async () => {
@@ -161,7 +172,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
     try {
       const PAGE_SIZE = 20;
       const data = await getAssetTrades(asset.code, asset.issuer || undefined, PAGE_SIZE, 'desc', tradesCursor);
-      const records = data._embedded?.records || [];
+      const records = data.records || [];
       setTrades(prev => [...prev, ...records]);
       if (records.length === PAGE_SIZE) {
         setTradesCursor(records[records.length - 1].paging_token);
