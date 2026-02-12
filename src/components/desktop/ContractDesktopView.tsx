@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { shortenAddress, timeAgo, getOperationTypeLabel, ContractInvocation } from '@/lib/stellar';
 import type { TokenRegistryEntry, ContractVerification } from '@/lib/types/token';
 import type { ContractMetadataResult, ContractAccessControlResult } from '@/lib/contractMetadata';
@@ -56,6 +58,14 @@ interface ContractData {
   storage?: ContractStorageResult | null;
   invocations?: ContractInvocation[];
   spec?: unknown;
+  // API data fields
+  totalTransactions?: number;
+  createdAt?: string;
+  wasmId?: string;
+  contractCode?: string;
+  sourceCodeVerified?: boolean;
+  assetIssuer?: string;
+  isSAC?: boolean;
   _loading?: {
     events?: boolean;
     invocations?: boolean;
@@ -71,10 +81,13 @@ interface ContractDesktopViewProps {
 }
 
 export default function ContractDesktopView({ contract, operations, onTabChange }: ContractDesktopViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'events' | 'storage' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'events' | 'storage' | 'history' | 'code'>('overview');
   const [expandedStorageRows, setExpandedStorageRows] = useState<Set<number>>(new Set());
   const [copied, setCopied] = useState(false);
   const [copiedWasm, setCopiedWasm] = useState(false);
+  const [sourceCode, setSourceCode] = useState<string | null>(null);
+  const [sourceCodeLoading, setSourceCodeLoading] = useState(false);
+  const [sourceCodeError, setSourceCodeError] = useState<string | null>(null);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(contract.id);
@@ -88,15 +101,53 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
     setTimeout(() => setCopiedWasm(false), 2000);
   };
 
+  const fetchSourceCode = async () => {
+    if (sourceCode || sourceCodeLoading) return; // Already loaded or loading
+
+    setSourceCodeLoading(true);
+    setSourceCodeError(null);
+
+    try {
+      const response = await fetch(
+        `https://api.stellarchain.dev/v1/contracts/${contract.id}?source_code=1&network=mainnet`,
+        {
+          headers: { 'Accept': 'application/ld+json' },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch source code: ${response.status}`);
+      }
+
+      const data = await response.json();
+      // Source code is in contractDecoded.contractSourceCode
+      const sourceCodeText = data.contractDecoded?.contractSourceCode || data.contractSourceCode;
+      setSourceCode(sourceCodeText || 'No source code available');
+    } catch (error) {
+      console.error('Error fetching source code:', error);
+      setSourceCodeError(error instanceof Error ? error.message : 'Failed to load source code');
+    } finally {
+      setSourceCodeLoading(false);
+    }
+  };
+
   const tokenInfo = contract.tokenMetadata || contract.verifiedContract;
   const isToken = contract.type === 'token' || contract.type === 'lending';
   const isNFT = contract.type === 'nft';
   const isVault = contract.type === 'vault';
   const sectionLoading = contract._loading || {};
 
-  const handleTabChange = (tabId: 'overview' | 'history' | 'events' | 'storage') => {
+  const handleTabChange = (tabId: 'overview' | 'history' | 'events' | 'storage' | 'code') => {
     setActiveTab(tabId);
-    onTabChange?.(tabId);
+
+    // Fetch source code when Code tab is clicked
+    if (tabId === 'code') {
+      fetchSourceCode();
+    }
+
+    if (tabId !== 'code') {
+      onTabChange?.(tabId as 'overview' | 'history' | 'events' | 'storage');
+    }
   };
 
   // Get a meaningful display name for the contract
@@ -317,7 +368,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
 
         {/* Main Content */}
         <div className="flex flex-col lg:flex-row gap-4 items-start">
-          <div className="flex-1 space-y-4">
+          <div className="flex-1 min-w-0 space-y-4">
             {/* Token Stats (if token) */}
             {isToken && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -405,8 +456,10 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                 { id: 'history', label: 'History', count: sectionLoading.invocations ? undefined : (contract.invocations?.length || 0) },
                 { id: 'events', label: 'Events', count: sectionLoading.events ? undefined : (contract.events?.length || 0) },
                 { id: 'storage', label: 'Storage', count: sectionLoading.storage ? undefined : (contract.storage?.totalEntries || 0) },
-              ] as const}
-              activeId={activeTab as 'overview' | 'history' | 'events' | 'storage'}
+                // Only show Code tab for actual contracts (not tokens)
+                ...(contract.type === 'contract' ? [{ id: 'code' as const, label: 'Code' }] : []),
+              ]}
+              activeId={activeTab as 'overview' | 'history' | 'events' | 'storage' | 'code'}
               onChange={handleTabChange}
             />
 
@@ -981,6 +1034,62 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
               </div>
             )}
 
+            {/* Code Tab */}
+            {activeTab === 'code' && (
+              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
+                <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">Source Code</h3>
+                  <p className="text-xs text-[var(--text-tertiary)]">
+                    {sourceCodeLoading ? 'Decompiling...' : 'Decompiled contract source code'}
+                  </p>
+                </div>
+                <div className="p-4">
+                  {sourceCodeLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <svg className="animate-spin h-8 w-8 text-[var(--primary-blue)] mx-auto mb-3" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <p className="text-sm text-[var(--text-secondary)]">Decompiling contract...</p>
+                        <p className="text-xs text-[var(--text-muted)] mt-1">This may take a few seconds</p>
+                      </div>
+                    </div>
+                  ) : sourceCodeError ? (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-red-500">{sourceCodeError}</p>
+                    </div>
+                  ) : sourceCode ? (
+                    <div className="w-full overflow-hidden">
+                      <SyntaxHighlighter
+                        language="rust"
+                        style={vscDarkPlus}
+                        customStyle={{
+                          margin: 0,
+                          borderRadius: '0.5rem',
+                          fontSize: '0.75rem',
+                          maxHeight: '600px',
+                          maxWidth: '100%',
+                          width: '100%',
+                          border: '1px solid var(--border-subtle)',
+                          overflow: 'auto',
+                        }}
+                        showLineNumbers
+                        wrapLines={false}
+                        wrapLongLines={false}
+                      >
+                        {sourceCode}
+                      </SyntaxHighlighter>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-sm text-[var(--text-muted)]">
+                      No source code available
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* Sidebar */}
@@ -1025,7 +1134,9 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                 )}
                 <div className="flex justify-between items-center py-1">
                   <span className="text-[11px] text-[var(--text-tertiary)]">Total Operations</span>
-                  <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{operations.length}</span>
+                  <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
+                    {contract.totalTransactions ?? contract.invocations?.length ?? 0}
+                  </span>
                 </div>
               </div>
             </section>
@@ -1292,17 +1403,6 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
             <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
               <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">External Links</h3>
               <div className="space-y-2">
-                <a
-                  href={`https://stellar.expert/explorer/public/contract/${contract.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] transition-colors"
-                >
-                  <span className="text-xs font-semibold text-[var(--text-secondary)]">Stellar Expert</span>
-                  <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
                 <a
                   href={`https://stellarchain.io/accounts/${contract.id}`}
                   target="_blank"

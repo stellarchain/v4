@@ -10,24 +10,53 @@ interface KnownAccountsClientProps {
 }
 
 export default function KnownAccountsClient({ initialData }: KnownAccountsClientProps) {
-  const [accounts, setAccounts] = useState<LabeledAccount[]>(initialData?.data || []);
-  const [currentPage, setCurrentPage] = useState(initialData?.current_page || 1);
-  const [totalPages, setTotalPages] = useState(initialData?.last_page || 1);
-  const [total, setTotal] = useState(initialData?.total || 0);
+  // Transform new API structure to old format
+  const transformedData = initialData?.member?.map((acc: any) => ({
+    account: acc.address,
+    org_name: null, // Not available in new API
+    label: acc.label ? {
+      name: acc.label,
+      description: null, // Not available in new API
+      verified: acc.verified ? 1 : 0
+    } : null,
+    balance: parseFloat(acc.accountMetric?.nativeBalance || '0'),
+    transactions: acc.accountMetric?.totalTransactions || '0',
+    rank: acc.accountMetric?.rankPosition || 0
+  })) || [];
+
+  const [accounts, setAccounts] = useState<LabeledAccount[]>(transformedData);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 30; // New API default
+  const [totalPages, setTotalPages] = useState(Math.ceil((initialData?.totalItems || 0) / itemsPerPage));
+  const [total, setTotal] = useState(initialData?.totalItems || 0);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchPage = useCallback(async (page: number) => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `https://api.stellarchain.io/v1/accounts?page=${page}&labels[]=undefined&paginate=25`
+        `https://api.stellarchain.dev/v1/accounts?page=${page}`,
+        { headers: { 'Accept': 'application/ld+json' } }
       );
       const json = await response.json();
 
-      setAccounts(json.data || []);
-      setCurrentPage(json.meta?.current_page || 1);
-      setTotalPages(json.meta?.last_page || 1);
-      setTotal(json.meta?.total || 0);
+      const transformedAccounts = json.member?.map((acc: any) => ({
+        account: acc.address,
+        org_name: null,
+        label: acc.label ? {
+          name: acc.label,
+          description: null,
+          verified: acc.verified ? 1 : 0
+        } : null,
+        balance: parseFloat(acc.accountMetric?.nativeBalance || '0'),
+        transactions: acc.accountMetric?.totalTransactions || '0',
+        rank: acc.accountMetric?.rankPosition || 0
+      })) || [];
+
+      setAccounts(transformedAccounts);
+      setCurrentPage(page);
+      setTotalPages(Math.ceil((json.totalItems || 0) / itemsPerPage));
+      setTotal(json.totalItems || 0);
     } catch (error) {
       console.error('Error fetching accounts:', error);
     } finally {
