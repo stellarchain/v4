@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { cn } from '@/lib/design-system';
+import { cn } from '@/lib/shared/designSystem';
 import CountBubble from '@/components/ui/CountBubble';
 
 export type GliderTab<TId extends string> = {

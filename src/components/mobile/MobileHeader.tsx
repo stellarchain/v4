@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { NetworkBadge } from '@/components/NetworkSwitcher';
-import { getBaseUrl, getXLMStats } from '@/lib/stellar';
+import { getXLMStats, getTradeAggregations, USDC_ISSUER } from '@/lib/stellar';
 import { getRouteFromSearchQuery } from '@/lib/searchRouting';
 
 export default function MobileHeader() {
@@ -28,10 +28,14 @@ export default function MobileHeader() {
         console.error('Failed to fetch header stats', e);
         // Fallback to Horizon for price only
         try {
-          const priceRes = await fetch(`${getBaseUrl()}/trade_aggregations?base_asset_type=native&counter_asset_type=credit_alphanum4&counter_asset_code=USDC&counter_asset_issuer=GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN&resolution=900000&limit=1&order=desc`);
-          const priceData = await priceRes.json();
-          if (priceData._embedded.records.length > 0) {
-            setXlmPrice(parseFloat(priceData._embedded.records[0].close));
+          const priceData = await getTradeAggregations(
+            { code: 'XLM' },
+            { code: 'USDC', issuer: USDC_ISSUER },
+            900000,
+            1
+          );
+          if (priceData.length > 0) {
+            setXlmPrice(parseFloat(priceData[0].close));
           }
         } catch (e2) {
           console.error('Fallback price fetch failed', e2);

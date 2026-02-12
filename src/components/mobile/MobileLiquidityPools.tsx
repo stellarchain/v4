@@ -13,14 +13,14 @@ interface MobileLiquidityPoolsProps {
 
 export default function MobileLiquidityPools({ initialPools, loading = false }: MobileLiquidityPoolsProps) {
     const router = useRouter();
-    const [pools, setPools] = useState<LiquidityPool[]>(initialPools._embedded.records);
-    const [nextLink, setNextLink] = useState<string | null>(initialPools._links.next?.href || null);
+    const [pools, setPools] = useState<LiquidityPool[]>(initialPools.records);
+    const [nextLink, setNextLink] = useState<string | null>(initialPools._links?.next?.href || null);
     const [loadingMore, setLoadingMore] = useState(false);
     const sentinelRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        setPools(initialPools._embedded.records);
-        setNextLink(initialPools._links.next?.href || null);
+        setPools(initialPools.records);
+        setNextLink(initialPools._links?.next?.href || null);
     }, [initialPools]);
 
     // Primary color for this design (matches TransactionMobileView)
@@ -32,8 +32,8 @@ export default function MobileLiquidityPools({ initialPools, loading = false }: 
         try {
             const res = await fetch(nextLink);
             const data: PaginatedResponse<LiquidityPool> = await res.json();
-            setPools(prev => [...prev, ...data._embedded.records]);
-            setNextLink(data._links.next?.href || null);
+            setPools(prev => [...prev, ...data.records]);
+            setNextLink(data._links?.next?.href || null);
         } catch (e) {
             console.error('Failed to load more pools', e);
         } finally {

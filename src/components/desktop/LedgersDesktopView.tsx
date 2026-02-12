@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { Ledger, getBaseUrl, formatStroopsToXLM } from '@/lib/stellar';
+import { Ledger, getLedgers, formatStroopsToXLM } from '@/lib/stellar';
 import { useNetwork } from '@/contexts/NetworkContext';
 
 interface LedgersDesktopViewProps {
@@ -49,9 +49,8 @@ export default function LedgersDesktopView({
 
   const fetchLedgers = useCallback(async () => {
     try {
-      const res = await fetch(`${getBaseUrl()}/ledgers?limit=15&order=desc`);
-      const data = await res.json();
-      const newLedgers: Ledger[] = data._embedded.records;
+      const data = await getLedgers(15, 'desc');
+      const newLedgers: Ledger[] = data.records;
 
       // Filter to only new ledgers we haven't seen
       const unseenLedgers = newLedgers.filter(l => !seenIdsRef.current.has(l.id));
@@ -92,11 +91,8 @@ export default function LedgersDesktopView({
         return;
       }
 
-      const res = await fetch(
-        `${getBaseUrl()}/ledgers?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
-      );
-      const data = await res.json();
-      const olderLedgers: Ledger[] = data._embedded.records;
+      const data = await getLedgers(PAGE_SIZE, 'desc', cursor);
+      const olderLedgers: Ledger[] = data.records;
 
       if (olderLedgers.length === 0) {
         setIsLoadingMore(false);

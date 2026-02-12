@@ -1,5 +1,9 @@
 // Stellar Horizon API Service Layer
-import { xdr, Address, StrKey } from '@stellar/stellar-sdk';
+import { xdr, Address, Asset, Horizon } from '@stellar/stellar-sdk';
+import { apiEndpoints, buildApiUrl, buildApiV1Url } from '@/services/api';
+import { createHorizonServer, getHorizonBaseUrl } from '@/services/horizon';
+import { NETWORK_COOKIE_NAME, isNetworkType, type NetworkType } from '../network/config';
+import { getCurrentNetwork, setCurrentNetwork } from '../network/state';
 
 import type {
   Ledger,
@@ -21,7 +25,14 @@ import type {
   AccountLabel,
   TradeAggregation,
   OrderBook,
-} from './interfaces';
+  ContractFunctionType,
+  StellarAccount,
+  V1AccountRecord,
+  V1CollectionResponse,
+  TradePage,
+  StellarCoinApiResponse,
+  NormalizedStellarchainAsset,
+} from '../shared/interfaces';
 
 // Re-export all interfaces so consumers can import from '@/lib/stellar'
 export type {
@@ -51,34 +62,14 @@ export type {
   StatisticsData,
   TradeAggregation,
   OrderBook,
-} from './interfaces';
-
-const HORIZON_URLS = {
-  mainnet: 'https://horizon.stellar.org',
-  testnet: 'https://horizon-testnet.stellar.org',
-  futurenet: 'https://horizon-futurenet.stellar.org',
-};
-
-const NETWORK_COOKIE_NAME = 'stellarchain-network';
-
-type NetworkType = 'mainnet' | 'testnet' | 'futurenet';
-
-let currentNetwork: NetworkType = 'mainnet';
-
-// Initialize from localStorage if available (client-side)
-if (typeof window !== 'undefined') {
-  const stored = localStorage.getItem(NETWORK_COOKIE_NAME) as NetworkType | null;
-  if (stored && HORIZON_URLS[stored]) {
-    currentNetwork = stored;
-  }
-}
+} from '../shared/interfaces';
 
 export function setNetwork(network: NetworkType) {
-  currentNetwork = network;
+  setCurrentNetwork(network);
 }
 
 export function getNetwork(): NetworkType {
-  return currentNetwork;
+  return getCurrentNetwork();
 }
 
 // Get network from cookie (for server-side) - returns network or null if not set
@@ -93,8 +84,8 @@ async function getNetworkFromCookie(): Promise<NetworkType | null> {
     const { cookies } = await import('next/headers');
     const cookieStore = await cookies();
     const networkCookie = cookieStore.get(NETWORK_COOKIE_NAME);
-    if (networkCookie && HORIZON_URLS[networkCookie.value as NetworkType]) {
-      return networkCookie.value as NetworkType;
+    if (networkCookie && isNetworkType(networkCookie.value)) {
+      return networkCookie.value;
     }
   } catch {
     // cookies() throws when called outside of server context
@@ -104,68 +95,39 @@ async function getNetworkFromCookie(): Promise<NetworkType | null> {
 
 // Get base URL - checks cookie first (server), then module state (client)
 export function getBaseUrl(): string {
-  return HORIZON_URLS[currentNetwork];
+  return getHorizonBaseUrl();
 }
 
 // Async version for server components - reads from cookie
 async function getBaseUrlAsync(): Promise<string> {
   const cookieNetwork = await getNetworkFromCookie();
   if (cookieNetwork) {
-    return HORIZON_URLS[cookieNetwork];
+    return getHorizonBaseUrl(cookieNetwork);
   }
-  return HORIZON_URLS[currentNetwork];
-}
-
-// Types
-
-interface StellarAccount {
-  id: string;
-  account_id: string;
-  sequence: string;
-  subentry_count: number;
-  home_domain?: string;
-  last_modified_ledger: number;
-  last_modified_time: string;
-  thresholds: {
-    low_threshold: number;
-    med_threshold: number;
-    high_threshold: number;
-  };
-  flags: {
-    auth_required: boolean;
-    auth_revocable: boolean;
-    auth_immutable: boolean;
-    auth_clawback_enabled: boolean;
-  };
-  balances: Balance[];
-  signers: Signer[];
-  data: Record<string, string>;
-  num_sponsoring: number;
-  num_sponsored: number;
-}
-
-interface Balance {
-  balance: string;
-  buying_liabilities?: string;
-  selling_liabilities?: string;
-  limit?: string;
-  asset_type: string;
-  asset_code?: string;
-  asset_issuer?: string;
-  is_authorized?: boolean;
-  is_authorized_to_maintain_liabilities?: boolean;
-}
-
-interface Signer {
-  weight: number;
-  key: string;
-  type: string;
+  return getHorizonBaseUrl();
 }
 
 // API Functions
+function toHorizonAsset(asset: { code: string; issuer?: string }): Asset | null {
+  if (asset.code === 'XLM' && !asset.issuer) {
+    return Asset.native();
+  }
+  if (!asset.issuer) {
+    return null;
+  }
+  try {
+    return new Asset(asset.code, asset.issuer);
+  } catch {
+    return null;
+  }
+}
+
+function getHorizonServer(): Horizon.Server {
+  return createHorizonServer();
+}
 
 async function fetchJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
-  const options: RequestInit = {
+  const options: RequestInit & { next?: { revalidate: number } } = {
     headers: {
       'Accept': 'application/json',
     },
@@ -174,7 +136,7 @@ async function fetchJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
 
   // Only use Next.js caching on server-side
   if (typeof window === 'undefined') {
-    (options as any).next = { revalidate: 10 };
+    options.next = { revalidate: 10 };
   }
 
   const response = await fetch(url, options);
@@ -191,17 +153,37 @@ export async function getLiquidityPoolByAssets(
   assetA: { code: string; issuer?: string },
   assetB: { code: string; issuer?: string }
 ): Promise<LiquidityPool | null> {
-  const formatAsset = (a: { code: string; issuer?: string }) =>
-    a.code === 'XLM' && !a.issuer ? 'native' : `${a.code}:${a.issuer}`;
-  const reserves = `${formatAsset(assetA)},${formatAsset(assetB)}`;
+  const horizonAssetA = toHorizonAsset(assetA);
+  const horizonAssetB = toHorizonAsset(assetB);
+  if (!horizonAssetA || !horizonAssetB) {
+    return null;
+  }
+
   try {
-    const data = await fetchJSON<PaginatedResponse<LiquidityPool>>(
-      `${getBaseUrl()}/liquidity_pools?reserves=${encodeURIComponent(reserves)}&limit=1`
-    );
-    return data._embedded.records.length > 0 ? data._embedded.records[0] : null;
+    const server = createHorizonServer();
+    const response = await server
+      .liquidityPools()
+      .forAssets(horizonAssetA, horizonAssetB)
+      .limit(1)
+      .call();
+    const records = response.records as unknown as LiquidityPool[];
+    return records.length > 0 ? records[0] : null;
   } catch {
     return null;
   }
+}
+
+export async function getLiquidityPools(
+  limit: number = 20,
+  order: 'asc' | 'desc' = 'desc',
+  cursor?: string
+): Promise<PaginatedResponse<LiquidityPool>> {
+  const builder = getHorizonServer().liquidityPools().limit(limit).order(order);
+  if (cursor) {
+    builder.cursor(cursor);
+  }
+  const response = await builder.call();
+  return response as unknown as PaginatedResponse<LiquidityPool>;
 }
 
 // Fetch transaction hash for a trade from its operation link
@@ -242,33 +224,24 @@ export async function getAssetTrades(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<AssetTrade>> {
-  let url = `${getBaseUrl()}/trades?limit=${limit}&order=${order}`;
-
-  // Only treat as native XLM if code is exactly 'XLM' and no issuer
   const isNative = assetCode === 'XLM' && (!assetIssuer || assetIssuer === '');
+  let base: Asset;
+  let counter: Asset;
 
   if (isNative) {
-    // Native asset (XLM) - pair with USDC
-    url += `&base_asset_type=native`;
-    url += `&counter_asset_type=credit_alphanum4`;
-    url += `&counter_asset_code=USDC`;
-    url += `&counter_asset_issuer=${USDC_ISSUER}`;
+    base = Asset.native();
+    counter = new Asset('USDC', USDC_ISSUER);
   } else if (assetIssuer) {
-    // Credit asset with issuer - pair with XLM
-    url += `&base_asset_type=credit_alphanum${assetCode.length <= 4 ? '4' : '12'}`;
-    url += `&base_asset_code=${assetCode}`;
-    url += `&base_asset_issuer=${assetIssuer}`;
-    url += `&counter_asset_type=native`;
+    base = new Asset(assetCode, assetIssuer);
+    counter = Asset.native();
   } else {
-    // No issuer for non-XLM asset - can't fetch trades
     throw new Error(`Cannot fetch trades for ${assetCode} without issuer`);
   }
 
-  if (cursor) {
-    url += `&cursor=${cursor}`;
-  }
-
-  return fetchJSON<PaginatedResponse<AssetTrade>>(url);
+  const builder = getHorizonServer().trades().forAssetPair(base, counter).limit(limit).order(order);
+  if (cursor) builder.cursor(cursor);
+  const response = await builder.call();
+  return response as unknown as PaginatedResponse<AssetTrade>;
 }
 
 // Get transaction hash from an asset trade's operation
@@ -293,12 +266,10 @@ async function getLedgerTransactions(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<Transaction>> {
-  const baseUrl = await getBaseUrlAsync();
-  let url = `${baseUrl}/ledgers/${sequence}/transactions?limit=${limit}&order=${order}`;
-  if (cursor) {
-    url += `&cursor=${cursor}`;
-  }
-  return fetchJSON<PaginatedResponse<Transaction>>(url);
+  const builder = getHorizonServer().transactions().forLedger(sequence).limit(limit).order(order);
+  if (cursor) builder.cursor(cursor);
+  const response = await builder.call();
+  return response as unknown as PaginatedResponse<Transaction>;
 }
 
 // Fetch ledger transactions with display info (batch operations fetch)
@@ -309,14 +280,14 @@ export async function getLedgerTransactionsWithDisplayInfo(
   cursor?: string
 ): Promise<Transaction[]> {
   const txResponse = await getLedgerTransactions(sequence, limit, order, cursor);
-  const transactions = txResponse._embedded.records;
+  const transactions = txResponse.records;
 
   // Fetch operations for each transaction in parallel
   const transactionsWithOps = await Promise.all(
     transactions.map(async (tx) => {
       try {
         const opsResponse = await getTransactionOperations(tx.hash, 20); // slightly higher limit to catch more complex ops
-        const operations = opsResponse._embedded.records;
+        const operations = opsResponse.records;
         return {
           ...tx,
           displayInfo: getTransactionDisplayInfo(operations),
@@ -339,34 +310,129 @@ export async function getLedgerOperations(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<Operation>> {
-  const baseUrl = await getBaseUrlAsync();
-  let url = `${baseUrl}/ledgers/${sequence}/operations?limit=${limit}&order=${order}`;
-  if (cursor) {
-    url += `&cursor=${cursor}`;
-  }
-  return fetchJSON<PaginatedResponse<Operation>>(url);
+  const builder = getHorizonServer().operations().forLedger(sequence).limit(limit).order(order);
+  if (cursor) builder.cursor(cursor);
+  const response = await builder.call();
+  return response as unknown as PaginatedResponse<Operation>;
 }
 
 // Transaction endpoints
 export async function getTransactions(
   limit: number = 10,
   order: 'asc' | 'desc' = 'desc',
-  cursor?: string
+  cursor?: string,
+  includeFailed?: boolean
 ): Promise<PaginatedResponse<Transaction>> {
-  const baseUrl = await getBaseUrlAsync();
-  let url = `${baseUrl}/transactions?limit=${limit}&order=${order}`;
-  if (cursor) url += `&cursor=${cursor}`;
-  return fetchJSON<PaginatedResponse<Transaction>>(url);
+  const builder = getHorizonServer().transactions().limit(limit).order(order);
+  if (typeof includeFailed === 'boolean') builder.includeFailed(includeFailed);
+  if (cursor) builder.cursor(cursor);
+  const response = await builder.call();
+  return response as unknown as PaginatedResponse<Transaction>;
 }
 
 export async function getTransactionOperations(
   hash: string,
-  limit: number = 10
+  limit: number = 10,
+  order: 'asc' | 'desc' = 'desc'
 ): Promise<PaginatedResponse<Operation>> {
-  const baseUrl = await getBaseUrlAsync();
-  return fetchJSON<PaginatedResponse<Operation>>(
-    `${baseUrl}/transactions/${hash}/operations?limit=${limit}`
-  );
+  const response = await getHorizonServer()
+    .operations()
+    .forTransaction(hash)
+    .limit(limit)
+    .order(order)
+    .call();
+  return response as unknown as PaginatedResponse<Operation>;
+}
+
+export async function getPayments(
+  limit: number = 10,
+  order: 'asc' | 'desc' = 'desc',
+  cursor?: string,
+  includeFailed?: boolean
+): Promise<PaginatedResponse<Operation>> {
+  const builder = getHorizonServer().payments().limit(limit).order(order);
+  if (typeof includeFailed === 'boolean') builder.includeFailed(includeFailed);
+  if (cursor) builder.cursor(cursor);
+  const response = await builder.call();
+  return response as unknown as PaginatedResponse<Operation>;
+}
+
+export async function getLedgers(
+  limit: number = 10,
+  order: 'asc' | 'desc' = 'desc',
+  cursor?: string
+): Promise<PaginatedResponse<Ledger>> {
+  const builder = getHorizonServer().ledgers().limit(limit).order(order);
+  if (cursor) builder.cursor(cursor);
+  const response = await builder.call();
+  return response as unknown as PaginatedResponse<Ledger>;
+}
+
+export async function getOperations(
+  limit: number = 10,
+  order: 'asc' | 'desc' = 'desc',
+  cursor?: string,
+  includeFailed?: boolean
+): Promise<PaginatedResponse<Operation>> {
+  const builder = getHorizonServer().operations().limit(limit).order(order);
+  if (typeof includeFailed === 'boolean') builder.includeFailed(includeFailed);
+  if (cursor) builder.cursor(cursor);
+  const response = await builder.call();
+  return response as unknown as PaginatedResponse<Operation>;
+}
+
+export async function getTransactionEffects(
+  hash: string,
+  limit: number = 10,
+  order: 'asc' | 'desc' = 'desc'
+): Promise<PaginatedResponse<Effect>> {
+  const response = await getHorizonServer()
+    .effects()
+    .forTransaction(hash)
+    .limit(limit)
+    .order(order)
+    .call();
+  return response as unknown as PaginatedResponse<Effect>;
+}
+
+export async function getAccountOperations(
+  accountId: string,
+  limit: number = 50,
+  order: 'asc' | 'desc' = 'desc',
+  cursor?: string,
+  includeFailed?: boolean
+): Promise<PaginatedResponse<Operation>> {
+  const builder = getHorizonServer().operations().forAccount(accountId).limit(limit).order(order);
+  if (typeof includeFailed === 'boolean') builder.includeFailed(includeFailed);
+  if (cursor) builder.cursor(cursor);
+  const response = await builder.call();
+  return response as unknown as PaginatedResponse<Operation>;
+}
+
+export async function getAccountTransactions(
+  accountId: string,
+  limit: number = 50,
+  order: 'asc' | 'desc' = 'desc',
+  cursor?: string,
+  includeFailed?: boolean
+): Promise<PaginatedResponse<Transaction>> {
+  const builder = getHorizonServer().transactions().forAccount(accountId).limit(limit).order(order);
+  if (typeof includeFailed === 'boolean') builder.includeFailed(includeFailed);
+  if (cursor) builder.cursor(cursor);
+  const response = await builder.call();
+  return response as unknown as PaginatedResponse<Transaction>;
+}
+
+export async function getAccountEffects(
+  accountId: string,
+  limit: number = 50,
+  order: 'asc' | 'desc' = 'desc',
+  cursor?: string
+): Promise<PaginatedResponse<Effect>> {
+  const builder = getHorizonServer().effects().forAccount(accountId).limit(limit).order(order);
+  if (cursor) builder.cursor(cursor);
+  const response = await builder.call();
+  return response as unknown as PaginatedResponse<Effect>;
 }
 
 // Helper to extract display info from operations
@@ -413,7 +479,7 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
   // Smart contract invocation
   if (primaryOp.type === 'invoke_host_function') {
     // Try to decode the function name from parameters
-    let functionName = (primaryOp as any).function || 'Contract Call';
+    let functionName = typeof primaryOp.function === 'string' ? primaryOp.function : 'Contract Call';
 
     try {
       const parameters = primaryOp.parameters as Array<{ type: string; value: string }> | undefined;
@@ -443,14 +509,17 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
 
   // Swap operations (Path Payment)
   if (primaryOp.type === 'path_payment_strict_send' || primaryOp.type === 'path_payment_strict_receive') {
+    const sourceAmountRaw = primaryOp.source_amount;
+    const sourceAssetType = primaryOp.source_asset_type;
+    const sourceAssetCode = primaryOp.source_asset_code;
     const rawAmount = primaryOp.amount ? parseFloat(primaryOp.amount) : 0;
     const amount = formatAmount(rawAmount);
     const asset = primaryOp.asset_type === 'native' ? 'XLM' : (primaryOp.asset_code || 'XLM');
 
     // Extract source details
-    const sourceRawAmount = (primaryOp as any).source_amount ? parseFloat((primaryOp as any).source_amount) : 0;
+    const sourceRawAmount = typeof sourceAmountRaw === 'string' ? parseFloat(sourceAmountRaw) : 0;
     const sourceAmount = formatAmount(sourceRawAmount);
-    const sourceAsset = (primaryOp as any).source_asset_type === 'native' ? 'XLM' : ((primaryOp as any).source_asset_code || 'XLM');
+    const sourceAsset = sourceAssetType === 'native' ? 'XLM' : (typeof sourceAssetCode === 'string' ? sourceAssetCode : 'XLM');
 
     return {
       type: 'payment',
@@ -476,10 +545,14 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
 
   // Manage Offer
   if (offerOp && !swapOp && !contractOp) {
-    const sellingAsset = (offerOp as any).selling_asset_type === 'native' ? 'XLM' : ((offerOp as any).selling_asset_code || 'XLM');
-    const buyingAsset = (offerOp as any).buying_asset_type === 'native' ? 'XLM' : ((offerOp as any).buying_asset_code || 'XLM');
-    const price = (offerOp as any).price || '0';
-    const amount = (offerOp as any).amount || '0';
+    const sellingAssetType = offerOp.selling_asset_type;
+    const sellingAssetCode = offerOp.selling_asset_code;
+    const buyingAssetType = offerOp.buying_asset_type;
+    const buyingAssetCode = offerOp.buying_asset_code;
+    const price = typeof offerOp.price === 'string' ? offerOp.price : '0';
+    const amount = typeof offerOp.amount === 'string' ? offerOp.amount : '0';
+    const sellingAsset = sellingAssetType === 'native' ? 'XLM' : (typeof sellingAssetCode === 'string' ? sellingAssetCode : 'XLM');
+    const buyingAsset = buyingAssetType === 'native' ? 'XLM' : (typeof buyingAssetCode === 'string' ? buyingAssetCode : 'XLM');
 
     return {
       type: 'manage_offer',
@@ -507,14 +580,14 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
   }
   // Create account
   if (primaryOp.type === 'create_account') {
-    const rawAmount = (primaryOp as any).starting_balance ? parseFloat((primaryOp as any).starting_balance) : 0;
+    const rawAmount = primaryOp.starting_balance ? parseFloat(primaryOp.starting_balance) : 0;
     const amount = formatAmount(rawAmount);
     return {
       type: 'payment',
       amount,
       rawAmount,
       asset: 'XLM', // Starting balance is always in XLM
-      to: (primaryOp as any).account, // Newly created account
+      to: typeof primaryOp.account === 'string' ? primaryOp.account : undefined, // Newly created account
     };
   }
 
@@ -524,51 +597,25 @@ export function getTransactionDisplayInfo(operations: Operation[]): TransactionD
 // Operations endpoints
 export async function getOperation(id: string): Promise<Operation> {
   const baseUrl = await getBaseUrlAsync();
-  return fetchJSON<Operation>(`${baseUrl}/operations/${id}`);
+  const response = await new Horizon.Server(baseUrl).operations().operation(id).call();
+  return response as unknown as Operation;
 }
 
-
-// Helper to decode contract address from XDR ScVal
-function decodeContractAddress(value: string): string | null {
-  try {
-    const scVal = xdr.ScVal.fromXDR(value, 'base64');
-    if (scVal.switch().name === 'scvAddress') {
-      const scAddr = scVal.address();
-      if (scAddr.switch().name === 'scAddressTypeContract') {
-        const contractHash = scAddr.contractId();
-        // Cast to any and convert to Buffer for StrKey encoding
-        const hashBuffer = Buffer.from(contractHash as unknown as Uint8Array);
-        return StrKey.encodeContract(hashBuffer);
-      }
-    }
-  } catch {
-    // Failed to decode
-  }
-  return null;
+export async function getEffectById(id: string): Promise<Effect> {
+  const baseUrl = await getBaseUrlAsync();
+  return fetchJSON<Effect>(`${baseUrl}/effects/${id}`);
 }
 
-// Helper to decode symbol from XDR ScVal
-function decodeSymbol(value: string): string | null {
-  try {
-    const scVal = xdr.ScVal.fromXDR(value, 'base64');
-    if (scVal.switch().name === 'scvSymbol') {
-      return scVal.sym().toString();
-    }
-  } catch {
-    // Failed to decode
-  }
-  return null;
-}
 
 // Get invocations for a specific contract from Horizon
 export async function getContractInvocations(
   contractId: string,
   limit: number = 50,
-  startCursor?: string
+  _startCursor?: string
 ): Promise<ContractInvocation[]> {
   try {
     // Import the event parser functions
-    const { getContractEvents } = await import('./eventParser');
+    const { getContractEvents } = await import('../soroban/events');
 
     // Get events for this contract
     const events = await getContractEvents(contractId, limit);
@@ -595,15 +642,15 @@ export async function getContractInvocations(
       // Build parameters from event data
       const parameters: Array<{ type: string; value: string; decoded?: string }> = [];
       if (event.data && typeof event.data === 'object') {
-        const data = event.data as Record<string, any>;
-        if (data.from) {
+        const data = event.data as Record<string, unknown>;
+        if (typeof data.from === 'string') {
           parameters.push({ type: 'Address', value: '', decoded: data.from });
         }
-        if (data.to) {
+        if (typeof data.to === 'string') {
           parameters.push({ type: 'Address', value: '', decoded: data.to });
         }
-        if (data.amount) {
-          parameters.push({ type: 'I128', value: '', decoded: data.amount });
+        if (typeof data.amount === 'string' || typeof data.amount === 'number') {
+          parameters.push({ type: 'I128', value: '', decoded: String(data.amount) });
         }
       }
 
@@ -629,26 +676,24 @@ export async function getContractInvocations(
       const batch = invocations.slice(i, i + batchSize);
       await Promise.all(batch.map(async (inv) => {
         try {
-          const effectsUrl = `${getBaseUrl()}/operations/${inv.id}/effects?limit=10`;
-          const effectsResponse = await fetch(effectsUrl, {
-            headers: { 'Accept': 'application/json' },
-          });
-          if (effectsResponse.ok) {
-            const effectsData = await effectsResponse.json() as PaginatedResponse<Effect>;
-            const effects = effectsData._embedded?.records || [];
-            // Look for account_credited effect to the source account
-            const creditEffect = effects.find((e: Effect) =>
-              e.type === 'account_credited' && e.account === inv.sourceAccount
-            );
-            if (creditEffect) {
-              inv.resultAmount = (creditEffect as any).amount;
-              const assetType = (creditEffect as any).asset_type;
-              if (assetType === 'native') {
-                inv.resultAsset = 'XLM';
-              } else {
-                inv.resultAsset = (creditEffect as any).asset_code || '';
-              }
+          const effectsData = await getHorizonServer()
+            .effects()
+            .forOperation(inv.id)
+            .limit(10)
+            .call();
+          const effects = effectsData.records as unknown as Effect[];
+          const creditEffect = effects.find((e: Effect) =>
+            e.type === 'account_credited' && e.account === inv.sourceAccount
+          );
+          if (creditEffect) {
+            const effectAmount = creditEffect.amount;
+            const assetType = creditEffect.asset_type;
+            if (assetType === 'native') {
+              inv.resultAsset = 'XLM';
+            } else {
+              inv.resultAsset = typeof creditEffect.asset_code === 'string' ? creditEffect.asset_code : '';
             }
+            if (typeof effectAmount === 'string') inv.resultAmount = effectAmount;
           }
         } catch {
           // Ignore effect fetch errors
@@ -675,13 +720,11 @@ export async function getAssetHolders(
     return { holders: [], nextCursor: null, totalSupply: 0 };
   }
 
-  let url = `${getBaseUrl()}/accounts?asset=${assetCode}:${assetIssuer}&limit=${limit}&order=desc`;
-  if (cursor) {
-    url += `&cursor=${cursor}`;
-  }
-
-  const response = await fetchJSON<PaginatedResponse<StellarAccount>>(url);
-  const accounts = response._embedded.records;
+  const asset = new Asset(assetCode, assetIssuer);
+  const builder = getHorizonServer().accounts().forAsset(asset).limit(limit).order('desc');
+  if (cursor) builder.cursor(cursor);
+  const response = await builder.call() as unknown as PaginatedResponse<StellarAccount>;
+  const accounts = response.records;
 
   // Extract the balance for the specific asset from each account
   const holders: AssetHolder[] = accounts.map(account => {
@@ -691,7 +734,7 @@ export async function getAssetHolders(
     return {
       account_id: account.account_id,
       balance: assetBalance?.balance || '0',
-      paging_token: (account as any).paging_token || account.id,
+      paging_token: account.paging_token || account.id,
     };
   }).filter(h => parseFloat(h.balance) > 0);
 
@@ -700,7 +743,7 @@ export async function getAssetHolders(
 
   // Get next cursor from the last account
   const lastAccount = accounts[accounts.length - 1];
-  const nextCursor = accounts.length === limit ? ((lastAccount as any).paging_token || lastAccount?.id || null) : null;
+  const nextCursor = accounts.length === limit ? (lastAccount?.paging_token || lastAccount?.id || null) : null;
 
   // Calculate total supply from all holders (approximate - for display purposes)
   const totalSupply = holders.reduce((sum, h) => sum + parseFloat(h.balance), 0);
@@ -718,22 +761,18 @@ export async function getAssetTradingPairs(
   const isNative = assetCode === 'XLM' && (!assetIssuer || assetIssuer === '');
   const assetType = isNative ? 'native' : (assetCode.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12');
 
-  // The trades endpoint requires both assets (a pair) when filtering
-  // So we fetch general recent trades and filter client-side
-  const tradesUrl = `${getBaseUrl()}/trades?limit=200&order=desc`;
-
   try {
     // Fetch multiple pages to get more trades
     let allTrades: AssetTrade[] = [];
-    let currentUrl: string = tradesUrl;
+    let currentPage = await getHorizonServer().trades().limit(200).order('desc').call() as unknown as TradePage;
     const maxPages = 5; // Fetch up to 5 pages (1000 trades)
 
     for (let pageCount = 0; pageCount < maxPages; pageCount++) {
-      const response: PaginatedResponse<AssetTrade> = await fetchJSON<PaginatedResponse<AssetTrade>>(currentUrl);
-      allTrades = [...allTrades, ...response._embedded.records];
-      const nextHref = response._links.next?.href;
-      if (!nextHref) break;
-      currentUrl = nextHref;
+      allTrades = [...allTrades, ...(currentPage.records || [])];
+      if (pageCount === maxPages - 1 || typeof currentPage.next !== 'function') {
+        break;
+      }
+      currentPage = await currentPage.next();
     }
 
     // Filter trades that involve our asset
@@ -901,41 +940,6 @@ function getPriceAtHoursAgo(price7d: [number, number][], hoursAgo: number): numb
   return closestPrice;
 }
 
-interface StellarCoinApiResponse {
-  coingecko_stellar?: {
-    market_cap_rank?: number;
-    market_data?: {
-      current_price?: { usd?: number };
-      market_cap?: { usd?: number };
-      total_volume?: { usd?: number };
-      circulating_supply?: number;
-      price_change_percentage_24h?: number;
-      price_change_percentage_30d?: number;
-      price_change_percentage_1y?: number;
-      sparkline_7d?: { price?: number[] };
-    };
-  };
-  stellar_expert?: {
-    _embedded?: {
-      records?: Array<Record<string, unknown>>;
-    };
-  };
-}
-
-type NormalizedStellarchainAsset = {
-  code?: string;
-  domain?: string;
-  image?: string;
-  holders: number;
-  trades_24h: number;
-  payments_24h: number;
-  price_usd: number;
-  price_usd_change: number;
-  volume_usd: number;
-  supply: number;
-  rating: number;
-};
-
 function parseStellarchainV1AssetData(payload: unknown): NormalizedStellarchainAsset | null {
   if (!payload || typeof payload !== 'object') {
     return null;
@@ -984,9 +988,9 @@ function parseStellarchainV1AssetData(payload: unknown): NormalizedStellarchainA
   };
 }
 
-const STELLAR_COIN_API_URL = 'https://api.stellarchain.dev/api/coins/stellar';
+const STELLAR_COIN_API_URL = buildApiUrl(apiEndpoints.coins.stellar());
 const STELLAR_COIN_API_TTL_MS = 60_000;
-let stellarCoinApiCache: {
+const stellarCoinApiCache: {
   data: StellarCoinApiResponse | null;
   expiresAt: number;
   inFlight: Promise<StellarCoinApiResponse | null> | null;
@@ -996,7 +1000,31 @@ let stellarCoinApiCache: {
   inFlight: null,
 };
 
-async function getStellarCoinApiData(): Promise<StellarCoinApiResponse | null> {
+async function fetchStellarCoinApiData(cursor?: number): Promise<StellarCoinApiResponse | null> {
+  try {
+    const url = cursor && cursor > 0
+      ? buildApiUrl(apiEndpoints.coins.stellar({ cursor }))
+      : STELLAR_COIN_API_URL;
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 60 },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.json() as StellarCoinApiResponse;
+  } catch {
+    return null;
+  }
+}
+
+async function getStellarCoinApiData(cursor: number = 0): Promise<StellarCoinApiResponse | null> {
+  if (cursor > 0) {
+    return fetchStellarCoinApiData(cursor);
+  }
+
   const now = Date.now();
   if (stellarCoinApiCache.data && stellarCoinApiCache.expiresAt > now) {
     return stellarCoinApiCache.data;
@@ -1006,65 +1034,17 @@ async function getStellarCoinApiData(): Promise<StellarCoinApiResponse | null> {
     return stellarCoinApiCache.inFlight;
   }
 
-  stellarCoinApiCache.inFlight = (async () => {
-    try {
-      const response = await fetch(STELLAR_COIN_API_URL, {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 60 },
-      });
-
-      if (!response.ok) {
-        return null;
-      }
-
-      const json = await response.json() as StellarCoinApiResponse;
+  stellarCoinApiCache.inFlight = fetchStellarCoinApiData();
+  try {
+    const json = await stellarCoinApiCache.inFlight;
+    if (json) {
       stellarCoinApiCache.data = json;
       stellarCoinApiCache.expiresAt = Date.now() + STELLAR_COIN_API_TTL_MS;
-      return json;
-    } catch {
-      return null;
-    } finally {
-      stellarCoinApiCache.inFlight = null;
     }
-  })();
-
-  return stellarCoinApiCache.inFlight;
-}
-
-// Fetch XLM price from Stellarchain coins API
-async function getXLMPrice(): Promise<number> {
-  try {
-    const json = await getStellarCoinApiData();
-    const xlmPrice = Number(json?.coingecko_stellar?.market_data?.current_price?.usd || 0);
-    if (xlmPrice > 0) {
-      return xlmPrice;
-    }
-  } catch {
-    // Ignore error, use default
+    return json;
+  } finally {
+    stellarCoinApiCache.inFlight = null;
   }
-  return 0.1; // Fallback XLM price
-}
-
-// Fetch market data from StellarExpert API (aggregated market data)
-// Fetch XLM data from CoinGecko
-// Fetch XLM data from Stellarchain (CoinGecko Proxy)
-async function getCoinGeckoXLMData() {
-  try {
-    const json = await getStellarCoinApiData();
-    const marketData = json?.coingecko_stellar?.market_data;
-
-    if (marketData) {
-      return {
-        usd: marketData.current_price?.usd || 0,
-        usd_market_cap: marketData.market_cap?.usd || 0,
-        usd_24h_vol: marketData.total_volume?.usd || 0,
-        usd_24h_change: marketData.price_change_percentage_24h || 0
-      };
-    }
-  } catch (error) {
-    console.error('Error fetching CoinGecko data from Stellarchain:', error);
-  }
-  return null;
 }
 
 // Client-side helper to fetch XLM stats
@@ -1084,34 +1064,21 @@ export async function getXLMStats(): Promise<{ usd: number; usd_24h_change: numb
   return null;
 }
 
-// Fetch paginated market data from Stellarchain API
-async function getStellarCoinApiDataWithCursor(cursor: number = 0): Promise<StellarCoinApiResponse | null> {
-  try {
-    const url = `https://api.stellarchain.dev/api/coins/stellar?cursor=${cursor}`;
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 },
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return await response.json() as StellarCoinApiResponse;
-  } catch {
-    return null;
-  }
-}
-
 // Fetch market data from StellarExpert API (aggregated market data)
 export async function getMarketAssets(cursor: number = 0): Promise<{ assets: MarketAsset[], hasNext: boolean }> {
   try {
-    // Fetch from unified Stellarchain endpoint (includes CoinGecko + Stellar Expert payloads)
-    const [xlmPrice, coinApiData, coinGeckoData] = await Promise.all([
-      getXLMPrice(),
-      cursor === 0 ? getStellarCoinApiData() : getStellarCoinApiDataWithCursor(cursor),
-      getCoinGeckoXLMData()
-    ]);
+    // Fetch once from unified Stellarchain endpoint (includes CoinGecko + Stellar Expert payloads)
+    const coinApiData = await getStellarCoinApiData(cursor);
+    const coinGeckoMarket = coinApiData?.coingecko_stellar?.market_data;
+    const xlmPrice = Number(coinGeckoMarket?.current_price?.usd || 0) || 0.1;
+    const coinGeckoData = coinGeckoMarket
+      ? {
+          usd: coinGeckoMarket.current_price?.usd || 0,
+          usd_market_cap: coinGeckoMarket.market_cap?.usd || 0,
+          usd_24h_vol: coinGeckoMarket.total_volume?.usd || 0,
+          usd_24h_change: coinGeckoMarket.price_change_percentage_24h || 0,
+        }
+      : null;
 
     const records = coinApiData?.stellar_expert?._embedded?.records;
     if (!Array.isArray(records)) {
@@ -1217,12 +1184,12 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
   }
 
   const assetId = parsedIssuer ? `${parsedCode}-${parsedIssuer}` : parsedCode;
-  let stellarChainData: any = null;
+  let stellarChainData: NormalizedStellarchainAsset | null = null;
 
   // 1. Try fetching from Stellarchain v1 API first
   // It provides asset-level stats and metadata for most issued assets.
   try {
-    const scResponse = await fetch(`https://api.stellarchain.dev/v1/assets/${assetId}`, {
+    const scResponse = await fetch(buildApiV1Url(apiEndpoints.v1.assetById(assetId)), {
       headers: { 'Accept': 'application/json' },
       next: { revalidate: 60 }
     });
@@ -1237,7 +1204,8 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
 
   // 2. Fallback/Concurrent Fetch to Stellar Expert & CoinGecko (for XLM)
   try {
-    const xlmPrice = await getXLMPrice();
+    const coinApiData = await getStellarCoinApiData();
+    const xlmPrice = Number(coinApiData?.coingecko_stellar?.market_data?.current_price?.usd || 0) || 0.1;
 
     // Handle native XLM
     if (code === 'XLM' && !issuer) {
@@ -1286,7 +1254,6 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       };
     }
 
-    const coinApiData = await getStellarCoinApiData();
     const cachedAsset = coinApiData?.stellar_expert?._embedded?.records?.find((record) => {
       const recordAsset = String(record.asset || '');
       if (!recordAsset) return false;
@@ -1346,10 +1313,37 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       priceHistory = asset.price7d;
     }
 
-    // Get price from Horizon API (single source of truth)
-    const horizonPrice = await getAssetPriceFromHorizon(parsedCode, parsedIssuer);
-    const currentPrice = horizonPrice.priceUsd;
-    const priceInXlm = horizonPrice.priceXlm;
+    // Price sourcing: use Horizon data when available, fallback to unified API price.
+    let currentPrice = Number(stellarChainData?.price_usd || asset.price || 0);
+    let priceInXlm = 0;
+    const isNativeAsset = parsedCode === 'XLM' && !parsedIssuer;
+
+    try {
+      const xlmUsdRate = await getXLMUSDPriceFromHorizon();
+
+      if (isNativeAsset) {
+        currentPrice = xlmUsdRate;
+        priceInXlm = 1;
+      } else {
+        const aggregations = await getTradeAggregations(
+          { code: parsedCode, issuer: parsedIssuer },
+          { code: 'XLM' },
+          900000,
+          1
+        );
+
+        if (aggregations.length > 0) {
+          priceInXlm = parseFloat(aggregations[0].close) || 0;
+          if (priceInXlm > 0 && xlmUsdRate > 0) {
+            currentPrice = priceInXlm * xlmUsdRate;
+          }
+        } else if (currentPrice > 0 && xlmUsdRate > 0) {
+          priceInXlm = currentPrice / xlmUsdRate;
+        }
+      }
+    } catch {
+      // Keep fallback prices from the unified API payload.
+    }
 
     const supply = stellarChainData?.supply !== undefined ? Number(stellarChainData.supply) : ((Number(asset.supply) || 0) / 1e7);
     // Note: StellarExpert volume is 7d in stroops, SC is 24h USD. We prefer SC volume if available.
@@ -1416,7 +1410,9 @@ export async function getXLMHolders(
 ): Promise<{ holders: AssetHolder[]; nextCursor?: string }> {
   try {
     const page = cursor ? parseInt(cursor) : 1;
-    const url = `https://api.stellarchain.dev/v1/accounts?page=${page}&order[accountMetric.rankPosition]=asc`;
+    const url = buildApiV1Url(
+      apiEndpoints.v1.accounts({ page, 'order[accountMetric.rankPosition]': 'asc' })
+    );
 
     const response = await fetch(url, {
       headers: { 'Accept': 'application/ld+json' },
@@ -1427,14 +1423,14 @@ export async function getXLMHolders(
       return { holders: [] };
     }
 
-    const data = await response.json();
+    const data = await response.json() as V1CollectionResponse<V1AccountRecord>;
     const records = data.member || [];
 
-    const holders: AssetHolder[] = records.map((record: any) => ({
-      account_id: record.address,
+    const holders: AssetHolder[] = records.map((record) => ({
+      account_id: record.address || '',
       balance: record.accountMetric?.nativeBalance?.toString() || '0',
       paging_token: (page + 1).toString(), // generic token
-    }));
+    })).filter((holder) => holder.account_id.length > 0);
 
     return {
       holders,
@@ -1449,10 +1445,12 @@ export async function getXLMHolders(
 
 export async function getRichList(
   page: number = 1,
-  limit: number = 50
+  _limit: number = 50
 ): Promise<RichListAccount[]> {
   try {
-    const url = `https://api.stellarchain.dev/v1/accounts?page=${page}&order[accountMetric.rankPosition]=asc`;
+    const url = buildApiV1Url(
+      apiEndpoints.v1.accounts({ page, 'order[accountMetric.rankPosition]': 'asc' })
+    );
     const response = await fetch(url, {
       headers: { 'Accept': 'application/ld+json' },
       next: { revalidate: 300 },
@@ -1462,13 +1460,13 @@ export async function getRichList(
       throw new Error(`Failed to fetch rich list: ${response.status}`);
     }
 
-    const data = await response.json();
-    return (data.member || []).map((record: any) => ({
-      rank: record.accountMetric?.rankPosition || 0,
-      account: record.address,
-      balance: parseFloat(record.accountMetric?.nativeBalance || '0'),
-      percent_of_coins: undefined, // Not available in new API
-      transactions: parseInt(record.accountMetric?.totalTransactions || '0'),
+    const data = await response.json() as V1CollectionResponse<V1AccountRecord>;
+    return (data.member || []).map((record) => ({
+      rank: Number(record.accountMetric?.rankPosition || 0),
+      account: record.address || '',
+      balance: Number(record.accountMetric?.nativeBalance || 0),
+      percent_of_coins: '0', // Not available in new API
+      transactions: Number(record.accountMetric?.totalTransactions || 0),
       label: record.label ? {
         name: record.label,
         verified: record.verified === true,
@@ -1502,7 +1500,7 @@ async function fetchAllLabeledAccounts(): Promise<Map<string, AccountLabel>> {
     let hasMore = true;
 
     while (hasMore && page <= 30) { // Increased limit for new API
-      const url = `https://api.stellarchain.dev/v1/accounts?page=${page}`;
+      const url = buildApiV1Url(apiEndpoints.v1.accounts({ page }));
       const response = await fetch(url, {
         headers: { 'Accept': 'application/ld+json' },
         next: { revalidate: 300 }, // Cache for 5 minutes
@@ -1510,21 +1508,21 @@ async function fetchAllLabeledAccounts(): Promise<Map<string, AccountLabel>> {
 
       if (!response.ok) break;
 
-      const json = await response.json();
+      const json = await response.json() as V1CollectionResponse<V1AccountRecord>;
       const data = json.member || [];
 
       // Transform new API format to old LabeledAccount format
-      const transformedData = data.map((record: any) => ({
-        account: record.address,
+      const transformedData = data.map((record) => ({
+        account: record.address || '',
         org_name: null, // Not available in new API
         label: record.label ? {
           name: record.label,
           description: null, // Not available in new API
           verified: record.verified ? 1 : 0
         } : null,
-        balance: parseFloat(record.accountMetric?.nativeBalance || '0'),
-        transactions: record.accountMetric?.totalTransactions || '0',
-        rank: record.accountMetric?.rankPosition || 0
+        balance: Number(record.accountMetric?.nativeBalance || 0),
+        transactions: String(record.accountMetric?.totalTransactions || '0'),
+        rank: Number(record.accountMetric?.rankPosition || 0)
       }));
 
       allAccounts.push(...transformedData);
@@ -1575,90 +1573,6 @@ async function getCachedLabels(): Promise<Map<string, AccountLabel>> {
   return labeledAccountsFetchPromise;
 }
 
-function normalizeUnknownLabel(raw: unknown): AccountLabel | null {
-  if (!raw || typeof raw !== 'object') {
-    return null;
-  }
-
-  const obj = raw as Record<string, unknown>;
-  const nested = (obj.label && typeof obj.label === 'object')
-    ? (obj.label as Record<string, unknown>)
-    : null;
-
-  const name = (
-    (typeof obj.name === 'string' ? obj.name.trim() : '') ||
-    (nested && typeof nested.name === 'string' ? nested.name.trim() : '')
-  );
-  const orgName = (
-    (typeof obj.org_name === 'string' ? obj.org_name.trim() : '') ||
-    (typeof obj.orgName === 'string' ? obj.orgName.trim() : '')
-  );
-  const descriptionValue = (
-    (typeof obj.description === 'string' ? obj.description.trim() : '') ||
-    (nested && typeof nested.description === 'string' ? nested.description.trim() : '')
-  );
-  const verifiedValue = nested?.verified ?? obj.verified;
-  const verified = verifiedValue === true || verifiedValue === 1 || verifiedValue === '1';
-
-  if (!name && !orgName && !descriptionValue && !verified) {
-    return null;
-  }
-
-  return {
-    name,
-    verified,
-    org_name: orgName || null,
-    description: descriptionValue || null,
-  };
-}
-
-function collectLabelsFromPayload(payload: unknown): Map<string, AccountLabel> {
-  const found = new Map<string, AccountLabel>();
-
-  const visit = (node: unknown) => {
-    if (!node || typeof node !== 'object') {
-      return;
-    }
-
-    if (Array.isArray(node)) {
-      for (const item of node) {
-        if (!item || typeof item !== 'object') continue;
-        const row = item as Record<string, unknown>;
-        const address = (
-          (typeof row.address === 'string' && row.address) ||
-          (typeof row.account === 'string' && row.account) ||
-          (typeof row.account_id === 'string' && row.account_id) ||
-          ''
-        );
-        const normalized = normalizeUnknownLabel(row);
-        if (address && normalized) {
-          found.set(address, normalized);
-        }
-      }
-      return;
-    }
-
-    const obj = node as Record<string, unknown>;
-
-    // Handle object maps: { "G...": { ...label } }
-    for (const [key, value] of Object.entries(obj)) {
-      if (typeof key === 'string' && key.length >= 56 && (key.startsWith('G') || key.startsWith('C'))) {
-        const normalized = normalizeUnknownLabel(value);
-        if (normalized) {
-          found.set(key, normalized);
-        }
-      }
-    }
-
-    if ('data' in obj) {
-      visit(obj.data);
-    }
-  };
-
-  visit(payload);
-  return found;
-}
-
 // Batch fetch labels for multiple accounts
 export async function getAccountLabels(
   addresses: string[]
@@ -1677,7 +1591,7 @@ export async function getAccountLabels(
     for (const address of uniqueAddresses) {
       params.append('address[]', address);
     }
-    const url = `https://api.stellarchain.dev/v1/accounts?${params.toString()}`;
+    const url = buildApiV1Url(`/accounts?${params.toString()}`);
     const response = await fetch(url, {
       headers: {
         'Accept': 'application/ld+json',
@@ -1723,10 +1637,13 @@ export async function getAccountLabels(
 
 // Normalize Horizon SDK transaction records to ensure ledger_attr is set
 // The SDK returns `ledger` as a function and the actual number as `ledger_attr`
-export function normalizeTransactions(records: any[]): Transaction[] {
-  return records.map(tx => ({
-    ...tx,
-    ledger_attr: tx.ledger_attr ?? (typeof tx.ledger === 'number' ? tx.ledger : 0),
+export function normalizeTransactions(records: unknown[]): Transaction[] {
+  const txRecords = records as Array<Record<string, unknown>>;
+  return txRecords.map((tx) => ({
+    ...(tx as unknown as Transaction),
+    ledger_attr: typeof tx.ledger_attr === 'number'
+      ? tx.ledger_attr
+      : (typeof tx.ledger === 'number' ? tx.ledger : 0),
   }));
 }
 
@@ -1899,8 +1816,6 @@ export function getOperationTypeLabel(typeOrOp: string | Operation): string {
 // Soroban Contract Helper Functions
 // ============================================
 
-import type { ContractFunctionType } from './types/token';
-
 // Convert i128 (lo, hi) to BigInt
 // Extract contract address from invoke_host_function operation
 export function extractContractAddress(op: Operation): string | null {
@@ -2003,19 +1918,15 @@ export async function getOrderBook(
   buyingAsset: { code: string; issuer?: string },
   limit: number = 20
 ): Promise<OrderBook> {
-  const sellingType = sellingAsset.code === 'XLM' ? 'native' : (sellingAsset.code.length > 4 ? 'credit_alphanum12' : 'credit_alphanum4');
-  const buyingType = buyingAsset.code === 'XLM' ? 'native' : (buyingAsset.code.length > 4 ? 'credit_alphanum12' : 'credit_alphanum4');
-
-  let url = `${getBaseUrl()}/order_book?selling_asset_type=${sellingType}&buying_asset_type=${buyingType}&limit=${limit}`;
-
-  if (sellingAsset.code !== 'XLM' && sellingAsset.issuer) {
-    url += `&selling_asset_code=${sellingAsset.code}&selling_asset_issuer=${sellingAsset.issuer}`;
-  }
-  if (buyingAsset.code !== 'XLM' && buyingAsset.issuer) {
-    url += `&buying_asset_code=${buyingAsset.code}&buying_asset_issuer=${buyingAsset.issuer}`;
+  const selling = toHorizonAsset(sellingAsset);
+  const buying = toHorizonAsset(buyingAsset);
+  if (!selling || !buying) {
+    throw new Error('Invalid assets for order book request');
   }
 
-  return fetchJSON<OrderBook>(url);
+  const server = createHorizonServer();
+  const response = await server.orderbook(selling, buying).limit(limit).call();
+  return response as unknown as OrderBook;
 }
 
 // Fetch OHLC Data
@@ -2028,24 +1939,31 @@ export async function getTradeAggregations(
   endTime?: number,
   signal?: AbortSignal
 ): Promise<TradeAggregation[]> {
-  const baseType = baseAsset.code === 'XLM' ? 'native' : (baseAsset.code.length > 4 ? 'credit_alphanum12' : 'credit_alphanum4');
-  const counterType = counterAsset.code === 'XLM' ? 'native' : (counterAsset.code.length > 4 ? 'credit_alphanum12' : 'credit_alphanum4');
-
-  // Use asc order when time range specified to get chronological data
-  const order = startTime ? 'asc' : 'desc';
-  let url = `${getBaseUrl()}/trade_aggregations?base_asset_type=${baseType}&counter_asset_type=${counterType}&resolution=${resolution}&limit=${limit}&order=${order}`;
-
-  if (baseAsset.code !== 'XLM' && baseAsset.issuer) {
-    url += `&base_asset_code=${baseAsset.code}&base_asset_issuer=${baseAsset.issuer}`;
+  const base = toHorizonAsset(baseAsset);
+  const counter = toHorizonAsset(counterAsset);
+  if (!base || !counter) {
+    return [];
   }
-  if (counterAsset.code !== 'XLM' && counterAsset.issuer) {
-    url += `&counter_asset_code=${counterAsset.code}&counter_asset_issuer=${counterAsset.issuer}`;
-  }
-  if (startTime) url += `&start_time=${startTime}`;
-  if (endTime) url += `&end_time=${endTime}`;
 
-  const response = await fetchJSON<PaginatedResponse<TradeAggregation>>(url, signal);
-  return response._embedded.records;
+  // SDK call builder does not support AbortSignal directly.
+  if (signal?.aborted) {
+    return [];
+  }
+
+  const now = Date.now();
+  const effectiveEnd = endTime ?? now;
+  const defaultWindow = Math.max(resolution * limit, resolution);
+  const effectiveStart = startTime ?? Math.max(effectiveEnd - defaultWindow, 0);
+  const order: 'asc' | 'desc' = startTime ? 'asc' : 'desc';
+
+  const server = createHorizonServer();
+  const response = await server
+    .tradeAggregation(base, counter, effectiveStart, effectiveEnd, resolution, 0)
+    .limit(limit)
+    .order(order)
+    .call();
+
+  return response.records as unknown as TradeAggregation[];
 }
 
 // USDC issuer on Stellar mainnet (Centre/Circle)
@@ -2073,11 +1991,11 @@ export async function getXLMUSDPriceFromHorizon(signal?: AbortSignal): Promise<n
     }
 
     // Fallback: use current order book midpoint/first quote if there were no recent trades
-    const orderBookUrl = `${getBaseUrl()}/order_book?selling_asset_type=native&buying_asset_type=credit_alphanum4&buying_asset_code=USDC&buying_asset_issuer=${USDC_ISSUER}&limit=5`;
-    const orderBook = await fetchJSON<{
-      bids?: Array<{ price: string }>;
-      asks?: Array<{ price: string }>;
-    }>(orderBookUrl, signal);
+    const orderBook = await getOrderBook(
+      { code: 'XLM' },
+      { code: 'USDC', issuer: USDC_ISSUER },
+      5
+    );
 
     const topBid = orderBook.bids?.[0]?.price ? parseFloat(orderBook.bids[0].price) : NaN;
     const topAsk = orderBook.asks?.[0]?.price ? parseFloat(orderBook.asks[0].price) : NaN;
@@ -2099,58 +2017,6 @@ export async function getXLMUSDPriceFromHorizon(signal?: AbortSignal): Promise<n
 
   // Fallback price if API fails
   return 0.10;
-}
-
-/**
- * Get current asset price in USD from Horizon API
- * For XLM: uses XLM/USDC pair
- * For other tokens: uses TOKEN/XLM pair and multiplies by XLM/USD
- */
-export async function getAssetPriceFromHorizon(
-  assetCode: string,
-  assetIssuer?: string
-): Promise<{ priceUsd: number; priceXlm: number; xlmUsdRate: number }> {
-  try {
-    // Get XLM/USD rate first
-    const xlmUsdRate = await getXLMUSDPriceFromHorizon();
-
-    if (assetCode === 'XLM') {
-      return {
-        priceUsd: xlmUsdRate,
-        priceXlm: 1,
-        xlmUsdRate
-      };
-    }
-
-    // For other tokens, get TOKEN/XLM price from trade aggregations
-    const aggregations = await getTradeAggregations(
-      { code: assetCode, issuer: assetIssuer },
-      { code: 'XLM' },
-      900000, // 15-minute resolution
-      1
-    );
-
-    if (aggregations.length > 0) {
-      // Close price gives us how many XLM per TOKEN
-      const priceXlm = parseFloat(aggregations[0].close);
-      const priceUsd = priceXlm * xlmUsdRate;
-
-      return {
-        priceUsd,
-        priceXlm,
-        xlmUsdRate
-      };
-    }
-  } catch (error) {
-    console.error('Failed to fetch asset price from Horizon:', error);
-  }
-
-  // Fallback
-  return {
-    priceUsd: 0,
-    priceXlm: 0,
-    xlmUsdRate: 0.10
-  };
 }
 
 export { USDC_ISSUER };

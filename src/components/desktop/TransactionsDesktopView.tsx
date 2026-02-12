@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { Transaction, getTransactionDisplayInfo, Operation, getBaseUrl, normalizeTransactions, shortenAddress, getTransactionOperations } from '@/lib/stellar';
+import {
+  Transaction,
+  getTransactionDisplayInfo,
+  Operation,
+  normalizeTransactions,
+  shortenAddress,
+  getTransactionOperations,
+  getTransactions,
+  getPayments
+} from '@/lib/stellar';
 import { useNetwork } from '@/contexts/NetworkContext';
 import GliderTabs from '@/components/ui/GliderTabs';
 
@@ -18,7 +27,7 @@ const PAGE_SIZE = 25;
 async function fetchTransactionWithOps(tx: Transaction): Promise<Transaction> {
   try {
     const opsResponse = await getTransactionOperations(tx.hash, 20);
-    const operations = opsResponse._embedded.records;
+    const operations = opsResponse.records || [];
     return {
       ...tx,
       displayInfo: getTransactionDisplayInfo(operations),
@@ -162,9 +171,8 @@ export default function TransactionsDesktopView({
 
   const fetchTransactions = useCallback(async () => {
     try {
-      const txRes = await fetch(`${getBaseUrl()}/transactions?limit=15&order=desc`);
-      const txData = await txRes.json();
-      const newTransactions: Transaction[] = normalizeTransactions(txData._embedded.records || []);
+      const txData = await getTransactions(15, 'desc');
+      const newTransactions: Transaction[] = normalizeTransactions(txData.records || []);
 
       // Filter to only new transactions we haven't seen
       const unseenTxs = newTransactions.filter(tx => !seenIdsRef.current.has(tx.hash));
@@ -217,11 +225,8 @@ export default function TransactionsDesktopView({
         return;
       }
 
-      const res = await fetch(
-        `${getBaseUrl()}/transactions?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
-      );
-      const data = await res.json();
-      const olderTransactions: Transaction[] = normalizeTransactions(data._embedded.records || []);
+      const data = await getTransactions(PAGE_SIZE, 'desc', cursor);
+      const olderTransactions: Transaction[] = normalizeTransactions(data.records || []);
 
       if (olderTransactions.length === 0) {
         setIsLoadingMore(false);
@@ -282,20 +287,17 @@ export default function TransactionsDesktopView({
       setIsEnrichingData(true);
       try {
         // Fetch transactions and payments in parallel
-        const [txRes, paymentsRes] = await Promise.all([
-          fetch(`${getBaseUrl()}/transactions?limit=${limit}&order=desc`),
-          fetch(`${getBaseUrl()}/payments?limit=30&order=desc`).catch(() => null),
+        const [txData, paymentsData] = await Promise.all([
+          getTransactions(limit, 'desc'),
+          getPayments(30, 'desc').catch(() => null),
         ]);
-
-        const txData = await txRes.json();
-        const rawTransactions: Transaction[] = normalizeTransactions(txData._embedded.records || []);
+        const rawTransactions: Transaction[] = normalizeTransactions(txData.records || []);
 
         // Process payment operations if available
         let paymentOps: Operation[] = [];
-        if (paymentsRes && paymentsRes.ok) {
+        if (paymentsData) {
           try {
-            const paymentsData = await paymentsRes.json();
-            paymentOps = paymentsData._embedded?.records || [];
+            paymentOps = paymentsData.records || [];
           } catch {
             // Ignore payment parse errors
           }

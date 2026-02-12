@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl, normalizeTransactions, getXLMUSDPriceFromHorizon, getAccountLabels } from '@/lib/stellar';
+import { normalizeTransactions, getXLMUSDPriceFromHorizon, getAccountLabels } from '@/lib/stellar';
 import type { AccountLabel, Transaction, Operation } from '@/lib/stellar';
 import Link from 'next/link';
 import AccountMobileView from '@/components/mobile/AccountMobileView';
 import AccountDesktopView from '@/components/desktop/AccountDesktopView';
+import { createHorizonServer } from '@/services/horizon';
 
-import { getDetailRouteValue } from '@/lib/routeDetail';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
 
 type Account = Horizon.ServerApi.AccountRecord;
@@ -77,7 +78,7 @@ export default function AccountPage() {
     const fetchAccountData = async () => {
       try {
         setLoading(true);
-        const server = new Horizon.Server(getBaseUrl());
+        const server = createHorizonServer();
 
         // Fetch account, transactions, and operations
         const [accountResponse, transactionsResponse, operationsResponse] = await Promise.all([

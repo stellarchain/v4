@@ -5,6 +5,7 @@ import type { LabeledAccountsAPIResponse } from '@/lib/stellar';
 import KnownAccountsClient from './KnownAccountsClient';
 import KnownAccountsDesktopView from '@/components/desktop/KnownAccountsDesktopView';
 import Loading from '@/components/ui/Loading';
+import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 export default function KnownAccountsPage() {
   const [initialData, setInitialData] = useState<LabeledAccountsAPIResponse | null>(null);
@@ -15,13 +16,7 @@ export default function KnownAccountsPage() {
     const fetchLabeledAccounts = async () => {
       try {
         setLoading(true);
-        const response = await fetch('https://api.stellarchain.dev/v1/accounts?page=1', {
-          headers: { 'Accept': 'application/ld+json' }
-        });
-        if (!response.ok) {
-          throw new Error('Failed to fetch labeled accounts');
-        }
-        const data = await response.json();
+        const data = await getApiV1Data(apiEndpoints.v1.accounts({ page: 1 }));
         setInitialData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load known accounts');

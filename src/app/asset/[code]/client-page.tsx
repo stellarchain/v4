@@ -6,7 +6,7 @@ import { getAssetDetails, getMarketAssets } from '@/lib/stellar';
 import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
 import AssetLoadingShell from '@/components/ui/AssetLoadingShell';
-import { getDetailRouteValue } from '@/lib/routeDetail';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
 
 export default function AssetPage() {
@@ -46,7 +46,7 @@ export default function AssetPage() {
           return;
         }
 
-        const assetRank = marketAssets.findIndex(a => a.code === assetData.code) + 1;
+        const assetRank = marketAssets.assets.findIndex(a => a.code === assetData.code) + 1;
         setAsset(assetData);
         setRank(assetRank);
       } catch (err) {

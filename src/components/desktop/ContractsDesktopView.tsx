@@ -6,6 +6,7 @@ import { shortenAddress, timeAgo } from '@/lib/stellar';
 import { StrKey } from '@stellar/stellar-sdk';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
+import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 // Convert hex contract ID to StrKey format (C...)
 function hexToContractStrKey(hexId: string): string {
@@ -229,21 +230,16 @@ export default function ContractsDesktopView({
     try {
       // Build URL with optional sorting
       const buildUrl = (pageNum: number) => {
-        let url = `https://api.stellarchain.dev/v1/contracts?page=${pageNum}`;
-        // Add sorting parameter if "Most Recent" is selected
+        const params: Record<string, string | number> = { page: pageNum };
         if (sortBy === 'recent') {
-          url += '&order[createdAt]=desc';
+          params['order[createdAt]'] = 'desc';
         }
-        return url;
+        return apiEndpoints.v1.contracts(params);
       };
 
       // For 'all' filter or search, single page fetch is fine
       if (currentFilter === 'all') {
-        const response = await fetch(
-          buildUrl(page),
-          { headers: { 'Accept': 'application/ld+json' } }
-        );
-        const data = await response.json();
+        const data = await getApiV1Data(buildUrl(page));
         const newContracts = transformContracts(data.member || []);
         const itemsPerPage = 30;
         const totalPages = Math.ceil((data.totalItems || 0) / itemsPerPage);
@@ -263,11 +259,7 @@ export default function ContractsDesktopView({
         let pagesChecked = 0;
 
         while (accumulated.length < MIN_DISPLAY_COUNT && pagesChecked < MAX_PAGES_TO_FETCH) {
-          const response = await fetch(
-            buildUrl(apiPage),
-            { headers: { 'Accept': 'application/ld+json' } }
-          );
-          const data = await response.json();
+          const data = await getApiV1Data(buildUrl(apiPage));
           totalItems = data.totalItems || 0;
           totalPages = Math.ceil(totalItems / 30);
 
@@ -306,7 +298,7 @@ export default function ContractsDesktopView({
     }
     // When filter or sort changes, re-fetch from page 1
     fetchPage(1, filter);
-  }, [filter, sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filter, sortBy]);  
 
   const filteredContracts = useMemo(() => {
     let result = [...contracts];

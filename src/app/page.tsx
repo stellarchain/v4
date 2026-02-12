@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl, normalizeTransactions } from '@/lib/stellar';
+import { normalizeTransactions } from '@/lib/stellar';
 import type { Ledger, Transaction, Operation, NetworkStats } from '@/lib/stellar';
 import DesktopHomePage from '@/components/desktop/DesktopHomePage';
 import StatsSection from '@/components/mobile/sections/StatsSection';
 import TransactionsSection from '@/components/mobile/sections/TransactionsSection';
 import { fetchStellarCoinData } from '@/services/api';
+import { createHorizonServer } from '@/services/horizon';
 
 interface MarketAsset {
   rank: number;
@@ -92,7 +93,7 @@ export default function HomePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const server = new Horizon.Server(getBaseUrl());
+        const server = createHorizonServer();
 
         // Fetch all data in parallel
         const [

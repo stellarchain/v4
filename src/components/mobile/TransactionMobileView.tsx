@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { shortenAddress, timeAgo, getOperationTypeLabel, formatDate, formatXLM, extractContractAddress, detectContractFunctionType } from '@/lib/stellar';
 import type { AccountLabel } from '@/lib/stellar';
-import type { ContractFunctionType } from '@/lib/types/token';
+import type { ContractFunctionType } from '@/lib/shared/interfaces';
 import AccountBadges from '@/components/AccountBadges';
-import { containers, spacing } from '@/lib/design-system';
+import { containers, spacing } from '@/lib/shared/designSystem';
 import GliderTabs, { type GliderTab } from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
-import { decodeTransactionMeta, decodeTransactionResources, type DecodedTransactionMeta, type SorobanMetrics } from '@/lib/xdrDecoder';
+import { decodeTransactionMeta, decodeTransactionResources, type DecodedTransactionMeta, type SorobanMetrics } from '@/lib/shared/xdr';
 
 interface Operation {
   id: string;
@@ -159,20 +159,24 @@ export default function TransactionMobileView({ transaction, operations, effects
     setXdrFetchAttempted(true);
     setIsDecodingXdr(true);
 
-    fetch(`/api/transaction-meta?hash=${transaction.hash}`)
-      .then(res => res.json())
-      .then(data => {
+    const fetchRpcXdr = async () => {
+      try {
+        const res = await fetch(`/api/transaction-meta?hash=${transaction.hash}`);
+        const data = await res.json();
         if (data.resultMetaXdr) {
           setFetchedXdr(data.resultMetaXdr);
           if (Array.isArray(data.diagnosticEventsXdr) && data.diagnosticEventsXdr.length > 0) {
             setFetchedDiagnosticEventsXdr(data.diagnosticEventsXdr);
           }
         }
+      } catch {
+        // Ignore RPC metadata fetch failures
+      } finally {
         setIsDecodingXdr(false);
-      })
-      .catch(() => {
-        setIsDecodingXdr(false);
-      });
+      }
+    };
+
+    void fetchRpcXdr();
   }, [
     isContractCall,
     activeTab,

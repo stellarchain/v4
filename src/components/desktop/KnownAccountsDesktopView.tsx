@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/stellar';
 import type { LabeledAccountsAPIResponse, LabeledAccount } from '@/lib/stellar';
+import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 interface KnownAccountsDesktopViewProps {
   initialData: LabeledAccountsAPIResponse;
@@ -11,13 +12,6 @@ interface KnownAccountsDesktopViewProps {
 
 type SortField = 'rank' | 'balance' | 'transactions';
 type SortOrder = 'asc' | 'desc';
-
-function formatBalance(balance: number): string {
-  if (balance >= 1e9) return `${(balance / 1e9).toFixed(2)}B`;
-  if (balance >= 1e6) return `${(balance / 1e6).toFixed(2)}M`;
-  if (balance >= 1e3) return `${(balance / 1e3).toFixed(1)}K`;
-  return balance.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
 
 function formatFullBalance(balance: number): string {
   return balance.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -63,11 +57,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
   const fetchPage = useCallback(async (page: number) => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `https://api.stellarchain.dev/v1/accounts?page=${page}`,
-        { headers: { 'Accept': 'application/ld+json' } }
-      );
-      const json = await response.json();
+      const json = await getApiV1Data(apiEndpoints.v1.accounts({ page }));
 
       const transformedAccounts = json.member?.map((acc: any) => ({
         account: acc.address,

@@ -4,8 +4,8 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { MarketAsset } from '@/lib/stellar';
-import { containers } from '@/lib/design-system';
-import { assetRoute } from '@/lib/routes';
+import { containers } from '@/lib/shared/designSystem';
+import { assetRoute } from '@/lib/shared/routes';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface MarketsMobileViewProps {

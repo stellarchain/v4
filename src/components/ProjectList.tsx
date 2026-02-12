@@ -165,7 +165,7 @@ export default function ProjectList({ initialProjects }: ProjectListProps) {
                         </div>
                         <h3 className="text-[var(--text-primary)] font-medium mb-1">No projects found</h3>
                         <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto">
-                            We couldn't find any projects matching your search.
+                            We couldn&apos;t find any projects matching your search.
                         </p>
                     </div>
                 )}

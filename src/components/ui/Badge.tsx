@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cn } from '@/lib/design-system';
+import { cn } from '@/lib/shared/designSystem';
 
 type BadgeVariant = 'neutral' | 'info' | 'success' | 'warning' | 'error';
 

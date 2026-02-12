@@ -5,14 +5,25 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import gsap from 'gsap';
-import { Ledger, NetworkStats, Transaction, formatXLM, shortenAddress, timeAgo, Operation, getBaseUrl } from '@/lib/stellar';
+import {
+    Ledger,
+    NetworkStats,
+    Transaction,
+    formatXLM,
+    shortenAddress,
+    timeAgo,
+    Operation,
+    getLedgers,
+    getOperations,
+    getPayments,
+} from '@/lib/stellar';
 import InfoTooltip from '../InfoTooltip';
 import TransactionFlowAnimation from './TransactionFlowAnimation';
 import TPSChart from './TPSChart';
-import { getOperationColors } from '@/lib/design-system';
+import { getOperationColors } from '@/lib/shared/designSystem';
 import { getRouteFromSearchQuery } from '@/lib/searchRouting';
 import GliderTabs from '@/components/ui/GliderTabs';
-import { assetRoute } from '@/lib/routes';
+import { assetRoute } from '@/lib/shared/routes';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface XLMMarketData {
@@ -174,9 +185,8 @@ export default function DesktopHomePage({
 
         const fetchStats = async () => {
             try {
-                const ledgersRes = await fetch(`${getBaseUrl()}/ledgers?limit=8&order=desc`);
-                const ledgersData = await ledgersRes.json();
-                const records: Ledger[] = ledgersData._embedded.records;
+                const ledgersData = await getLedgers(8, 'desc');
+                const records: Ledger[] = ledgersData.records;
                 const latest = records[0];
 
                 if (latest.sequence > liveStats.ledger_count) {
@@ -200,15 +210,13 @@ export default function DesktopHomePage({
             try {
                 if (activeTab === 'All Activity') {
                     // Fetch both operations and payments for variety
-                    const [opsRes, paymentsRes] = await Promise.all([
-                        fetch(`${getBaseUrl()}/operations?limit=200&order=desc&include_failed=true`),
-                        fetch(`${getBaseUrl()}/payments?limit=20&order=desc`)
+                    const [opsData, paymentsData] = await Promise.all([
+                        getOperations(200, 'desc', undefined, true),
+                        getPayments(20, 'desc'),
                     ]);
-                    const opsData = await opsRes.json();
-                    const paymentsData = await paymentsRes.json();
 
-                    const ops: Operation[] = opsData._embedded?.records || [];
-                    const payments: Operation[] = paymentsData._embedded?.records || [];
+                    const ops: Operation[] = opsData.records || [];
+                    const payments: Operation[] = paymentsData.records || [];
 
                     // Merge and dedupe
                     const opIds = new Set(ops.map(op => op.id));
@@ -218,25 +226,22 @@ export default function DesktopHomePage({
                     );
                     setOperations(dedupeById(merged));
                 } else if (activeTab === 'Payments') {
-                    const res = await fetch(`${getBaseUrl()}/payments?limit=50&order=desc`);
-                    const data = await res.json();
-                    if (data._embedded?.records) setOperations(dedupeById(data._embedded.records));
+                    const data = await getPayments(50, 'desc');
+                    if (data.records) setOperations(dedupeById(data.records));
                 } else if (activeTab === 'Swaps') {
                     // Fetch more operations to find swaps (they're less common)
-                    const res = await fetch(`${getBaseUrl()}/operations?limit=200&order=desc&include_failed=false`);
-                    const data = await res.json();
-                    if (data._embedded?.records) {
+                    const data = await getOperations(200, 'desc', undefined, false);
+                    if (data.records) {
                         // Filter for swap operations
-                        const swaps = data._embedded.records.filter((op: Operation) =>
+                        const swaps = data.records.filter((op: Operation) =>
                             op.type.includes('path_payment') || op.type.includes('offer')
                         );
-                        setOperations(dedupeById(swaps.length > 0 ? swaps : data._embedded.records));
+                        setOperations(dedupeById(swaps.length > 0 ? swaps : data.records));
                     }
                 } else {
                     // Smart Contracts tab
-                    const res = await fetch(`${getBaseUrl()}/operations?limit=100&order=desc&include_failed=false`);
-                    const data = await res.json();
-                    if (data._embedded?.records) setOperations(dedupeById(data._embedded.records));
+                    const data = await getOperations(100, 'desc', undefined, false);
+                    if (data.records) setOperations(dedupeById(data.records));
                 }
             } catch (e) {
                 console.error('Failed to fetch initial tab data', e);
@@ -249,15 +254,13 @@ export default function DesktopHomePage({
             try {
                 if (activeTab === 'All Activity') {
                     // Poll both for variety
-                    const [opsRes, paymentsRes] = await Promise.all([
-                        fetch(`${getBaseUrl()}/operations?limit=200&order=desc&include_failed=true`),
-                        fetch(`${getBaseUrl()}/payments?limit=10&order=desc`)
+                    const [opsData, paymentsData] = await Promise.all([
+                        getOperations(200, 'desc', undefined, true),
+                        getPayments(10, 'desc'),
                     ]);
-                    const opsData = await opsRes.json();
-                    const paymentsData = await paymentsRes.json();
 
-                    const newOps: Operation[] = opsData._embedded?.records || [];
-                    const newPayments: Operation[] = paymentsData._embedded?.records || [];
+                    const newOps: Operation[] = opsData.records || [];
+                    const newPayments: Operation[] = paymentsData.records || [];
 
                     setOperations(prevOps => {
                         const seen = new Set(prevOps.map(op => op.id));
@@ -281,12 +284,10 @@ export default function DesktopHomePage({
                         return prevOps;
                     });
                 } else {
-                    const url = activeTab === 'Payments'
-                        ? `${getBaseUrl()}/payments?limit=10&order=desc`
-                        : `${getBaseUrl()}/operations?limit=10&order=desc&include_failed=false`;
-                    const res = await fetch(url);
-                    const data = await res.json();
-                    const newOps: Operation[] = data._embedded?.records || [];
+                    const data = activeTab === 'Payments'
+                        ? await getPayments(10, 'desc')
+                        : await getOperations(10, 'desc', undefined, false);
+                    const newOps: Operation[] = data.records || [];
 
                     setOperations(prevOps => {
                         const existingIds = new Set(prevOps.map(op => op.id));

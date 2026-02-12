@@ -10,14 +10,16 @@ export default function ProjectsPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchProjects()
-            .then((data) => {
+        const loadProjects = async () => {
+            try {
+                const data = await fetchProjects();
                 setProjects(data);
+            } finally {
                 setLoading(false);
-            })
-            .catch(() => {
-                setLoading(false);
-            });
+            }
+        };
+
+        loadProjects();
     }, []);
 
     if (loading) {

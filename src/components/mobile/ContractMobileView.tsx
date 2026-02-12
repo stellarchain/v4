@@ -6,12 +6,13 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { shortenAddress, timeAgo, ContractInvocation } from '@/lib/stellar';
 import GliderTabs from '@/components/ui/GliderTabs';
-import type { TokenRegistryEntry, ContractVerification } from '@/lib/types/token';
-import type { ContractMetadataResult, ContractAccessControlResult, ContractSpecResult } from '@/lib/contractMetadata';
-import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
-import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isCustomEventData, CustomEventData } from '@/lib/eventParser';
-import type { ContractStorageResult } from '@/lib/contractStorage';
+import type { TokenRegistryEntry, ContractVerification } from '@/lib/shared/interfaces';
+import type { ContractMetadataResult, ContractAccessControlResult, ContractSpecResult } from '@/lib/soroban/contractMetadata';
+import type { NFTInfo, VaultInfo } from '@/lib/soroban/contractExtensions';
+import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isCustomEventData, CustomEventData } from '@/lib/soroban/events';
+import type { ContractStorageResult } from '@/lib/soroban/storage';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
+import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 interface Operation {
   id: string;
@@ -130,18 +131,9 @@ export default function ContractMobileView({ contract, operations, onTabChange }
     setSourceCodeError(null);
 
     try {
-      const response = await fetch(
-        `https://api.stellarchain.dev/v1/contracts/${contract.id}?source_code=1&network=mainnet`,
-        {
-          headers: { 'Accept': 'application/ld+json' },
-        }
+      const data = await getApiV1Data(
+        apiEndpoints.v1.contractById(contract.id, { source_code: 1, network: 'mainnet' })
       );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch source code: ${response.status}`);
-      }
-
-      const data = await response.json();
       // Source code is in contractDecoded.contractSourceCode
       const sourceCodeText = data.contractDecoded?.contractSourceCode || data.contractSourceCode;
       setSourceCode(sourceCodeText || 'No source code available');

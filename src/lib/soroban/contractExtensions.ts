@@ -2,18 +2,12 @@
 // Supports NFT (SEP-0050), Vault (ERC-4626), and RWA contracts
 
 import {
-  rpc,
   xdr,
   Address,
-  Contract,
   nativeToScVal,
   scValToNative,
-  Account,
-  TransactionBuilder,
-  BASE_FEE,
-  Networks,
 } from '@stellar/stellar-sdk';
-import { getSorobanServer, getNetwork } from './soroban';
+import { simulateContractRead } from './client';
 
 // ============================================================================
 // Types & Interfaces
@@ -95,56 +89,6 @@ function setCache<T>(cache: Map<string, CacheEntry<T>>, key: string, data: T): v
 // ============================================================================
 // Internal Helpers
 // ============================================================================
-
-function getNetworkPassphrase(): string {
-  const network = getNetwork();
-  return network === 'mainnet' ? Networks.PUBLIC : Networks.TESTNET;
-}
-
-// Simulate a contract call to read state (replicating pattern from soroban.ts)
-async function simulateContractRead(
-  contractId: string,
-  method: string,
-  args: xdr.ScVal[] = []
-): Promise<xdr.ScVal | null> {
-  try {
-    const server = getSorobanServer();
-    const contract = new Contract(contractId);
-
-    // Build the operation
-    const operation = contract.call(method, ...args);
-
-    // Create a minimal transaction for simulation
-    // We use a dummy source account since we're just reading
-    const sourceAccount = new Account(
-      'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF', // Dummy account
-      '0'
-    );
-
-    const transaction = new TransactionBuilder(sourceAccount, {
-      fee: BASE_FEE,
-      networkPassphrase: getNetworkPassphrase(),
-    })
-      .addOperation(operation)
-      .setTimeout(30)
-      .build();
-
-    // Simulate the transaction
-    const response = await server.simulateTransaction(transaction);
-
-    if (rpc.Api.isSimulationSuccess(response)) {
-      const result = response.result;
-      if (result?.retval) {
-        return result.retval;
-      }
-    }
-
-    return null;
-  } catch (error) {
-    console.error(`Error simulating contract call ${method}:`, error);
-    return null;
-  }
-}
 
 // Helper to convert token ID to ScVal (handles both numeric and string IDs)
 function tokenIdToScVal(tokenId: string): xdr.ScVal {

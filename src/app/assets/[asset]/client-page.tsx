@@ -6,7 +6,7 @@ import { getAssetDetails, getMarketAssets } from '@/lib/stellar';
 import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
 import AssetLoadingShell from '@/components/ui/AssetLoadingShell';
-import { getDetailRouteValue } from '@/lib/routeDetail';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
 
 function parseAssetSlug(slug: string): { code: string; issuer?: string } | null {
@@ -58,7 +58,7 @@ export default function AssetDetailsRoute() {
           return;
         }
 
-        const [assetDetails, marketAssets] = await Promise.all([
+        const [assetDetails, marketAssetsResult] = await Promise.all([
           getAssetDetails(code, issuer),
           getMarketAssets(),
         ]);
@@ -68,7 +68,7 @@ export default function AssetDetailsRoute() {
           return;
         }
 
-        const assetRank = marketAssets.findIndex(a => a.code === assetDetails.code) + 1;
+        const assetRank = marketAssetsResult.assets.findIndex(a => a.code === assetDetails.code) + 1;
         setDetails(assetDetails);
         setRank(assetRank);
       } catch (err) {

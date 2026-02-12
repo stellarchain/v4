@@ -3,12 +3,35 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { gsap } from 'gsap';
 import CompactTransactionRow from './CompactTransactionRow';
-import { Transaction, getTransactionDisplayInfo, Operation, getTransactionOperations, getBaseUrl, getNetwork } from '@/lib/stellar';
-import { containers, interactive, spacing } from '@/lib/design-system';
+import {
+  Transaction,
+  getTransactionDisplayInfo,
+  Operation,
+  Effect,
+  getTransactionOperations,
+  getTransactions,
+  getPayments,
+  getTransactionEffects,
+  getNetwork
+} from '@/lib/stellar';
+import { containers, interactive, spacing } from '@/lib/shared/designSystem';
 import { useNetwork } from '@/contexts/NetworkContext';
 import GliderTabs from '@/components/ui/GliderTabs';
 
 type FilterType = 'all' | 'transfers' | 'contracts';
+
+type BalanceEffect = Effect & {
+  amount: string;
+  asset_type?: string;
+  asset_code?: string;
+};
+
+function isBalanceEffect(effect: Effect): effect is BalanceEffect {
+  return (
+    (effect.type === 'account_credited' || effect.type === 'account_debited') &&
+    typeof effect.amount === 'string'
+  );
+}
 
 // Custom hook to detect mobile viewport
 function useIsMobile(breakpoint: number = 768) {
@@ -120,18 +143,14 @@ export default function TransactionPageClient({
   const fetchTransactions = useCallback(async () => {
     try {
       // Fetch regular transactions (required)
-      const txRes = await fetch(`${getBaseUrl()}/transactions?limit=${limit}&order=desc`);
-      const txData = await txRes.json();
-      const newTransactions: Transaction[] = txData._embedded.records;
+      const txData = await getTransactions(limit, 'desc');
+      const newTransactions: Transaction[] = txData.records;
 
       // Fetch payments separately (optional - don't fail if this errors)
       let paymentOps: Operation[] = [];
       try {
-        const paymentsRes = await fetch(`${getBaseUrl()}/payments?limit=30&order=desc`);
-        if (paymentsRes.ok) {
-          const paymentsData = await paymentsRes.json();
-          paymentOps = paymentsData._embedded?.records || [];
-        }
+        const paymentsData = await getPayments(30, 'desc');
+        paymentOps = paymentsData.records || [];
       } catch {
         // Silently ignore payment fetch errors
       }
@@ -226,11 +245,8 @@ export default function TransactionPageClient({
       }
 
       // Fetch older transactions
-      const res = await fetch(
-        `${getBaseUrl()}/transactions?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
-      );
-      const data = await res.json();
-      const olderTransactions: Transaction[] = data._embedded.records;
+      const data = await getTransactions(PAGE_SIZE, 'desc', cursor);
+      const olderTransactions: Transaction[] = data.records;
 
       if (olderTransactions.length === 0) {
         setIsLoadingMore(false);
@@ -321,11 +337,8 @@ export default function TransactionPageClient({
 
       // For payments filter, fetch from /payments endpoint to get actual payments
       if (filter === 'transfers') {
-        const res = await fetch(
-          `${getBaseUrl()}/payments?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
-        );
-        const data = await res.json();
-        const paymentOps: { transaction_hash: string; paging_token: string; created_at: string; source_account: string; type: string; transaction_successful: boolean; id: string; amount?: string; asset_type?: string; asset_code?: string; from?: string; to?: string }[] = data._embedded?.records || [];
+        const data = await getPayments(PAGE_SIZE, 'desc', cursor);
+        const paymentOps: { transaction_hash: string; paging_token: string; created_at: string; source_account: string; type: string; transaction_successful: boolean; id: string; amount?: string; asset_type?: string; asset_code?: string; from?: string; to?: string }[] = data.records || [];
 
         if (paymentOps.length === 0) {
           setIsLoadingMore(false);
@@ -389,11 +402,8 @@ export default function TransactionPageClient({
         setMobileLoadedCount(prev => prev + PAGE_SIZE);
       } else {
         // For all/contracts, fetch from /transactions
-        const res = await fetch(
-          `${getBaseUrl()}/transactions?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
-        );
-        const data = await res.json();
-        const olderTransactions: Transaction[] = data._embedded.records;
+        const data = await getTransactions(PAGE_SIZE, 'desc', cursor);
+        const olderTransactions: Transaction[] = data.records;
 
         if (olderTransactions.length === 0) {
           setIsLoadingMore(false);
@@ -476,9 +486,8 @@ export default function TransactionPageClient({
       setIsInitialLoading(true);
       try {
         // Fetch fresh transactions from current network
-        const txRes = await fetch(`${getBaseUrl()}/transactions?limit=${limit}&order=desc`);
-        const txData = await txRes.json();
-        const newTransactions: Transaction[] = txData._embedded.records;
+        const txData = await getTransactions(limit, 'desc');
+        const newTransactions: Transaction[] = txData.records;
 
         // Process with minimal displayInfo
         const txsWithOps = newTransactions.map((tx) => ({
@@ -561,20 +570,18 @@ export default function TransactionPageClient({
         const results = await Promise.all(batch.map(async (tx) => {
           try {
             const opRes = await getTransactionOperations(tx.hash, 5);
-            const ops = opRes._embedded.records;
+            const ops = opRes.records;
 
             if (ops && ops.length > 0) {
               const info = getTransactionDisplayInfo(ops);
 
-              // If contract, also fetch effects for amounts
               if (info.type === 'contract') {
                 try {
-                  const effectsRes = await fetch(`${getBaseUrl()}/transactions/${tx.hash}/effects?limit=10`);
-                  const effectsData = await effectsRes.json();
-                  const effects = effectsData._embedded?.records || [];
+                  const effectsData = await getTransactionEffects(tx.hash, 10, 'desc');
+                  const effects = (effectsData.records || []) as Effect[];
 
-                  const credit = effects.find((e: { type: string; amount?: string }) => e.type === 'account_credited' && e.amount);
-                  const debit = effects.find((e: { type: string; amount?: string }) => e.type === 'account_debited' && e.amount);
+                  const credit = effects.find((e): e is BalanceEffect => e.type === 'account_credited' && isBalanceEffect(e));
+                  const debit = effects.find((e): e is BalanceEffect => e.type === 'account_debited' && isBalanceEffect(e));
 
                   if (credit) {
                     info.effectType = 'received';

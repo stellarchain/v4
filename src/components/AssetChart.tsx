@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { AssetDetails } from '@/lib/stellar';
+import { apiEndpoints, getApiData } from '@/services/api';
 
 interface AssetChartProps {
   asset: AssetDetails;
@@ -67,24 +68,16 @@ export default function AssetChart({ asset }: AssetChartProps) {
 
     setLoading(true);
     try {
-      const response = await fetch('https://api.stellarchain.dev/api/coins/stellar', {
-        headers: { 'Accept': 'application/json' }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const sparkline = data?.coingecko_stellar?.market_data?.sparkline_7d?.price;
-        if (Array.isArray(sparkline) && sparkline.length > 0) {
-          const step = (7 * 24 * 60 * 60 * 1000) / sparkline.length;
-          const points = sparkline.map((price: number, index: number) => ({
-            timestamp: now - ((sparkline.length - 1 - index) * step),
-            price: Number(price) || 0,
-          }));
-          const filteredPoints = points.filter((p: PricePoint) => p.timestamp > now - ranges[timeRange]);
-          setPriceData(filteredPoints.length > 0 ? filteredPoints : points);
-        } else {
-          setPriceData([]);
-        }
+      const data = await getApiData(apiEndpoints.coins.stellar());
+      const sparkline = data?.coingecko_stellar?.market_data?.sparkline_7d?.price;
+      if (Array.isArray(sparkline) && sparkline.length > 0) {
+        const step = (7 * 24 * 60 * 60 * 1000) / sparkline.length;
+        const points = sparkline.map((price: number, index: number) => ({
+          timestamp: now - ((sparkline.length - 1 - index) * step),
+          price: Number(price) || 0,
+        }));
+        const filteredPoints = points.filter((p: PricePoint) => p.timestamp > now - ranges[timeRange]);
+        setPriceData(filteredPoints.length > 0 ? filteredPoints : points);
       } else {
         setPriceData([]);
       }

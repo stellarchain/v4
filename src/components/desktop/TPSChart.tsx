@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Ledger, getBaseUrl } from '@/lib/stellar';
+import { Ledger, getLedgers } from '@/lib/stellar';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface TPSDataPoint {
@@ -56,9 +56,8 @@ export default function TPSChart({ liveLedgers }: TPSChartProps) {
 
     (async () => {
       try {
-        const res = await fetch(`${getBaseUrl()}/ledgers?limit=51&order=desc`);
-        const json = await res.json();
-        const ledgers: Ledger[] = json._embedded?.records || [];
+        const json = await getLedgers(51, 'desc');
+        const ledgers: Ledger[] = json.records || [];
         for (const l of ledgers) {
           allLedgers.current.set(l.sequence, l);
         }

@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl, normalizeTransactions } from '@/lib/stellar';
+import { normalizeTransactions } from '@/lib/stellar';
 import type { LiquidityPool, Operation, Transaction, LiquidityPoolTrade, Effect } from '@/lib/stellar';
 import Link from 'next/link';
 import LiquidityPoolMobileView from '@/components/mobile/LiquidityPoolMobileView';
 import LiquidityPoolDesktopView from '@/components/desktop/LiquidityPoolDesktopView';
-import { getDetailRouteValue } from '@/lib/routeDetail';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
+import { createHorizonServer } from '@/services/horizon';
 
 
 export default function LiquidityPoolPage() {
@@ -51,48 +52,61 @@ export default function LiquidityPoolPage() {
           trades: true,
           effects: true,
         });
-        const server = new Horizon.Server(getBaseUrl());
+        const server = createHorizonServer();
 
         // Load pool first so shell can render.
         const poolRes = await server.liquidityPools().liquidityPoolId(id).call();
         setPool(poolRes as unknown as LiquidityPool);
 
         // Load remaining sections progressively.
-        void server.operations().forLiquidityPool(id).limit(20).order('desc').call()
-          .then((res) => {
+        const loadOperations = async () => {
+          try {
+            const res = await server.operations().forLiquidityPool(id).limit(20).order('desc').call();
             setOperations(((res as any).records || []) as unknown as Operation[]);
-          })
-          .catch(() => {})
-          .finally(() => {
+          } catch {
+            // Ignore section errors; page still renders other data.
+          } finally {
             setLoadingSections((prev) => ({ ...prev, operations: false }));
-          });
+          }
+        };
 
-        void server.transactions().forLiquidityPool(id).limit(20).order('desc').call()
-          .then((res) => {
+        const loadTransactions = async () => {
+          try {
+            const res = await server.transactions().forLiquidityPool(id).limit(20).order('desc').call();
             setTransactions(normalizeTransactions((res as any).records || []));
-          })
-          .catch(() => {})
-          .finally(() => {
+          } catch {
+            // Ignore section errors; page still renders other data.
+          } finally {
             setLoadingSections((prev) => ({ ...prev, transactions: false }));
-          });
+          }
+        };
 
-        void server.trades().forLiquidityPool(id).limit(20).order('desc').call()
-          .then((res) => {
+        const loadTrades = async () => {
+          try {
+            const res = await server.trades().forLiquidityPool(id).limit(20).order('desc').call();
             setTrades(((res as any).records || []) as unknown as LiquidityPoolTrade[]);
-          })
-          .catch(() => {})
-          .finally(() => {
+          } catch {
+            // Ignore section errors; page still renders other data.
+          } finally {
             setLoadingSections((prev) => ({ ...prev, trades: false }));
-          });
+          }
+        };
 
-        void server.effects().forLiquidityPool(id).limit(20).order('desc').call()
-          .then((res) => {
+        const loadEffects = async () => {
+          try {
+            const res = await server.effects().forLiquidityPool(id).limit(20).order('desc').call();
             setEffects(((res as any).records || []) as unknown as Effect[]);
-          })
-          .catch(() => {})
-          .finally(() => {
+          } catch {
+            // Ignore section errors; page still renders other data.
+          } finally {
             setLoadingSections((prev) => ({ ...prev, effects: false }));
-          });
+          }
+        };
+
+        void loadOperations();
+        void loadTransactions();
+        void loadTrades();
+        void loadEffects();
       } catch (err) {
         if (!pool) {
           setError('Pool not found');

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Transaction, shortenAddress, timeAgo } from '@/lib/stellar';
-import { txRoute } from '@/lib/routes';
+import { txRoute } from '@/lib/shared/routes';
 
 interface TransactionCardProps {
   transaction: Transaction;

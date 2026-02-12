@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { Operation, shortenAddress, timeAgo, getOperationTypeLabel, formatXLM } from '@/lib/stellar';
 import { forwardRef } from 'react';
-import { cn } from '@/lib/design-system';
-import { txRoute } from '@/lib/routes';
+import { cn } from '@/lib/shared/designSystem';
+import { txRoute } from '@/lib/shared/routes';
 
 interface CompactOperationRowProps {
   operation: Operation;

@@ -1,8 +1,9 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-
-export type NetworkType = 'mainnet' | 'testnet' | 'futurenet';
+import { HORIZON_URLS, NETWORK_PASSPHRASES, SOROBAN_RPC_URLS, type NetworkType } from '@/lib/network/config';
+import { getStoredNetwork, persistNetwork } from '@/lib/network/state';
+export type { NetworkType } from '@/lib/network/config';
 
 export interface NetworkConfig {
   name: string;
@@ -18,26 +19,26 @@ export const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
   mainnet: {
     name: 'mainnet',
     displayName: 'Mainnet',
-    horizonUrl: 'https://horizon.stellar.org',
-    rpcUrl: 'https://soroban-rpc.mainnet.stellar.gateway.fm',
-    passphrase: 'Public Global Stellar Network ; September 2015',
+    horizonUrl: HORIZON_URLS.mainnet,
+    rpcUrl: SOROBAN_RPC_URLS.mainnet,
+    passphrase: NETWORK_PASSPHRASES.mainnet,
     color: '#22c55e', // green
   },
   testnet: {
     name: 'testnet',
     displayName: 'Testnet',
-    horizonUrl: 'https://horizon-testnet.stellar.org',
-    rpcUrl: 'https://soroban-testnet.stellar.org',
-    passphrase: 'Test SDF Network ; September 2015',
+    horizonUrl: HORIZON_URLS.testnet,
+    rpcUrl: SOROBAN_RPC_URLS.testnet,
+    passphrase: NETWORK_PASSPHRASES.testnet,
     friendbotUrl: 'https://friendbot.stellar.org',
     color: '#f59e0b', // amber
   },
   futurenet: {
     name: 'futurenet',
     displayName: 'Futurenet',
-    horizonUrl: 'https://horizon-futurenet.stellar.org',
-    rpcUrl: 'https://rpc-futurenet.stellar.org',
-    passphrase: 'Test SDF Future Network ; October 2022',
+    horizonUrl: HORIZON_URLS.futurenet,
+    rpcUrl: SOROBAN_RPC_URLS.futurenet,
+    passphrase: NETWORK_PASSPHRASES.futurenet,
     friendbotUrl: 'https://friendbot-futurenet.stellar.org',
     color: '#8b5cf6', // purple
   },
@@ -52,52 +53,21 @@ interface NetworkContextType {
 
 const NetworkContext = createContext<NetworkContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'stellarchain-network';
-
 export function NetworkProvider({ children }: { children: ReactNode }) {
-  const [network, setNetworkState] = useState<NetworkType>('mainnet');
-  const [mounted, setMounted] = useState(false);
+  const [network, setNetworkState] = useState<NetworkType>(() => getStoredNetwork() || 'mainnet');
   const [isChangingNetwork, setIsChangingNetwork] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    // Check localStorage for saved network preference
-    const stored = localStorage.getItem(STORAGE_KEY) as NetworkType | null;
-    if (stored && NETWORK_CONFIGS[stored]) {
-      setNetworkState(stored);
-      // Sync with stellar.ts and soroban.ts
-      syncNetworkModules(stored);
-      // Also set cookie for server-side reading
-      document.cookie = `stellarchain-network=${stored};path=/;max-age=31536000`;
-    }
-  }, []);
+    persistNetwork(network);
+  }, [network]);
 
-  const syncNetworkModules = async (newNetwork: NetworkType) => {
-    // Dynamically import and set network in both modules
-    const [stellar, soroban] = await Promise.all([
-      import('@/lib/stellar'),
-      import('@/lib/soroban'),
-    ]);
-    stellar.setNetwork(newNetwork);
-    soroban.setNetwork(newNetwork);
-  };
-
-  const setNetwork = useCallback(async (newNetwork: NetworkType) => {
+  const setNetwork = useCallback((newNetwork: NetworkType) => {
     if (newNetwork === network) return;
 
     setIsChangingNetwork(true);
 
     // Update state
     setNetworkState(newNetwork);
-
-    // Persist to localStorage
-    localStorage.setItem(STORAGE_KEY, newNetwork);
-
-    // Set cookie for server-side reading
-    document.cookie = `stellarchain-network=${newNetwork};path=/;max-age=31536000`;
-
-    // Sync with stellar.ts and soroban.ts modules
-    await syncNetworkModules(newNetwork);
 
     // Small delay to allow UI to update before potential page refresh
     setTimeout(() => {
@@ -106,11 +76,6 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
       window.location.reload();
     }, 100);
   }, [network]);
-
-  // Prevent flash during hydration
-  if (!mounted) {
-    return null;
-  }
 
   const networkConfig = NETWORK_CONFIGS[network];
 

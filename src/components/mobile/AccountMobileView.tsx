@@ -3,13 +3,25 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Transaction, Operation, Effect, shortenAddress, formatXLM, AccountLabel, getBaseUrl, getXLMStats } from '@/lib/stellar';
-import { containers, colors, coreColors, tabs, badges } from '@/lib/design-system';
+import {
+  Transaction,
+  Operation,
+  Effect,
+  shortenAddress,
+  formatXLM,
+  AccountLabel,
+  getXLMStats,
+  getOrderBook,
+  getTradeAggregations,
+  getAccountOperations,
+  getAccountEffects,
+} from '@/lib/stellar';
+import { containers, colors, coreColors, tabs, badges } from '@/lib/shared/designSystem';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 import { QRCodeSVG } from 'qrcode.react';
 import { useFavorites } from '@/contexts/FavoritesContext';
-import { assetRoute } from '@/lib/routes';
+import { assetRoute } from '@/lib/shared/routes';
 
 function formatCompactNumber(value: number): string {
   if (value === 0) return '0';
@@ -342,10 +354,11 @@ export default function AccountMobileView({ account, accountId, transactions, op
 
         try {
           // Get current price in XLM
-          const res = await fetch(
-            `${getBaseUrl()}/order_book?selling_asset_type=${b.asset_type}&selling_asset_code=${b.asset_code}&selling_asset_issuer=${b.asset_issuer}&buying_asset_type=native&limit=1`
+          const data = await getOrderBook(
+            { code: b.asset_code, issuer: b.asset_issuer },
+            { code: 'XLM' },
+            1
           );
-          const data = await res.json();
 
           if (data.bids && data.bids.length > 0) {
             const priceInXlm = parseFloat(data.bids[0].price);
@@ -354,13 +367,16 @@ export default function AccountMobileView({ account, accountId, transactions, op
             // Get 24h ago price from trade aggregations (use 1h resolution for better data availability)
             const endTime = Date.now();
             const startTime = endTime - 86400000;
-            const aggRes = await fetch(
-              `${getBaseUrl()}/trade_aggregations?base_asset_type=${b.asset_type}&base_asset_code=${b.asset_code}&base_asset_issuer=${b.asset_issuer}&counter_asset_type=native&resolution=3600000&start_time=${startTime}&end_time=${endTime}&limit=24&order=asc`
+            const records = await getTradeAggregations(
+              { code: b.asset_code, issuer: b.asset_issuer },
+              { code: 'XLM' },
+              3600000,
+              24,
+              startTime,
+              endTime
             );
-            const aggData = await aggRes.json();
 
             let change24h = 0;
-            const records = aggData._embedded?.records || [];
             if (records.length > 0) {
               // Get the oldest record's open price as our 24h ago reference
               const oldestRecord = records[0];
@@ -397,11 +413,8 @@ export default function AccountMobileView({ account, accountId, transactions, op
 
     setLoadingMore(true);
     try {
-      const res = await fetch(
-        `${getBaseUrl()}/accounts/${accountId}/operations?limit=100&order=desc&cursor=${lastCursor}`
-      );
-      const data = await res.json();
-      const newOps = data._embedded?.records || [];
+      const data = await getAccountOperations(accountId, 100, 'desc', lastCursor);
+      const newOps = data.records || [];
 
       if (newOps.length > 0) {
         setAllOperations(prev => [...prev, ...newOps]);
@@ -460,9 +473,8 @@ export default function AccountMobileView({ account, accountId, transactions, op
 
     const fetchEffects = async () => {
       try {
-        const res = await fetch(`${getBaseUrl()}/accounts/${accountId}/effects?limit=200&order=desc`);
-        const data = await res.json();
-        const records = data._embedded?.records || [];
+        const data = await getAccountEffects(accountId, 200, 'desc');
+        const records = data.records || [];
 
         // Group effects by operation_id
         const grouped: Record<string, Effect[]> = {};
@@ -533,10 +545,11 @@ export default function AccountMobileView({ account, accountId, transactions, op
         }
 
         try {
-          const res = await fetch(
-            `${getBaseUrl()}/order_book?selling_asset_type=${asset.type}&selling_asset_code=${asset.code}&selling_asset_issuer=${asset.issuer}&buying_asset_type=native&limit=1`
+          const data = await getOrderBook(
+            { code: asset.code, issuer: asset.issuer },
+            { code: 'XLM' },
+            1
           );
-          const data = await res.json();
 
           if (data.bids && data.bids.length > 0) {
             const priceInXlm = parseFloat(data.bids[0].price);

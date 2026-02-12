@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Operation, shortenAddress, timeAgo, getOperationTypeLabel, formatXLM } from '@/lib/stellar';
-import { txRoute } from '@/lib/routes';
+import { txRoute } from '@/lib/shared/routes';
 
 interface OperationCardProps {
   operation: Operation;

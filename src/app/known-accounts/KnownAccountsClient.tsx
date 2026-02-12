@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/stellar';
 import type { LabeledAccountsAPIResponse, LabeledAccount } from '@/lib/stellar';
+import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 interface KnownAccountsClientProps {
   initialData: LabeledAccountsAPIResponse;
@@ -34,11 +35,7 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
   const fetchPage = useCallback(async (page: number) => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `https://api.stellarchain.dev/v1/accounts?page=${page}`,
-        { headers: { 'Accept': 'application/ld+json' } }
-      );
-      const json = await response.json();
+      const json = await getApiV1Data(apiEndpoints.v1.accounts({ page }));
 
       const transformedAccounts = json.member?.map((acc: any) => ({
         account: acc.address,
