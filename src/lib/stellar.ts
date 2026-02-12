@@ -1084,13 +1084,32 @@ export async function getXLMStats(): Promise<{ usd: number; usd_24h_change: numb
   return null;
 }
 
+// Fetch paginated market data from Stellarchain API
+async function getStellarCoinApiDataWithCursor(cursor: number = 0): Promise<StellarCoinApiResponse | null> {
+  try {
+    const url = `https://api.stellarchain.dev/api/coins/stellar?cursor=${cursor}`;
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 60 },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.json() as StellarCoinApiResponse;
+  } catch {
+    return null;
+  }
+}
+
 // Fetch market data from StellarExpert API (aggregated market data)
-export async function getMarketAssets(): Promise<MarketAsset[]> {
+export async function getMarketAssets(cursor: number = 0): Promise<{ assets: MarketAsset[], hasNext: boolean }> {
   try {
     // Fetch from unified Stellarchain endpoint (includes CoinGecko + Stellar Expert payloads)
     const [xlmPrice, coinApiData, coinGeckoData] = await Promise.all([
       getXLMPrice(),
-      getStellarCoinApiData(),
+      cursor === 0 ? getStellarCoinApiData() : getStellarCoinApiDataWithCursor(cursor),
       getCoinGeckoXLMData()
     ]);
 
@@ -1098,6 +1117,9 @@ export async function getMarketAssets(): Promise<MarketAsset[]> {
     if (!Array.isArray(records)) {
       throw new Error('Invalid stellar_expert payload in coins endpoint');
     }
+
+    // Check if there's a next page
+    const hasNext = !!coinApiData?.stellar_expert?._links?.next;
 
     // Transform StellarExpert data to our MarketAsset format
     const assets = records.map((asset: Record<string, unknown>, index: number) => {
@@ -1171,12 +1193,12 @@ export async function getMarketAssets(): Promise<MarketAsset[]> {
       }
     }
 
-    return assets;
+    return { assets, hasNext };
 
   } catch (error) {
     console.error('Error fetching market assets:', error);
-    // Return empty array instead of mock data
-    return [];
+    // Return empty result instead of mock data
+    return { assets: [], hasNext: false };
   }
 }
 
