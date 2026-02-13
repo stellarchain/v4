@@ -1068,7 +1068,7 @@ export async function getXLMStats(): Promise<{ usd: number; usd_24h_change: numb
 }
 
 // Fetch market data from StellarExpert API (aggregated market data)
-export async function getMarketAssets(cursor: number = 0): Promise<{ assets: MarketAsset[], hasNext: boolean }> {
+export async function getMarketAssets(cursor: number = 0): Promise<{ assets: MarketAsset[], hasNext: boolean, nextCursor: number | null }> {
   try {
     // Fetch once from unified Stellarchain endpoint (includes CoinGecko + Stellar Expert payloads)
     const coinApiData = await getStellarCoinApiData(cursor);
@@ -1090,6 +1090,10 @@ export async function getMarketAssets(cursor: number = 0): Promise<{ assets: Mar
 
     // Check if there's a next page
     const hasNext = !!coinApiData?.stellar_expert?._links?.next;
+
+    // Get next cursor from the last record's paging_token
+    const lastRecord = records[records.length - 1];
+    const nextCursor = hasNext && lastRecord ? Number(lastRecord.paging_token) || null : null;
 
     // Transform StellarExpert data to our MarketAsset format
     const assets = records.map((asset: Record<string, unknown>, index: number) => {
@@ -1163,12 +1167,12 @@ export async function getMarketAssets(cursor: number = 0): Promise<{ assets: Mar
       }
     }
 
-    return { assets, hasNext };
+    return { assets, hasNext, nextCursor };
 
   } catch (error) {
     console.error('Error fetching market assets:', error);
     // Return empty result instead of mock data
-    return { assets: [], hasNext: false };
+    return { assets: [], hasNext: false, nextCursor: null };
   }
 }
 
@@ -1651,7 +1655,7 @@ export async function getAccountLabels(
 
   const uniqueAddresses = Array.from(new Set(addresses.filter(Boolean)));
 
-  // First, try direct lookup endpoint (fresh + precise).
+  // Direct lookup endpoint (fresh + precise) — single request for all addresses.
   try {
     const params = new URLSearchParams();
     for (const address of uniqueAddresses) {
@@ -1665,23 +1669,21 @@ export async function getAccountLabels(
         result.set(account.address, {
           name: account.label,
           verified: account.verified === true,
-          org_name: null, // Not available in new API
-          description: null, // Not available in new API
+          org_name: null,
+          description: null,
         });
       }
     }
 
-    if (result.size > 0) {
-      return result;
-    }
+    // Direct lookup succeeded — return whatever we found (even if empty).
+    return result;
   } catch {
-    // Fall back to cached directory method below
+    // Direct lookup failed — fall back to cached directory.
   }
 
-  // Get all labeled accounts from cache
+  // Fallback: get all labeled accounts from cache (paginated, expensive).
   const allLabels = await getCachedLabels();
 
-  // Look up requested addresses
   for (const address of uniqueAddresses) {
     const label = allLabels.get(address) || allLabels.get(address.toUpperCase()) || allLabels.get(address.toLowerCase());
     if (label) {

@@ -63,6 +63,9 @@ interface AccountDesktopViewProps {
   accountLabels?: Record<string, AccountLabel>;
   currentAccountLabel?: AccountLabel | null;
   loading?: boolean;
+  onTabChange?: (tab: string) => void;
+  loadingTransactions?: boolean;
+  loadingOperations?: boolean;
 }
 
 function getAssetUrl(code: string | undefined, issuer: string | undefined): string {
@@ -95,7 +98,7 @@ const getOperationCategory = (type: string): { label: string; color: string; bgC
   return { label: 'Action', color: 'text-[var(--text-secondary)]', bgColor: 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]' };
 };
 
-export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, loading = false }: AccountDesktopViewProps) {
+export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false }: AccountDesktopViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -145,6 +148,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
   // Update URL when tab changes
   const handleTabChange = (tab: 'assets' | 'transactions' | 'operations' | 'details') => {
     setActiveTab(tab);
+    onTabChange?.(tab);
     const params = new URLSearchParams(searchParams.toString());
     if (tab === 'assets') {
       params.delete('tab');
@@ -154,6 +158,14 @@ export default function AccountDesktopView({ account, accountId, transactions, o
     const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
     router.replace(newUrl, { scroll: false });
   };
+
+  // Trigger lazy load if initial tab is not 'assets'
+  useEffect(() => {
+    if (initialTab !== 'assets') {
+      onTabChange?.(initialTab);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync operations state when initialOperations prop changes
   useEffect(() => {
@@ -179,6 +191,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
   useEffect(() => {
     fetchedBalancePriceKeys.current.clear();
     fetchedActivityPriceKeys.current.clear();
+    effectsFetched.current = false;
   }, [accountId]);
 
   // Close dropdowns when clicking outside
@@ -540,6 +553,47 @@ export default function AccountDesktopView({ account, accountId, transactions, o
     } catch {
       return 'Contract Call';
     }
+  };
+
+  // Extract amount directly from the operation object (fallback when effects are not available)
+  const getAmountFromOperation = (op: Operation) => {
+    const o = op as any;
+    // payment / create_account
+    if (o.amount) {
+      const isIncoming = o.to === accountId || o.funder === accountId;
+      const assetCode = o.asset_code || (o.asset_type === 'native' || !o.asset_type ? 'XLM' : 'Unknown');
+      return {
+        type: (isIncoming ? 'received' : 'sent') as 'received' | 'sent',
+        amount: o.amount,
+        asset: assetCode,
+        asset_issuer: o.asset_issuer || null,
+        asset_type: o.asset_type || 'native',
+      };
+    }
+    // path_payment (swap) — show the destination amount received
+    if (o.source_amount) {
+      const destAsset = o.asset_code || (o.asset_type === 'native' ? 'XLM' : 'Unknown');
+      const sourceAsset = o.source_asset_code || (o.source_asset_type === 'native' ? 'XLM' : 'Unknown');
+      // If account is the destination, show received amount; otherwise show sent amount
+      if (o.to === accountId || o.from === accountId) {
+        return {
+          type: (o.to === accountId ? 'received' : 'sent') as 'received' | 'sent',
+          amount: o.to === accountId ? (o.amount || o.source_amount) : o.source_amount,
+          asset: o.to === accountId ? destAsset : sourceAsset,
+          asset_issuer: o.to === accountId ? (o.asset_issuer || null) : (o.source_asset_issuer || null),
+          asset_type: o.to === accountId ? (o.asset_type || 'native') : (o.source_asset_type || 'native'),
+        };
+      }
+      // Self-swap: show destination amount
+      return {
+        type: 'received' as const,
+        amount: o.amount || o.source_amount,
+        asset: destAsset,
+        asset_issuer: o.asset_issuer || null,
+        asset_type: o.asset_type || 'native',
+      };
+    }
+    return null;
   };
 
   const getAmountFromEffects = (effects: Effect[] | undefined) => {
@@ -911,7 +965,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                   <tbody className="divide-y divide-[var(--border-subtle)]">
                     {allOperations.map((op) => {
                       const effects = opEffects[op.id];
-                      const effectInfo = getAmountFromEffects(effects);
+                      const effectInfo = getAmountFromEffects(effects) || getAmountFromOperation(op);
                       const category = getOperationCategory(op.type);
                       const isContract = op.type === 'invoke_host_function';
 
