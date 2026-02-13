@@ -228,12 +228,8 @@ export default function ContractsDesktopView({
     setIsLoading(true);
     const currentFilter = activeFilter ?? filter;
     try {
-      // Build URL with optional sorting
       const buildUrl = (pageNum: number) => {
-        const params: Record<string, string | number> = { page: pageNum };
-        if (sortBy === 'recent') {
-          params['order[createdAt]'] = 'desc';
-        }
+        const params: Record<string, string | number> = { page: pageNum, 'order[createdAt]': 'desc' };
         return apiEndpoints.v1.contracts(params);
       };
 

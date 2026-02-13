@@ -93,7 +93,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
   const fetchPage = useCallback(async (page: number) => {
     setIsLoading(true);
     try {
-      const data = await getApiV1Data(apiEndpoints.v1.contracts({ page }));
+      const data = await getApiV1Data(apiEndpoints.v1.contracts({ page, 'order[createdAt]': 'desc' }));
 
       // Transform API contracts, filtering out invalid IDs
       const newContracts: EnhancedContract[] = (data.member || [])

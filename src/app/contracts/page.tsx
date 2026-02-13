@@ -115,7 +115,7 @@ async function fetchContracts(
     const data = await (async () => {
       try {
         return await getApiV1Data(
-          apiEndpoints.v1.contracts({ page }),
+          apiEndpoints.v1.contracts({ page, 'order[createdAt]': 'desc' }),
           {
             signal: controller.signal,
           }
