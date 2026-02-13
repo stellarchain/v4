@@ -404,7 +404,7 @@ export default function MarketsMobileView({
                 {/* Rank */}
                 <div className="w-6 flex-shrink-0">
                   <span className="text-xs font-medium text-[var(--text-muted)]">
-                    {index + 1}
+                    {asset.rank}
                   </span>
                 </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
 import { normalizeTransactions, getXLMUSDPriceFromHorizon, getAccountLabels } from '@/lib/stellar';
@@ -65,6 +65,12 @@ export default function AccountPage() {
   const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
 
+  // Track which tab data has been fetched
+  const [transactionsFetched, setTransactionsFetched] = useState(false);
+  const [operationsFetched, setOperationsFetched] = useState(false);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [loadingOperations, setLoadingOperations] = useState(false);
+
   // Detect mobile/desktop to conditionally render only one component
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1023px)');
@@ -74,82 +80,34 @@ export default function AccountPage() {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
+  // Initial load: only account data + XLM price
   useEffect(() => {
     const fetchAccountData = async () => {
       try {
         setLoading(true);
         const server = createHorizonServer();
 
-        // Fetch account, transactions, and operations
-        const [accountResponse, transactionsResponse, operationsResponse] = await Promise.all([
+        const [accountResponse, priceData] = await Promise.all([
           server.accounts().accountId(id).call(),
-          server.transactions().forAccount(id).order('desc').limit(50).call(),
-          server.operations().forAccount(id).order('desc').limit(100).call(),
+          getXLMUSDPriceFromHorizon(),
         ]);
 
         const accountData = accountResponse as unknown as Account;
-        const transactionsData = normalizeTransactions(transactionsResponse.records || []);
-        let operationsData = (operationsResponse.records || []) as unknown as Operation[];
 
-        // For Soroban contract calls, the operation's source can be different from the transaction's source
-        // This means contract calls made by this account might not appear in /accounts/{id}/operations
-        // We need to fetch operations from transactions where this account is the source
-        const existingOpTxHashes = new Set(operationsData.map(op => op.transaction_hash));
+        setAccount(accountData);
+        setXlmPrice(priceData);
 
-        // Find transactions that don't have operations in our list (likely contract calls with different op source)
-        const missingTxs = transactionsData.filter(tx => !existingOpTxHashes.has(tx.hash));
-
-        if (missingTxs.length > 0) {
-          // Fetch operations for missing transactions (limit to first 20 to avoid too many requests)
-          const additionalOpsPromises = missingTxs.slice(0, 20).map(async tx => {
-            try {
-              const txOps = await server.operations().forTransaction(tx.hash).limit(5).call();
-              return (txOps.records || []) as unknown as Operation[];
-            } catch {
-              return [];
-            }
-          });
-
-          const additionalOpsArrays = await Promise.all(additionalOpsPromises);
-          const additionalOps = additionalOpsArrays.flat();
-
-          // Merge additional operations into the main list
-          if (additionalOps.length > 0) {
-            operationsData = [...operationsData, ...additionalOps];
-            // Sort by created_at descending to ensure proper order
-            operationsData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          }
-        }
-
-        // Fetch XLM price from Horizon (XLM/USDC trade aggregation)
-        const priceData = await getXLMUSDPriceFromHorizon();
-
-        // Fetch labels for counterparty addresses AND the current account
-        const counterpartyAddresses = operationsData.length > 0 ? extractCounterpartyAddresses(operationsData, id) : [];
-        const allAddresses = [id, ...counterpartyAddresses];
-
-        const labels: Record<string, AccountLabel> = {};
-        let currentLabel: AccountLabel | null = null;
-
+        // Fetch label for the current account only (lightweight)
         try {
-          const labelsMap = await getAccountLabels(allAddresses);
+          const labelsMap = await getAccountLabels([id]);
           labelsMap.forEach((label, address) => {
             if (address.toUpperCase() === id.toUpperCase()) {
-              currentLabel = label;
-            } else {
-              labels[address] = label;
+              setCurrentAccountLabel(label);
             }
           });
         } catch (e) {
-          console.error('Failed to fetch account labels:', e);
+          console.error('Failed to fetch account label:', e);
         }
-
-        setAccount(accountData);
-        setTransactions(transactionsData);
-        setOperations(operationsData);
-        setXlmPrice(priceData);
-        setAccountLabels(labels);
-        setCurrentAccountLabel(currentLabel);
       } catch (e) {
         setError('Account not found or invalid account ID');
         console.error('Error fetching account data:', e);
@@ -159,11 +117,105 @@ export default function AccountPage() {
     };
 
     if (id) {
+      // Reset state for new account
+      setTransactionsFetched(false);
+      setOperationsFetched(false);
+      setTransactions([]);
+      setOperations([]);
+      setAccountLabels({});
+      setCurrentAccountLabel(null);
       fetchAccountData();
     }
   }, [id]);
 
+  // Fetch transactions lazily when tab is activated
+  const fetchTransactions = useCallback(async () => {
+    if (transactionsFetched || loadingTransactions) return;
+    setLoadingTransactions(true);
+    try {
+      const server = createHorizonServer();
+      const transactionsResponse = await server.transactions().forAccount(id).order('desc').limit(50).call();
+      const transactionsData = normalizeTransactions(transactionsResponse.records || []);
+      setTransactions(transactionsData);
+      setTransactionsFetched(true);
+    } catch (e) {
+      console.error('Error fetching transactions:', e);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  }, [id, transactionsFetched, loadingTransactions]);
 
+  // Fetch operations lazily when tab is activated
+  const fetchOperations = useCallback(async () => {
+    if (operationsFetched || loadingOperations) return;
+    setLoadingOperations(true);
+    try {
+      const server = createHorizonServer();
+
+      const [operationsResponse, transactionsResponse] = await Promise.all([
+        server.operations().forAccount(id).order('desc').limit(100).call(),
+        // We need transactions to find missing Soroban ops
+        transactionsFetched
+          ? Promise.resolve({ records: [] })
+          : server.transactions().forAccount(id).order('desc').limit(50).call(),
+      ]);
+
+      let operationsData = (operationsResponse.records || []) as unknown as Operation[];
+
+      // Also set transactions if we fetched them alongside
+      let txData = transactions;
+      if (!transactionsFetched && transactionsResponse.records?.length > 0) {
+        txData = normalizeTransactions(transactionsResponse.records);
+        setTransactions(txData);
+        setTransactionsFetched(true);
+      }
+
+      // For Soroban contract calls, fetch operations from missing transactions
+      const existingOpTxHashes = new Set(operationsData.map(op => op.transaction_hash));
+      const missingTxs = txData.filter(tx => !existingOpTxHashes.has(tx.hash));
+
+      if (missingTxs.length > 0) {
+        const additionalOpsPromises = missingTxs.slice(0, 20).map(async tx => {
+          try {
+            const txOps = await server.operations().forTransaction(tx.hash).limit(5).call();
+            return (txOps.records || []) as unknown as Operation[];
+          } catch {
+            return [];
+          }
+        });
+
+        const additionalOpsArrays = await Promise.all(additionalOpsPromises);
+        const additionalOps = additionalOpsArrays.flat();
+
+        if (additionalOps.length > 0) {
+          operationsData = [...operationsData, ...additionalOps];
+          operationsData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        }
+      }
+
+      setOperations(operationsData);
+      setOperationsFetched(true);
+
+      // Fetch counterparty labels in background
+      const counterpartyAddresses = operationsData.length > 0 ? extractCounterpartyAddresses(operationsData, id) : [];
+      if (counterpartyAddresses.length > 0) {
+        try {
+          const labelsMap = await getAccountLabels(counterpartyAddresses);
+          const labels: Record<string, AccountLabel> = {};
+          labelsMap.forEach((label, address) => {
+            labels[address] = label;
+          });
+          setAccountLabels(labels);
+        } catch (e) {
+          console.error('Failed to fetch counterparty labels:', e);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching operations:', e);
+    } finally {
+      setLoadingOperations(false);
+    }
+  }, [id, operationsFetched, loadingOperations, transactionsFetched, transactions]);
 
   if (!loading && (error || !account)) {
     return (
@@ -213,6 +265,12 @@ export default function AccountPage() {
           accountLabels={accountLabels}
           currentAccountLabel={currentAccountLabel}
           loading={loading}
+          onTabChange={(tab: string) => {
+            if (tab === 'transactions' && !transactionsFetched) fetchTransactions();
+            if (tab === 'operations' && !operationsFetched) fetchOperations();
+          }}
+          loadingTransactions={loadingTransactions}
+          loadingOperations={loadingOperations}
         />
       ) : (
         <AccountDesktopView
@@ -224,6 +282,12 @@ export default function AccountPage() {
           accountLabels={accountLabels}
           currentAccountLabel={currentAccountLabel}
           loading={loading}
+          onTabChange={(tab: string) => {
+            if (tab === 'transactions' && !transactionsFetched) fetchTransactions();
+            if (tab === 'operations' && !operationsFetched) fetchOperations();
+          }}
+          loadingTransactions={loadingTransactions}
+          loadingOperations={loadingOperations}
         />
       )}
     </>

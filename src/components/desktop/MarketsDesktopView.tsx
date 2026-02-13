@@ -347,7 +347,7 @@ export default function MarketsDesktopView({
                     </td>
 
                     {/* Rank */}
-                    <td className="py-3 px-3 text-[var(--text-muted)] text-[13px] font-medium">{index + 1}</td>
+                    <td className="py-3 px-3 text-[var(--text-muted)] text-[13px] font-medium">{asset.rank}</td>
 
                     {/* Name */}
                     <td className="py-3 px-3">
