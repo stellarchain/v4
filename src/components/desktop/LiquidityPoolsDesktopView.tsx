@@ -122,8 +122,9 @@ export default function LiquidityPoolsDesktopView({ initialPools, loading = fals
     const isInitialLoading = loading;
     const [currentPage, setCurrentPage] = useState(1);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const initialHasMore = !!initialPools._links?.next?.href || initialPools.records.length >= PAGE_SIZE;
     const [oldestCursor, setOldestCursor] = useState<string | null>(initialPools._links?.next?.href || null);
-    const [hasMore, setHasMore] = useState(!!initialPools._links?.next?.href);
+    const [hasMore, setHasMore] = useState(initialHasMore);
     const [searchQuery, setSearchQuery] = useState('');
     const seenIdsRef = useRef<Set<string>>(new Set(initialPools.records.map(p => p.id)));
 
@@ -131,7 +132,7 @@ export default function LiquidityPoolsDesktopView({ initialPools, loading = fals
         const incomingPools = initialPools.records;
         setPools(incomingPools);
         setOldestCursor(initialPools._links?.next?.href || null);
-        setHasMore(!!initialPools._links?.next?.href);
+        setHasMore(!!initialPools._links?.next?.href || incomingPools.length >= PAGE_SIZE);
         setCurrentPage(1);
         seenIdsRef.current = new Set(incomingPools.map(p => p.id));
     }, [initialPools]);
@@ -161,7 +162,7 @@ export default function LiquidityPoolsDesktopView({ initialPools, loading = fals
             }
 
             setOldestCursor(data._links?.next?.href || null);
-            setHasMore(olderPools.length >= PAGE_SIZE);
+            setHasMore(!!data._links?.next?.href || olderPools.length >= PAGE_SIZE);
 
             // Filter out already seen pools
             const unseenPools = olderPools.filter(p => !seenIdsRef.current.has(p.id));
