@@ -8,7 +8,7 @@ if (!isDevelopment) {
     integrations: [Sentry.replayIntegration()],
     tracesSampleRate: 1,
     enableLogs: true,
-    replaysSessionSampleRate: 0.1,
+    replaysSessionSampleRate: 1.0,
     replaysOnErrorSampleRate: 1.0,
     sendDefaultPii: true,
   });
