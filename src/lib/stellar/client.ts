@@ -1175,12 +1175,7 @@ export async function getMarketAssets(cursor: number = 0): Promise<{ assets: Mar
 // Fetch individual asset detail to get stellarData (price7d, volume7d)
 async function fetchAssetDetail(assetKey: string): Promise<any> {
   try {
-    const response = await fetch(`${buildApiV1Url(`/assets/${assetKey}`)}`, {
-      headers: { 'Accept': 'application/ld+json' },
-      next: { revalidate: 120 },
-    });
-    if (!response.ok) return null;
-    return await response.json();
+    return await getApiV1Data(`/assets/${assetKey}`);
   } catch {
     return null;
   }
@@ -1190,16 +1185,7 @@ async function fetchAssetDetail(assetKey: string): Promise<any> {
 export async function getMarketAssetsFromV1(page: number = 1, xlmUsdPrice: number = 0): Promise<{ assets: MarketAsset[], totalPages: number, totalItems: number }> {
   try {
     const url = apiEndpoints.v1.assets({ page, 'order[ratingAverage]': 'desc' });
-    const response = await fetch(buildApiV1Url(url), {
-      headers: { 'Accept': 'application/ld+json' },
-      next: { revalidate: 120 },
-    });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await getApiV1Data(url);
     const members = data.member || [];
     const totalItems = data.totalItems || 0;
 
