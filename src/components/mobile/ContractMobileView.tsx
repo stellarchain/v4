@@ -134,8 +134,11 @@ export default function ContractMobileView({ contract, operations, onTabChange }
       const data = await getApiV1Data(
         apiEndpoints.v1.contractById(contract.id, { source_code: 1, network: 'mainnet' })
       );
-      // Source code is in contractDecoded.contractSourceCode
-      const sourceCodeText = data.contractDecoded?.contractSourceCode || data.contractSourceCode;
+      const sourceCodeText =
+        data.contractDecoded?.contractSourceCode ||
+        data.contractSourceCode ||
+        data.contractView?.snapshot?.contractSourceCode ||
+        data.contractCodePayload?.contractSourceCode;
       setSourceCode(sourceCodeText || 'No source code available');
     } catch (error) {
       console.error('Error fetching source code:', error);

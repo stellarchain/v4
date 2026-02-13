@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_BASE_URL = 'https://api.stellarchain.dev';
+export const API_BASE_URL = 'https://localhost';
 export const API_V1_BASE_URL = `${API_BASE_URL}/v1`;
 export const DEFAULT_API_NETWORK = 'mainnet';
 
