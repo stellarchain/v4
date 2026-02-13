@@ -15,6 +15,8 @@ interface MarketsMobileViewProps {
   currentPage: number;
   hasNextPage: boolean;
   onPageChange: (page: number) => void;
+  totalPages?: number;
+  totalItems?: number;
 }
 
 type SortField = 'market_cap' | 'price_usd' | 'change_24h' | 'change_7d' | 'volume_24h';
@@ -128,7 +130,9 @@ export default function MarketsMobileView({
   loading = false,
   currentPage,
   hasNextPage,
-  onPageChange
+  onPageChange,
+  totalPages = 1,
+  totalItems = 0,
 }: MarketsMobileViewProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -177,7 +181,7 @@ export default function MarketsMobileView({
   }, [filteredAndSortedAssets, visibleCount]);
 
   const hasMoreItems = visibleCount < filteredAndSortedAssets.length;
-  const totalItems = filteredAndSortedAssets.length;
+  const filteredCount = filteredAndSortedAssets.length;
 
   // Load more items function
   const loadMore = useCallback(() => {
@@ -284,7 +288,7 @@ export default function MarketsMobileView({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
                 </svg>
               </div>
-              <p className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{loading ? <InlineSkeleton width="w-10" /> : marketTotals.totalAssets}</p>
+              <p className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{loading ? <InlineSkeleton width="w-10" /> : (totalItems > 0 ? totalItems.toLocaleString() : marketTotals.totalAssets)}</p>
               <div className="absolute top-full right-0 mt-2 px-2 py-1 bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30 border border-[var(--border-default)]">
                 Total tracked Stellar assets
               </div>
@@ -341,7 +345,7 @@ export default function MarketsMobileView({
         {/* Stats Row */}
         <div className="flex justify-between items-center mt-3 px-4">
           <span className="text-xs font-medium text-[var(--text-tertiary)]">
-            {loading ? <InlineSkeleton width="w-36" /> : <>{totalItems} assets {totalItems > ASSETS_PER_PAGE && `• Showing ${Math.min(visibleCount, totalItems)}`}</>}
+            {loading ? <InlineSkeleton width="w-36" /> : <>{filteredCount} assets {filteredCount > ASSETS_PER_PAGE && `• Showing ${Math.min(visibleCount, filteredCount)}`}</>}
           </span>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
@@ -481,40 +485,79 @@ export default function MarketsMobileView({
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              Load more ({totalItems - visibleCount} remaining)
+              Load more ({filteredCount - visibleCount} remaining)
             </button>
           </div>
         )}
 
         {/* No More Items Message */}
-        {!hasMoreItems && totalItems > ASSETS_PER_PAGE && (
+        {!hasMoreItems && filteredCount > ASSETS_PER_PAGE && (
           <div className="flex items-center justify-center py-4 pb-4">
             <span className="text-xs font-medium text-[var(--text-muted)]">
-              All {totalItems} assets displayed
+              All {filteredCount} assets displayed
             </span>
           </div>
         )}
 
         {/* Pagination Controls */}
-        {!loading && filteredAndSortedAssets.length > 0 && (
-          <div className="flex items-center justify-center gap-2 py-4 pb-20">
-            <button
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] active:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium text-sm"
-            >
-              Previous
-            </button>
-            <span className="text-sm text-[var(--text-muted)] font-medium px-2">
-              Page {currentPage}
+        {!loading && filteredAndSortedAssets.length > 0 && totalPages > 1 && (
+          <div className="flex flex-col items-center gap-3 py-4 pb-20">
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] active:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              {(() => {
+                const pages: (number | string)[] = [];
+                if (totalPages <= 5) {
+                  for (let i = 1; i <= totalPages; i++) pages.push(i);
+                } else {
+                  pages.push(1);
+                  if (currentPage > 3) pages.push('...');
+                  const start = Math.max(2, currentPage - 1);
+                  const end = Math.min(totalPages - 1, currentPage + 1);
+                  for (let i = start; i <= end; i++) pages.push(i);
+                  if (currentPage < totalPages - 2) pages.push('...');
+                  pages.push(totalPages);
+                }
+                return pages.map((page, idx) =>
+                  page === '...' ? (
+                    <span key={`ellipsis-${idx}`} className="text-[var(--text-muted)] text-xs px-1">...</span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => onPageChange(page as number)}
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
+                        currentPage === page
+                          ? 'bg-sky-600 text-white shadow-sm'
+                          : 'text-[var(--text-muted)] active:bg-sky-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                );
+              })()}
+
+              <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={!hasNextPage}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] active:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            <span className="text-[10px] font-medium text-[var(--text-muted)]">
+              Page {currentPage} of {totalPages} ({totalItems.toLocaleString()} assets)
             </span>
-            <button
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={!hasNextPage}
-              className="px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] active:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium text-sm"
-            >
-              Next
-            </button>
           </div>
         )}
 
