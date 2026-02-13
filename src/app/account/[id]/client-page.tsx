@@ -87,9 +87,10 @@ export default function AccountPage() {
         setLoading(true);
         const server = createHorizonServer();
 
-        const [accountResponse, priceData] = await Promise.all([
+        const [accountResponse, priceData, labelsMap] = await Promise.all([
           server.accounts().accountId(id).call(),
           getXLMUSDPriceFromHorizon(),
+          getAccountLabels([id]).catch(() => new Map()),
         ]);
 
         const accountData = accountResponse as unknown as Account;
@@ -97,17 +98,11 @@ export default function AccountPage() {
         setAccount(accountData);
         setXlmPrice(priceData);
 
-        // Fetch label for the current account only (lightweight)
-        try {
-          const labelsMap = await getAccountLabels([id]);
-          labelsMap.forEach((label, address) => {
-            if (address.toUpperCase() === id.toUpperCase()) {
-              setCurrentAccountLabel(label);
-            }
-          });
-        } catch (e) {
-          console.error('Failed to fetch account label:', e);
-        }
+        labelsMap.forEach((label, address) => {
+          if (address.toUpperCase() === id.toUpperCase()) {
+            setCurrentAccountLabel(label);
+          }
+        });
       } catch (e) {
         setError('Account not found or invalid account ID');
         console.error('Error fetching account data:', e);

@@ -145,7 +145,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
   const txLoadMoreRef = useRef<HTMLDivElement | null>(null);
   const opsLoadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  // Update URL when tab changes
+  // Update URL when tab changes (use history.replaceState to avoid Next.js re-render)
   const handleTabChange = (tab: 'assets' | 'transactions' | 'operations' | 'details') => {
     setActiveTab(tab);
     onTabChange?.(tab);
@@ -155,8 +155,8 @@ export default function AccountDesktopView({ account, accountId, transactions, o
     } else {
       params.set('tab', tab);
     }
-    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-    router.replace(newUrl, { scroll: false });
+    const newUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+    window.history.replaceState(null, '', newUrl);
   };
 
   // Trigger lazy load if initial tab is not 'assets'

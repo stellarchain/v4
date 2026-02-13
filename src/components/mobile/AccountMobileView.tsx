@@ -141,8 +141,8 @@ export default function AccountMobileView({ account, accountId, transactions, op
     } else {
       params.set('tab', tab);
     }
-    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-    router.replace(newUrl, { scroll: false });
+    const newUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+    window.history.replaceState(null, '', newUrl);
   };
 
   // Trigger lazy load if initial tab is not 'assets'
