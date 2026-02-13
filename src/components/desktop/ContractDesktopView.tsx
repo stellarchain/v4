@@ -250,7 +250,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
           <div className="flex items-center gap-4">
             {/* Back Button */}
             <Link
-              href="/"
+              href="/contracts"
               className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border-default)] text-[var(--text-muted)] transition hover:text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
