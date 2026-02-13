@@ -15,9 +15,11 @@ interface MarketsDesktopViewProps {
   currentPage: number;
   hasNextPage: boolean;
   onPageChange: (page: number) => void;
+  totalPages?: number;
+  totalItems?: number;
 }
 
-type SortField = 'rank' | 'market_cap' | 'price_usd' | 'change_24h' | 'change_7d' | 'volume_24h';
+type SortField = 'rank' | 'market_cap' | 'price_usd' | 'volume_24h';
 type SortOrder = 'asc' | 'desc';
 
 function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
@@ -136,7 +138,9 @@ export default function MarketsDesktopView({
   loading = false,
   currentPage,
   hasNextPage,
-  onPageChange
+  onPageChange,
+  totalPages = 1,
+  totalItems = 0,
 }: MarketsDesktopViewProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -168,8 +172,6 @@ export default function MarketsDesktopView({
         case 'rank': comparison = a.rank - b.rank; break;
         case 'market_cap': comparison = (b.market_cap || 0) - (a.market_cap || 0); break;
         case 'price_usd': comparison = (b.price_usd || 0) - (a.price_usd || 0); break;
-        case 'change_24h': comparison = (b.change_24h || 0) - (a.change_24h || 0); break;
-        case 'change_7d': comparison = (b.change_7d || 0) - (a.change_7d || 0); break;
         case 'volume_24h': comparison = (b.volume_24h || 0) - (a.volume_24h || 0); break;
       }
       return sortOrder === 'desc' ? comparison : -comparison;
@@ -261,7 +263,7 @@ export default function MarketsDesktopView({
               </div>
               <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Assets</div>
-                <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-10" /> : marketTotals.totalAssets}</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-10" /> : (totalItems > 0 ? totalItems.toLocaleString() : marketTotals.totalAssets)}</div>
               </div>
             </div>
           </div>
@@ -297,8 +299,7 @@ export default function MarketsDesktopView({
                 <HeaderCell label="#" field="rank" className="w-12" />
                 <HeaderCell label="Name" className="min-w-[180px]" />
                 <HeaderCell label="Price" field="price_usd" className="text-right" />
-                <HeaderCell label="24h %" field="change_24h" className="text-right" />
-                <HeaderCell label="7d %" field="change_7d" className="text-right" />
+                <HeaderCell label="7d %" className="text-right" />
                 <HeaderCell label="Market Cap" field="market_cap" className="text-right" />
                 <HeaderCell label="Volume (24h)" field="volume_24h" className="text-right" />
                 <HeaderCell label="Supply" className="text-right" />
@@ -315,7 +316,6 @@ export default function MarketsDesktopView({
                     <td className="py-3 px-3"><InlineSkeleton width="w-6" /></td>
                     <td className="py-3 px-3"><InlineSkeleton width="w-36" /></td>
                     <td className="py-3 px-3 text-right"><InlineSkeleton width="w-20" /></td>
-                    <td className="py-3 px-3 text-right"><InlineSkeleton width="w-14" /></td>
                     <td className="py-3 px-3 text-right"><InlineSkeleton width="w-14" /></td>
                     <td className="py-3 px-3 text-right"><InlineSkeleton width="w-20" /></td>
                     <td className="py-3 px-3 text-right"><InlineSkeleton width="w-20" /></td>
@@ -387,11 +387,6 @@ export default function MarketsDesktopView({
                       <div className="text-[var(--text-muted)] text-[10px]">{formatXLMPrice(priceInXlm)}</div>
                     </td>
 
-                    {/* 24h Change */}
-                    <td className="py-3 px-3 text-right">
-                      <ChangeCell value={asset.change_24h || 0} />
-                    </td>
-
                     {/* 7d Change */}
                     <td className="py-3 px-3 text-right">
                       <ChangeCell value={asset.change_7d || 0} />
@@ -419,6 +414,7 @@ export default function MarketsDesktopView({
                         <Sparkline data={asset.sparkline || []} positive={(asset.change_7d || 0) >= 0} />
                       </div>
                     </td>
+
                   </tr>
                 );
               })}
@@ -427,25 +423,63 @@ export default function MarketsDesktopView({
         </div>
 
         {/* Pagination Controls */}
-        {!loading && filteredAndSortedAssets.length > 0 && (
-          <div className="mt-6 flex items-center justify-center gap-2">
+        {!loading && filteredAndSortedAssets.length > 0 && totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-center gap-1.5">
             <button
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="px-4 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              Previous
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
             </button>
-            <span className="text-sm text-[var(--text-muted)] font-medium px-4">
-              Page {currentPage}
-            </span>
+
+            {(() => {
+              const pages: (number | string)[] = [];
+              if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i);
+              } else {
+                pages.push(1);
+                if (currentPage > 3) pages.push('...');
+                const start = Math.max(2, currentPage - 1);
+                const end = Math.min(totalPages - 1, currentPage + 1);
+                for (let i = start; i <= end; i++) pages.push(i);
+                if (currentPage < totalPages - 2) pages.push('...');
+                pages.push(totalPages);
+              }
+              return pages.map((page, idx) =>
+                page === '...' ? (
+                  <span key={`ellipsis-${idx}`} className="text-[var(--text-muted)] text-xs px-1">...</span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => onPageChange(page as number)}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
+                      currentPage === page
+                        ? 'bg-sky-600 text-white shadow-sm'
+                        : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              );
+            })()}
+
             <button
               onClick={() => onPageChange(currentPage + 1)}
               disabled={!hasNextPage}
-              className="px-4 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              Next
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </button>
+
+            <span className="ml-3 text-[10px] font-medium text-[var(--text-muted)]">
+              Page {currentPage} of {totalPages} ({totalItems.toLocaleString()} assets)
+            </span>
           </div>
         )}
 

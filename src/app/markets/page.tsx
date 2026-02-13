@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getMarketAssets, getXLMUSDPriceFromHorizon } from '@/lib/stellar';
+import { getMarketAssetsFromV1, getXLMUSDPriceFromHorizon } from '@/lib/stellar';
 import MarketsMobileView from '@/components/mobile/MarketsMobileView';
 import MarketsDesktopView from '@/components/desktop/MarketsDesktopView';
 
@@ -11,19 +11,24 @@ export default function MarketsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   const fetchData = async (page: number) => {
     try {
       setIsLoading(true);
-      const cursor = (page - 1) * 50; // 50 items per page
-      const [assetsResult, priceData] = await Promise.all([
-        getMarketAssets(cursor),
-        getXLMUSDPriceFromHorizon(),
-      ]);
-      setAssets(assetsResult.assets);
-      setHasNextPage(assetsResult.hasNext);
+      // Fetch XLM price first (or use cached), then fetch assets with it
+      const priceData = await getXLMUSDPriceFromHorizon();
       setXlmPrice(priceData);
+
+      const result = await getMarketAssetsFromV1(page, priceData);
+
+      // For page 1, override XLM with CoinGecko data if we want more accurate stats
+      // The v1 API already provides good data so we use it as-is
+
+      setAssets(result.assets);
+      setTotalPages(result.totalPages);
+      setTotalItems(result.totalItems);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load market data.');
     } finally {
@@ -47,9 +52,12 @@ export default function MarketsPage() {
   }
 
   const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const hasNextPage = currentPage < totalPages;
 
   return (
     <>
@@ -62,6 +70,8 @@ export default function MarketsPage() {
           currentPage={currentPage}
           hasNextPage={hasNextPage}
           onPageChange={handlePageChange}
+          totalPages={totalPages}
+          totalItems={totalItems}
         />
       </div>
 
@@ -74,6 +84,8 @@ export default function MarketsPage() {
           currentPage={currentPage}
           hasNextPage={hasNextPage}
           onPageChange={handlePageChange}
+          totalPages={totalPages}
+          totalItems={totalItems}
         />
       </div>
     </>
