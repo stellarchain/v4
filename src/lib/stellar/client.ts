@@ -1172,6 +1172,119 @@ export async function getMarketAssets(cursor: number = 0): Promise<{ assets: Mar
   }
 }
 
+// Fetch individual asset detail to get stellarData (price7d, volume7d)
+async function fetchAssetDetail(assetKey: string): Promise<any> {
+  try {
+    const response = await fetch(`${buildApiV1Url(`/assets/${assetKey}`)}`, {
+      headers: { 'Accept': 'application/ld+json' },
+      next: { revalidate: 120 },
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+// Fetch market assets from v1 API with proper pagination
+export async function getMarketAssetsFromV1(page: number = 1, xlmUsdPrice: number = 0): Promise<{ assets: MarketAsset[], totalPages: number, totalItems: number }> {
+  try {
+    const url = apiEndpoints.v1.assets({ page, 'order[ratingAverage]': 'desc' });
+    const response = await fetch(buildApiV1Url(url), {
+      headers: { 'Accept': 'application/ld+json' },
+      next: { revalidate: 120 },
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const members = data.member || [];
+    const totalItems = data.totalItems || 0;
+
+    // Parse total pages from view.last
+    let totalPages = 1;
+    if (data.view?.last) {
+      const lastMatch = data.view.last.match(/page=(\d+)/);
+      if (lastMatch) totalPages = parseInt(lastMatch[1], 10);
+    }
+
+    // Fetch individual asset details in parallel to get price7d
+    const detailPromises = members.map((item: any) =>
+      fetchAssetDetail(item.assetKey || `${item.code}-${item.issuer}-1`)
+    );
+    const details = await Promise.allSettled(detailPromises);
+
+    const assets: MarketAsset[] = members.map((item: any, index: number) => {
+      const stat = item.latestStatistic || {};
+      const toml = item.tomlInfo || {};
+
+      // Get stellarData from individual asset detail
+      const detail = details[index]?.status === 'fulfilled' ? details[index].value : null;
+      const stellarData = detail?.stellarData || {};
+
+      // Price from API is already in USD
+      const priceUsd = parseFloat(stat.price) || 0;
+      const priceInXlm = xlmUsdPrice > 0 ? priceUsd / xlmUsdPrice : 0;
+
+      // Supply and tradedAmount from the API are in stroops (7 decimal places)
+      const supply = (parseFloat(stat.supply) || 0) / 1e7;
+      const tradedAmount = (parseFloat(stat.tradedAmount) || 0) / 1e7;
+      // tradedAmount is in token units after stroops conversion, multiply by price for USD volume
+      const volumeUsd = tradedAmount * priceUsd;
+
+      const marketCap = supply * priceUsd;
+
+      // For native XLM asset
+      const isNative = item.native === true;
+      const code = isNative ? 'XLM' : (item.code || 'Unknown');
+      const issuer = isNative ? '' : (item.issuer || '');
+
+      // Parse price7d for sparkline and change calculations
+      const price7d: [number, number][] = Array.isArray(stellarData.price7d) ? stellarData.price7d : [];
+      const sparklineData = price7d.map((p: [number, number]) => p[1]);
+      const currentPrice7d = price7d.length > 0 ? price7d[price7d.length - 1][1] : 0;
+      const oldestPrice7d = price7d.length > 0 ? price7d[0][1] : 0;
+      const change7d = oldestPrice7d > 0 ? ((currentPrice7d - oldestPrice7d) / oldestPrice7d) * 100 : 0;
+
+      // Calculate 24h change from price7d (last 2 data points are ~1 day apart)
+      const price24hAgo = price7d.length >= 2 ? price7d[Math.max(0, price7d.length - 2)][1] : 0;
+      const change24h = price24hAgo > 0 ? ((currentPrice7d - price24hAgo) / price24hAgo) * 100 : 0;
+
+      return {
+        rank: (page - 1) * 30 + index + 1,
+        code,
+        issuer,
+        name: toml.name || code,
+        image: toml.image || undefined,
+        price_usd: priceUsd,
+        price_xlm: isNative ? 1 : priceInXlm,
+        change_1h: 0,
+        change_24h: change24h,
+        change_7d: change7d,
+        volume_24h: volumeUsd,
+        market_cap: marketCap,
+        circulating_supply: supply,
+        sparkline: sparklineData,
+      };
+    });
+
+    // Sort by market cap descending within the page
+    assets.sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
+
+    // Re-assign ranks after sorting
+    assets.forEach((asset, i) => {
+      asset.rank = (page - 1) * 30 + i + 1;
+    });
+
+    return { assets, totalPages, totalItems };
+  } catch (error) {
+    console.error('Error fetching v1 market assets:', error);
+    return { assets: [], totalPages: 1, totalItems: 0 };
+  }
+}
+
 // Fetch detailed asset information
 export async function getAssetDetails(code: string, issuer?: string): Promise<AssetDetails | null> {
   // Parse issuer from code if provided in "CODE-ISSUER" format (e.g., "AQUA-GBNZILSTVQZ...")
