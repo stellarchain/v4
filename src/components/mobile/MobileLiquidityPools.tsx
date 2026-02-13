@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LiquidityPool, PaginatedResponse, shortenAddress } from '@/lib/stellar';
+import { LiquidityPool, PaginatedResponse, shortenAddress, getLiquidityPools } from '@/lib/stellar';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface MobileLiquidityPoolsProps {
@@ -13,33 +13,42 @@ interface MobileLiquidityPoolsProps {
 
 export default function MobileLiquidityPools({ initialPools, loading = false }: MobileLiquidityPoolsProps) {
     const router = useRouter();
+    const pageSize = 20;
     const [pools, setPools] = useState<LiquidityPool[]>(initialPools.records);
-    const [nextLink, setNextLink] = useState<string | null>(initialPools._links?.next?.href || null);
+    const [cursor, setCursor] = useState<string | null>(initialPools.records[initialPools.records.length - 1]?.paging_token || null);
+    const [hasMore, setHasMore] = useState<boolean>(Boolean(initialPools._links?.next?.href) || initialPools.records.length >= pageSize);
     const [loadingMore, setLoadingMore] = useState(false);
     const sentinelRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setPools(initialPools.records);
-        setNextLink(initialPools._links?.next?.href || null);
+        setCursor(initialPools.records[initialPools.records.length - 1]?.paging_token || null);
+        setHasMore(Boolean(initialPools._links?.next?.href) || initialPools.records.length >= pageSize);
     }, [initialPools]);
 
     // Primary color for this design (matches TransactionMobileView)
     const primaryColor = '#0F4C81';
 
     const loadMore = useCallback(async () => {
-        if (!nextLink || loadingMore) return;
+        if (!cursor || loadingMore || !hasMore) return;
         setLoadingMore(true);
         try {
-            const res = await fetch(nextLink);
-            const data: PaginatedResponse<LiquidityPool> = await res.json();
-            setPools(prev => [...prev, ...data.records]);
-            setNextLink(data._links?.next?.href || null);
+            const data = await getLiquidityPools(pageSize, 'desc', cursor);
+            const nextRecords = data.records || [];
+            if (nextRecords.length === 0) {
+                setHasMore(false);
+                return;
+            }
+
+            setPools(prev => [...prev, ...nextRecords]);
+            setCursor(nextRecords[nextRecords.length - 1]?.paging_token || null);
+            setHasMore(Boolean(data._links?.next?.href) || nextRecords.length >= pageSize);
         } catch (e) {
             console.error('Failed to load more pools', e);
         } finally {
             setLoadingMore(false);
         }
-    }, [nextLink, loadingMore]);
+    }, [cursor, loadingMore, hasMore]);
 
     // Infinite scroll observer
     useEffect(() => {
@@ -47,7 +56,7 @@ export default function MobileLiquidityPools({ initialPools, loading = false }: 
 
         const observer = new IntersectionObserver(
             (entries) => {
-                if (entries[0].isIntersecting && !loadingMore && nextLink) {
+                if (entries[0].isIntersecting && !loadingMore && hasMore) {
                     loadMore();
                 }
             },
@@ -56,7 +65,7 @@ export default function MobileLiquidityPools({ initialPools, loading = false }: 
 
         observer.observe(sentinelRef.current);
         return () => observer.disconnect();
-    }, [loadingMore, nextLink, loadMore]);
+    }, [loadingMore, hasMore, loadMore]);
 
     const getAssetCode = (assetString: string) => {
         if (assetString === 'native') return 'XLM';
@@ -247,7 +256,7 @@ export default function MobileLiquidityPools({ initialPools, loading = false }: 
                     )}
 
                     {/* End of list */}
-                    {!loading && !nextLink && pools.length > 0 && (
+                    {!loading && !hasMore && pools.length > 0 && (
                         <div className="py-4 text-center text-[var(--text-muted)] text-xs">
                             No more pools
                         </div>

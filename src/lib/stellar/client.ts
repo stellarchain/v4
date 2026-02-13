@@ -1,6 +1,6 @@
 // Stellar Horizon API Service Layer
 import { xdr, Address, Asset, Horizon } from '@stellar/stellar-sdk';
-import { apiEndpoints, buildApiUrl, buildApiV1Url } from '@/services/api';
+import { apiEndpoints, getApiData, getApiV1Data } from '@/services/api';
 import { createHorizonServer, getHorizonBaseUrl } from '@/services/horizon';
 import { NETWORK_COOKIE_NAME, isNetworkType, type NetworkType } from '../network/config';
 import { getCurrentNetwork, setCurrentNetwork } from '../network/state';
@@ -988,7 +988,6 @@ function parseStellarchainV1AssetData(payload: unknown): NormalizedStellarchainA
   };
 }
 
-const STELLAR_COIN_API_URL = buildApiUrl(apiEndpoints.coins.stellar());
 const STELLAR_COIN_API_TTL_MS = 60_000;
 const stellarCoinApiCache: {
   data: StellarCoinApiResponse | null;
@@ -1000,47 +999,51 @@ const stellarCoinApiCache: {
   inFlight: null,
 };
 
-async function fetchStellarCoinApiData(cursor?: number): Promise<StellarCoinApiResponse | null> {
+function getCachedStellarCoinApiData(): StellarCoinApiResponse | null {
+  const now = Date.now();
+  if (stellarCoinApiCache.data && stellarCoinApiCache.expiresAt > now) {
+    return stellarCoinApiCache.data;
+  }
+  return null;
+}
+
+function setCachedStellarCoinApiData(payload: StellarCoinApiResponse | null): void {
+  if (!payload) return;
+  stellarCoinApiCache.data = payload;
+  stellarCoinApiCache.expiresAt = Date.now() + STELLAR_COIN_API_TTL_MS;
+}
+
+async function requestStellarCoinApiData(cursor?: number): Promise<StellarCoinApiResponse | null> {
   try {
-    const url = cursor && cursor > 0
-      ? buildApiUrl(apiEndpoints.coins.stellar({ cursor }))
-      : STELLAR_COIN_API_URL;
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 },
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return await response.json() as StellarCoinApiResponse;
+    const isPagedRequest = typeof cursor === 'number' && cursor > 0;
+    const path = isPagedRequest
+      ? apiEndpoints.coins.stellar({ cursor })
+      : apiEndpoints.coins.stellar();
+    return await getApiData(path) as StellarCoinApiResponse;
   } catch {
     return null;
   }
 }
 
 async function getStellarCoinApiData(cursor: number = 0): Promise<StellarCoinApiResponse | null> {
+  // Cursor-based pagination should always bypass cache.
   if (cursor > 0) {
-    return fetchStellarCoinApiData(cursor);
+    return requestStellarCoinApiData(cursor);
   }
 
-  const now = Date.now();
-  if (stellarCoinApiCache.data && stellarCoinApiCache.expiresAt > now) {
-    return stellarCoinApiCache.data;
+  const cached = getCachedStellarCoinApiData();
+  if (cached) {
+    return cached;
   }
 
   if (stellarCoinApiCache.inFlight) {
     return stellarCoinApiCache.inFlight;
   }
 
-  stellarCoinApiCache.inFlight = fetchStellarCoinApiData();
+  stellarCoinApiCache.inFlight = requestStellarCoinApiData();
   try {
     const json = await stellarCoinApiCache.inFlight;
-    if (json) {
-      stellarCoinApiCache.data = json;
-      stellarCoinApiCache.expiresAt = Date.now() + STELLAR_COIN_API_TTL_MS;
-    }
+    setCachedStellarCoinApiData(json);
     return json;
   } finally {
     stellarCoinApiCache.inFlight = null;
@@ -1189,15 +1192,8 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
   // 1. Try fetching from Stellarchain v1 API first
   // It provides asset-level stats and metadata for most issued assets.
   try {
-    const scResponse = await fetch(buildApiV1Url(apiEndpoints.v1.assetById(assetId)), {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 60 }
-    });
-
-    if (scResponse.ok) {
-      const json = await scResponse.json();
-      stellarChainData = parseStellarchainV1AssetData(json);
-    }
+    const json = await getApiV1Data(apiEndpoints.v1.assetById(assetId));
+    stellarChainData = parseStellarchainV1AssetData(json);
   } catch (e) {
     console.error('Error fetching from Stellarchain.dev v1:', e);
   }
@@ -1410,20 +1406,9 @@ export async function getXLMHolders(
 ): Promise<{ holders: AssetHolder[]; nextCursor?: string }> {
   try {
     const page = cursor ? parseInt(cursor) : 1;
-    const url = buildApiV1Url(
+    const data = await getApiV1Data(
       apiEndpoints.v1.accounts({ page, 'order[accountMetric.rankPosition]': 'asc' })
-    );
-
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/ld+json' },
-      next: { revalidate: 300 }, // Cache for 5 minutes
-    });
-
-    if (!response.ok) {
-      return { holders: [] };
-    }
-
-    const data = await response.json() as V1CollectionResponse<V1AccountRecord>;
+    ) as V1CollectionResponse<V1AccountRecord>;
     const records = data.member || [];
 
     const holders: AssetHolder[] = records.map((record) => ({
@@ -1448,19 +1433,9 @@ export async function getRichList(
   _limit: number = 50
 ): Promise<RichListAccount[]> {
   try {
-    const url = buildApiV1Url(
+    const data = await getApiV1Data(
       apiEndpoints.v1.accounts({ page, 'order[accountMetric.rankPosition]': 'asc' })
-    );
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/ld+json' },
-      next: { revalidate: 300 },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch rich list: ${response.status}`);
-    }
-
-    const data = await response.json() as V1CollectionResponse<V1AccountRecord>;
+    ) as V1CollectionResponse<V1AccountRecord>;
     return (data.member || []).map((record) => ({
       rank: Number(record.accountMetric?.rankPosition || 0),
       account: record.address || '',
@@ -1500,15 +1475,7 @@ async function fetchAllLabeledAccounts(): Promise<Map<string, AccountLabel>> {
     let hasMore = true;
 
     while (hasMore && page <= 30) { // Increased limit for new API
-      const url = buildApiV1Url(apiEndpoints.v1.accounts({ page }));
-      const response = await fetch(url, {
-        headers: { 'Accept': 'application/ld+json' },
-        next: { revalidate: 300 }, // Cache for 5 minutes
-      });
-
-      if (!response.ok) break;
-
-      const json = await response.json() as V1CollectionResponse<V1AccountRecord>;
+      const json = await getApiV1Data(apiEndpoints.v1.accounts({ page })) as V1CollectionResponse<V1AccountRecord>;
       const data = json.member || [];
 
       // Transform new API format to old LabeledAccount format
@@ -1591,31 +1558,22 @@ export async function getAccountLabels(
     for (const address of uniqueAddresses) {
       params.append('address[]', address);
     }
-    const url = buildApiV1Url(`/accounts?${params.toString()}`);
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/ld+json',
-      },
-    });
+    const payload = await getApiV1Data(`/accounts?${params.toString()}`);
+    const accounts = payload.member || [];
 
-    if (response.ok) {
-      const payload = await response.json();
-      const accounts = payload.member || [];
-
-      for (const account of accounts) {
-        if (account.label) {
-          result.set(account.address, {
-            name: account.label,
-            verified: account.verified === true,
-            org_name: null, // Not available in new API
-            description: null, // Not available in new API
-          });
-        }
+    for (const account of accounts) {
+      if (account.label) {
+        result.set(account.address, {
+          name: account.label,
+          verified: account.verified === true,
+          org_name: null, // Not available in new API
+          description: null, // Not available in new API
+        });
       }
+    }
 
-      if (result.size > 0) {
-        return result;
-      }
+    if (result.size > 0) {
+      return result;
     }
   } catch {
     // Fall back to cached directory method below
