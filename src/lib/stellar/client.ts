@@ -1382,15 +1382,43 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
 
   const assetId = parsedIssuer ? `${parsedCode}-${parsedIssuer}` : parsedCode;
   let stellarChainData: NormalizedStellarchainAsset | null = null;
+  let v1AssetPayload: Record<string, unknown> | null = null;
 
   // 1. Try fetching from Stellarchain v1 API first
   // It provides asset-level stats and metadata for most issued assets.
   try {
     const json = await getApiV1Data(apiEndpoints.v1.assetById(assetId));
+    if (json && typeof json === 'object') {
+      v1AssetPayload = json as Record<string, unknown>;
+    }
     stellarChainData = parseStellarchainV1AssetData(json);
   } catch (e) {
     console.error('Error fetching from Stellarchain.dev v1:', e);
   }
+
+  const latestStatisticNode = (v1AssetPayload?.latestStatistic as Record<string, unknown>) || null;
+  const marketNode = (v1AssetPayload?.market as Record<string, unknown>) || null;
+  const metaFromV1 = {
+    assetKey: String(v1AssetPayload?.assetKey || '') || undefined,
+    network: Number(v1AssetPayload?.network || 0) || undefined,
+    native: typeof v1AssetPayload?.native === 'boolean' ? (v1AssetPayload.native as boolean) : undefined,
+    homeUrl: String(v1AssetPayload?.homeUrl || '') || undefined,
+    homeDomain: String(v1AssetPayload?.homeDomain || '') || undefined,
+    createdAt: String(v1AssetPayload?.createdAt || '') || undefined,
+    updatedAt: String(v1AssetPayload?.updatedAt || '') || undefined,
+    marketUpdatedAt: String(marketNode?.updated_at || '') || undefined,
+    ratingAverage: Number(v1AssetPayload?.ratingAverage ?? latestStatisticNode?.ratingAverage ?? 0) || undefined,
+    latestStatistic: latestStatisticNode ? {
+      price: Number(latestStatisticNode.price || 0),
+      supply: Number(latestStatisticNode.supply || 0),
+      trades: Number(latestStatisticNode.trades || 0),
+      tradedAmount: Number(latestStatisticNode.tradedAmount || 0),
+      trustlinesTotal: Number(latestStatisticNode.trustlinesTotal || 0),
+      trustlinesAuthorized: Number(latestStatisticNode.trustlinesAuthorized || 0),
+      trustlinesFunded: Number(latestStatisticNode.trustlinesFunded || 0),
+      recordedAt: String(latestStatisticNode.recordedAt || '') || undefined,
+    } : undefined,
+  };
 
   // 2. Fallback/Concurrent Fetch to Stellar Expert & CoinGecko (for XLM)
   try {
@@ -1410,7 +1438,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       const high24h = Math.max(...sparklineUSD);
       const low24h = Math.min(...sparklineUSD);
 
-        return {
+      return {
           rank: stellarChainData?.rank || statsResponse.rank,
           code: 'XLM',
           issuer: '',
@@ -1441,6 +1469,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
           sparkline: stellarChainData?.sparkline?.length ? stellarChainData.sparkline : (statsResponse.sparkline.length > 0 ? statsResponse.sparkline : sparklineUSD),
         price_history: priceHistory,
         volume_history: [],
+        ...metaFromV1,
       };
     }
 
@@ -1486,6 +1515,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
           sparkline: stellarChainData.sparkline || [],
           price_history: [],
           volume_history: [],
+          ...metaFromV1,
         }
       }
       return null;
@@ -1594,6 +1624,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       sparkline: stellarChainData?.sparkline?.length ? stellarChainData.sparkline : priceHistory.slice(-24).map(p => p[1]),
       price_history: priceHistory,
       volume_history: [],
+      ...metaFromV1,
     };
   } catch (error) {
     console.error('Error fetching asset details:', error);

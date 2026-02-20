@@ -142,6 +142,25 @@ export interface AssetDetails extends MarketAsset {
   description?: string;
   domain?: string;
   image?: string;
+  assetKey?: string;
+  network?: number;
+  native?: boolean;
+  homeUrl?: string;
+  homeDomain?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  marketUpdatedAt?: string;
+  ratingAverage?: number;
+  latestStatistic?: {
+    price: number;
+    supply: number;
+    trades: number;
+    tradedAmount: number;
+    trustlinesTotal: number;
+    trustlinesAuthorized: number;
+    trustlinesFunded: number;
+    recordedAt?: string;
+  };
   total_supply: number;
   holders: number;
   payments_24h: number;

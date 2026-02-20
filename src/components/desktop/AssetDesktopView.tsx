@@ -944,10 +944,66 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                         <p className="font-medium text-[var(--text-primary)]">{asset.domain}</p>
                       </div>
                     )}
+                    {asset.homeUrl && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Home URL</span>
+                        <a href={asset.homeUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-sky-600 text-xs hover:underline break-all">
+                          {asset.homeUrl}
+                        </a>
+                      </div>
+                    )}
+                    {asset.assetKey && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Asset Key</span>
+                        <p className="font-mono text-[11px] text-[var(--text-primary)] break-all">{asset.assetKey}</p>
+                      </div>
+                    )}
+                    {asset.network !== undefined && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Network</span>
+                        <p className="font-medium text-[var(--text-primary)]">{asset.network}</p>
+                      </div>
+                    )}
                     <div>
                       <span className="text-[var(--text-tertiary)]">Rating</span>
                       <p className="font-medium text-[var(--text-primary)]">{asset.rating}/5</p>
                     </div>
+                    {asset.ratingAverage !== undefined && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Rating Average</span>
+                        <p className="font-medium text-[var(--text-primary)]">{asset.ratingAverage.toFixed(2)}</p>
+                      </div>
+                    )}
+                    {asset.createdAt && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Created</span>
+                        <p className="font-medium text-[var(--text-primary)]">{timeAgo(asset.createdAt)}</p>
+                      </div>
+                    )}
+                    {asset.updatedAt && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Updated</span>
+                        <p className="font-medium text-[var(--text-primary)]">{timeAgo(asset.updatedAt)}</p>
+                      </div>
+                    )}
+                    {asset.marketUpdatedAt && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Market Updated</span>
+                        <p className="font-medium text-[var(--text-primary)]">{timeAgo(asset.marketUpdatedAt)}</p>
+                      </div>
+                    )}
+                    {asset.latestStatistic && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Snapshot Trades</span>
+                        <p className="font-medium text-[var(--text-primary)]">{formatNumber(asset.latestStatistic.trades)}</p>
+                      </div>
+                    )}
+                    {asset.latestStatistic && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Snapshot Trustlines</span>
+                        <p className="font-medium text-[var(--text-primary)]">{formatNumber(asset.latestStatistic.trustlinesTotal)}</p>
+                      </div>
+                    )}
                     {asset.all_time_high && (
                       <div>
                         <span className="text-[var(--text-tertiary)]">All-Time High</span>
