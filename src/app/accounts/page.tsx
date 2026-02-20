@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { RichListAccount } from '@/lib/stellar';
 import TopAccountsMobileList from '@/components/mobile/TopAccountsMobileList';
 import TopAccountsDesktopView from '@/components/desktop/TopAccountsDesktopView';
@@ -11,8 +11,10 @@ import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { apiEndpoints, getApiData, getApiV1Data } from '@/services/api';
 
 export default function AccountsPage() {
+    const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const urlQuery = (searchParams.get('q') || '').trim();
     const detailsAccountId = getDetailRouteValue({
         pathname,
         searchParams,
@@ -26,13 +28,34 @@ export default function AccountsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [xlmPriceUsd, setXlmPriceUsd] = useState<number | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState(urlQuery);
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(urlQuery);
+
+    useEffect(() => {
+        if (urlQuery !== searchQuery) {
+            setSearchQuery(urlQuery);
+            setDebouncedSearchQuery(urlQuery);
+        }
+    }, [urlQuery]);
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 300);
         return () => clearTimeout(timer);
     }, [searchQuery]);
+
+    useEffect(() => {
+        const currentQ = (searchParams.get('q') || '').trim();
+        if (currentQ === debouncedSearchQuery) return;
+
+        const params = new URLSearchParams(searchParams.toString());
+        if (debouncedSearchQuery) {
+            params.set('q', debouncedSearchQuery);
+        } else {
+            params.delete('q');
+        }
+        const query = params.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    }, [debouncedSearchQuery, router, pathname, searchParams]);
 
     useEffect(() => {
         if (hasDetailsRoute) return;

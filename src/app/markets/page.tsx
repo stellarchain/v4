@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getMarketAssetsFromMarketV1 } from '@/lib/stellar';
 import type { MarketAsset } from '@/lib/shared/interfaces';
 import MarketsMobileView from '@/components/mobile/MarketsMobileView';
@@ -9,6 +10,11 @@ import MarketsDesktopView from '@/components/desktop/MarketsDesktopView';
 const PAGE_SIZE = 50;
 
 export default function MarketsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlQuery = (searchParams.get('q') || '').trim();
+
   const [pageAssets, setPageAssets] = useState<MarketAsset[]>([]);
   const [xlmPrice, setXlmPrice] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,13 +23,35 @@ export default function MarketsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(urlQuery);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(urlQuery);
+
+  useEffect(() => {
+    if (urlQuery !== searchQuery) {
+      setSearchQuery(urlQuery);
+      setDebouncedSearchQuery(urlQuery);
+    }
+  }, [urlQuery]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 350);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  useEffect(() => {
+    const currentQ = (searchParams.get('q') || '').trim();
+    if (currentQ === debouncedSearchQuery) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (debouncedSearchQuery) {
+      params.set('q', debouncedSearchQuery);
+    } else {
+      params.delete('q');
+    }
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [debouncedSearchQuery, router, pathname, searchParams]);
 
   const searchFilters = useMemo(() => {
     const query = debouncedSearchQuery;

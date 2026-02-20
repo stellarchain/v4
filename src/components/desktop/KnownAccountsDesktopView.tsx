@@ -9,6 +9,8 @@ import { apiEndpoints, getApiV1Data } from '@/services/api';
 interface KnownAccountsDesktopViewProps {
   initialData: LabeledAccountsAPIResponse;
   xlmPriceUsd?: number | null;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
 }
 
 type SortField = 'rank' | 'balance' | 'transactions';
@@ -36,7 +38,12 @@ function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
   );
 }
 
-export default function KnownAccountsDesktopView({ initialData, xlmPriceUsd }: KnownAccountsDesktopViewProps) {
+export default function KnownAccountsDesktopView({
+  initialData,
+  xlmPriceUsd,
+  searchQuery,
+  onSearchQueryChange,
+}: KnownAccountsDesktopViewProps) {
   const getTransactions = (acc: any) => String(acc.accountMetric?.totalTransactions ?? acc.accountMetric?.transactionsPerHour ?? '0');
   const didMountRef = useRef(false);
 
@@ -60,7 +67,6 @@ export default function KnownAccountsDesktopView({ initialData, xlmPriceUsd }: K
   const [totalPages, setTotalPages] = useState(Math.ceil((initialData?.totalItems || 0) / itemsPerPage));
   const [total, setTotal] = useState(initialData?.totalItems || 0);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('balance');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
@@ -248,7 +254,7 @@ export default function KnownAccountsDesktopView({ initialData, xlmPriceUsd }: K
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => onSearchQueryChange(e.target.value)}
               placeholder="Search by name or address..."
               className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] pl-12 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm shadow-sm"
             />
