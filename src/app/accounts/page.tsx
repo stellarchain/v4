@@ -48,7 +48,7 @@ export default function AccountsPage() {
                 const params: Record<string, string | number> = {
                     page: 1,
                     itemsPerPage: 30,
-                    'order[accountMetric.rankPosition]': 'asc',
+                    'order[accountMetric.nativeBalance]': 'desc',
                 };
                 if (query) {
                     if (isAddressQuery) {

@@ -53,8 +53,8 @@ export default function TopAccountsDesktopView({
   onSearchQueryChange,
   loading = false,
 }: TopAccountsDesktopViewProps) {
-  const [sortField, setSortField] = useState<SortField>('rank');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [sortField, setSortField] = useState<SortField>('balance');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -78,10 +78,10 @@ export default function TopAccountsDesktopView({
           comparison = a.rank - b.rank;
           break;
         case 'balance':
-          comparison = (b.balance || 0) - (a.balance || 0);
+          comparison = (a.balance || 0) - (b.balance || 0);
           break;
         case 'percent':
-          comparison = parseFloat(b.percent_of_coins || '0') - parseFloat(a.percent_of_coins || '0');
+          comparison = parseFloat(a.percent_of_coins || '0') - parseFloat(b.percent_of_coins || '0');
           break;
       }
       return sortOrder === 'desc' ? -comparison : comparison;
