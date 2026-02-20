@@ -98,7 +98,7 @@ export default function AddLabelPage() {
         throw new Error('Order created but order id is missing from response');
       }
 
-      router.push(`/accounts/directory/order/${orderId}`);
+      router.push(`/accounts/directory/order/status?order_id=${encodeURIComponent(orderId)}`);
     } catch (error: any) {
       console.error('Failed to create label order:', error);
       const backendMessage = error?.response?.data?.message || error?.message;
