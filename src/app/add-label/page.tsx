@@ -1,23 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
+import { useNetwork } from '@/contexts/NetworkContext';
+import { apiEndpoints, getApiData, postApiV1Data } from '@/services/api';
 
 type VerificationType = 'user_defined' | 'verified';
 
 export default function AddLabelPage() {
+  const USER_DEFINED_USD = 99;
+  const VERIFIED_USD = 299;
+  const router = useRouter();
+  const { network } = useNetwork();
   const searchParams = useSearchParams();
   const [accountId, setAccountId] = useState(searchParams.get('account') || '');
   const [label, setLabel] = useState('');
   const [email, setEmail] = useState('');
   const [verificationType, setVerificationType] = useState<VerificationType>('user_defined');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [xlmPriceUsd, setXlmPriceUsd] = useState<number | null>(null);
 
   const verificationOptions = [
     {
       id: 'user_defined' as VerificationType,
       name: 'User Defined',
-      price: 99,
+      price: USER_DEFINED_USD,
       description: 'For normal users.',
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -28,7 +38,7 @@ export default function AddLabelPage() {
     {
       id: 'verified' as VerificationType,
       name: 'Verified',
-      price: 299,
+      price: VERIFIED_USD,
       description: 'For organisations and companies.',
       icon: (
         <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
@@ -38,10 +48,64 @@ export default function AddLabelPage() {
     },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    let active = true;
+    getApiData('/api/coins/stellar')
+      .then((data: any) => {
+        const price = Number(data?.coingecko_stellar?.market_data?.current_price?.usd || 0);
+        if (active) setXlmPriceUsd(price > 0 ? price : null);
+      })
+      .catch(() => {
+        if (active) setXlmPriceUsd(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const extractOrderId = (payload: any): string | null => {
+    const direct = payload?.order_uuid || payload?.orderId || payload?.id || payload?.uuid || payload?.data?.order_no || payload?.data?.id || null;
+    if (typeof direct === 'string' && direct.length > 0) return direct;
+    const iri = payload?.['@id'];
+    if (typeof iri === 'string' && iri.includes('/')) {
+      return iri.split('/').pop() || null;
+    }
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement payment flow
-    console.log({ accountId, label, email, verificationType });
+    setSubmitError('');
+    setIsSubmitting(true);
+
+    try {
+      const payload = {
+        network,
+        account: accountId.trim(),
+        accountid: accountId.trim(),
+        label: label.trim(),
+        label_name: label.trim(),
+        order_type: verificationType,
+        email: email.trim(),
+      };
+
+      const response = await postApiV1Data(apiEndpoints.v1.orders(), payload, {
+        headers: { Accept: 'application/ld+json' },
+      });
+
+      const orderId = extractOrderId(response);
+      if (!orderId) {
+        throw new Error('Order created but order id is missing from response');
+      }
+
+      router.push(`/accounts/directory/order/${orderId}`);
+    } catch (error: any) {
+      console.error('Failed to create label order:', error);
+      const backendMessage = error?.response?.data?.message || error?.message;
+      setSubmitError(backendMessage ? `Failed to create order: ${backendMessage}` : 'Failed to create order. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -138,6 +202,7 @@ export default function AddLabelPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {verificationOptions.map((option) => {
                   const isSelected = verificationType === option.id;
+                  const optionXlm = xlmPriceUsd && xlmPriceUsd > 0 ? (option.price / xlmPriceUsd) : null;
                   return (
                     <button
                       key={option.id}
@@ -176,7 +241,12 @@ export default function AddLabelPage() {
                               </svg>
                             )}
                           </div>
-                          <div className="text-lg font-bold text-[var(--text-primary)]">${option.price}</div>
+                          <div className="text-lg font-bold text-[var(--text-primary)]">
+                            ${option.price}
+                            <span className="text-sm font-medium text-[var(--text-muted)]">
+                              {' '} / {optionXlm ? `${optionXlm.toLocaleString(undefined, { maximumFractionDigits: 2 })} XLM` : 'N/A XLM'}
+                            </span>
+                          </div>
                           <p className="text-[11px] text-[var(--text-tertiary)] mt-1">{option.description}</p>
                         </div>
                       </div>
@@ -189,7 +259,8 @@ export default function AddLabelPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-sky-600 text-white font-semibold rounded-xl hover:bg-sky-700 transition-colors"
+              disabled={isSubmitting}
+              className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-sky-600 text-white font-semibold rounded-xl hover:bg-sky-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -199,8 +270,11 @@ export default function AddLabelPage() {
                   d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
                 />
               </svg>
-              Proceed with payment
+              {isSubmitting ? 'Creating order...' : 'Proceed with payment'}
             </button>
+            {submitError && (
+              <p className="text-sm text-red-500">{submitError}</p>
+            )}
           </form>
         </div>
 

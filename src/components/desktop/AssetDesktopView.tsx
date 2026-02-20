@@ -97,8 +97,10 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
     ? (asset.circulating_supply / asset.total_supply) * 100
     : 100;
 
-  // Pre-fetch trading pairs on mount
+  // Fetch markets only when Markets tab is active
   useEffect(() => {
+    if (activeTab !== 'markets' || tradingPairs.length > 0) return;
+
     const fetchTradingPairs = async () => {
       setLoadingMarkets(true);
       try {
@@ -110,7 +112,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
       setLoadingMarkets(false);
     };
     fetchTradingPairs();
-  }, [asset.code, asset.issuer]);
+  }, [activeTab, asset.code, asset.issuer, tradingPairs.length]);
 
   // Fetch trades when trades tab is active
   useEffect(() => {

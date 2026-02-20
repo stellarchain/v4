@@ -26,7 +26,9 @@ export interface CustomEventData {
   subType?: string;
   account?: string;
   topics: unknown[];
+  decodedTopics?: string[];
   value?: unknown;
+  decodedValue?: string;
 }
 
 export interface TransferEventData {

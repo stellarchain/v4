@@ -13,10 +13,12 @@ export default function KnownAccountsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchLabeledAccounts = async () => {
+        const fetchLabeledAccounts = async () => {
       try {
         setLoading(true);
-        const data = await getApiV1Data(apiEndpoints.v1.accounts({ page: 1 }));
+        const data = await getApiV1Data(
+          apiEndpoints.v1.accounts({ page: 1, itemsPerPage: 30, 'order[accountMetric.rankPosition]': 'asc' })
+        );
         setInitialData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load known accounts');

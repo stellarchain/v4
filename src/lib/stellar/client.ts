@@ -2,7 +2,7 @@
 import { xdr, Address, Asset, Horizon } from '@stellar/stellar-sdk';
 import { apiEndpoints, getApiData, getApiV1Data } from '@/services/api';
 import { createHorizonServer, getHorizonBaseUrl } from '@/services/horizon';
-import { NETWORK_COOKIE_NAME, isNetworkType, type NetworkType } from '../network/config';
+import { DEFAULT_NETWORK, NETWORK_COOKIE_NAME, isNetworkType, type NetworkType } from '../network/config';
 import { getCurrentNetwork, setCurrentNetwork } from '../network/state';
 
 import type {
@@ -946,6 +946,7 @@ function parseStellarchainV1AssetData(payload: unknown): NormalizedStellarchainA
   }
 
   const root = payload as Record<string, unknown>;
+  const marketNode = (root.market as Record<string, unknown>) || {};
   const stellarData = (root.stellarData as Record<string, unknown>) || {};
   const stats = Array.isArray(root.statisticHistory) ? root.statisticHistory as Record<string, unknown>[] : [];
   const latest = stats.length > 0 ? stats[stats.length - 1] : null;
@@ -957,34 +958,59 @@ function parseStellarchainV1AssetData(payload: unknown): NormalizedStellarchainA
   const firstPrice = Number(first?.price ?? latestPrice ?? 0);
   const priceChange = firstPrice > 0 ? ((latestPrice - firstPrice) / firstPrice) * 100 : 0;
 
-  const rawSupply = Number(latest?.supply ?? stellarData.supply ?? 0);
+  const rawSupply = Number(marketNode.supply ?? latest?.supply ?? stellarData.supply ?? 0);
   const supply = rawSupply > 0 ? rawSupply / scalar : 0;
 
   const volume7dRaw = Number(stellarData.volume7d ?? 0);
   const volume7d = volume7dRaw > 0 ? volume7dRaw / scalar : 0;
+  const volumeXlm24hRaw = Number(marketNode.volume_xlm_24h ?? marketNode.volumeXlm24h ?? 0);
+  const volumeXlm24h = volumeXlm24hRaw > 0 ? (volumeXlm24hRaw / 1e7) : 0;
   const volume24hUsd = volume7d > 0 && latestPrice > 0 ? (volume7d / 7) * latestPrice : 0;
 
   const ratingFromStats = Number(latest?.ratingAverage ?? 0);
   const ratingNode = (stellarData.rating as Record<string, unknown>) || {};
   const ratingFromStellar = Number(ratingNode.average ?? 0);
-  const rating = ratingFromStats || ratingFromStellar || 0;
+  const ratingFromMarket = Number(marketNode.score ?? 0);
+  const rating = ratingFromMarket || ratingFromStats || ratingFromStellar || 0;
 
-  const toml = (stellarData.toml_info as Record<string, unknown>) || {};
-  const image = (toml.image || toml.orgLogo) as string | undefined;
+  const toml = ((root.tomlInfo as Record<string, unknown>) || (stellarData.toml_info as Record<string, unknown>) || {});
+  const image = (root.imageUrl || toml.image || toml.orgLogo) as string | undefined;
+  const description = (toml.desc || toml.description || '') as string;
+  const name = (toml.name || root.code || toml.code || '') as string;
+  const homeUrl = (root.homeUrl || toml.home_url || toml.url || '') as string;
+  const rank = Number(marketNode.rank ?? marketNode.rankPosition ?? 0) || 0;
+  const priceXlm = Number(marketNode.price_xlm ?? marketNode.priceXlm ?? 0);
+  const change1h = Number(marketNode.price_change_1h ?? marketNode.priceChange1h ?? 0);
+  const change24h = Number(marketNode.price_change_24h ?? marketNode.priceChange24h ?? 0);
+  const change7d = Number(marketNode.price_change_7d ?? marketNode.priceChange7d ?? 0);
+  const rawSparkline = Array.isArray(marketNode.sparkline_1h) ? marketNode.sparkline_1h : [];
+  const sparkline = rawSparkline.map((value) => Number(value)).filter((value) => Number.isFinite(value));
   const trustlines = (stellarData.trustlines as Record<string, unknown>) || {};
+  const holders = Number(marketNode.trustlines_total ?? marketNode.trustlinesTotal ?? latest?.trustlinesTotal ?? trustlines.total ?? 0);
+  const trades24h = Number(marketNode.trades_24h ?? marketNode.trades24h ?? latest?.trades ?? stellarData.trades ?? 0);
 
   return {
     code: (root.code || toml.code) as string | undefined,
-    domain: stellarData.home_domain as string | undefined,
+    name: name || undefined,
+    description: description || undefined,
+    domain: (root.homeDomain || stellarData.home_domain || toml.home_domain) as string | undefined,
+    home_url: homeUrl || undefined,
     image,
-    holders: Number(latest?.trustlinesTotal ?? trustlines.total ?? 0),
-    trades_24h: Number(latest?.trades ?? stellarData.trades ?? 0),
+    rank,
+    holders,
+    trades_24h: trades24h,
     payments_24h: Number(latest?.payments ?? stellarData.payments ?? 0),
     price_usd: latestPrice,
-    price_usd_change: priceChange,
+    price_xlm: priceXlm > 0 ? priceXlm : undefined,
+    change_1h: Number.isFinite(change1h) ? change1h : undefined,
+    change_24h: Number.isFinite(change24h) ? change24h : undefined,
+    change_7d: Number.isFinite(change7d) ? change7d : undefined,
+    price_usd_change: Number.isFinite(change24h) && change24h !== 0 ? change24h : priceChange,
     volume_usd: volume24hUsd,
+    volume_xlm_24h: volumeXlm24h > 0 ? volumeXlm24h : undefined,
     supply,
     rating,
+    sparkline,
   };
 }
 
@@ -1067,111 +1093,18 @@ export async function getXLMStats(): Promise<{ usd: number; usd_24h_change: numb
   return null;
 }
 
-// Fetch market data from StellarExpert API (aggregated market data)
+// Fetch market data (legacy cursor signature kept for compatibility)
 export async function getMarketAssets(cursor: number = 0): Promise<{ assets: MarketAsset[], hasNext: boolean, nextCursor: number | null }> {
   try {
-    // Fetch once from unified Stellarchain endpoint (includes CoinGecko + Stellar Expert payloads)
-    const coinApiData = await getStellarCoinApiData(cursor);
-    const coinGeckoMarket = coinApiData?.coingecko_stellar?.market_data;
-    const xlmPrice = Number(coinGeckoMarket?.current_price?.usd || 0) || 0.1;
-    const coinGeckoData = coinGeckoMarket
-      ? {
-          usd: coinGeckoMarket.current_price?.usd || 0,
-          usd_market_cap: coinGeckoMarket.market_cap?.usd || 0,
-          usd_24h_vol: coinGeckoMarket.total_volume?.usd || 0,
-          usd_24h_change: coinGeckoMarket.price_change_percentage_24h || 0,
-        }
-      : null;
-
-    const records = coinApiData?.stellar_expert?._embedded?.records;
-    if (!Array.isArray(records)) {
-      throw new Error('Invalid stellar_expert payload in coins endpoint');
-    }
-
-    // Check if there's a next page
-    const hasNext = !!coinApiData?.stellar_expert?._links?.next;
-
-    // Get next cursor from the last record's paging_token
-    const lastRecord = records[records.length - 1];
-    const nextCursor = hasNext && lastRecord ? Number(lastRecord.paging_token) || null : null;
-
-    // Transform StellarExpert data to our MarketAsset format
-    const assets = records.map((asset: Record<string, unknown>, index: number) => {
-      const toml = asset.tomlInfo as Record<string, unknown> | undefined;
-      const currentPrice = Number(asset.price) || 0;
-
-      // Supply from StellarExpert is in stroops (7 decimal places)
-      // Always divide by 10^7 to get actual token amount
-      const supplyRaw = Number(asset.supply) || 0;
-      const supply = supplyRaw / 1e7;
-
-      // Same for volume - it's also in stroops
-      const volume7dRaw = Number(asset.volume7d) || 0;
-      const volume7d = volume7dRaw / 1e7;
-
-      // Parse price7d array - it contains [timestamp, price] tuples
-      const price7dRaw = asset.price7d as [number, number][] | undefined;
-      const price7d = Array.isArray(price7dRaw) ? price7dRaw : [];
-
-      // Calculate price changes from historical data
-      const price1hAgo = getPriceAtHoursAgo(price7d, 1);
-      const price24hAgo = getPriceAtHoursAgo(price7d, 24);
-      const price7dAgo = price7d.length > 0 ? price7d[0][1] : currentPrice;
-
-      const change1h = calculatePriceChange(price1hAgo, currentPrice);
-      const change24h = calculatePriceChange(price24hAgo, currentPrice);
-      const change7d = calculatePriceChange(price7dAgo, currentPrice);
-
-      // Extract just the prices for sparkline (most recent 24 data points)
-      const sparklineData = price7d.slice(-24).map(point => point[1]);
-
-      // Estimate 24h volume as roughly 1/7th of 7d volume
-      const volume24h = volume7d / 7;
-
-      // Calculate price in XLM (price USD / XLM price USD)
-      const priceInXlm = xlmPrice > 0 ? currentPrice / xlmPrice : 0;
-
-      return {
-        rank: index + 1,
-        code: String(asset.asset || 'Unknown').split('-')[0],
-        issuer: String(asset.asset || '').split('-')[1] || '',
-        name: String(toml?.name || String(asset.asset || 'Unknown').split('-')[0]),
-        image: toml?.image ? String(toml.image) : undefined,
-        price_usd: currentPrice,
-        price_xlm: priceInXlm,
-        change_1h: change1h,
-        change_24h: change24h,
-        change_7d: change7d,
-        volume_24h: volume24h,
-        market_cap: supply * currentPrice,
-        circulating_supply: supply,
-        sparkline: sparklineData.length > 0 ? sparklineData : [],
-      };
-    });
-
-    // Override XLM data with CoinGecko if available
-    if (coinGeckoData && assets.length > 0) {
-      // Assume the first asset is XLM (usually sorted by rating/volume)
-      // Or find it explicitly
-      const xlmIndex = assets.findIndex((a: MarketAsset) => a.code === 'XLM' && !a.issuer);
-
-      if (xlmIndex !== -1) {
-        assets[xlmIndex] = {
-          ...assets[xlmIndex],
-          price_usd: coinGeckoData.usd,
-          volume_24h: coinGeckoData.usd_24h_vol, // CoinGecko returns volume in USD
-          market_cap: coinGeckoData.usd_market_cap,
-          change_24h: coinGeckoData.usd_24h_change,
-          price_xlm: 1, // 1 XLM = 1 XLM
-        };
-      }
-    }
-
-    return { assets, hasNext, nextCursor };
-
+    const page = cursor > 0 ? cursor : 1;
+    const { assets, hasNext } = await getMarketAssetsFromMarketV1(page, 100);
+    return {
+      assets,
+      hasNext,
+      nextCursor: hasNext ? page + 1 : null,
+    };
   } catch (error) {
     console.error('Error fetching market assets:', error);
-    // Return empty result instead of mock data
     return { assets: [], hasNext: false, nextCursor: null };
   }
 }
@@ -1275,6 +1208,162 @@ export async function getMarketAssetsFromV1(page: number = 1, xlmUsdPrice: numbe
   }
 }
 
+type MarketAssetsV1Record = {
+  id?: number;
+  '@id'?: string;
+  '@type'?: string;
+  asset?: string;
+  network?: number;
+  rankPosition?: number | string | null;
+  assetKey?: string;
+  asset_key?: string;
+  code?: string;
+  imageUrl?: string | null;
+  image_url?: string | null;
+  issuer?: string;
+  rank?: number;
+  score?: string;
+  priceXlm?: string | null;
+  price_xlm?: string | null;
+  priceChange1h?: string | null;
+  price_change_1h?: string | null;
+  priceChange24h?: string | null;
+  price_change_24h?: string | null;
+  priceChange7d?: string | null;
+  price_change_7d?: string | null;
+  volumeXlm24h?: string | null;
+  volume_xlm_24h?: string | null;
+  trades24h?: number | null;
+  trades_24h?: number | null;
+  trustlinesTotal?: number | null;
+  trustlines_total?: number | null;
+  supply?: string | null;
+  sparkline1h?: Array<string | number> | null;
+  updatedAt?: string;
+  updated_at?: string;
+  tomlInfo?: {
+    name?: string;
+    code?: string;
+    image?: string;
+    home_url?: string;
+    home_domain?: string;
+    documentation?: {
+      ORG_NAME?: string;
+    };
+  };
+};
+
+type MarketAssetsV1Response = {
+  totalItems?: number;
+  view?: {
+    next?: string;
+  };
+  member?: MarketAssetsV1Record[];
+  meta?: {
+    network?: string;
+    limit?: number;
+    next_cursor?: string | null;
+    count?: number;
+  };
+  market?: MarketAssetsV1Record[];
+};
+
+export async function getMarketAssetsFromMarketV1(
+  page: number = 1,
+  itemsPerPage: number = 30
+): Promise<{ assets: MarketAsset[]; hasNext: boolean; totalItems: number; totalPages: number; xlmPrice: number }> {
+  try {
+    const payload = await getApiV1Data(
+      apiEndpoints.v1.marketAssets({ page, itemsPerPage })
+    ) as MarketAssetsV1Response;
+
+    const market = Array.isArray(payload.member)
+      ? payload.member
+      : (Array.isArray(payload.market) ? payload.market : []);
+    const stats = await getXLMStats();
+    const xlmUsdPrice = Number(stats?.usd || 0);
+    const fxRate = xlmUsdPrice > 0 ? xlmUsdPrice : 1;
+
+    const assets: MarketAsset[] = market.map((item, index) => {
+      const priceXlm = Number(item.priceXlm ?? item.price_xlm ?? 0);
+      const priceUsd = priceXlm * fxRate;
+      const supplyRaw = Number(item.supply || 0);
+      const circulatingSupply = supplyRaw / 1e7;
+      const volumeXlmRaw = Number(item.volumeXlm24h ?? item.volume_xlm_24h ?? 0);
+      const volumeXlm = volumeXlmRaw > 0 ? (volumeXlmRaw / 1e7) : 0;
+      const volumeUsd = volumeXlm * fxRate;
+      const rank = Number(item.rankPosition ?? item.rank ?? ((page - 1) * itemsPerPage + index + 1));
+      const code = item.code || 'UNKNOWN';
+      const issuer = item.issuer || '';
+      const defaultName = code || 'Unknown Asset';
+      const name = item.tomlInfo?.documentation?.ORG_NAME || item.tomlInfo?.name || defaultName;
+      const image = item.imageUrl || item.image_url || item.tomlInfo?.image || undefined;
+      const rawSparkline = Array.isArray(item.sparkline1h) ? item.sparkline1h : [];
+      const sparkline = rawSparkline
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value));
+
+      return {
+        rank,
+        code,
+        issuer,
+        name,
+        image,
+        price_usd: priceUsd,
+        price_xlm: priceXlm,
+        change_1h: Number(item.priceChange1h ?? item.price_change_1h ?? 0),
+        change_24h: Number(item.priceChange24h ?? item.price_change_24h ?? 0),
+        change_7d: Number(item.priceChange7d ?? item.price_change_7d ?? 0),
+        volume_24h: volumeUsd,
+        market_cap: circulatingSupply * priceUsd,
+        circulating_supply: circulatingSupply,
+        sparkline,
+      };
+    });
+
+    const pageCount = Number(payload.meta?.count || assets.length);
+    const hasHydraNext = Boolean(payload.view?.next);
+    const hasLegacyNext = Boolean(payload.meta?.next_cursor);
+    const totalItemsFromPayload = Number(payload.totalItems || 0);
+    // Prefer Hydra totalItems, then fallback to legacy cursor-based estimate.
+    const totalItems = totalItemsFromPayload > 0
+      ? totalItemsFromPayload
+      : ((hasHydraNext || hasLegacyNext) ? (page * itemsPerPage) + 1 : ((page - 1) * itemsPerPage) + pageCount);
+    const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+    const hasNext = hasHydraNext || hasLegacyNext || page < totalPages;
+
+    return {
+      assets,
+      hasNext,
+      totalItems,
+      totalPages,
+      xlmPrice: fxRate,
+    };
+  } catch (error) {
+    console.error('Error fetching market assets from v1 market endpoint:', error);
+    return { assets: [], hasNext: false, totalItems: 0, totalPages: 1, xlmPrice: 0 };
+  }
+}
+
+export async function getMarketAssetRankPosition(code: string, issuer?: string): Promise<number> {
+  try {
+    const assetKey = issuer ? `${code}-${issuer}` : `${code}-native`;
+    const payload = await getApiV1Data(
+      apiEndpoints.v1.marketAssets({
+        page: 1,
+        itemsPerPage: 1,
+        'asset.assetKey': assetKey,
+      })
+    ) as MarketAssetsV1Response;
+
+    const first = Array.isArray(payload.member) ? payload.member[0] : null;
+    return Number(first?.rankPosition ?? first?.rank ?? 0) || 0;
+  } catch (error) {
+    console.error('Error fetching market asset rank:', error);
+    return 0;
+  }
+}
+
 // Fetch detailed asset information
 export async function getAssetDetails(code: string, issuer?: string): Promise<AssetDetails | null> {
   // Parse issuer from code if provided in "CODE-ISSUER" format (e.g., "AQUA-GBNZILSTVQZ...")
@@ -1319,19 +1408,19 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       const high24h = Math.max(...sparklineUSD);
       const low24h = Math.min(...sparklineUSD);
 
-      return {
-        rank: statsResponse.rank,
-        code: 'XLM',
-        issuer: '',
-        name: 'Stellar Lumens',
+        return {
+          rank: stellarChainData?.rank || statsResponse.rank,
+          code: 'XLM',
+          issuer: '',
+          name: 'Stellar Lumens',
         description: 'Stellar is an open-source, distributed payments infrastructure. Stellar Lumens (XLM) is the native cryptocurrency of the Stellar network, used to facilitate cross-border transactions and connect financial institutions.',
         domain: 'stellar.org',
         image: 'https://stellar.org/favicon.ico',
         price_usd: currentPrice,
         price_xlm: 1,
-        change_1h: 0,
-        change_24h: stellarChainData?.price_usd_change || statsResponse.priceChange24h,
-        change_7d: priceHistory.length > 0 ? calculatePriceChange(priceHistory[0][1], currentPrice) : 0,
+          change_1h: stellarChainData?.change_1h || 0,
+          change_24h: stellarChainData?.change_24h || stellarChainData?.price_usd_change || statsResponse.priceChange24h,
+          change_7d: priceHistory.length > 0 ? calculatePriceChange(priceHistory[0][1], currentPrice) : 0,
         change_30d: statsResponse.priceChange30d,
         change_90d: undefined,
         change_1y: statsResponse.priceChange1y,
@@ -1346,8 +1435,8 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
         price_low_24h: low24h,
         all_time_high: 0.94,
         all_time_low: 0.001,
-        rating: stellarChainData?.rating || 100,
-        sparkline: statsResponse.sparkline.length > 0 ? statsResponse.sparkline : sparklineUSD,
+          rating: stellarChainData?.rating || 100,
+          sparkline: stellarChainData?.sparkline?.length ? stellarChainData.sparkline : (statsResponse.sparkline.length > 0 ? statsResponse.sparkline : sparklineUSD),
         price_history: priceHistory,
         volume_history: [],
       };
@@ -1363,33 +1452,36 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
 
     if (!cachedAsset) {
       if (stellarChainData) {
+        const fallbackPriceUsd = Number(stellarChainData.price_usd || 0) > 0
+          ? Number(stellarChainData.price_usd || 0)
+          : (Number(stellarChainData.price_xlm || 0) > 0 ? Number(stellarChainData.price_xlm || 0) * xlmPrice : 0);
         // No asset payload from our coins API. Return only Stellarchain-side data.
         return {
-          rank: stellarChainData.rating || 0,
+          rank: stellarChainData.rank || stellarChainData.rating || 0,
           code: parsedCode,
           issuer: parsedIssuer || '',
-          name: stellarChainData.code || code,
-          description: '',
+          name: stellarChainData.name || stellarChainData.code || code,
+          description: stellarChainData.description || '',
           domain: stellarChainData.domain,
           image: stellarChainData.image,
-          price_usd: stellarChainData.price_usd || 0,
-          price_xlm: 0,
-          change_1h: 0,
-          change_24h: stellarChainData.price_usd_change || 0,
-          change_7d: 0,
-          volume_24h: stellarChainData.volume_usd || 0,
-          market_cap: 0,
+          price_usd: fallbackPriceUsd,
+          price_xlm: stellarChainData.price_xlm || 0,
+          change_1h: stellarChainData.change_1h || 0,
+          change_24h: stellarChainData.change_24h || stellarChainData.price_usd_change || 0,
+          change_7d: stellarChainData.change_7d || 0,
+          volume_24h: stellarChainData.volume_usd || (stellarChainData.volume_xlm_24h || 0) * xlmPrice,
+          market_cap: Number(stellarChainData.supply || 0) * fallbackPriceUsd,
           circulating_supply: Number(stellarChainData.supply) || 0,
           total_supply: Number(stellarChainData.supply) || 0,
           holders: stellarChainData.holders || 0,
           payments_24h: 0,
-          trades_24h: 0,
+          trades_24h: stellarChainData.trades_24h || 0,
           price_high_24h: 0,
           price_low_24h: 0,
           all_time_high: 0,
           all_time_low: 0,
           rating: stellarChainData.rating,
-          sparkline: [],
+          sparkline: stellarChainData.sparkline || [],
           price_history: [],
           volume_history: [],
         }
@@ -1414,6 +1506,9 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
 
     // Price sourcing: use Horizon data when available, fallback to unified API price.
     let currentPrice = Number(stellarChainData?.price_usd || asset.price || 0);
+    if (currentPrice <= 0 && Number(stellarChainData?.price_xlm || 0) > 0 && xlmPrice > 0) {
+      currentPrice = Number(stellarChainData?.price_xlm || 0) * xlmPrice;
+    }
     let priceInXlm = 0;
     const isNativeAsset = parsedCode === 'XLM' && !parsedIssuer;
 
@@ -1447,7 +1542,9 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
     const supply = stellarChainData?.supply !== undefined ? Number(stellarChainData.supply) : ((Number(asset.supply) || 0) / 1e7);
     // Note: StellarExpert volume is 7d in stroops, SC is 24h USD. We prefer SC volume if available.
     const volume7d = (Number(asset.volume7d) || 0) / 1e7;
-    const volume24h = stellarChainData?.volume_usd !== undefined ? Number(stellarChainData.volume_usd) : (volume7d / 7);
+    const volume24h = stellarChainData?.volume_usd !== undefined
+      ? Number(stellarChainData.volume_usd)
+      : ((stellarChainData?.volume_xlm_24h !== undefined ? Number(stellarChainData.volume_xlm_24h) * xlmPrice : (volume7d / 7)));
     const trustlines = Array.isArray(asset.trustlines) ? asset.trustlines : [];
 
     // Calculate price changes using Horizon current price
@@ -1468,31 +1565,31 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
     const allTimeLow = allPrices.length > 0 ? Math.min(...allPrices) : undefined;
 
     return {
-      rank: Number(stellarChainData?.rating || asset.rating) || 0,
+      rank: Number(stellarChainData?.rank || stellarChainData?.rating || asset.rating) || 0,
       code: parsedCode,
       issuer: parsedIssuer || '',
-      name: String(toml.name || code),
-      description: String(toml.desc || ''),
+      name: String(stellarChainData?.name || toml.name || code),
+      description: String(stellarChainData?.description || toml.desc || ''),
       domain: String(stellarChainData?.domain || asset.domain || toml.orgName || ''),
       image: stellarChainData?.image || (toml.image ? String(toml.image) : undefined),
       price_usd: currentPrice,
-      price_xlm: priceInXlm,
-      change_1h: 0,
-      change_24h: change24h,
-      change_7d: change7d,
+      price_xlm: priceInXlm || Number(stellarChainData?.price_xlm || 0),
+      change_1h: Number(stellarChainData?.change_1h || 0),
+      change_24h: Number(stellarChainData?.change_24h ?? change24h),
+      change_7d: Number(stellarChainData?.change_7d ?? change7d),
       volume_24h: volume24h,
       market_cap: supply * currentPrice,
       circulating_supply: supply,
       total_supply: supply,
       holders: stellarChainData?.holders || Number(trustlines[0]) || Number(asset.accounts) || 0,
       payments_24h: Number(asset.payments) || 0,
-      trades_24h: Number(asset.trades) || 0,
+      trades_24h: Number(stellarChainData?.trades_24h || asset.trades || 0),
       price_high_24h: high24h,
       price_low_24h: low24h,
       all_time_high: allTimeHigh,
       all_time_low: allTimeLow,
       rating: Number(stellarChainData?.rating || asset.rating) || 0,
-      sparkline: priceHistory.slice(-24).map(p => p[1]),
+      sparkline: stellarChainData?.sparkline?.length ? stellarChainData.sparkline : priceHistory.slice(-24).map(p => p[1]),
       price_history: priceHistory,
       volume_history: [],
     };
@@ -1531,6 +1628,11 @@ export async function getXLMHolders(
   }
 }
 
+function getAccountMetricTransactions(metric?: V1AccountMetric): number {
+  if (!metric) return 0;
+  return Number(metric.totalTransactions ?? metric.transactionsPerHour ?? 0) || 0;
+}
+
 export async function getRichList(
   page: number = 1,
   _limit: number = 50
@@ -1544,7 +1646,7 @@ export async function getRichList(
       account: record.address || '',
       balance: Number(record.accountMetric?.nativeBalance || 0),
       percent_of_coins: '0', // Not available in new API
-      transactions: Number(record.accountMetric?.totalTransactions || 0),
+      transactions: getAccountMetricTransactions(record.accountMetric),
       label: record.label ? {
         name: record.label,
         verified: record.verified === true,
@@ -1591,7 +1693,7 @@ async function fetchAllLabeledAccounts(): Promise<Map<string, AccountLabel>> {
           verified: record.verified ? 1 : 0
         } : null,
         balance: Number(record.accountMetric?.nativeBalance || 0),
-        transactions: String(record.accountMetric?.totalTransactions || '0'),
+        transactions: String(getAccountMetricTransactions(record.accountMetric)),
         rank: Number(record.accountMetric?.rankPosition || 0)
       }));
 
@@ -1661,6 +1763,7 @@ export async function getAccountLabels(
     for (const address of uniqueAddresses) {
       params.append('address[]', address);
     }
+    params.append('network', getCurrentNetwork() || DEFAULT_NETWORK);
     const payload = await getApiV1Data(`/accounts?${params.toString()}`);
     const accounts = payload.member || [];
 
@@ -1975,7 +2078,8 @@ async function fetchCoinGeckoData(): Promise<{
 export async function getOrderBook(
   sellingAsset: { code: string; issuer?: string },
   buyingAsset: { code: string; issuer?: string },
-  limit: number = 20
+  limit: number = 20,
+  network?: NetworkType
 ): Promise<OrderBook> {
   const selling = toHorizonAsset(sellingAsset);
   const buying = toHorizonAsset(buyingAsset);
@@ -1983,7 +2087,7 @@ export async function getOrderBook(
     throw new Error('Invalid assets for order book request');
   }
 
-  const server = createHorizonServer();
+  const server = createHorizonServer(network);
   const response = await server.orderbook(selling, buying).limit(limit).call();
   return response as unknown as OrderBook;
 }
@@ -1996,7 +2100,8 @@ export async function getTradeAggregations(
   limit: number = 100,
   startTime?: number,
   endTime?: number,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  network?: NetworkType
 ): Promise<TradeAggregation[]> {
   const base = toHorizonAsset(baseAsset);
   const counter = toHorizonAsset(counterAsset);
@@ -2015,7 +2120,7 @@ export async function getTradeAggregations(
   const effectiveStart = startTime ?? Math.max(effectiveEnd - defaultWindow, 0);
   const order: 'asc' | 'desc' = startTime ? 'asc' : 'desc';
 
-  const server = createHorizonServer();
+  const server = createHorizonServer(network);
   const response = await server
     .tradeAggregation(base, counter, effectiveStart, effectiveEnd, resolution, 0)
     .limit(limit)
@@ -2032,7 +2137,7 @@ const USDC_ISSUER = 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN';
  * Get current XLM/USD price from Horizon API using XLM/USDC trade aggregations
  * Uses the most recent 15-minute aggregation to get the close price
  */
-export async function getXLMUSDPriceFromHorizon(signal?: AbortSignal): Promise<number> {
+export async function getXLMUSDPriceFromHorizon(signal?: AbortSignal, priceNetwork?: NetworkType): Promise<number> {
   try {
     const aggregations = await getTradeAggregations(
       { code: 'XLM' }, // base asset
@@ -2041,7 +2146,8 @@ export async function getXLMUSDPriceFromHorizon(signal?: AbortSignal): Promise<n
       1, // just need the most recent one
       undefined,
       undefined,
-      signal
+      signal,
+      priceNetwork
     );
 
     if (aggregations.length > 0) {
@@ -2053,7 +2159,8 @@ export async function getXLMUSDPriceFromHorizon(signal?: AbortSignal): Promise<n
     const orderBook = await getOrderBook(
       { code: 'XLM' },
       { code: 'USDC', issuer: USDC_ISSUER },
-      5
+      5,
+      priceNetwork
     );
 
     const topBid = orderBook.bids?.[0]?.price ? parseFloat(orderBook.bids[0].price) : NaN;

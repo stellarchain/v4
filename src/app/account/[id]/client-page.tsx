@@ -9,6 +9,7 @@ import Link from 'next/link';
 import AccountMobileView from '@/components/mobile/AccountMobileView';
 import AccountDesktopView from '@/components/desktop/AccountDesktopView';
 import { createHorizonServer } from '@/services/horizon';
+import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
@@ -61,6 +62,7 @@ export default function AccountPage() {
   const [xlmPrice, setXlmPrice] = useState(0.10);
   const [accountLabels, setAccountLabels] = useState<Record<string, AccountLabel>>({});
   const [currentAccountLabel, setCurrentAccountLabel] = useState<AccountLabel | null>(null);
+  const [accountMetricDates, setAccountMetricDates] = useState<{ firstTransactionAt?: string; lastTransactionAt?: string }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
@@ -87,10 +89,10 @@ export default function AccountPage() {
         setLoading(true);
         const server = createHorizonServer();
 
-        const [accountResponse, priceData, labelsMap] = await Promise.all([
+        const [accountResponse, priceData, accountMetaResponse] = await Promise.all([
           server.accounts().accountId(id).call(),
           getXLMUSDPriceFromHorizon(),
-          getAccountLabels([id]).catch(() => new Map()),
+          getApiV1Data(apiEndpoints.v1.accounts({ 'address[]': id, itemsPerPage: 1 })).catch(() => null),
         ]);
 
         const accountData = accountResponse as unknown as Account;
@@ -98,10 +100,24 @@ export default function AccountPage() {
         setAccount(accountData);
         setXlmPrice(priceData);
 
-        labelsMap.forEach((label, address) => {
-          if (address.toUpperCase() === id.toUpperCase()) {
-            setCurrentAccountLabel(label);
-          }
+        const accountMetaRecord = accountMetaResponse?.member?.find(
+          (entry: any) => String(entry?.address || '').toUpperCase() === id.toUpperCase()
+        ) || accountMetaResponse?.member?.[0];
+
+        setCurrentAccountLabel(
+          accountMetaRecord?.label
+            ? {
+                name: accountMetaRecord.label,
+                verified: accountMetaRecord.verified === true,
+                org_name: null,
+                description: null,
+              }
+            : null
+        );
+
+        setAccountMetricDates({
+          firstTransactionAt: accountMetaRecord?.accountMetric?.firstTransactionAt || undefined,
+          lastTransactionAt: accountMetaRecord?.accountMetric?.lastTransactionAt || undefined,
         });
       } catch (e) {
         setError('Account not found or invalid account ID');
@@ -119,6 +135,7 @@ export default function AccountPage() {
       setOperations([]);
       setAccountLabels({});
       setCurrentAccountLabel(null);
+      setAccountMetricDates({});
       fetchAccountData();
     }
   }, [id]);
@@ -259,6 +276,8 @@ export default function AccountPage() {
           xlmPrice={xlmPrice}
           accountLabels={accountLabels}
           currentAccountLabel={currentAccountLabel}
+          firstTransactionAt={accountMetricDates.firstTransactionAt}
+          lastTransactionAt={accountMetricDates.lastTransactionAt}
           loading={loading}
           onTabChange={(tab: string) => {
             if (tab === 'transactions' && !transactionsFetched) fetchTransactions();
@@ -276,6 +295,8 @@ export default function AccountPage() {
           xlmPrice={xlmPrice}
           accountLabels={accountLabels}
           currentAccountLabel={currentAccountLabel}
+          firstTransactionAt={accountMetricDates.firstTransactionAt}
+          lastTransactionAt={accountMetricDates.lastTransactionAt}
           loading={loading}
           onTabChange={(tab: string) => {
             if (tab === 'transactions' && !transactionsFetched) fetchTransactions();

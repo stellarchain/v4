@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Buffer } from 'buffer';
+import { xdr } from '@stellar/stellar-sdk';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { ContractInvocation } from '@/lib/stellar';
@@ -8,6 +10,7 @@ import verifiedContracts from '@/data/verified-contracts.json';
 import ContractMobileView from '@/components/mobile/ContractMobileView';
 import ContractDesktopView from '@/components/desktop/ContractDesktopView';
 import type { TokenRegistryEntry, ContractVerification } from '@/lib/shared/interfaces';
+import { decodeScVal } from '@/lib/shared/xdr';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { apiEndpoints, getApiV1Data } from '@/services/api';
 
@@ -18,7 +21,7 @@ type ParsedEventData =
   | { from: string; amount: string }
   | { to: string; amount: string }
   | { from: string; spender: string; amount: string; expirationLedger: number }
-  | { eventName: string; subType?: string; account?: string; topics: unknown[]; value?: unknown }
+  | { eventName: string; subType?: string; account?: string; topics: unknown[]; decodedTopics?: string[]; value?: unknown; decodedValue?: string }
   | Record<string, unknown>;
 
 interface ParsedEvent {
@@ -105,92 +108,25 @@ interface VerifiedContract {
   iconUrl?: string;
 }
 
-interface APIContractEventItem {
-  ledger: number;
-  date: string;
-  txHash: string;
-  type: string;
-  amountRaw?: string;
-  amount?: string;
-  from?: string;
-  to?: string;
-  spender?: string;
-}
-
-interface APIContractHistoryItem {
-  txHash: string;
-  ledger: number;
-  date: string;
-  eventType?: string;
-  events?: number;
-}
-
-interface APIContractStorageItem {
-  key: string;
-  lastModifiedLedgerSeq?: number;
-  liveUntilLedgerSeq?: number;
-}
-
 interface APIContractData {
+  id?: number;
   contractId: string;
   contractIdHex: string;
   assetCode?: string | null;
   assetIssuer?: string | null;
   contractCode?: string | null;
+  sourceCode?: string | null;
   wasmId?: string | null;
   sourceCodeVerified: boolean;
   createdAt: string;
   totalTransactions: number;
+  totalOperations?: number;
+  totalEvents?: number;
+  totalEffects?: number;
+  totalStorageEntries?: number;
+  totalInvokes?: number;
   sac: boolean;
   network: number;
-  contractView?: {
-    overview?: {
-      name?: string | null;
-      symbol?: string | null;
-      decimals?: number | null;
-      type?: string | null;
-      operations?: number;
-    };
-    contractDetails?: {
-      contractType?: string | null;
-      verified?: boolean;
-      tokenName?: string | null;
-      isSac?: boolean;
-      totalOperations?: number;
-      assetCode?: string | null;
-      assetIssuer?: string | null;
-    };
-    history?: {
-      totalTransactions?: number;
-      items?: APIContractHistoryItem[];
-    };
-    events?: {
-      totalEvents?: number;
-      transfers?: number;
-      uniqueAddresses?: number;
-      totalVolumeRaw?: string;
-      totalVolume?: string;
-      items?: APIContractEventItem[];
-    };
-    storage?: {
-      entries?: number;
-      latestLedger?: number;
-      items?: APIContractStorageItem[];
-    };
-    buildVerification?: {
-      status?: string;
-    };
-    snapshot?: {
-      contractKind?: string | null;
-      wasmId?: string | null;
-      wasmSha256?: string | null;
-      wasmCodeBase64?: string | null;
-      contractSourceCode?: string | null;
-    };
-  };
-  contractCodePayload?: {
-    wasmSha256?: string | null;
-  };
 }
 
 interface FullContractData {
@@ -226,10 +162,70 @@ const INITIAL_LOADING_SECTIONS: LoadingSectionsState = {
   spec: true,
 };
 
+type ContractEventRecord = {
+  txHash?: string;
+  ledger?: number;
+  createdAt?: string;
+  ledgerClosedAt?: string;
+  eventType?: string;
+  topicDecoded?: string[];
+  valueDecoded?: string;
+};
+
+type ContractStorageEntryRecord = {
+  storageKey?: string;
+  entryXdr?: string;
+  entryDecoded?: {
+    key?: string;
+    xdr?: string;
+    hasContractData?: boolean;
+    liveUntilLedgerSeq?: number;
+    ttlLedgersRemaining?: number;
+    lastModifiedLedgerSeq?: number;
+  };
+  lastModifiedLedgerSeq?: number;
+  liveUntilLedgerSeq?: number;
+  updatedAt?: string;
+};
+
+function parseContractEvent(contractId: string, event: ContractEventRecord): ParsedEvent {
+  const timestamp = event.ledgerClosedAt || event.createdAt;
+  const decodedTopics = (event.topicDecoded || [])
+    .map((topic) => decodeScValBase64(topic))
+    .filter((topic): topic is string => Boolean(topic));
+  const decodedValue = decodeScValBase64(event.valueDecoded);
+  return {
+    type: 'unknown',
+    rawEventName: event.eventType,
+    contractId,
+    ledger: Number(event.ledger || 0),
+    timestamp,
+    txHash: event.txHash,
+    data: {
+      eventName: event.eventType || 'contractEvent',
+      topics: event.topicDecoded || [],
+      decodedTopics,
+      value: event.valueDecoded || '',
+      decodedValue: decodedValue ?? undefined,
+    },
+  };
+}
+
 const CONTRACT_ID_REGEX = /^C[A-Z2-7]{55}$/;
 
 function normalizeContractAddress(value: string): string {
   return String(value || '').trim().toUpperCase();
+}
+
+function decodeScValBase64(encoded?: string): string | null {
+  if (!encoded) return null;
+  try {
+    const buffer = Buffer.from(encoded, 'base64');
+    const scVal = xdr.ScVal.fromXDR(buffer);
+    return decodeScVal(scVal).display;
+  } catch {
+    return encoded;
+  }
 }
 
 function isContractAddress(value: string): boolean {
@@ -240,162 +236,185 @@ function inferContractType(
   apiContractData: APIContractData | null,
   verifiedContract: VerifiedContract | undefined
 ): string {
-  const detailsType = apiContractData?.contractView?.contractDetails?.contractType?.toLowerCase() || '';
-
-  if (detailsType.includes('token')) return 'token';
-  if (detailsType.includes('nft')) return 'nft';
-  if (detailsType.includes('vault')) return 'vault';
+  if (apiContractData?.assetCode) return 'token';
   if (apiContractData?.sac) return 'token';
   if (verifiedContract?.type) return verifiedContract.type;
   return 'contract';
 }
 
-function mapApiEventType(type: string): ParsedEventType {
-  const normalized = type.toLowerCase();
-  if (normalized === 'transfer') return 'transfer';
-  if (normalized === 'approve') return 'approve';
-  if (normalized === 'mint') return 'mint';
-  if (normalized === 'burn') return 'burn';
-  if (normalized === 'clawback') return 'clawback';
-  return 'unknown';
-}
-
-function mapApiEvents(contractId: string, apiData: APIContractData): ParsedEvent[] {
-  const items = apiData.contractView?.events?.items || [];
-
-  return items.map((item) => {
-    const type = mapApiEventType(item.type || 'unknown');
-    const amount = String(item.amountRaw || item.amount || '0');
-
-    if (type === 'transfer') {
-      return {
-        type,
-        contractId,
-        ledger: Number(item.ledger || 0),
-        timestamp: item.date,
-        txHash: item.txHash,
-        data: {
-          from: item.from || 'UNKNOWN',
-          to: item.to || 'UNKNOWN',
-          amount,
-        },
-      };
-    }
-
-    if (type === 'mint') {
-      return {
-        type,
-        contractId,
-        ledger: Number(item.ledger || 0),
-        timestamp: item.date,
-        txHash: item.txHash,
-        data: {
-          to: item.to || 'UNKNOWN',
-          amount,
-        },
-      };
-    }
-
-    if (type === 'burn' || type === 'clawback') {
-      return {
-        type,
-        contractId,
-        ledger: Number(item.ledger || 0),
-        timestamp: item.date,
-        txHash: item.txHash,
-        data: {
-          from: item.from || 'UNKNOWN',
-          amount,
-        },
-      };
-    }
-
-    if (type === 'approve') {
-      return {
-        type,
-        contractId,
-        ledger: Number(item.ledger || 0),
-        timestamp: item.date,
-        txHash: item.txHash,
-        data: {
-          from: item.from || 'UNKNOWN',
-          spender: item.spender || 'UNKNOWN',
-          amount,
-          expirationLedger: 0,
-        },
-      };
-    }
-
-    return {
-      type: 'unknown',
-      rawEventName: item.type || 'event',
-      contractId,
-      ledger: Number(item.ledger || 0),
-      timestamp: item.date,
-      txHash: item.txHash,
-      data: {
-        eventName: item.type || 'event',
-        topics: [],
-        value: amount,
-      },
-    };
-  });
-}
-
-function mapEventSummary(apiData: APIContractData, events: ParsedEvent[]): EventSummary {
-  const eventsNode = apiData.contractView?.events;
+function mapEventSummary(apiData: APIContractData | null, events: ParsedEvent[]): EventSummary {
+  const totalEvents = Number(apiData?.totalEvents ?? events.length ?? 0);
   return {
-    totalEvents: Number(eventsNode?.totalEvents || events.length || 0),
-    transfers: Number(eventsNode?.transfers || events.filter((e) => e.type === 'transfer').length),
-    approvals: events.filter((e) => e.type === 'approve').length,
-    mints: events.filter((e) => e.type === 'mint').length,
-    burns: events.filter((e) => e.type === 'burn').length,
-    clawbacks: events.filter((e) => e.type === 'clawback').length,
-    unknown: events.filter((e) => e.type === 'unknown').length,
+    totalEvents,
+    transfers: 0,
+    approvals: 0,
+    mints: 0,
+    burns: 0,
+    clawbacks: 0,
+    unknown: totalEvents,
     uniqueAddresses: [],
-    totalVolume: String(eventsNode?.totalVolumeRaw || eventsNode?.totalVolume || '0'),
+    totalVolume: '0',
   };
 }
 
-function mapInvocations(contractId: string, apiData: APIContractData): ContractInvocation[] {
-  const historyItems = apiData.contractView?.history?.items || [];
+function mapStorage(contractId: string, apiData: APIContractData): ContractStorageResult | null {
+  if (!apiData.totalStorageEntries) return null;
 
-  return historyItems.map((item) => ({
-    id: `${item.ledger}-${item.txHash}`,
-    txHash: item.txHash,
-    sourceAccount: contractId,
+  return {
     contractId,
-    functionName: (item.eventType || 'invoke').toLowerCase(),
-    parameters: [],
-    createdAt: item.date,
-    ledger: Number(item.ledger || 0),
-    successful: true,
-  }));
+    entries: [],
+    totalEntries: Number(apiData.totalStorageEntries || 0),
+    fetchedAt: Date.now(),
+    instanceData: undefined,
+  };
 }
 
-function mapStorage(contractId: string, apiData: APIContractData): ContractStorageResult | null {
-  const storageNode = apiData.contractView?.storage;
-  if (!storageNode) return null;
+function normalizeScValTypeName(rawType?: string): string {
+  if (!rawType) return 'Unknown';
+  return rawType.replace(/^scv/, '');
+}
 
-  const entries = (storageNode.items || []).map((item) => ({
-    key: item.key,
-    keyDisplay: item.key,
-    keyType: 'Base64',
-    value: '',
-    valueDisplay: item.lastModifiedLedgerSeq ? `Last Modified Ledger: ${item.lastModifiedLedgerSeq}` : 'N/A',
-    valueType: 'Unknown',
-    durability: 'persistent' as const,
-    expirationLedger: item.liveUntilLedgerSeq,
-    ttl: undefined,
-  }));
+function decodeStorageScVal(encoded?: string): { display?: string; type?: string } {
+  if (!encoded) return {};
+  try {
+    const scVal = xdr.ScVal.fromXDR(Buffer.from(encoded, 'base64'));
+    return {
+      display: decodeScVal(scVal).display,
+      type: normalizeScValTypeName(scVal.switch().name),
+    };
+  } catch {
+    return {};
+  }
+}
+
+function decodeStorageEntryXdr(encoded?: string): {
+  keyDisplay?: string;
+  keyType?: string;
+  valueDisplay?: string;
+  valueType?: string;
+  durability?: 'temporary' | 'persistent' | 'instance';
+} {
+  if (!encoded) return {};
+
+  try {
+    const ledgerEntry = xdr.LedgerEntryData.fromXDR(Buffer.from(encoded, 'base64'));
+    if (ledgerEntry.switch().name !== 'contractData') return {};
+
+    const contractData = ledgerEntry.contractData();
+    const keyScVal = contractData.key();
+    const valueScVal = contractData.val();
+    const keyDisplay = decodeScVal(keyScVal).display || keyScVal.switch().name;
+    const valueDisplay = decodeScVal(valueScVal).display || valueScVal.switch().name;
+    const keyType = normalizeScValTypeName(keyScVal.switch().name);
+    const valueType = normalizeScValTypeName(valueScVal.switch().name);
+    const durabilityName = contractData.durability().name as 'temporary' | 'persistent' | 'instance';
+
+    return {
+      keyDisplay,
+      keyType,
+      valueDisplay,
+      valueType,
+      durability: durabilityName,
+    };
+  } catch {
+    return {};
+  }
+}
+
+async function fetchContractStorage(contractId: string, totalStorageEntries?: number): Promise<ContractStorageResult | null> {
+  const data = await getApiV1Data(
+    apiEndpoints.v1.contractStorage(contractId, { page: 1, itemsPerPage: 100 })
+  );
+
+  const records: ContractStorageEntryRecord[] = data.member || [];
+  if (records.length === 0 && !totalStorageEntries) return null;
+
+  const entries: ContractStorageEntry[] = records.map((item, index) => {
+    const key = item.storageKey || item.entryDecoded?.key || '';
+    const xdrPayload = item.entryXdr || item.entryDecoded?.xdr || '';
+
+    const keyFromScVal = decodeStorageScVal(key);
+    const decodedFromEntry = decodeStorageEntryXdr(xdrPayload);
+
+    const keyDisplay = decodedFromEntry.keyDisplay || keyFromScVal.display || key || `Entry #${index + 1}`;
+    const keyType = decodedFromEntry.keyType || keyFromScVal.type || 'ScVal';
+    const valueDisplay = decodedFromEntry.valueDisplay || `Storage entry (ledger ${item.lastModifiedLedgerSeq || item.entryDecoded?.lastModifiedLedgerSeq || 'N/A'})`;
+    const valueType = decodedFromEntry.valueType || 'ContractData';
+    const durability = decodedFromEntry.durability || 'persistent';
+    const ttl = item.entryDecoded?.ttlLedgersRemaining;
+    const expirationLedger = item.liveUntilLedgerSeq || item.entryDecoded?.liveUntilLedgerSeq;
+
+    return {
+      key,
+      keyDisplay,
+      keyType,
+      value: xdrPayload,
+      valueDisplay,
+      valueType,
+      durability,
+      ttl,
+      expirationLedger,
+    };
+  });
 
   return {
     contractId,
     entries,
-    totalEntries: Number(storageNode.entries || entries.length || 0),
+    totalEntries: Number(totalStorageEntries ?? records.length),
     fetchedAt: Date.now(),
-    instanceData: storageNode.latestLedger ? { latestLedger: storageNode.latestLedger } : undefined,
+    instanceData: undefined,
   };
+}
+
+async function fetchContractEvents(contractId: string): Promise<ParsedEvent[]> {
+  const data = await getApiV1Data(
+    apiEndpoints.v1.contractEvents(contractId, { page: 1, itemsPerPage: 50 })
+  );
+  const records: ContractEventRecord[] = data.member || [];
+  return records.map((item) => parseContractEvent(contractId, item));
+}
+
+type ContractTransactionRecord = {
+  txHash?: string;
+  ledger?: number;
+  createdAt?: string;
+  sourceAccount?: string;
+  hostFunctions?: string;
+  totalOperations?: number;
+  successful?: boolean;
+};
+
+function parseHostFunctionName(hostFunctions?: string): string {
+  if (!hostFunctions) return 'invoke';
+  try {
+    const payload = JSON.parse(hostFunctions);
+    const invoking = payload.invokeContracts || payload.hostFunctionInvocations || [];
+    const first = invoking[0];
+    if (first?.functionName) return first.functionName;
+  } catch {
+    // ignore
+  }
+  return 'invoke';
+}
+
+async function fetchContractTransactions(contractId: string): Promise<ContractInvocation[]> {
+  const data = await getApiV1Data(
+    apiEndpoints.v1.contractTransactions(contractId, { page: 1, itemsPerPage: 50 })
+  );
+
+  const records: ContractTransactionRecord[] = data.member || [];
+
+  return records.map((item) => ({
+    id: `${item.ledger ?? 0}-${item.txHash ?? ''}`,
+    txHash: item.txHash || '',
+    sourceAccount: item.sourceAccount || contractId,
+    contractId,
+    functionName: parseHostFunctionName(item.hostFunctions),
+    parameters: [],
+    createdAt: item.createdAt || '',
+    ledger: Number(item.ledger ?? 0),
+    successful: item.successful ?? true,
+  }));
 }
 
 function buildTokenMetadata(
@@ -408,9 +427,7 @@ function buildTokenMetadata(
     return null;
   }
 
-  const overview = apiData.contractView?.overview;
-  const details = apiData.contractView?.contractDetails;
-  const symbol = overview?.symbol || apiData.assetCode || verifiedContract?.symbol || 'TOKEN';
+  const symbol = apiData.assetCode || verifiedContract?.symbol || 'TOKEN';
   const category =
     verifiedContract?.type === 'token' ||
     verifiedContract?.type === 'lending' ||
@@ -422,10 +439,10 @@ function buildTokenMetadata(
 
   return {
     contractId,
-    name: overview?.name || details?.tokenName || verifiedContract?.name || symbol,
+    name: verifiedContract?.name || symbol,
     symbol,
-    decimals: Number(overview?.decimals ?? verifiedContract?.decimals ?? 7),
-    isSAC: Boolean(details?.isSac ?? apiData.sac),
+    decimals: Number(verifiedContract?.decimals ?? 7),
+    isSAC: Boolean(apiData.sac),
     underlyingAsset: apiData.assetCode
       ? {
           code: apiData.assetCode,
@@ -443,28 +460,23 @@ function buildTokenMetadata(
 }
 
 function buildVerification(apiData: APIContractData): ContractVerification | null {
-  const status = apiData.contractView?.buildVerification?.status || '';
-  const isVerifiedByStatus = status.toLowerCase().includes('verified') && !status.toLowerCase().includes('not');
-
   return {
-    isVerified: Boolean(apiData.sourceCodeVerified || isVerifiedByStatus),
-    wasmHash:
-      apiData.contractView?.snapshot?.wasmSha256 ||
-      apiData.contractCodePayload?.wasmSha256 ||
-      undefined,
+    isVerified: Boolean(apiData.sourceCodeVerified),
+    wasmHash: apiData.wasmId || undefined,
   };
 }
 
 async function fetchContractData(contractId: string): Promise<FullContractData> {
   const verifiedContract = verifiedContracts.contracts.find((contract) => contract.id === contractId);
 
-  const apiData = (await getApiV1Data(
-    apiEndpoints.v1.contractById(contractId, { source_code: 1 })
-  )) as APIContractData;
+  const [apiData, invocations] = await Promise.all([
+    getApiV1Data(apiEndpoints.v1.contractById(contractId)),
+    fetchContractTransactions(contractId),
+  ]) as [APIContractData, ContractInvocation[]];
 
   const type = inferContractType(apiData, verifiedContract);
   const tokenMetadata = buildTokenMetadata(contractId, apiData, verifiedContract, type);
-  const events = mapApiEvents(contractId, apiData);
+  const events: ParsedEvent[] = [];
 
   return {
     id: contractId,
@@ -476,7 +488,7 @@ async function fetchContractData(contractId: string): Promise<FullContractData> 
     apiContractData: apiData,
     events,
     eventSummary: mapEventSummary(apiData, events),
-    invocations: mapInvocations(contractId, apiData),
+    invocations,
     storage: mapStorage(contractId, apiData),
     spec: null,
     verification: buildVerification(apiData),
@@ -521,6 +533,14 @@ export default function ContractPage() {
   const [error, setError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(() => !isInvalidId);
   const [loadingSections, setLoadingSections] = useState<LoadingSectionsState>(INITIAL_LOADING_SECTIONS);
+  const [contractEvents, setContractEvents] = useState<ParsedEvent[]>([]);
+  const [contractStorage, setContractStorage] = useState<ContractStorageResult | null>(null);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
+  const [eventsError, setEventsError] = useState<string | null>(null);
+  const [storageLoading, setStorageLoading] = useState(false);
+  const [storageLoaded, setStorageLoaded] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isInvalidId) return;
@@ -565,8 +585,54 @@ export default function ContractPage() {
     };
   }, [id, isInvalidId]);
 
-  const handleTabChange = (_tabId: ContractTab) => {
-    // No lazy Soroban RPC loading anymore.
+  useEffect(() => {
+    setContractEvents([]);
+    setContractStorage(null);
+    setEventsLoaded(false);
+    setEventsLoading(false);
+    setEventsError(null);
+    setStorageLoaded(false);
+    setStorageLoading(false);
+    setStorageError(null);
+  }, [id]);
+
+  const loadContractEvents = useCallback(async () => {
+    if (eventsLoaded || eventsLoading) return;
+    setEventsLoading(true);
+    setEventsError(null);
+    try {
+      const fetched = await fetchContractEvents(id);
+      setContractEvents(fetched);
+      setEventsLoaded(true);
+    } catch (err) {
+      setEventsError(err instanceof Error ? err.message : 'Failed to load events');
+    } finally {
+      setEventsLoading(false);
+    }
+  }, [eventsLoaded, eventsLoading, id]);
+
+  const loadContractStorage = useCallback(async () => {
+    if (storageLoaded || storageLoading) return;
+    setStorageLoading(true);
+    setStorageError(null);
+    try {
+      const fetched = await fetchContractStorage(id, contractData?.apiContractData?.totalStorageEntries);
+      setContractStorage(fetched);
+      setStorageLoaded(true);
+    } catch (err) {
+      setStorageError(err instanceof Error ? err.message : 'Failed to load storage');
+    } finally {
+      setStorageLoading(false);
+    }
+  }, [contractData?.apiContractData?.totalStorageEntries, id, storageLoaded, storageLoading]);
+
+  const handleTabChange = (tabId: ContractTab) => {
+    if (tabId === 'events' || tabId === 'operations') {
+      void loadContractEvents();
+    }
+    if (tabId === 'storage') {
+      void loadContractStorage();
+    }
   };
 
   if (isInvalidId) {
@@ -600,6 +666,9 @@ export default function ContractPage() {
   }
 
   const baseData = contractData || emptyContractData(id);
+  const visibleEvents = eventsLoaded ? contractEvents : [];
+  const visibleStorage = storageLoaded ? contractStorage : baseData.storage;
+  const eventSummaryFromData = mapEventSummary(baseData.apiContractData, visibleEvents);
 
   const contractForView = {
     id: baseData.id,
@@ -613,21 +682,26 @@ export default function ContractPage() {
     accessControl: baseData.accessControl,
     nftInfo: null,
     vaultInfo: null,
-    events: baseData.events,
-    eventSummary: baseData.eventSummary,
-    storage: baseData.storage,
+    events: visibleEvents,
+    eventSummary: eventsLoaded ? eventSummaryFromData : baseData.eventSummary ?? eventSummaryFromData,
+    storage: visibleStorage,
     invocations: baseData.invocations,
     spec: baseData.spec,
     totalTransactions: baseData.apiContractData?.totalTransactions,
     createdAt: baseData.apiContractData?.createdAt,
     wasmId: baseData.apiContractData?.wasmId || undefined,
-    contractCode: baseData.apiContractData?.contractCode || undefined,
+    contractCode: baseData.apiContractData?.sourceCode || baseData.apiContractData?.contractCode || undefined,
     sourceCodeVerified: baseData.apiContractData?.sourceCodeVerified,
     assetIssuer: baseData.apiContractData?.assetIssuer || undefined,
     isSAC: baseData.apiContractData?.sac,
     _loading: isValidating
       ? { events: true, invocations: true, storage: true, spec: true }
-      : loadingSections,
+      : {
+          events: eventsLoading,
+          invocations: loadingSections.invocations,
+          storage: storageLoading,
+          spec: loadingSections.spec,
+        },
   };
 
   return (

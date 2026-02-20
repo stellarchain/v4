@@ -144,9 +144,10 @@ export default function MarketsDesktopView({
 }: MarketsDesktopViewProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortField, setSortField] = useState<SortField>('market_cap');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [sortField, setSortField] = useState<SortField>('rank');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const paginationTotalPages = Math.max(totalPages, hasNextPage ? currentPage + 1 : currentPage, 1);
 
   // Calculate market totals
   const marketTotals = useMemo(() => {
@@ -169,12 +170,12 @@ export default function MarketsDesktopView({
     assets.sort((a, b) => {
       let comparison = 0;
       switch (sortField) {
-        case 'rank': comparison = a.rank - b.rank; break;
-        case 'market_cap': comparison = (b.market_cap || 0) - (a.market_cap || 0); break;
-        case 'price_usd': comparison = (b.price_usd || 0) - (a.price_usd || 0); break;
-        case 'volume_24h': comparison = (b.volume_24h || 0) - (a.volume_24h || 0); break;
+        case 'rank': comparison = (a.rank || 0) - (b.rank || 0); break;
+        case 'market_cap': comparison = (a.market_cap || 0) - (b.market_cap || 0); break;
+        case 'price_usd': comparison = (a.price_usd || 0) - (b.price_usd || 0); break;
+        case 'volume_24h': comparison = (a.volume_24h || 0) - (b.volume_24h || 0); break;
       }
-      return sortOrder === 'desc' ? comparison : -comparison;
+      return sortOrder === 'asc' ? comparison : -comparison;
     });
 
     return assets;
@@ -185,7 +186,7 @@ export default function MarketsDesktopView({
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
-      setSortOrder('desc');
+      setSortOrder(field === 'rank' ? 'asc' : 'desc');
     }
   };
 
@@ -299,12 +300,12 @@ export default function MarketsDesktopView({
                 <HeaderCell label="#" field="rank" className="w-12" />
                 <HeaderCell label="Name" className="min-w-[180px]" />
                 <HeaderCell label="Price" field="price_usd" className="text-right" />
-                <HeaderCell label="7d %" className="text-right" />
+                <HeaderCell label="1h %" className="text-right" />
                 <HeaderCell label="Market Cap" field="market_cap" className="text-right" />
                 <HeaderCell label="Volume (24h)" field="volume_24h" className="text-right" />
                 <HeaderCell label="Supply" className="text-right" />
                 <th className="py-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] text-right">
-                  Last 7 Days
+                  Last 1h
                 </th>
               </tr>
             </thead>
@@ -327,6 +328,11 @@ export default function MarketsDesktopView({
                 const assetId = `${asset.code}-${asset.issuer || 'native'}`;
                 const isFavorite = favorites.has(assetId);
                 const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
+                const displayRank = asset.rank > 0 ? asset.rank : ((currentPage - 1) * 50 + index + 1);
+                const sparklineData = asset.sparkline || [];
+                const sparklinePositive = sparklineData.length > 1
+                  ? sparklineData[sparklineData.length - 1] >= sparklineData[0]
+                  : (asset.change_1h || 0) >= 0;
 
                 return (
                   <tr
@@ -347,12 +353,12 @@ export default function MarketsDesktopView({
                     </td>
 
                     {/* Rank */}
-                    <td className="py-3 px-3 text-[var(--text-muted)] text-[13px] font-medium">{asset.rank}</td>
+                    <td className="py-3 px-3 text-[var(--text-muted)] text-[13px] font-medium">{displayRank}</td>
 
                     {/* Name */}
                     <td className="py-3 px-3">
                       <Link href={getAssetUrl(asset)} className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-[var(--bg-tertiary)] flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-slate-700 flex items-center justify-center">
                           {asset.code === 'XLM' && !asset.issuer ? (
                             <div className="w-full h-full bg-[var(--text-primary)] flex items-center justify-center">
                               <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -369,7 +375,7 @@ export default function MarketsDesktopView({
                               unoptimized
                             />
                           ) : (
-                            <span className="text-[10px] font-bold text-[var(--text-tertiary)]">
+                            <span className="text-[10px] font-bold text-slate-100">
                               {asset.code.slice(0, 2)}
                             </span>
                           )}
@@ -387,9 +393,9 @@ export default function MarketsDesktopView({
                       <div className="text-[var(--text-muted)] text-[10px]">{formatXLMPrice(priceInXlm)}</div>
                     </td>
 
-                    {/* 7d Change */}
+                    {/* 1h Change */}
                     <td className="py-3 px-3 text-right">
-                      <ChangeCell value={asset.change_7d || 0} />
+                      <ChangeCell value={asset.change_1h || 0} />
                     </td>
 
                     {/* Market Cap */}
@@ -411,7 +417,7 @@ export default function MarketsDesktopView({
                     {/* Sparkline */}
                     <td className="py-3 px-3">
                       <div className="flex justify-end">
-                        <Sparkline data={asset.sparkline || []} positive={(asset.change_7d || 0) >= 0} />
+                        <Sparkline data={sparklineData} positive={sparklinePositive} />
                       </div>
                     </td>
 
@@ -423,7 +429,7 @@ export default function MarketsDesktopView({
         </div>
 
         {/* Pagination Controls */}
-        {!loading && filteredAndSortedAssets.length > 0 && totalPages > 1 && (
+        {!loading && filteredAndSortedAssets.length > 0 && (paginationTotalPages > 1 || hasNextPage || currentPage > 1) && (
           <div className="mt-6 flex items-center justify-center gap-1.5">
             <button
               onClick={() => onPageChange(currentPage - 1)}
@@ -437,16 +443,16 @@ export default function MarketsDesktopView({
 
             {(() => {
               const pages: (number | string)[] = [];
-              if (totalPages <= 7) {
-                for (let i = 1; i <= totalPages; i++) pages.push(i);
+              if (paginationTotalPages <= 7) {
+                for (let i = 1; i <= paginationTotalPages; i++) pages.push(i);
               } else {
                 pages.push(1);
                 if (currentPage > 3) pages.push('...');
                 const start = Math.max(2, currentPage - 1);
-                const end = Math.min(totalPages - 1, currentPage + 1);
+                const end = Math.min(paginationTotalPages - 1, currentPage + 1);
                 for (let i = start; i <= end; i++) pages.push(i);
-                if (currentPage < totalPages - 2) pages.push('...');
-                pages.push(totalPages);
+                if (currentPage < paginationTotalPages - 2) pages.push('...');
+                pages.push(paginationTotalPages);
               }
               return pages.map((page, idx) =>
                 page === '...' ? (
@@ -478,7 +484,7 @@ export default function MarketsDesktopView({
             </button>
 
             <span className="ml-3 text-[10px] font-medium text-[var(--text-muted)]">
-              Page {currentPage} of {totalPages} ({totalItems.toLocaleString()} assets)
+              Page {currentPage} of {paginationTotalPages} ({totalItems.toLocaleString()} assets)
             </span>
           </div>
         )}

@@ -28,7 +28,6 @@ export default function DesktopNavbar() {
     const { theme, toggleTheme } = useTheme();
     const { network, setNetwork, networkConfig, isChangingNetwork } = useNetwork();
     const { favorites } = useFavorites();
-    const isMainnet = network === 'mainnet';
 
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [showNetworkDropdown, setShowNetworkDropdown] = useState(false);
@@ -43,22 +42,20 @@ export default function DesktopNavbar() {
     const blockchainItems: MenuItem[] = [
         { name: 'Ledgers', href: '/ledgers', description: 'Browse ledger history' },
         { name: 'Transactions', href: '/transactions', description: 'View all transactions' },
-        ...(isMainnet ? [
-            { name: 'Smart Contracts', href: '/contracts', description: 'Deployed Soroban contracts' },
-            { name: 'Liquidity Pools', href: '/liquidity-pools', description: 'DEX liquidity reserves' },
-        ] : []),
+        { name: 'Smart Contracts', href: '/contracts', description: 'Deployed Soroban contracts' },
+        { name: 'Liquidity Pools', href: '/liquidity-pools', description: 'DEX liquidity reserves' },
     ];
 
-    const accountsItems: MenuItem[] = isMainnet ? [
+    const accountsItems: MenuItem[] = [
         { name: 'Top Accounts', href: '/accounts', description: 'Ranked by XLM holdings' },
         { name: 'Known Accounts', href: '/accounts/directory', description: 'Labeled accounts directory' },
         { name: 'Add Label', href: '/accounts/directory/update', description: 'Submit a label for an account' },
-    ] : [];
+    ];
 
     const navItems = [
         { name: 'Home', href: '/' },
         { name: 'Blockchain', dropdown: blockchainItems },
-        ...(isMainnet ? [{ name: 'Accounts', dropdown: accountsItems }] : []),
+        { name: 'Accounts', dropdown: accountsItems },
         { name: 'Markets', href: '/markets' },
         { name: 'News', href: '/news' },
     ];

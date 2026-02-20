@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams, notFound, useRouter } from 'next/navigation';
-import { getAssetDetails, getMarketAssets } from '@/lib/stellar';
+import { getAssetDetails } from '@/lib/stellar';
 import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
 import AssetLoadingShell from '@/components/ui/AssetLoadingShell';
@@ -58,19 +58,15 @@ export default function AssetDetailsRoute() {
           return;
         }
 
-        const [assetDetails, marketAssetsResult] = await Promise.all([
-          getAssetDetails(code, issuer),
-          getMarketAssets(),
-        ]);
+        const assetDetails = await getAssetDetails(code, issuer);
 
         if (!assetDetails) {
           setError('Asset not found');
           return;
         }
 
-        const assetRank = marketAssetsResult.assets.findIndex(a => a.code === assetDetails.code) + 1;
         setDetails(assetDetails);
-        setRank(assetRank);
+        setRank(Number(assetDetails.rank || 0));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load asset details.');
       } finally {

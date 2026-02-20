@@ -539,7 +539,14 @@ export interface StellarAccount {
 export type V1AccountMetric = {
   nativeBalance?: string | number;
   totalTransactions?: string | number;
+  transactionsPerHour?: string | number;
+  paymentsCount?: string | number;
+  tradesCount?: string | number;
+  rankScore?: string | number;
   rankPosition?: string | number;
+  metricUpdatedAt?: string;
+  firstTransactionAt?: string;
+  lastTransactionAt?: string;
 };
 
 export type V1AccountRecord = {
@@ -550,6 +557,7 @@ export type V1AccountRecord = {
 };
 
 export type V1CollectionResponse<T> = {
+  totalItems?: number;
   member?: T[];
   view?: {
     next?: string;
@@ -587,16 +595,26 @@ export interface StellarCoinApiResponse {
 
 export type NormalizedStellarchainAsset = {
   code?: string;
+  name?: string;
+  description?: string;
   domain?: string;
+  home_url?: string;
   image?: string;
+  rank?: number;
   holders: number;
   trades_24h: number;
   payments_24h: number;
   price_usd: number;
+  price_xlm?: number;
+  change_1h?: number;
+  change_24h?: number;
+  change_7d?: number;
   price_usd_change: number;
   volume_usd: number;
+  volume_xlm_24h?: number;
   supply: number;
   rating: number;
+  sparkline?: number[];
 };
 
 // SEP-0041 Token Interface Types
