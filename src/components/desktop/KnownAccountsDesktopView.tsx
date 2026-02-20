@@ -8,6 +8,7 @@ import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 interface KnownAccountsDesktopViewProps {
   initialData: LabeledAccountsAPIResponse;
+  xlmPriceUsd?: number | null;
 }
 
 type SortField = 'rank' | 'balance' | 'transactions';
@@ -15,6 +16,12 @@ type SortOrder = 'asc' | 'desc';
 
 function formatFullBalance(balance: number): string {
   return balance.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
+function formatUsdBalance(balanceXlm: number, xlmPriceUsd?: number | null): string {
+  if (!xlmPriceUsd || !Number.isFinite(xlmPriceUsd)) return '$-';
+  const usd = balanceXlm * xlmPriceUsd;
+  return usd.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 }
 
 function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
@@ -29,7 +36,7 @@ function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
   );
 }
 
-export default function KnownAccountsDesktopView({ initialData }: KnownAccountsDesktopViewProps) {
+export default function KnownAccountsDesktopView({ initialData, xlmPriceUsd }: KnownAccountsDesktopViewProps) {
   const getTransactions = (acc: any) => String(acc.accountMetric?.totalTransactions ?? acc.accountMetric?.transactionsPerHour ?? '0');
   const didMountRef = useRef(false);
 
@@ -347,9 +354,11 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
                     {/* Balance */}
                     <td className="py-4 px-4 text-right">
                       <div className="text-[var(--text-primary)] font-semibold text-[13px]">
-                        {formatFullBalance(account.balance || 0)}
+                        {formatFullBalance(account.balance || 0)} <span className="text-[var(--text-muted)] ml-1">XLM</span>
                       </div>
-                      <div className="text-[10px] text-[var(--text-muted)]">XLM</div>
+                      <div className="text-[10px] text-[var(--text-tertiary)]">
+                        {formatUsdBalance(account.balance || 0, xlmPriceUsd)}
+                      </div>
                     </td>
 
                     {/* Transactions */}

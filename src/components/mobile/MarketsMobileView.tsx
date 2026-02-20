@@ -11,6 +11,8 @@ import InlineSkeleton from '@/components/ui/InlineSkeleton';
 interface MarketsMobileViewProps {
   initialAssets: MarketAsset[];
   xlmPrice: number;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
   loading?: boolean;
   currentPage: number;
   hasNextPage: boolean;
@@ -127,6 +129,8 @@ const ASSETS_PER_PAGE = 50;
 export default function MarketsMobileView({
   initialAssets,
   xlmPrice,
+  searchQuery,
+  onSearchQueryChange,
   loading = false,
   currentPage,
   hasNextPage,
@@ -135,7 +139,6 @@ export default function MarketsMobileView({
   totalItems = 0,
 }: MarketsMobileViewProps) {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('rank');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [visibleCount, setVisibleCount] = useState(ASSETS_PER_PAGE);
@@ -154,10 +157,15 @@ export default function MarketsMobileView({
   const filteredAndSortedAssets = useMemo(() => {
     let assets = [...initialAssets];
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
       assets = assets.filter(
-        (asset) => asset.code.toLowerCase().includes(query) || asset.name.toLowerCase().includes(query)
+        (asset) => {
+          const code = String(asset.code || '').toLowerCase();
+          const issuer = String(asset.issuer || '').toLowerCase();
+          const label = String((asset as any).label ?? asset.name ?? '').toLowerCase();
+          return code.includes(query) || issuer.includes(query) || label.includes(query);
+        }
       );
     }
 
@@ -229,7 +237,7 @@ export default function MarketsMobileView({
 
   // Reset visible count when filters change
   const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
+    onSearchQueryChange(value);
   };
 
   const handleSortChange = (field: SortField) => {
@@ -311,7 +319,7 @@ export default function MarketsMobileView({
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Search assets..."
+              placeholder="Search by code, issuer, label..."
               className="w-full h-10 pl-10 pr-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm font-medium placeholder-[var(--text-muted)] text-[var(--text-primary)]"
             />
           </div>

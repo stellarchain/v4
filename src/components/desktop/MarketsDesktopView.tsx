@@ -11,6 +11,8 @@ import InlineSkeleton from '@/components/ui/InlineSkeleton';
 interface MarketsDesktopViewProps {
   initialAssets: MarketAsset[];
   xlmPrice: number;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
   loading?: boolean;
   currentPage: number;
   hasNextPage: boolean;
@@ -135,6 +137,8 @@ function getAssetUrl(asset: MarketAsset): string {
 export default function MarketsDesktopView({
   initialAssets,
   xlmPrice,
+  searchQuery,
+  onSearchQueryChange,
   loading = false,
   currentPage,
   hasNextPage,
@@ -143,7 +147,6 @@ export default function MarketsDesktopView({
   totalItems = 0,
 }: MarketsDesktopViewProps) {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('rank');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -160,10 +163,15 @@ export default function MarketsDesktopView({
   const filteredAndSortedAssets = useMemo(() => {
     let assets = [...initialAssets];
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
       assets = assets.filter(
-        (asset) => asset.code.toLowerCase().includes(query) || asset.name.toLowerCase().includes(query)
+        (asset) => {
+          const code = String(asset.code || '').toLowerCase();
+          const issuer = String(asset.issuer || '').toLowerCase();
+          const label = String((asset as any).label ?? asset.name ?? '').toLowerCase();
+          return code.includes(query) || issuer.includes(query) || label.includes(query);
+        }
       );
     }
 
@@ -280,8 +288,8 @@ export default function MarketsDesktopView({
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search assets..."
+              onChange={(e) => onSearchQueryChange(e.target.value)}
+              placeholder="Search by code, issuer, label..."
               className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] pl-12 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm shadow-sm"
             />
           </div>

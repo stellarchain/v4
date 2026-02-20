@@ -48,7 +48,7 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
     const fetchOrder = async () => {
       try {
         if (!lastCheckedAt) setIsLoading(true);
-        const data = await getApiV1Data(apiEndpoints.v1.orderById(orderId), {
+        const data = await getApiV1Data(`${apiEndpoints.v1.orderById(orderId)}?network=testnet`, {
           headers: { Accept: 'application/ld+json' },
         });
         if (!isActive) return;

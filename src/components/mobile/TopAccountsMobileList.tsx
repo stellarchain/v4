@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { RichListAccount, shortenAddress } from '@/lib/stellar';
 
 interface TopAccountsMobileListProps {
     initialAccounts: RichListAccount[];
     totalAccounts: number;
+    xlmPriceUsd?: number | null;
+    searchQuery: string;
+    onSearchQueryChange: (value: string) => void;
+    loading?: boolean;
 }
 
 function AccountStatusIcons({ labelName, verified }: { labelName?: string; verified?: boolean }) {
@@ -46,14 +49,27 @@ function AccountStatusIcons({ labelName, verified }: { labelName?: string; verif
     );
 }
 
-export default function TopAccountsMobileList({ initialAccounts, totalAccounts }: TopAccountsMobileListProps) {
-    const [accounts] = useState<RichListAccount[]>(initialAccounts || []);
+export default function TopAccountsMobileList({
+    initialAccounts,
+    totalAccounts,
+    xlmPriceUsd,
+    searchQuery,
+    onSearchQueryChange,
+    loading = false,
+}: TopAccountsMobileListProps) {
+    const accounts = initialAccounts || [];
 
     const formatBalance = (balance: number) => {
         if (balance >= 1e9) return `${(balance / 1e9).toFixed(2)}B`;
         if (balance >= 1e6) return `${(balance / 1e6).toFixed(2)}M`;
         if (balance >= 1e3) return `${(balance / 1e3).toFixed(2)}K`;
         return balance.toFixed(2);
+    };
+
+    const formatUsdBalance = (balanceXlm: number) => {
+        if (!xlmPriceUsd || !Number.isFinite(xlmPriceUsd)) return '$-';
+        const usd = balanceXlm * xlmPriceUsd;
+        return usd.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
     };
 
     return (
@@ -70,11 +86,23 @@ export default function TopAccountsMobileList({ initialAccounts, totalAccounts }
                         </span>
                     </div>
                 </div>
+                <div className="relative mb-3">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => onSearchQueryChange(e.target.value)}
+                        placeholder="Search by label or address..."
+                        className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] pl-10 pr-3 py-2.5 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm shadow-sm"
+                    />
+                </div>
 
                 {/* Accounts List - Compact Cards */}
                 {accounts.length === 0 ? (
                     <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4 text-center text-[var(--text-muted)] italic text-sm">
-                        No accounts found
+                        {loading ? 'Searching accounts...' : 'No accounts found'}
                     </div>
                 ) : (
                     <div className="space-y-1.5">
@@ -114,6 +142,9 @@ export default function TopAccountsMobileList({ initialAccounts, totalAccounts }
                                         <div className="text-right flex-shrink-0">
                                             <div className="text-[13px] font-bold text-[var(--text-primary)]">
                                                 {formatBalance(account.balance || 0)} <span className="text-[var(--text-muted)] font-normal text-[10px]">XLM</span>
+                                            </div>
+                                            <div className="text-[10px] text-[var(--text-tertiary)]">
+                                                {formatUsdBalance(account.balance || 0)}
                                             </div>
                                             <div className="text-[10px] text-[var(--text-muted)]">
                                                 {parseFloat(account.percent_of_coins || '0').toFixed(2)}%

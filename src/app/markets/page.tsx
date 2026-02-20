@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getMarketAssetsFromMarketV1 } from '@/lib/stellar';
 import type { MarketAsset } from '@/lib/shared/interfaces';
 import MarketsMobileView from '@/components/mobile/MarketsMobileView';
@@ -17,6 +17,22 @@ export default function MarketsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const searchFilters = useMemo(() => {
+    const query = debouncedSearchQuery;
+    if (!query) return {};
+    if (/^G[A-Z2-7]{55}$/i.test(query)) {
+      return { 'asset.issuer': query.toUpperCase() };
+    }
+    return { 'asset.code': query.toUpperCase() };
+  }, [debouncedSearchQuery]);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,7 +40,7 @@ export default function MarketsPage() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const result = await getMarketAssetsFromMarketV1(currentPage, PAGE_SIZE);
+        const result = await getMarketAssetsFromMarketV1(currentPage, PAGE_SIZE, searchFilters);
         if (cancelled) return;
         setPageAssets(result.assets);
         setTotalPages(result.totalPages);
@@ -44,7 +60,11 @@ export default function MarketsPage() {
 
     fetchData();
     return () => { cancelled = true; };
-  }, [currentPage]);
+  }, [currentPage, searchFilters]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery]);
 
   if (!isLoading && error) {
     return (
@@ -70,6 +90,8 @@ export default function MarketsPage() {
         <MarketsMobileView
           initialAssets={pageAssets}
           xlmPrice={xlmPrice}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
           loading={isLoading}
           currentPage={currentPage}
           hasNextPage={hasNextPage}
@@ -84,6 +106,8 @@ export default function MarketsPage() {
         <MarketsDesktopView
           initialAssets={pageAssets}
           xlmPrice={xlmPrice}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
           loading={isLoading}
           currentPage={currentPage}
           hasNextPage={hasNextPage}

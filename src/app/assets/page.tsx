@@ -4,16 +4,20 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { getAssetDetails, getMarketAssets } from '@/lib/stellar';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Horizon } from '@stellar/stellar-sdk';
 import Loading from '@/components/ui/Loading';
 import ShowError from '@/components/ui/ShowError';
 import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
 import { assetRoute } from '@/lib/shared/routes';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
-import { createHorizonServer } from '@/services/horizon';
+import { apiEndpoints, getApiV1Data } from '@/services/api';
 
-type Asset = Horizon.ServerApi.AssetRecord;
+type AssetListItem = {
+  asset_code: string;
+  asset_issuer?: string;
+  num_accounts?: number;
+  amount?: string | number;
+};
 
 export default function AssetsPage() {
   const pathname = usePathname();
@@ -28,11 +32,23 @@ export default function AssetsPage() {
     return value || null;
   }, [pathname, searchParams]);
 
-  const [assets, setAssets] = useState<Asset[] | null>(null);
+  const [assets, setAssets] = useState<AssetListItem[] | null>(null);
+  const [codeQuery, setCodeQuery] = useState('');
+  const [issuerQuery, setIssuerQuery] = useState('');
+  const [debouncedCodeQuery, setDebouncedCodeQuery] = useState('');
+  const [debouncedIssuerQuery, setDebouncedIssuerQuery] = useState('');
   const [details, setDetails] = useState<any>(null);
   const [rank, setRank] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedCodeQuery(codeQuery.trim());
+      setDebouncedIssuerQuery(issuerQuery.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [codeQuery, issuerQuery]);
 
   function parseAssetSlug(slug: string): { code: string; issuer?: string | null } {
     const decoded = decodeURIComponent(slug).trim();
@@ -97,10 +113,24 @@ export default function AssetsPage() {
           setRank(assetRank);
           setAssets(null);
         } else {
-          const server = createHorizonServer();
-          const res = await server.assets().order('desc').limit(50).call();
+          const params: Record<string, string | number> = {
+            page: 1,
+            itemsPerPage: 30,
+            'order[ratingAverage]': 'asc',
+          };
+          if (debouncedCodeQuery) params.code = debouncedCodeQuery;
+          if (debouncedIssuerQuery) params.issuer = debouncedIssuerQuery;
+
+          const res = await getApiV1Data(apiEndpoints.v1.assets(params));
+          const members = Array.isArray(res?.member) ? res.member : [];
+          const mapped: AssetListItem[] = members.map((item: any) => ({
+            asset_code: item.code || 'UNKNOWN',
+            asset_issuer: item.issuer || undefined,
+            num_accounts: Number(item?.latestStatistic?.accounts ?? item?.accounts ?? 0),
+            amount: item?.latestStatistic?.supply ?? item?.supply ?? 0,
+          }));
           if (!isMounted) return;
-          setAssets(res.records || []);
+          setAssets(mapped);
           setDetails(null);
           setRank(0);
         }
@@ -116,7 +146,7 @@ export default function AssetsPage() {
     return () => {
       isMounted = false;
     };
-  }, [assetSlug]);
+  }, [assetSlug, debouncedCodeQuery, debouncedIssuerQuery]);
 
   if (error) {
     return <ShowError message={error} />;
@@ -126,7 +156,7 @@ export default function AssetsPage() {
     return (
       <Loading
         title={assetSlug ? 'Loading asset' : 'Loading assets'}
-        description={assetSlug ? 'Fetching asset details.' : 'Fetching latest assets from Horizon.'}
+        description={assetSlug ? 'Fetching asset details.' : 'Fetching assets from API v1.'}
       />
     );
   }
@@ -152,11 +182,28 @@ export default function AssetsPage() {
       <div className="flex items-end justify-between gap-4 mb-4">
         <div>
           <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Assets</h1>
-          <p className="text-sm text-[var(--text-tertiary)]">Latest assets from Horizon</p>
+          <p className="text-sm text-[var(--text-tertiary)]">Assets from API v1</p>
         </div>
         <Link href="/markets" className="text-sm font-medium text-[var(--info)] hover:underline">
           Markets
         </Link>
+      </div>
+
+      <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input
+          type="text"
+          value={codeQuery}
+          onChange={(e) => setCodeQuery(e.target.value)}
+          placeholder="Search by code (e.g. USDC)"
+          className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 text-sm"
+        />
+        <input
+          type="text"
+          value={issuerQuery}
+          onChange={(e) => setIssuerQuery(e.target.value)}
+          placeholder="Filter by issuer (optional)"
+          className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 text-sm font-mono"
+        />
       </div>
 
       <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-2xl overflow-hidden">
@@ -180,32 +227,37 @@ export default function AssetsPage() {
               </div>
             ))
           ) : (
-            listAssets.map((a) => (
-              <Link
-                key={`${a.asset_code}:${a.asset_issuer}`}
-                href={assetRoute(a.asset_code, a.asset_issuer)}
-                className="px-4 py-3 border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-tertiary)] transition-colors"
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="font-mono text-sm text-[var(--text-primary)] truncate">
-                      {a.asset_code}
+            <>
+              {listAssets.length === 0 && (
+                <div className="px-4 py-6 text-sm text-[var(--text-tertiary)]">No assets found for current filters.</div>
+              )}
+              {listAssets.map((a) => (
+                <Link
+                  key={`${a.asset_code}:${a.asset_issuer}`}
+                  href={assetRoute(a.asset_code, a.asset_issuer)}
+                  className="px-4 py-3 border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-tertiary)] transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="font-mono text-sm text-[var(--text-primary)] truncate">
+                        {a.asset_code}
+                      </div>
+                      <div className="font-mono text-[11px] text-[var(--text-muted)] truncate">
+                        {a.asset_issuer}
+                      </div>
                     </div>
-                    <div className="font-mono text-[11px] text-[var(--text-muted)] truncate">
-                      {a.asset_issuer}
+                    <div className="text-right shrink-0">
+                      <div className="text-[11px] text-[var(--text-tertiary)]">
+                        {Number((a as any).num_accounts || 0).toLocaleString()} holders
+                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)]">
+                        {Number((a as any).amount || 0).toLocaleString()} supply
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-[11px] text-[var(--text-tertiary)]">
-                      {Number((a as any).num_accounts || 0).toLocaleString()} holders
-                    </div>
-                    <div className="text-[11px] text-[var(--text-muted)]">
-                      {Number((a as any).amount || 0).toLocaleString()} supply
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))
+                </Link>
+              ))}
+            </>
           )}
         </div>
       </div>

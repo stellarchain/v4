@@ -5,12 +5,13 @@ import type { LabeledAccountsAPIResponse } from '@/lib/stellar';
 import KnownAccountsClient from './KnownAccountsClient';
 import KnownAccountsDesktopView from '@/components/desktop/KnownAccountsDesktopView';
 import Loading from '@/components/ui/Loading';
-import { apiEndpoints, getApiV1Data } from '@/services/api';
+import { apiEndpoints, getApiData, getApiV1Data } from '@/services/api';
 
 export default function KnownAccountsPage() {
   const [initialData, setInitialData] = useState<LabeledAccountsAPIResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [xlmPriceUsd, setXlmPriceUsd] = useState<number | null>(null);
 
   useEffect(() => {
         const fetchLabeledAccounts = async () => {
@@ -31,6 +32,21 @@ export default function KnownAccountsPage() {
     fetchLabeledAccounts();
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    getApiData('/api/coins/stellar')
+      .then((data: any) => {
+        const price = Number(data?.coingecko_stellar?.market_data?.current_price?.usd || 0);
+        if (active) setXlmPriceUsd(price > 0 ? price : null);
+      })
+      .catch(() => {
+        if (active) setXlmPriceUsd(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   if (loading) {
     return <Loading title="Loading known accounts" description="Fetching labeled accounts." />;
   }
@@ -47,12 +63,12 @@ export default function KnownAccountsPage() {
     <>
       {/* Mobile View */}
       <div className="block md:hidden">
-        <KnownAccountsClient initialData={initialData} />
+        <KnownAccountsClient initialData={initialData} xlmPriceUsd={xlmPriceUsd} />
       </div>
 
       {/* Desktop View */}
       <div className="hidden md:block">
-        <KnownAccountsDesktopView initialData={initialData} />
+        <KnownAccountsDesktopView initialData={initialData} xlmPriceUsd={xlmPriceUsd} />
       </div>
     </>
   );
