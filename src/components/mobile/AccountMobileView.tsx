@@ -858,7 +858,7 @@ export default function AccountMobileView({ account, accountId, transactions, op
           </div>
           {/* Account Badge - clickable */}
           <button onClick={() => setShowBadgeModal(true)} className="flex items-center gap-1 flex-shrink-0">
-            <AccountStatusIcons labelText={accountLabelText} verified={currentAccountLabel?.verified} size="lg" />
+            <AccountStatusIcons labelText={accountLabelText || undefined} verified={currentAccountLabel?.verified} size="lg" />
           </button>
         </div>
 
