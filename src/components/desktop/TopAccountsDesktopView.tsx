@@ -7,6 +7,10 @@ import { RichListAccount, shortenAddress } from '@/lib/stellar';
 interface TopAccountsDesktopViewProps {
   initialAccounts: RichListAccount[];
   totalAccounts: number;
+  xlmPriceUsd?: number | null;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+  loading?: boolean;
 }
 
 type SortField = 'rank' | 'balance' | 'percent';
@@ -23,6 +27,12 @@ function formatFullBalance(balance: number): string {
   return balance.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
+function formatUsdBalance(balanceXlm: number, xlmPriceUsd?: number | null): string {
+  if (!xlmPriceUsd || !Number.isFinite(xlmPriceUsd)) return '$-';
+  const usd = balanceXlm * xlmPriceUsd;
+  return usd.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+}
+
 function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
   return (
     <svg className={`w-3 h-3 ml-1 inline-block ${active ? 'text-sky-600' : 'text-[var(--text-muted)]'}`} fill="currentColor" viewBox="0 0 24 24">
@@ -35,8 +45,14 @@ function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
   );
 }
 
-export default function TopAccountsDesktopView({ initialAccounts, totalAccounts }: TopAccountsDesktopViewProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+export default function TopAccountsDesktopView({
+  initialAccounts,
+  totalAccounts,
+  xlmPriceUsd,
+  searchQuery,
+  onSearchQueryChange,
+  loading = false,
+}: TopAccountsDesktopViewProps) {
   const [sortField, setSortField] = useState<SortField>('rank');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
@@ -53,16 +69,7 @@ export default function TopAccountsDesktopView({ initialAccounts, totalAccounts 
   }, [initialAccounts, totalAccounts]);
 
   const filteredAndSortedAccounts = useMemo(() => {
-    let accounts = [...initialAccounts];
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      accounts = accounts.filter(
-        (account) =>
-          account.account.toLowerCase().includes(query) ||
-          (account.label?.name && account.label.name.toLowerCase().includes(query))
-      );
-    }
+    const accounts = [...initialAccounts];
 
     accounts.sort((a, b) => {
       let comparison = 0;
@@ -81,7 +88,7 @@ export default function TopAccountsDesktopView({ initialAccounts, totalAccounts 
     });
 
     return accounts;
-  }, [initialAccounts, searchQuery, sortField, sortOrder]);
+  }, [initialAccounts, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -174,7 +181,7 @@ export default function TopAccountsDesktopView({ initialAccounts, totalAccounts 
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => onSearchQueryChange(e.target.value)}
               placeholder="Search by name or address..."
               className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] pl-12 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm shadow-sm"
             />
@@ -191,7 +198,7 @@ export default function TopAccountsDesktopView({ initialAccounts, totalAccounts 
               Known Accounts
             </Link>
             <span className="text-sm text-[var(--text-muted)]">
-              Showing {filteredAndSortedAccounts.length} accounts
+              {loading ? 'Searching...' : `Showing ${filteredAndSortedAccounts.length} accounts`}
             </span>
           </div>
         </div>
@@ -283,9 +290,11 @@ export default function TopAccountsDesktopView({ initialAccounts, totalAccounts 
                     {/* Balance */}
                     <td className="py-4 px-4 text-right">
                       <div className="text-[var(--text-primary)] font-semibold text-[13px]">
-                        {formatFullBalance(account.balance || 0)}
+                        {formatFullBalance(account.balance || 0)} <span className="text-[var(--text-muted)] ml-1">XLM</span>
                       </div>
-                      <div className="text-[10px] text-[var(--text-muted)]">XLM</div>
+                      <div className="text-[10px] text-[var(--text-tertiary)]">
+                        {formatUsdBalance(account.balance || 0, xlmPriceUsd)}
+                      </div>
                     </td>
 
                     {/* Percent */}

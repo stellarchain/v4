@@ -8,6 +8,7 @@ import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 interface KnownAccountsClientProps {
   initialData: LabeledAccountsAPIResponse;
+  xlmPriceUsd?: number | null;
 }
 
 function AccountStatusIcons({ labelText, verified }: { labelText?: string; verified?: boolean }) {
@@ -47,7 +48,7 @@ function AccountStatusIcons({ labelText, verified }: { labelText?: string; verif
   );
 }
 
-export default function KnownAccountsClient({ initialData }: KnownAccountsClientProps) {
+export default function KnownAccountsClient({ initialData, xlmPriceUsd }: KnownAccountsClientProps) {
   const getTransactions = (acc: any) => String(acc.accountMetric?.totalTransactions ?? acc.accountMetric?.transactionsPerHour ?? '0');
   const didMountRef = useRef(false);
 
@@ -137,6 +138,12 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
     if (balance >= 1e6) return `${(balance / 1e6).toFixed(2)}M`;
     if (balance >= 1e3) return `${(balance / 1e3).toFixed(2)}K`;
     return balance.toFixed(2);
+  };
+
+  const formatUsdBalance = (balanceXlm: number) => {
+    if (!xlmPriceUsd || !Number.isFinite(xlmPriceUsd)) return '$-';
+    const usd = balanceXlm * xlmPriceUsd;
+    return usd.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
   };
 
   return (
@@ -239,6 +246,9 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
                         <div className="text-[13px] font-bold text-[var(--text-primary)]">
                           {formatBalance(account.balance || 0)} <span className="text-[var(--text-muted)] font-normal text-[10px]">XLM</span>
                         </div>
+                        <div className="text-[10px] text-[var(--text-tertiary)]">
+                          {formatUsdBalance(account.balance || 0)}
+                        </div>
                         <div className="text-[10px] text-[var(--text-muted)]">
                           {parseInt(account.transactions || '0').toLocaleString()} txs
                         </div>
@@ -292,10 +302,13 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
                       </span>
                     </td>
                     <td className="px-4 py-4 text-right">
-                      <span className="font-mono font-semibold text-[var(--text-primary)]">
+                      <div className="font-mono font-semibold text-[var(--text-primary)]">
                         {formatBalance(account.balance || 0)}
-                      </span>
-                      <span className="text-[var(--text-muted)] ml-1">XLM</span>
+                        <span className="text-[var(--text-muted)] ml-1">XLM</span>
+                      </div>
+                      <div className="text-[10px] text-[var(--text-tertiary)]">
+                        {formatUsdBalance(account.balance || 0)}
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-right">
                       <span className="text-[var(--text-secondary)]">

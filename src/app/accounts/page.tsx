@@ -8,7 +8,7 @@ import TopAccountsDesktopView from '@/components/desktop/TopAccountsDesktopView'
 import AccountDetailsClientPage from '@/app/account/[id]/client-page';
 import Loading from '@/components/ui/Loading';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
-import { apiEndpoints, getApiV1Data } from '@/services/api';
+import { apiEndpoints, getApiData, getApiV1Data } from '@/services/api';
 
 export default function AccountsPage() {
     const pathname = usePathname();
@@ -25,6 +25,14 @@ export default function AccountsPage() {
     const [totalAccounts, setTotalAccounts] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [xlmPriceUsd, setXlmPriceUsd] = useState<number | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     useEffect(() => {
         if (hasDetailsRoute) return;
@@ -35,9 +43,22 @@ export default function AccountsPage() {
         const fetchRichList = async () => {
             try {
                 setLoading(true);
-                const result = await getApiV1Data(
-                    apiEndpoints.v1.accounts({ page: 1, itemsPerPage: 30, 'order[accountMetric.rankPosition]': 'asc' })
-                );
+                const query = debouncedSearchQuery;
+                const isAddressQuery = /^(G|C)[A-Z0-9]{10,}$/.test(query.toUpperCase());
+                const params: Record<string, string | number> = {
+                    page: 1,
+                    itemsPerPage: 30,
+                    'order[accountMetric.rankPosition]': 'asc',
+                };
+                if (query) {
+                    if (isAddressQuery) {
+                        params.address = query;
+                    } else {
+                        params.label = query;
+                    }
+                }
+
+                const result = await getApiV1Data(apiEndpoints.v1.accounts(params));
 
                 // Calculate total supply from all accounts (sum of balances on this page as approximation)
                 const TOTAL_XLM_SUPPLY = 50_000_000_000; // 50 billion XLM
@@ -77,13 +98,28 @@ export default function AccountsPage() {
         };
 
         fetchRichList();
-    }, [hasDetailsRoute]);
+    }, [hasDetailsRoute, debouncedSearchQuery]);
+
+    useEffect(() => {
+        let active = true;
+        getApiData('/api/coins/stellar')
+            .then((data: any) => {
+                const price = Number(data?.coingecko_stellar?.market_data?.current_price?.usd || 0);
+                if (active) setXlmPriceUsd(price > 0 ? price : null);
+            })
+            .catch(() => {
+                if (active) setXlmPriceUsd(null);
+            });
+        return () => {
+            active = false;
+        };
+    }, []);
 
     if (hasDetailsRoute) {
         return <AccountDetailsClientPage />;
     }
 
-    if (loading) {
+    if (loading && richListAccounts.length === 0) {
         return <Loading title="Loading accounts" description="Fetching top XLM holders." />;
     }
 
@@ -99,12 +135,26 @@ export default function AccountsPage() {
         <>
             {/* Mobile View */}
             <div className="block md:hidden">
-                <TopAccountsMobileList initialAccounts={richListAccounts} totalAccounts={totalAccounts} />
+                <TopAccountsMobileList
+                    initialAccounts={richListAccounts}
+                    totalAccounts={totalAccounts}
+                    xlmPriceUsd={xlmPriceUsd}
+                    searchQuery={searchQuery}
+                    onSearchQueryChange={setSearchQuery}
+                    loading={loading}
+                />
             </div>
 
             {/* Desktop View */}
             <div className="hidden md:block">
-                <TopAccountsDesktopView initialAccounts={richListAccounts} totalAccounts={totalAccounts} />
+                <TopAccountsDesktopView
+                    initialAccounts={richListAccounts}
+                    totalAccounts={totalAccounts}
+                    xlmPriceUsd={xlmPriceUsd}
+                    searchQuery={searchQuery}
+                    onSearchQueryChange={setSearchQuery}
+                    loading={loading}
+                />
             </div>
         </>
     );

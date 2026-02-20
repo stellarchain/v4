@@ -1271,11 +1271,12 @@ type MarketAssetsV1Response = {
 
 export async function getMarketAssetsFromMarketV1(
   page: number = 1,
-  itemsPerPage: number = 30
+  itemsPerPage: number = 30,
+  filters: Record<string, string | number | undefined> = {}
 ): Promise<{ assets: MarketAsset[]; hasNext: boolean; totalItems: number; totalPages: number; xlmPrice: number }> {
   try {
     const payload = await getApiV1Data(
-      apiEndpoints.v1.marketAssets({ page, itemsPerPage })
+      apiEndpoints.v1.marketAssets({ page, itemsPerPage, ...filters })
     ) as MarketAssetsV1Response;
 
     const market = Array.isArray(payload.member)
