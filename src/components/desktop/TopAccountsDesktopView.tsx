@@ -44,7 +44,11 @@ export default function TopAccountsDesktopView({ initialAccounts, totalAccounts 
   const totals = useMemo(() => {
     const totalBalance = initialAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
     const totalPercent = initialAccounts.reduce((sum, acc) => sum + parseFloat(acc.percent_of_coins || '0'), 0);
-    const verifiedCount = initialAccounts.filter(acc => acc.label?.verified).length;
+    const verifiedCount = initialAccounts.filter((acc) => {
+      const labelText = (acc.label?.name || '').toLowerCase();
+      const isRisk = labelText.includes('scam') || labelText.includes('hack') || labelText.includes('malicious') || labelText.includes('spam');
+      return acc.label?.verified && !isRisk;
+    }).length;
     return { totalBalance, totalPercent, verifiedCount, totalAccounts, displayedAccounts: initialAccounts.length };
   }, [initialAccounts, totalAccounts]);
 
@@ -208,7 +212,10 @@ export default function TopAccountsDesktopView({ initialAccounts, totalAccounts 
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]">
               {filteredAndSortedAccounts.map((account) => {
-                const isVerified = account.label?.verified;
+                const labelText = (account.label?.name || '').toLowerCase();
+                const isSpam = labelText.includes('spam');
+                const isRisk = labelText.includes('scam') || labelText.includes('hack') || labelText.includes('malicious') || isSpam;
+                const isVerified = account.label?.verified && !isRisk;
                 const hasLabel = !!account.label?.name;
 
                 return (
@@ -234,17 +241,25 @@ export default function TopAccountsDesktopView({ initialAccounts, totalAccounts 
                         <span className="text-[var(--text-primary)] font-semibold text-[13px] group-hover:text-sky-600 transition-colors">
                           {account.label?.name || 'Unknown'}
                         </span>
-                        {isVerified ? (
+                        {isRisk && (
+                          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill={isSpam ? '#F97316' : '#EF4444'}>
+                            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+                            <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                        )}
+                        {hasLabel && (
+                          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="12" cy="8" r="4.25" fill="#F59E0B" />
+                            <circle cx="12" cy="8" r="2.1" fill="#FEF3C7" />
+                            <path d="M9.2 11.2L7.6 20l4.4-2.5 4.4 2.5-1.6-8.8z" fill="#D97706" />
+                          </svg>
+                        )}
+                        {isVerified && (
                           <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#1D9BF0">
                             <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
                           </svg>
-                        ) : hasLabel ? (
-                          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
-                            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                            <circle cx="12" cy="10" r="3" fill="white" />
-                            <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                          </svg>
-                        ) : (
+                        )}
+                        {!isRisk && !isVerified && !hasLabel && (
                           <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
                             <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
                             <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
@@ -282,22 +297,32 @@ export default function TopAccountsDesktopView({ initialAccounts, totalAccounts 
 
                     {/* Status */}
                     <td className="py-4 px-4 text-center">
-                      {isVerified ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 text-[9px] font-bold uppercase tracking-wider">
-                          <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
-                          Verified
-                        </span>
-                      ) : hasLabel ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] text-[9px] font-bold uppercase tracking-wider">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
-                          Labeled
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-primary)] text-[var(--text-muted)] text-[9px] font-bold uppercase tracking-wider">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
-                          Unknown
-                        </span>
-                      )}
+                      <div className="inline-flex items-center gap-1 flex-wrap justify-center">
+                        {isRisk && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${isSpam ? 'bg-orange-50 text-orange-700' : 'bg-red-50 text-red-700'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isSpam ? 'bg-orange-500' : 'bg-red-500'}`}></span>
+                            {isSpam ? 'Spam' : 'Risk'}
+                          </span>
+                        )}
+                        {isVerified && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 text-[9px] font-bold uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                            Verified
+                          </span>
+                        )}
+                        {hasLabel && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] text-[9px] font-bold uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
+                            Labeled
+                          </span>
+                        )}
+                        {!isRisk && !isVerified && !hasLabel && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-primary)] text-[var(--text-muted)] text-[9px] font-bold uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
+                            Unknown
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Arrow */}

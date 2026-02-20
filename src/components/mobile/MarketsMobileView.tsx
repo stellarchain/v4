@@ -19,7 +19,7 @@ interface MarketsMobileViewProps {
   totalItems?: number;
 }
 
-type SortField = 'market_cap' | 'price_usd' | 'change_24h' | 'change_7d' | 'volume_24h';
+type SortField = 'rank' | 'market_cap' | 'price_usd' | 'change_1h' | 'change_24h' | 'volume_24h';
 
 function formatNumber(num: number): string {
   if (num === 0 || isNaN(num)) return '$--.--';
@@ -136,11 +136,12 @@ export default function MarketsMobileView({
 }: MarketsMobileViewProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortField, setSortField] = useState<SortField>('market_cap');
+  const [sortField, setSortField] = useState<SortField>('rank');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [visibleCount, setVisibleCount] = useState(ASSETS_PER_PAGE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const paginationTotalPages = Math.max(totalPages, hasNextPage ? currentPage + 1 : currentPage, 1);
 
   // Calculate market totals
   const marketTotals = useMemo(() => {
@@ -163,10 +164,11 @@ export default function MarketsMobileView({
     assets.sort((a, b) => {
       let comparison = 0;
       switch (sortField) {
+        case 'rank': comparison = (a.rank || 0) - (b.rank || 0); break;
         case 'market_cap': comparison = (b.market_cap || 0) - (a.market_cap || 0); break;
         case 'price_usd': comparison = (b.price_usd || 0) - (a.price_usd || 0); break;
         case 'change_24h': comparison = (b.change_24h || 0) - (a.change_24h || 0); break;
-        case 'change_7d': comparison = (b.change_7d || 0) - (a.change_7d || 0); break;
+        case 'change_1h': comparison = (b.change_1h || 0) - (a.change_1h || 0); break;
         case 'volume_24h': comparison = (b.volume_24h || 0) - (a.volume_24h || 0); break;
       }
       return comparison;
@@ -240,10 +242,11 @@ export default function MarketsMobileView({
   };
 
   const sortLabels: Record<SortField, string> = {
+    rank: 'Rank',
     market_cap: 'Market Cap',
     volume_24h: 'Volume',
+    change_1h: '1h Change',
     change_24h: '24h Change',
-    change_7d: '7d Change',
     price_usd: 'Price',
   };
 
@@ -373,7 +376,7 @@ export default function MarketsMobileView({
                 className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-3 py-3 flex items-center"
               >
                 <div className="w-6 flex-shrink-0"><InlineSkeleton width="w-4" /></div>
-                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2 bg-[var(--bg-tertiary)]" />
+                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2 bg-slate-700" />
                 <div className="flex-1 min-w-0">
                   <InlineSkeleton width="w-14" />
                   <div className="mt-1"><InlineSkeleton width="w-20" /></div>
@@ -391,9 +394,10 @@ export default function MarketsMobileView({
           ) : visibleAssets.map((asset, index) => {
             const hasData = asset.price_usd > 0 && asset.market_cap > 0;
             const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
-            const change = asset.change_24h || 0;
+            const change = asset.change_1h || 0;
             const isPositive = change > 0;
             const isNeutral = change === 0;
+            const displayRank = asset.rank > 0 ? asset.rank : ((currentPage - 1) * 50 + index + 1);
 
             return (
               <div
@@ -403,13 +407,13 @@ export default function MarketsMobileView({
               >
                 {/* Rank */}
                 <div className="w-6 flex-shrink-0">
-                  <span className="text-xs font-medium text-[var(--text-muted)]">
-                    {asset.rank}
+                    <span className="text-xs font-medium text-[var(--text-muted)]">
+                    {displayRank}
                   </span>
                 </div>
 
                 {/* Logo */}
-                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2 bg-[var(--bg-tertiary)] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2 bg-slate-700 flex items-center justify-center">
                   {asset.code === 'XLM' && !asset.issuer ? (
                     <div className="w-full h-full bg-[var(--text-primary)] flex items-center justify-center">
                       <svg className="w-5 h-5 text-[var(--bg-primary)]" viewBox="0 0 24 24" fill="currentColor">
@@ -426,7 +430,7 @@ export default function MarketsMobileView({
                       unoptimized
                     />
                   ) : (
-                    <span className="text-xs font-bold text-[var(--text-muted)]">
+                    <span className="text-xs font-bold text-slate-100">
                       {asset.code.slice(0, 2)}
                     </span>
                   )}
@@ -500,7 +504,7 @@ export default function MarketsMobileView({
         )}
 
         {/* Pagination Controls */}
-        {!loading && filteredAndSortedAssets.length > 0 && totalPages > 1 && (
+        {!loading && filteredAndSortedAssets.length > 0 && (paginationTotalPages > 1 || hasNextPage || currentPage > 1) && (
           <div className="flex flex-col items-center gap-3 py-4 pb-20">
             <div className="flex items-center gap-1.5">
               <button
@@ -515,16 +519,16 @@ export default function MarketsMobileView({
 
               {(() => {
                 const pages: (number | string)[] = [];
-                if (totalPages <= 5) {
-                  for (let i = 1; i <= totalPages; i++) pages.push(i);
+                if (paginationTotalPages <= 5) {
+                  for (let i = 1; i <= paginationTotalPages; i++) pages.push(i);
                 } else {
                   pages.push(1);
                   if (currentPage > 3) pages.push('...');
                   const start = Math.max(2, currentPage - 1);
-                  const end = Math.min(totalPages - 1, currentPage + 1);
+                  const end = Math.min(paginationTotalPages - 1, currentPage + 1);
                   for (let i = start; i <= end; i++) pages.push(i);
-                  if (currentPage < totalPages - 2) pages.push('...');
-                  pages.push(totalPages);
+                  if (currentPage < paginationTotalPages - 2) pages.push('...');
+                  pages.push(paginationTotalPages);
                 }
                 return pages.map((page, idx) =>
                   page === '...' ? (
@@ -556,7 +560,7 @@ export default function MarketsMobileView({
               </button>
             </div>
             <span className="text-[10px] font-medium text-[var(--text-muted)]">
-              Page {currentPage} of {totalPages} ({totalItems.toLocaleString()} assets)
+              Page {currentPage} of {paginationTotalPages} ({totalItems.toLocaleString()} assets)
             </span>
           </div>
         )}

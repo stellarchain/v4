@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/stellar';
 import type { LabeledAccountsAPIResponse, LabeledAccount } from '@/lib/stellar';
@@ -10,7 +10,47 @@ interface KnownAccountsClientProps {
   initialData: LabeledAccountsAPIResponse;
 }
 
+function AccountStatusIcons({ labelText, verified }: { labelText?: string; verified?: boolean }) {
+  const normalized = (labelText || '').toLowerCase();
+  const isSpam = normalized.includes('spam');
+  const isRisk = normalized.includes('scam') || normalized.includes('hack') || normalized.includes('malicious') || isSpam;
+  const hasLabel = Boolean(labelText);
+  const isVerified = Boolean(verified) && !isRisk;
+
+  return (
+    <>
+      {isRisk && (
+        <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill={isSpam ? '#F97316' : '#EF4444'}>
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+          <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      )}
+      {hasLabel && (
+        <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="4.25" fill="#F59E0B" />
+          <circle cx="12" cy="8" r="2.1" fill="#FEF3C7" />
+          <path d="M9.2 11.2L7.6 20l4.4-2.5 4.4 2.5-1.6-8.8z" fill="#D97706" />
+        </svg>
+      )}
+      {isVerified && (
+        <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#1D9BF0">
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
+        </svg>
+      )}
+      {!isRisk && !isVerified && !hasLabel && (
+        <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+          <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
+        </svg>
+      )}
+    </>
+  );
+}
+
 export default function KnownAccountsClient({ initialData }: KnownAccountsClientProps) {
+  const getTransactions = (acc: any) => String(acc.accountMetric?.totalTransactions ?? acc.accountMetric?.transactionsPerHour ?? '0');
+  const didMountRef = useRef(false);
+
   // Transform new API structure to old format
   const transformedData = initialData?.member?.map((acc: any) => ({
     account: acc.address,
@@ -21,7 +61,7 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
       verified: acc.verified ? 1 : 0
     } : null,
     balance: parseFloat(acc.accountMetric?.nativeBalance || '0'),
-    transactions: acc.accountMetric?.totalTransactions || '0',
+    transactions: getTransactions(acc),
     rank: acc.accountMetric?.rankPosition || 0
   })) || [];
 
@@ -31,11 +71,29 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
   const [totalPages, setTotalPages] = useState(Math.ceil((initialData?.totalItems || 0) / itemsPerPage));
   const [total, setTotal] = useState(initialData?.totalItems || 0);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchPage = useCallback(async (page: number) => {
+  const fetchPage = useCallback(async (page: number, queryValue?: string) => {
     setIsLoading(true);
     try {
-      const json = await getApiV1Data(apiEndpoints.v1.accounts({ page }));
+      const query = (queryValue ?? searchQuery).trim();
+      const isAddressQuery = /^(G|C)[A-Z0-9]{10,}$/.test(query.toUpperCase());
+      const params: Record<string, string | number> = {
+        page,
+        itemsPerPage,
+        'order[accountMetric.rankPosition]': 'asc',
+      };
+      if (query) {
+        if (isAddressQuery) {
+          params.address = query;
+        } else {
+          params.label = query;
+        }
+      }
+
+      const json = await getApiV1Data(
+        apiEndpoints.v1.accounts(params)
+      );
 
       const transformedAccounts = json.member?.map((acc: any) => ({
         account: acc.address,
@@ -46,7 +104,7 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
           verified: acc.verified ? 1 : 0
         } : null,
         balance: parseFloat(acc.accountMetric?.nativeBalance || '0'),
-        transactions: acc.accountMetric?.totalTransactions || '0',
+        transactions: getTransactions(acc),
         rank: acc.accountMetric?.rankPosition || 0
       })) || [];
 
@@ -59,7 +117,20 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [itemsPerPage, searchQuery]);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      fetchPage(1, searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, fetchPage]);
 
   const formatBalance = (balance: number) => {
     if (balance >= 1e9) return `${(balance / 1e9).toFixed(2)}B`;
@@ -82,6 +153,18 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
                 {(total || 0).toLocaleString()}
               </span>
             </div>
+          </div>
+          <div className="relative mb-3">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by label or address..."
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] pl-10 pr-3 py-2.5 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm shadow-sm"
+            />
           </div>
         </div>
 
@@ -122,7 +205,7 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
         <div className="md:hidden">
           {accounts.length === 0 ? (
             <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4 text-center text-[var(--text-muted)] italic text-sm">
-              No accounts found
+              {searchQuery ? `No accounts matching "${searchQuery}"` : 'No accounts found'}
             </div>
           ) : (
             <div className="space-y-1.5">
@@ -141,22 +224,10 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
                           <span className="text-[13px] font-semibold text-[var(--primary-blue)] truncate">
                             {account.label?.name || account.org_name || 'Unknown'}
                           </span>
-                          {account.label?.verified === 1 ? (
-                            <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#1D9BF0">
-                              <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z"/>
-                            </svg>
-                          ) : (account.label?.name || account.org_name) ? (
-                            <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
-                              <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
-                              <circle cx="12" cy="10" r="3" fill="white"/>
-                              <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
-                              <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
-                              <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
-                            </svg>
-                          )}
+                          <AccountStatusIcons
+                            labelText={account.label?.name || account.org_name || undefined}
+                            verified={account.label?.verified === 1}
+                          />
                         </div>
                         <span className="text-[10px] text-[var(--text-muted)] font-mono">
                           {shortenAddress(account.account)}
@@ -209,22 +280,10 @@ export default function KnownAccountsClient({ initialData }: KnownAccountsClient
                         <span className="font-semibold text-[var(--primary-blue)]">
                           {account.label?.name || account.org_name || 'Unknown'}
                         </span>
-                        {account.label?.verified === 1 ? (
-                          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#1D9BF0">
-                            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z"/>
-                          </svg>
-                        ) : (account.label?.name || account.org_name) ? (
-                          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
-                            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
-                            <circle cx="12" cy="10" r="3" fill="white"/>
-                            <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
-                            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z"/>
-                            <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
-                          </svg>
-                        )}
+                        <AccountStatusIcons
+                          labelText={account.label?.name || account.org_name || undefined}
+                          verified={account.label?.verified === 1}
+                        />
                       </div>
                     </td>
                     <td className="px-4 py-4">

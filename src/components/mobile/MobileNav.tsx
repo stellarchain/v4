@@ -44,6 +44,7 @@ const menuCategories: MenuCategory[] = [
     items: [
       { name: 'Top Accounts', href: '/accounts', icon: 'users', description: 'Ranked by XLM holdings' },
       { name: 'Known Accounts', href: '/known-accounts', icon: 'verified', description: 'Labeled accounts directory' },
+      { name: 'Add Label', href: '/accounts/directory/update', icon: 'verified', description: 'Submit a label for an account' },
     ],
   },
   {

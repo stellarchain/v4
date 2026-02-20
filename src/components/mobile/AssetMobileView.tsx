@@ -309,8 +309,10 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     return () => clearInterval(interval);
   }, [asset]);
 
-  // Fetch trade history
+  // Fetch trade history only when Trades tab is active
   useEffect(() => {
+    if (activeTab !== 'trades' || trades.length > 0) return;
+
     const fetchTrades = async () => {
       setTradesLoading(true);
       setTrades([]);
@@ -333,7 +335,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     };
 
     fetchTrades();
-  }, [asset]);
+  }, [activeTab, asset.code, asset.issuer, trades.length]);
 
   // Load more trades function
   const loadMoreTrades = async () => {
@@ -488,8 +490,10 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     return () => observer.disconnect();
   }, [displayedHoldersCount, allHolders.length, activeTab, showMoreHolders, hasMoreHolders, loadingMoreHolders, loadMoreHolders]);
 
-  // Pre-fetch trading pairs/markets on page load
+  // Fetch markets only when Markets tab is active
   useEffect(() => {
+    if (activeTab !== 'markets' || tradingPairs.length > 0) return;
+
     const fetchTradingPairs = async () => {
       setMarketsLoading(true);
       try {
@@ -502,7 +506,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     };
 
     fetchTradingPairs();
-  }, [asset.code, asset.issuer]);
+  }, [activeTab, asset.code, asset.issuer, tradingPairs.length]);
 
   // Render chart
   useEffect(() => {

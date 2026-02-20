@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams, notFound } from 'next/navigation';
-import { getAssetDetails, getMarketAssets } from '@/lib/stellar';
+import { getAssetDetails } from '@/lib/stellar';
 import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
 import AssetLoadingShell from '@/components/ui/AssetLoadingShell';
@@ -36,19 +36,15 @@ export default function AssetPage() {
           return;
         }
         const decodedCode = decodeURIComponent(code);
-        const [assetData, marketAssets] = await Promise.all([
-          getAssetDetails(decodedCode, issuer),
-          getMarketAssets(),
-        ]);
+        const assetData = await getAssetDetails(decodedCode, issuer);
 
         if (!assetData) {
           setError('Asset not found');
           return;
         }
 
-        const assetRank = marketAssets.assets.findIndex(a => a.code === assetData.code) + 1;
         setAsset(assetData);
-        setRank(assetRank);
+        setRank(Number(assetData.rank || 0));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load asset details.');
       } finally {

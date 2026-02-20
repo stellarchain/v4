@@ -7,6 +7,8 @@ import { StrKey } from '@stellar/stellar-sdk';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 import { apiEndpoints, getApiV1Data } from '@/services/api';
+import { isContractAddress } from '@/lib/soroban';
+import { useNetwork } from '@/contexts/NetworkContext';
 
 // Convert hex contract ID to StrKey format (C...)
 function hexToContractStrKey(hexId: string): string {
@@ -67,6 +69,10 @@ interface ContractsDesktopViewProps {
 import verifiedContracts from '@/data/verified-contracts.json';
 
 const PAGE_SIZE = 30;
+type ContractsSort =
+  | 'recent'
+  | 'activity'
+  | 'name';
 
 // Pagination component
 const PaginationControls = ({ currentPage, totalPages, onPageChange, loading }: {
@@ -157,9 +163,11 @@ export default function ContractsDesktopView({
   const [contracts, setContracts] = useState<EnhancedContract[]>(initialContracts);
   const [pagination, setPagination] = useState(initialPagination);
   const [filter, setFilter] = useState<string>('all');
-  const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<'activity' | 'name' | 'recent'>('recent');
+  const [searchInput, setSearchInput] = useState('');
+  const [sortBy, setSortBy] = useState<ContractsSort>('recent');
   const [isLoading, setIsLoading] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const { networkConfig } = useNetwork();
 
   useEffect(() => {
     setContracts(initialContracts);
@@ -168,6 +176,39 @@ export default function ContractsDesktopView({
   useEffect(() => {
     setPagination(initialPagination);
   }, [initialPagination]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [searchInput]);
+
+  const buildContractsQueryParams = useCallback(
+    (pageNum: number, activeSort: ContractsSort, rawQuery: string) => {
+      const params: Record<string, string | number | boolean> = {
+        page: pageNum,
+        itemsPerPage: PAGE_SIZE,
+        pagination: true,
+      };
+
+      if (activeSort === 'recent') params['order[createdAt]'] = 'desc';
+      if (activeSort === 'activity') params['order[totalTransactions]'] = 'desc';
+
+      const query = rawQuery.trim();
+      if (query) {
+        const normalized = query.toUpperCase();
+        if (isContractAddress(normalized)) {
+          params.contract_id = normalized;
+        } else if (/^[A-Za-z0-9]{1,12}$/.test(query)) {
+          params.asset_code = normalized;
+        }
+      }
+
+      return params;
+    },
+    []
+  );
 
   // Transform raw API contracts into EnhancedContract[]
   const transformContracts = useCallback((apiContracts: any[]): EnhancedContract[] => {
@@ -224,12 +265,14 @@ export default function ContractsDesktopView({
 
   // Fetch contracts — when a filter is active, fetches multiple API pages
   // to ensure we have enough matching items to display
-  const fetchPage = useCallback(async (page: number, activeFilter?: string) => {
+  const fetchPage = useCallback(async (page: number, activeFilter?: string, activeSearch?: string, activeSort?: ContractsSort) => {
     setIsLoading(true);
     const currentFilter = activeFilter ?? filter;
+    const currentSearch = activeSearch ?? debouncedSearch;
+    const currentSort = activeSort ?? sortBy;
     try {
       const buildUrl = (pageNum: number) => {
-        const params: Record<string, string | number> = { page: pageNum, 'order[createdAt]': 'desc' };
+        const params = buildContractsQueryParams(pageNum, currentSort, currentSearch);
         return apiEndpoints.v1.contracts(params);
       };
 
@@ -237,7 +280,7 @@ export default function ContractsDesktopView({
       if (currentFilter === 'all') {
         const data = await getApiV1Data(buildUrl(page));
         const newContracts = transformContracts(data.member || []);
-        const itemsPerPage = 30;
+        const itemsPerPage = PAGE_SIZE;
         const totalPages = Math.ceil((data.totalItems || 0) / itemsPerPage);
         setContracts(newContracts);
         setPagination({
@@ -257,7 +300,7 @@ export default function ContractsDesktopView({
         while (accumulated.length < MIN_DISPLAY_COUNT && pagesChecked < MAX_PAGES_TO_FETCH) {
           const data = await getApiV1Data(buildUrl(apiPage));
           totalItems = data.totalItems || 0;
-          totalPages = Math.ceil(totalItems / 30);
+          totalPages = Math.ceil(totalItems / PAGE_SIZE);
 
           const pageContracts = transformContracts(data.member || []);
           const matching = pageContracts.filter(c => matchesFilter(c, currentFilter));
@@ -275,7 +318,7 @@ export default function ContractsDesktopView({
           currentPage: page,
           totalPages,
           total: totalItems,
-          perPage: 30,
+          perPage: PAGE_SIZE,
         });
       }
     } catch (error) {
@@ -283,7 +326,7 @@ export default function ContractsDesktopView({
     } finally {
       setIsLoading(false);
     }
-  }, [filter, sortBy, transformContracts, matchesFilter]);
+  }, [filter, sortBy, debouncedSearch, transformContracts, matchesFilter, buildContractsQueryParams]);
 
   // Re-fetch when filter or sort changes (except for initial load)
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -293,8 +336,8 @@ export default function ContractsDesktopView({
       return;
     }
     // When filter or sort changes, re-fetch from page 1
-    fetchPage(1, filter);
-  }, [filter, sortBy]);  
+    fetchPage(1, filter, debouncedSearch, sortBy);
+  }, [filter, sortBy, debouncedSearch, hasInitialized, fetchPage]);
 
   const filteredContracts = useMemo(() => {
     let result = [...contracts];
@@ -309,8 +352,8 @@ export default function ContractsDesktopView({
       result = result.filter(c => c.type !== 'token');
     }
 
-    if (search.trim()) {
-      const q = search.toLowerCase();
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase();
       result = result.filter(c =>
         c.name.toLowerCase().includes(q) ||
         c.symbol?.toLowerCase().includes(q) ||
@@ -318,16 +361,15 @@ export default function ContractsDesktopView({
       );
     }
 
-    // Client-side sorting for options not supported by API
+    // Client-side sorting fallback for current in-memory slice.
     if (sortBy === 'name') {
       result.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortBy === 'activity') {
       result.sort((a, b) => b.operationCount - a.operationCount);
     }
-    // 'recent' is handled by API with order[createdAt]=desc
 
     return result;
-  }, [contracts, filter, search, sortBy]);
+  }, [contracts, filter, debouncedSearch, sortBy]);
 
   // Get type badge style
   const getTypeBadge = (type: string) => {
@@ -383,7 +425,7 @@ export default function ContractsDesktopView({
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Soroban</span>
                   <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
-                    Mainnet
+                    {networkConfig.displayName}
                   </span>
                 </div>
                 <div className="text-xl font-bold text-[var(--text-primary)]">Smart Contracts</div>
@@ -412,14 +454,20 @@ export default function ContractsDesktopView({
             <input
               type="text"
               placeholder="Search by name, symbol, or contract ID..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-sky-500 focus:border-transparent shadow-sm"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-sky-500 focus:border-transparent shadow-sm"
             />
+            {isLoading && (
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-sky-500" aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            )}
           </div>
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'activity' | 'name' | 'recent')}
+            onChange={(e) => setSortBy(e.target.value as ContractsSort)}
             className="px-4 py-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-medium text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm cursor-pointer"
           >
             <option value="recent">Most Recent</option>
@@ -444,21 +492,8 @@ export default function ContractsDesktopView({
           />
         </div>
 
-        {/* Loading overlay */}
-        {isLoading && (
-          <div className="fixed inset-0 bg-[var(--text-primary)]/20 z-50 flex items-center justify-center backdrop-blur-sm">
-            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-xl p-4 flex items-center gap-3">
-              <svg className="animate-spin h-5 w-5 text-sky-600" aria-hidden="true" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              <span className="font-medium text-[var(--text-secondary)]">Loading contracts...</span>
-            </div>
-          </div>
-        )}
-
         {/* Contracts Table */}
-        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden min-h-[520px]">
           <div className="overflow-x-auto">
             <table className="w-full sc-table">
               <thead>

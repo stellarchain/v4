@@ -29,11 +29,14 @@ export default function AccountsPage() {
     useEffect(() => {
         if (hasDetailsRoute) return;
 
+        const getTransactions = (record: any) =>
+            parseInt(String(record.accountMetric?.totalTransactions ?? record.accountMetric?.transactionsPerHour ?? '0'), 10) || 0;
+
         const fetchRichList = async () => {
             try {
                 setLoading(true);
                 const result = await getApiV1Data(
-                    apiEndpoints.v1.accounts({ page: 1, 'order[accountMetric.rankPosition]': 'asc' })
+                    apiEndpoints.v1.accounts({ page: 1, itemsPerPage: 30, 'order[accountMetric.rankPosition]': 'asc' })
                 );
 
                 // Calculate total supply from all accounts (sum of balances on this page as approximation)
@@ -54,7 +57,7 @@ export default function AccountsPage() {
                             account: record.address,
                             balance,
                             percent_of_coins: percentOfCoins,
-                            transactions: parseInt(record.accountMetric?.totalTransactions || '0'),
+                            transactions: getTransactions(record),
                             label: record.label ? {
                                 name: record.label,
                                 verified: record.verified === true,

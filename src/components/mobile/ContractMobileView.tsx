@@ -12,7 +12,6 @@ import type { NFTInfo, VaultInfo } from '@/lib/soroban/contractExtensions';
 import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isCustomEventData, CustomEventData } from '@/lib/soroban/events';
 import type { ContractStorageResult } from '@/lib/soroban/storage';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
-import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 interface Operation {
   id: string;
@@ -78,7 +77,7 @@ interface ContractData {
 interface ContractMobileViewProps {
   contract: ContractData;
   operations: Operation[];
-  onTabChange?: (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface') => void;
+  onTabChange?: (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface' | 'events') => void;
 }
 
 export default function ContractMobileView({ contract, operations, onTabChange }: ContractMobileViewProps) {
@@ -86,9 +85,7 @@ export default function ContractMobileView({ contract, operations, onTabChange }
   const [copied, setCopied] = useState(false);
   const [copiedName, setCopiedName] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sourceCode, setSourceCode] = useState<string | null>(null);
-  const [sourceCodeLoading, setSourceCodeLoading] = useState(false);
-  const [sourceCodeError, setSourceCodeError] = useState<string | null>(null);
+  const sourceCode = contract.contractCode || null;
 
   // Primary color for consistency with other pages
   const primaryColor = '#0F4C81';
@@ -124,30 +121,6 @@ export default function ContractMobileView({ contract, operations, onTabChange }
     setSearchQuery('');
   };
 
-  const fetchSourceCode = async () => {
-    if (sourceCode || sourceCodeLoading) return;
-
-    setSourceCodeLoading(true);
-    setSourceCodeError(null);
-
-    try {
-      const data = await getApiV1Data(
-        apiEndpoints.v1.contractById(contract.id, { source_code: 1, network: 'mainnet' })
-      );
-      const sourceCodeText =
-        data.contractDecoded?.contractSourceCode ||
-        data.contractSourceCode ||
-        data.contractView?.snapshot?.contractSourceCode ||
-        data.contractCodePayload?.contractSourceCode;
-      setSourceCode(sourceCodeText || 'No source code available');
-    } catch (error) {
-      console.error('Error fetching source code:', error);
-      setSourceCodeError(error instanceof Error ? error.message : 'Failed to load source code');
-    } finally {
-      setSourceCodeLoading(false);
-    }
-  };
-
   const tokenInfo = contract.tokenMetadata || contract.verifiedContract;
   const isToken = contract.type === 'token' || contract.type === 'lending';
   const isNFT = contract.type === 'nft';
@@ -156,13 +129,12 @@ export default function ContractMobileView({ contract, operations, onTabChange }
   const changeTab = (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface' | 'code') => {
     setActiveTab(tabId);
 
-    // Fetch source code when Code tab is clicked
-    if (tabId === 'code') {
-      fetchSourceCode();
-    }
-
     if (tabId !== 'code') {
-      onTabChange?.(tabId as 'overview' | 'operations' | 'details' | 'history' | 'interface');
+      if (tabId === 'operations') {
+        onTabChange?.('events');
+      } else {
+        onTabChange?.(tabId as 'overview' | 'operations' | 'details' | 'history' | 'interface');
+      }
     }
   };
 
@@ -242,9 +214,17 @@ export default function ContractMobileView({ contract, operations, onTabChange }
 
   const tabs: ContractTab[] = [
     { id: 'overview', label: 'Overview' },
-    { id: 'history', label: 'History', count: sectionLoading.invocations ? undefined : (contract.invocations?.length || 0) },
-    { id: 'operations', label: 'Events', count: sectionLoading.events ? undefined : (contract.events?.length || 0) },
-    { id: 'code', label: 'Code', hide: contract.type !== 'contract' }, // Only show for actual contracts (not tokens)
+    {
+      id: 'history',
+      label: 'History',
+      count: contract.totalTransactions ?? 0,
+    },
+    {
+      id: 'operations',
+      label: 'Events',
+      count: contract.eventSummary?.totalEvents ?? 0,
+    },
+    { id: 'code', label: 'Code', hide: contract.type !== 'contract' },
     { id: 'interface', label: 'Interface' },
     { id: 'details', label: 'Details' },
   ];
@@ -761,6 +741,8 @@ export default function ContractMobileView({ contract, operations, onTabChange }
                       ? event.type
                       : (event.rawEventName || 'event');
                     const customData = isCustomEventData(event.data) ? event.data : null;
+                    const decodedTopics = customData?.decodedTopics;
+                    const decodedValue = customData?.decodedValue;
                     const subType = customData?.subType;
 
                     const eventContent = (
@@ -795,6 +777,22 @@ export default function ContractMobileView({ contract, operations, onTabChange }
                               </>
                             )}
                           </div>
+                          {decodedTopics && decodedTopics.length > 0 && (
+                            <dl className="mt-2 grid gap-1 sm:grid-cols-2 text-[10px] text-[var(--text-muted)]">
+                              {decodedTopics.map((topic: string, idx: number) => (
+                                <div key={`decoded-topic-${idx}`} className="rounded-xl bg-[var(--bg-tertiary)] px-2 py-1 text-[var(--text-secondary)]">
+                                  <dt className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">Topic {idx + 1}</dt>
+                                  <dd className="font-mono truncate block leading-tight max-w-full">{topic}</dd>
+                                </div>
+                              ))}
+                            </dl>
+                          )}
+                          {decodedValue && (
+                            <div className="mt-2 rounded-xl bg-[var(--bg-tertiary)] px-2 py-1 text-[10px] text-[var(--text-muted)] font-mono">
+                              <span className="text-[8px] uppercase tracking-wider text-[var(--text-secondary)] block">Value</span>
+                              {decodedValue}
+                            </div>
+                          )}
                         </div>
                         {isTransferEventData(event.data) && (
                           <div className="text-right flex-shrink-0">
@@ -1015,27 +1013,10 @@ export default function ContractMobileView({ contract, operations, onTabChange }
             <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
               <div className="p-4 border-b border-[var(--border-subtle)]">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">Source Code</h3>
-                <p className="text-xs text-[var(--text-tertiary)] mt-1">
-                  {sourceCodeLoading ? 'Decompiling...' : 'Decompiled contract source code'}
-                </p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-1">Contract source code</p>
               </div>
               <div className="p-4">
-                {sourceCodeLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-center">
-                      <svg className="animate-spin h-8 w-8 mx-auto mb-3" style={{ color: primaryColor }} fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      <p className="text-sm text-[var(--text-secondary)]">Decompiling contract...</p>
-                      <p className="text-xs text-[var(--text-muted)] mt-1">This may take a few seconds</p>
-                    </div>
-                  </div>
-                ) : sourceCodeError ? (
-                  <div className="text-center py-8">
-                    <p className="text-sm text-red-500">{sourceCodeError}</p>
-                  </div>
-                ) : sourceCode ? (
+                {sourceCode ? (
                   <div className="w-full overflow-hidden">
                     <SyntaxHighlighter
                       language="rust"

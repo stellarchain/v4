@@ -83,6 +83,8 @@ interface AccountMobileViewProps {
   xlmPrice: number;
   accountLabels?: Record<string, AccountLabel>;
   currentAccountLabel?: AccountLabel | null;
+  firstTransactionAt?: string;
+  lastTransactionAt?: string;
   loading?: boolean;
   onTabChange?: (tab: string) => void;
   loadingTransactions?: boolean;
@@ -95,7 +97,45 @@ function getAssetUrl(code: string | undefined, issuer: string | undefined): stri
   return assetRoute(code, issuer);
 }
 
-export default function AccountMobileView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false }: AccountMobileViewProps) {
+function AccountStatusIcons({ labelText, verified, size = 'sm' }: { labelText?: string; verified?: boolean; size?: 'sm' | 'lg' }) {
+  const normalized = (labelText || '').toLowerCase();
+  const isSpam = normalized.includes('spam');
+  const isRisk = normalized.includes('scam') || normalized.includes('hack') || normalized.includes('malicious') || isSpam;
+  const hasLabel = Boolean(labelText);
+  const isVerified = Boolean(verified) && !isRisk;
+  const iconSize = size === 'lg' ? 'w-8 h-8' : 'w-4 h-4';
+
+  return (
+    <>
+      {isRisk && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" fill={isSpam ? '#F97316' : '#EF4444'}>
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+          <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      )}
+      {hasLabel && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="4.25" fill="#F59E0B" />
+          <circle cx="12" cy="8" r="2.1" fill="#FEF3C7" />
+          <path d="M9.2 11.2L7.6 20l4.4-2.5 4.4 2.5-1.6-8.8z" fill="#D97706" />
+        </svg>
+      )}
+      {isVerified && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" fill="#1D9BF0">
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
+        </svg>
+      )}
+      {!isRisk && !isVerified && !hasLabel && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" fill="#6B7280">
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+          <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
+        </svg>
+      )}
+    </>
+  );
+}
+
+export default function AccountMobileView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt: _firstTransactionAt, lastTransactionAt: _lastTransactionAt, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false }: AccountMobileViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -817,55 +857,9 @@ export default function AccountMobileView({ account, accountId, transactions, op
             )}
           </div>
           {/* Account Badge - clickable */}
-          {(() => {
-            // Determine badge type - check dangerous labels FIRST before verified
-            const labelName = currentAccountLabel?.name?.toLowerCase() || '';
-            const isHack = labelName.includes('hack') || labelName.includes('malicious');
-            const isScam = labelName.includes('scam');
-            const isSpam = labelName.includes('spam');
-
-            return (
-              <button onClick={() => setShowBadgeModal(true)} className="flex-shrink-0">
-                {isHack ? (
-                  // Hack/Malicious badge - red
-                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#EF4444">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                    <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                ) : isScam ? (
-                  // Scam badge - red
-                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#EF4444">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                    <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                ) : isSpam ? (
-                  // Spam badge - orange
-                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#F97316">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                    <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                ) : currentAccountLabel?.verified ? (
-                  // Verified badge - blue (only if NOT dangerous)
-                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#1D9BF0">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
-                  </svg>
-                ) : (currentAccountLabel?.name || currentAccountLabel?.org_name) ? (
-                  // User labeled (has name but not verified, not dangerous) - gray
-                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#6B7280">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                    <circle cx="12" cy="10" r="3" fill="white" />
-                    <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                  </svg>
-                ) : (
-                  // Unknown - gray
-                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#6B7280">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                    <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
-                  </svg>
-                )}
-              </button>
-            );
-          })()}
+          <button onClick={() => setShowBadgeModal(true)} className="flex items-center gap-1 flex-shrink-0">
+            <AccountStatusIcons labelText={accountLabelText} verified={currentAccountLabel?.verified} size="lg" />
+          </button>
         </div>
 
         {/* Total Balance Section - Centered */}
@@ -1760,10 +1754,10 @@ export default function AccountMobileView({ account, accountId, transactions, op
 
               {/* User Labeled */}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-                <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
-                  <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                  <circle cx="12" cy="10" r="3" fill="white" />
-                  <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="8" r="4.25" fill="#F59E0B" />
+                  <circle cx="12" cy="8" r="2.1" fill="#FEF3C7" />
+                  <path d="M9.2 11.2L7.6 20l4.4-2.5 4.4 2.5-1.6-8.8z" fill="#D97706" />
                 </svg>
                 <div>
                   <div className="font-semibold text-sm text-[var(--text-primary)]">User Labeled</div>

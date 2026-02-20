@@ -94,6 +94,10 @@ export default function HomePage() {
     const loadData = async () => {
       try {
         const server = createHorizonServer();
+        const stellarCoinDataPromise = fetchStellarCoinData().catch((coinError) => {
+          console.warn('Homepage coin data fetch failed, continuing with core network data:', coinError);
+          return null;
+        });
 
         // Fetch all data in parallel
         const [
@@ -107,13 +111,13 @@ export default function HomePage() {
           server.transactions().order('desc').limit(8).call(),
           server.operations().order('desc').limit(30).call(),
           server.payments().order('desc').limit(20).call(),
-          fetchStellarCoinData()
+          stellarCoinDataPromise
         ]);
 
-        const marketAssets = stellarChainData.stellar_expert;
-        const xlmMarketData = stellarChainData.coingecko_stellar;
-        const globalMarketData = stellarChainData.coingecko_global;
-        const networkSupply = stellarChainData.stellar_dashboard;
+        const marketAssets = stellarChainData?.stellar_expert;
+        const xlmMarketData = stellarChainData?.coingecko_stellar;
+        const globalMarketData = stellarChainData?.coingecko_global;
+        const networkSupply = stellarChainData?.stellar_dashboard;
 
         const ledgersData = (ledgersResponse.records || []) as unknown as Ledger[];
         const transactionsData = normalizeTransactions(transactionsResponse.records || []);
@@ -127,7 +131,7 @@ export default function HomePage() {
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
         // Extract market data
-        const xlmAsset = (marketAssets._embedded?.records || []).find((a: MarketAsset) => a.rank === 1) || (marketAssets._embedded?.records || [])[0];
+        const xlmAsset = (marketAssets?._embedded?.records || []).find((a: MarketAsset) => a.rank === 1) || (marketAssets?._embedded?.records || [])[0];
         const xlmVol = xlmAsset ? xlmAsset.volume_24h : 0;
 
         // Get network stats from latest ledger
@@ -135,7 +139,7 @@ export default function HomePage() {
 
         // Calculate dominance from global market data
         const totalCryptoMarketCap = globalMarketData?.data?.total_market_cap?.usd || 0;
-        const xlmMarketCap = xlmMarketData.market_data?.market_cap?.usd || 0;
+        const xlmMarketCap = xlmMarketData?.market_data?.market_cap?.usd || 0;
         const dominance = totalCryptoMarketCap > 0 ? (xlmMarketCap / totalCryptoMarketCap) * 100 : 0;
 
         // Extract supply data
@@ -150,12 +154,12 @@ export default function HomePage() {
         const ledgerCapacity = latestLedger.max_tx_set_size || 1000;
         const capacityUsage = ledgerCapacity > 0 ? avgTxPerLedger / ledgerCapacity : 0;
 
-        const xlmData = xlmMarketData.market_data ? {
-          price: xlmMarketData.market_data.current_price.usd,
-          priceChange24h: xlmMarketData.market_data.price_change_percentage_24h,
-          marketCap: xlmMarketData.market_data.market_cap.usd,
+        const xlmData = xlmMarketData?.market_data ? {
+          price: xlmMarketData.market_data.current_price?.usd || 0,
+          priceChange24h: xlmMarketData.market_data.price_change_percentage_24h || 0,
+          marketCap: xlmMarketData.market_data.market_cap?.usd || 0,
           marketCapChange24h: xlmMarketData.market_data.market_cap_change_percentage_24h || 0,
-          volume24h: xlmMarketData.market_data.total_volume.usd,
+          volume24h: xlmMarketData.market_data.total_volume?.usd || 0,
           circulatingSupply: xlmMarketData.market_data.circulating_supply || 0,
           totalSupply: xlmMarketData.market_data.total_supply || 0,
           dominance,

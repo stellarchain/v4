@@ -62,6 +62,8 @@ interface AccountDesktopViewProps {
   xlmPrice: number;
   accountLabels?: Record<string, AccountLabel>;
   currentAccountLabel?: AccountLabel | null;
+  firstTransactionAt?: string;
+  lastTransactionAt?: string;
   loading?: boolean;
   onTabChange?: (tab: string) => void;
   loadingTransactions?: boolean;
@@ -88,6 +90,44 @@ function formatExactNumber(value: number): string {
   return value.toLocaleString(undefined, { maximumFractionDigits: 7 });
 }
 
+function AccountStatusIcons({ labelText, verified, size = 'sm' }: { labelText?: string; verified?: boolean; size?: 'sm' | 'lg' }) {
+  const normalized = (labelText || '').toLowerCase();
+  const isSpam = normalized.includes('spam');
+  const isRisk = normalized.includes('scam') || normalized.includes('hack') || normalized.includes('malicious') || isSpam;
+  const hasLabel = Boolean(labelText);
+  const isVerified = Boolean(verified) && !isRisk;
+  const iconSize = size === 'lg' ? 'w-8 h-8' : 'w-4 h-4';
+
+  return (
+    <>
+      {isRisk && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" fill={isSpam ? '#F97316' : '#EF4444'}>
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+          <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      )}
+      {hasLabel && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="4.25" fill="#F59E0B" />
+          <circle cx="12" cy="8" r="2.1" fill="#FEF3C7" />
+          <path d="M9.2 11.2L7.6 20l4.4-2.5 4.4 2.5-1.6-8.8z" fill="#D97706" />
+        </svg>
+      )}
+      {isVerified && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" fill="#1D9BF0">
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
+        </svg>
+      )}
+      {!isRisk && !isVerified && !hasLabel && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" fill="#6B7280">
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+          <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
+        </svg>
+      )}
+    </>
+  );
+}
+
 const getOperationCategory = (type: string): { label: string; color: string; bgColor: string } => {
   if (type === 'payment' || type === 'create_account') return { label: 'Payment', color: 'text-emerald-700 dark:text-emerald-400', bgColor: 'bg-emerald-50 dark:bg-emerald-900/40 border-emerald-100 dark:border-emerald-800' };
   if (type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') return { label: 'Swap', color: 'text-violet-700 dark:text-violet-400', bgColor: 'bg-violet-50 dark:bg-violet-900/40 border-violet-100 dark:border-violet-800' };
@@ -98,7 +138,7 @@ const getOperationCategory = (type: string): { label: string; color: string; bgC
   return { label: 'Action', color: 'text-[var(--text-secondary)]', bgColor: 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]' };
 };
 
-export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false }: AccountDesktopViewProps) {
+export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false }: AccountDesktopViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -660,6 +700,8 @@ export default function AccountDesktopView({ account, accountId, transactions, o
   // Get first and last operation times
   const firstOpTime = allOperations.length > 0 ? allOperations[allOperations.length - 1]?.created_at : null;
   const latestOpTime = allOperations.length > 0 ? allOperations[0]?.created_at : null;
+  const firstActivityTime = firstTransactionAt || firstOpTime;
+  const latestActivityTime = lastTransactionAt || latestOpTime;
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
@@ -786,11 +828,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Account Label</div>
                 {accountLabelText ? (
                   <div className="flex items-center gap-2">
-                    {currentAccountLabel?.verified && (
-                      <svg className="w-4 h-4 text-sky-500" aria-hidden="true" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                      </svg>
-                    )}
+                    <AccountStatusIcons labelText={accountLabelText} verified={currentAccountLabel?.verified} size="sm" />
                     <span className="text-sm font-medium text-[var(--text-primary)]">{accountLabelText}</span>
                   </div>
                 ) : loading ? (
@@ -809,9 +847,9 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Transactions</div>
                 <div className="text-sm text-[var(--text-secondary)]">
                   {loading ? <InlineSkeleton width="w-32" /> : <>
-                    {latestOpTime && <span>Latest: <span className="text-[var(--text-tertiary)]">{timeAgo(latestOpTime)}</span></span>}
-                    {firstOpTime && latestOpTime !== firstOpTime && (
-                      <span className="ml-3">First: <span className="text-[var(--text-tertiary)]">{timeAgo(firstOpTime)}</span></span>
+                    {latestActivityTime && <span>Latest: <span className="text-[var(--text-tertiary)]">{timeAgo(latestActivityTime)}</span></span>}
+                    {firstActivityTime && latestActivityTime !== firstActivityTime && (
+                      <span className="ml-3">First: <span className="text-[var(--text-tertiary)]">{timeAgo(firstActivityTime)}</span></span>
                     )}
                   </>}
                 </div>

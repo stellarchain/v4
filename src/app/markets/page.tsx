@@ -1,18 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getMarketAssets } from '@/lib/stellar';
+import { getMarketAssetsFromMarketV1 } from '@/lib/stellar';
+import type { MarketAsset } from '@/lib/shared/interfaces';
 import MarketsMobileView from '@/components/mobile/MarketsMobileView';
 import MarketsDesktopView from '@/components/desktop/MarketsDesktopView';
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 50;
 
 export default function MarketsPage() {
-  const [allAssets, setAllAssets] = useState<any[]>([]);
+  const [pageAssets, setPageAssets] = useState<MarketAsset[]>([]);
   const [xlmPrice, setXlmPrice] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -20,17 +24,13 @@ export default function MarketsPage() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const result = await getMarketAssets();
+        const result = await getMarketAssetsFromMarketV1(currentPage, PAGE_SIZE);
         if (cancelled) return;
-
-        const xlmAsset = result.assets.find(a => a.code === 'XLM' && !a.issuer);
-        if (xlmAsset) {
-          setXlmPrice(xlmAsset.price_usd);
-        }
-
-        // Re-rank assets sequentially
-        result.assets.forEach((a, i) => { a.rank = i + 1; });
-        setAllAssets(result.assets);
+        setPageAssets(result.assets);
+        setTotalPages(result.totalPages);
+        setTotalItems(result.totalItems);
+        setHasNextPage(result.hasNext);
+        setXlmPrice(result.xlmPrice);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'Failed to load market data.');
@@ -44,7 +44,7 @@ export default function MarketsPage() {
 
     fetchData();
     return () => { cancelled = true; };
-  }, []);
+  }, [currentPage]);
 
   if (!isLoading && error) {
     return (
@@ -56,11 +56,6 @@ export default function MarketsPage() {
       </div>
     );
   }
-
-  const totalPages = Math.max(1, Math.ceil(allAssets.length / PAGE_SIZE));
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const pageAssets = allAssets.slice(start, start + PAGE_SIZE);
-  const hasNextPage = currentPage < totalPages;
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
@@ -80,7 +75,7 @@ export default function MarketsPage() {
           hasNextPage={hasNextPage}
           onPageChange={handlePageChange}
           totalPages={totalPages}
-          totalItems={allAssets.length}
+          totalItems={totalItems}
         />
       </div>
 
@@ -94,7 +89,7 @@ export default function MarketsPage() {
           hasNextPage={hasNextPage}
           onPageChange={handlePageChange}
           totalPages={totalPages}
-          totalItems={allAssets.length}
+          totalItems={totalItems}
         />
       </div>
     </>
