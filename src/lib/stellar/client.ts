@@ -2114,15 +2114,80 @@ export async function getOrderBook(
   limit: number = 20,
   network?: NetworkType
 ): Promise<OrderBook> {
+  const ORDER_BOOK_CACHE_TTL_MS = 60_000;
+  const ORDER_BOOK_ERROR_COOLDOWN_MS = 120_000;
+  type OrderBookCacheEntry = { expiresAt: number; data: OrderBook };
+
+  const cacheStore = (globalThis as unknown as {
+    __stellarOrderBookCache?: Map<string, OrderBookCacheEntry>;
+    __stellarOrderBookInFlight?: Map<string, Promise<OrderBook>>;
+    __stellarOrderBookErrorCooldown?: Map<string, number>;
+  });
+
+  if (!cacheStore.__stellarOrderBookCache) {
+    cacheStore.__stellarOrderBookCache = new Map<string, OrderBookCacheEntry>();
+  }
+  if (!cacheStore.__stellarOrderBookInFlight) {
+    cacheStore.__stellarOrderBookInFlight = new Map<string, Promise<OrderBook>>();
+  }
+  if (!cacheStore.__stellarOrderBookErrorCooldown) {
+    cacheStore.__stellarOrderBookErrorCooldown = new Map<string, number>();
+  }
+
+  const cache = cacheStore.__stellarOrderBookCache;
+  const inFlight = cacheStore.__stellarOrderBookInFlight;
+  const errorCooldown = cacheStore.__stellarOrderBookErrorCooldown;
+
   const selling = toHorizonAsset(sellingAsset);
   const buying = toHorizonAsset(buyingAsset);
   if (!selling || !buying) {
     throw new Error('Invalid assets for order book request');
   }
 
-  const server = createHorizonServer(network);
-  const response = await server.orderbook(selling, buying).limit(limit).call();
-  return response as unknown as OrderBook;
+  const networkKey = network || getNetwork();
+  const key = [
+    networkKey,
+    sellingAsset.code || '',
+    sellingAsset.issuer || 'native',
+    buyingAsset.code || '',
+    buyingAsset.issuer || 'native',
+    String(limit),
+  ].join('|');
+  const now = Date.now();
+
+  const cached = cache.get(key);
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
+  }
+
+  const blockedUntil = errorCooldown.get(key) || 0;
+  if (blockedUntil > now) {
+    throw new Error('Order book temporarily throttled after repeated failures');
+  }
+
+  const pending = inFlight.get(key);
+  if (pending) {
+    return pending;
+  }
+
+  const request = (async () => {
+    try {
+      const server = createHorizonServer(network);
+      const response = await server.orderbook(selling, buying).limit(limit).call();
+      const data = response as unknown as OrderBook;
+      cache.set(key, { data, expiresAt: Date.now() + ORDER_BOOK_CACHE_TTL_MS });
+      errorCooldown.delete(key);
+      return data;
+    } catch (error) {
+      errorCooldown.set(key, Date.now() + ORDER_BOOK_ERROR_COOLDOWN_MS);
+      throw error;
+    } finally {
+      inFlight.delete(key);
+    }
+  })();
+
+  inFlight.set(key, request);
+  return request;
 }
 
 // Fetch OHLC Data
