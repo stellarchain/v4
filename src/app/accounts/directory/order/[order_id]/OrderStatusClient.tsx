@@ -67,7 +67,7 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
     };
 
     fetchOrder();
-    const intervalId = setInterval(fetchOrder, 15000);
+    const intervalId = setInterval(fetchOrder, 60000);
 
     return () => {
       isActive = false;
@@ -109,7 +109,7 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
             <p className="text-sm text-[var(--text-tertiary)] mt-1 font-mono break-all">{orderId || '-'}</p>
           </div>
           <span className="text-xs px-2 py-1 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-            Auto refresh: 15s
+            Auto refresh: 60s
           </span>
         </div>
 

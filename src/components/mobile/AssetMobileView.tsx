@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
-import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, getAssetTrades, getAssetTradeTransactionHash, getAssetHolders, getAssetTradingPairs, getLiquidityPoolByAssets, USDC_ISSUER, shortenAddress, OrderBook as OrderBookType, AssetTrade, AssetHolder, TradingPair, getAccountLabels, AccountLabel } from '@/lib/stellar';
+import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, getAssetTrades, getAssetTradeTransactionHash, getAssetHolders, getAssetTradingPairs, getLiquidityPoolByAssets, USDC_ISSUER, shortenAddress, timeAgo, OrderBook as OrderBookType, AssetTrade, AssetHolder, TradingPair, getAccountLabels, AccountLabel } from '@/lib/stellar';
 import { getXLMHoldersAction } from '@/lib/helpers';
 import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/shared/designSystem';
 import GliderTabs from '@/components/ui/GliderTabs';
@@ -1129,6 +1129,57 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                   </Link>
                 </div>
               )}
+
+              <div className="grid grid-cols-2 gap-3 text-[11px]">
+                {asset.assetKey && (
+                  <div className="col-span-2">
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Asset Key</span>
+                    <div className="font-mono text-[var(--text-secondary)] break-all mt-0.5">{asset.assetKey}</div>
+                  </div>
+                )}
+                {asset.network !== undefined && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Network</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{asset.network}</div>
+                  </div>
+                )}
+                {asset.ratingAverage !== undefined && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Rating Avg</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{asset.ratingAverage.toFixed(2)}</div>
+                  </div>
+                )}
+                {asset.createdAt && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Created</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{timeAgo(asset.createdAt)}</div>
+                  </div>
+                )}
+                {asset.updatedAt && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Updated</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{timeAgo(asset.updatedAt)}</div>
+                  </div>
+                )}
+                {asset.marketUpdatedAt && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Market Updated</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{timeAgo(asset.marketUpdatedAt)}</div>
+                  </div>
+                )}
+                {asset.latestStatistic && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Snapshot Trades</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{formatNumber(asset.latestStatistic.trades)}</div>
+                  </div>
+                )}
+                {asset.latestStatistic && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Snapshot Trustlines</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{formatNumber(asset.latestStatistic.trustlinesTotal)}</div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
