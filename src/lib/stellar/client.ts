@@ -27,6 +27,7 @@ import type {
   OrderBook,
   ContractFunctionType,
   StellarAccount,
+  V1AccountMetric,
   V1AccountRecord,
   V1CollectionResponse,
   TradePage,
