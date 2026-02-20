@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { LabeledAccountsAPIResponse } from '@/lib/stellar';
 import KnownAccountsClient from './KnownAccountsClient';
 import KnownAccountsDesktopView from '@/components/desktop/KnownAccountsDesktopView';
@@ -8,18 +9,64 @@ import Loading from '@/components/ui/Loading';
 import { apiEndpoints, getApiData, getApiV1Data } from '@/services/api';
 
 export default function KnownAccountsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlQuery = (searchParams.get('q') || '').trim();
+
   const [initialData, setInitialData] = useState<LabeledAccountsAPIResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [xlmPriceUsd, setXlmPriceUsd] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState(urlQuery);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(urlQuery);
 
   useEffect(() => {
-        const fetchLabeledAccounts = async () => {
+    if (urlQuery !== searchQuery) {
+      setSearchQuery(urlQuery);
+      setDebouncedSearchQuery(urlQuery);
+    }
+  }, [urlQuery]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const currentQ = (searchParams.get('q') || '').trim();
+    if (currentQ === debouncedSearchQuery) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (debouncedSearchQuery) {
+      params.set('q', debouncedSearchQuery);
+    } else {
+      params.delete('q');
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [debouncedSearchQuery, router, pathname, searchParams]);
+
+  useEffect(() => {
+    const fetchLabeledAccounts = async () => {
       try {
         setLoading(true);
-        const data = await getApiV1Data(
-          apiEndpoints.v1.accounts({ page: 1, itemsPerPage: 30, 'order[accountMetric.rankPosition]': 'asc' })
-        );
+        const query = debouncedSearchQuery;
+        const isAddressQuery = /^(G|C)[A-Z0-9]{10,}$/.test(query.toUpperCase());
+        const params: Record<string, string | number> = {
+          page: 1,
+          itemsPerPage: 30,
+          'order[accountMetric.rankPosition]': 'asc',
+        };
+        if (query) {
+          if (isAddressQuery) {
+            params.address = query;
+          } else {
+            params.label = query;
+          }
+        }
+
+        const data = await getApiV1Data(apiEndpoints.v1.accounts(params));
         setInitialData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load known accounts');
@@ -30,7 +77,7 @@ export default function KnownAccountsPage() {
     };
 
     fetchLabeledAccounts();
-  }, []);
+  }, [debouncedSearchQuery]);
 
   useEffect(() => {
     let active = true;
@@ -63,12 +110,22 @@ export default function KnownAccountsPage() {
     <>
       {/* Mobile View */}
       <div className="block md:hidden">
-        <KnownAccountsClient initialData={initialData} xlmPriceUsd={xlmPriceUsd} />
+        <KnownAccountsClient
+          initialData={initialData}
+          xlmPriceUsd={xlmPriceUsd}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+        />
       </div>
 
       {/* Desktop View */}
       <div className="hidden md:block">
-        <KnownAccountsDesktopView initialData={initialData} xlmPriceUsd={xlmPriceUsd} />
+        <KnownAccountsDesktopView
+          initialData={initialData}
+          xlmPriceUsd={xlmPriceUsd}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+        />
       </div>
     </>
   );

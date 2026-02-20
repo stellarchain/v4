@@ -9,6 +9,8 @@ import { apiEndpoints, getApiV1Data } from '@/services/api';
 interface KnownAccountsClientProps {
   initialData: LabeledAccountsAPIResponse;
   xlmPriceUsd?: number | null;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
 }
 
 function AccountStatusIcons({ labelText, verified }: { labelText?: string; verified?: boolean }) {
@@ -48,7 +50,12 @@ function AccountStatusIcons({ labelText, verified }: { labelText?: string; verif
   );
 }
 
-export default function KnownAccountsClient({ initialData, xlmPriceUsd }: KnownAccountsClientProps) {
+export default function KnownAccountsClient({
+  initialData,
+  xlmPriceUsd,
+  searchQuery,
+  onSearchQueryChange,
+}: KnownAccountsClientProps) {
   const getTransactions = (acc: any) => String(acc.accountMetric?.totalTransactions ?? acc.accountMetric?.transactionsPerHour ?? '0');
   const didMountRef = useRef(false);
 
@@ -72,7 +79,6 @@ export default function KnownAccountsClient({ initialData, xlmPriceUsd }: KnownA
   const [totalPages, setTotalPages] = useState(Math.ceil((initialData?.totalItems || 0) / itemsPerPage));
   const [total, setTotal] = useState(initialData?.totalItems || 0);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchPage = useCallback(async (page: number, queryValue?: string) => {
     setIsLoading(true);
@@ -168,7 +174,7 @@ export default function KnownAccountsClient({ initialData, xlmPriceUsd }: KnownA
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => onSearchQueryChange(e.target.value)}
               placeholder="Search by label or address..."
               className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] pl-10 pr-3 py-2.5 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm shadow-sm"
             />
