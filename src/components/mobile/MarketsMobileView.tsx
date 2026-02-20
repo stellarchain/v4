@@ -84,24 +84,39 @@ function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
   const max = Math.max(...data);
   const range = max - min || 1;
 
+  const denominator = Math.max(data.length - 1, 1);
   const points = data.map((value, index) => {
-    const x = (index / (data.length - 1)) * width;
+    const x = (index / denominator) * width;
     const y = height - padding - ((value - min) / range) * (height - padding * 2);
-    return `${x.toFixed(1)} ${y.toFixed(1)}`;
-  }).join(' L ');
+    return { x, y, value };
+  });
+  const pathPoints = points.map((point) => `${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' L ');
 
   const color = positive ? '#10b981' : '#ef4444';
 
   return (
     <svg className="overflow-visible" height="18" viewBox="0 0 48 18" width="48">
       <path
-        d={`M ${points}`}
+        d={`M ${pathPoints}`}
         fill="none"
         stroke={color}
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="1.5"
       />
+      {points.map((point, index) => (
+        <circle
+          key={`spark-m-${index}`}
+          cx={point.x}
+          cy={point.y}
+          r="1.1"
+          fill={color}
+          stroke="var(--bg-secondary)"
+          strokeWidth="0.7"
+        >
+          <title>{point.value.toFixed(7)}</title>
+        </circle>
+      ))}
     </svg>
   );
 }

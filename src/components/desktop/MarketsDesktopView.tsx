@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useId, useState, useMemo } from 'react';
 import { MarketAsset } from '@/lib/stellar';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -26,39 +26,119 @@ type SortOrder = 'asc' | 'desc';
 
 function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
   if (!data || data.length === 0) return <div className="w-[100px] h-[30px]" />;
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const gradientId = useId();
 
-  const width = 100;
-  const height = 30;
-  const padding = 2;
+  const width = 116;
+  const height = 36;
+  const padding = 3;
 
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
 
+  const denominator = Math.max(data.length - 1, 1);
   const points = data.map((value, index) => {
-    const x = padding + (index / (data.length - 1)) * (width - padding * 2);
+    const x = padding + (index / denominator) * (width - padding * 2);
     const y = height - padding - ((value - min) / range) * (height - padding * 2);
-    return `${x},${y}`;
-  }).join(' ');
+    return { x, y, value };
+  });
+  const polylinePoints = points.map((point) => `${point.x},${point.y}`).join(' ');
 
+  const makeSmoothLinePath = () => {
+    if (points.length === 1) {
+      const p = points[0];
+      return `M ${p.x} ${p.y} L ${p.x + 0.1} ${p.y}`;
+    }
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i += 1) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const cx = (prev.x + curr.x) / 2;
+      d += ` Q ${prev.x} ${prev.y} ${cx} ${(prev.y + curr.y) / 2}`;
+    }
+    const last = points[points.length - 1];
+    d += ` T ${last.x} ${last.y}`;
+    return d;
+  };
+
+  const linePath = makeSmoothLinePath();
   const firstPoint = `${padding},${height - padding}`;
   const lastPoint = `${width - padding},${height - padding}`;
-  const areaPath = `M ${firstPoint} L ${points} L ${lastPoint} Z`;
+  const areaPath = `${linePath} L ${lastPoint} L ${firstPoint} Z`;
 
   const color = positive ? '#10b981' : '#ef4444';
-  const fillColor = positive ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)';
+  const fillColor = positive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)';
+  const hoveredPoint = hoveredIndex !== null ? points[hoveredIndex] : null;
+  const tooltipText = hoveredPoint ? hoveredPoint.value.toFixed(6) : '';
+  const tooltipWidth = Math.max(52, tooltipText.length * 5.3);
+  const tooltipX = hoveredPoint ? Math.min(Math.max(hoveredPoint.x, tooltipWidth / 2 + 2), width - tooltipWidth / 2 - 2) : 0;
+  const tooltipY = hoveredPoint ? Math.max(hoveredPoint.y - 10, 10) : 0;
+  const lastVisiblePoint = points[points.length - 1];
 
   return (
-    <svg width={width} height={height}>
-      <path d={areaPath} fill={fillColor} />
-      <polyline
-        points={points}
+    <svg width={width} height={height} className="overflow-visible">
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={fillColor} />
+          <stop offset="100%" stopColor="transparent" />
+        </linearGradient>
+      </defs>
+
+      <path d={areaPath} fill={`url(#${gradientId})`} />
+      <path
+        d={linePath}
         fill="none"
         stroke={color}
-        strokeWidth="1.5"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+
+      <circle
+        cx={lastVisiblePoint.x}
+        cy={lastVisiblePoint.y}
+        r="2.5"
+        fill={color}
+        stroke="var(--bg-secondary)"
+        strokeWidth="1.2"
+      />
+
+      {points.map((point, index) => (
+        <circle
+          key={`spark-${index}`}
+          cx={point.x}
+          cy={point.y}
+          r="4"
+          fill="transparent"
+          onMouseEnter={() => setHoveredIndex(index)}
+          onMouseLeave={() => setHoveredIndex(null)}
+        />
+      ))}
+      {hoveredPoint && (
+        <g pointerEvents="none">
+          <rect
+            x={tooltipX - tooltipWidth / 2}
+            y={tooltipY - 9}
+            width={tooltipWidth}
+            height="12"
+            rx="4"
+            fill="var(--bg-secondary)"
+            stroke="var(--border-default)"
+            strokeWidth="0.6"
+          />
+          <text
+            x={tooltipX}
+            y={tooltipY - 1.5}
+            textAnchor="middle"
+            fontSize="7"
+            fill="var(--text-secondary)"
+            fontFamily="monospace"
+          >
+            {tooltipText}
+          </text>
+        </g>
+      )}
     </svg>
   );
 }
