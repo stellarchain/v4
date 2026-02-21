@@ -164,15 +164,29 @@ export default function TransactionsDesktopView({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [oldestCursor, setOldestCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [isPageVisible, setIsPageVisible] = useState(true);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const animatedIdsRef = useRef<Set<string>>(new Set());
   const enrichedIdsRef = useRef<Set<string>>(new Set());
+  const latestCursorRef = useRef<string | null>(null);
 
 
   const fetchTransactions = useCallback(async () => {
     try {
-      const txData = await getTransactions(15, 'desc');
+      const txData = latestCursorRef.current
+        ? await getTransactions(50, 'asc', latestCursorRef.current)
+        : await getTransactions(15, 'desc');
       const newTransactions: Transaction[] = normalizeTransactions(txData.records || []);
+
+      if (newTransactions.length > 0) {
+        const newest =
+          latestCursorRef.current
+            ? newTransactions[newTransactions.length - 1]
+            : newTransactions[0];
+        if (newest?.paging_token) {
+          latestCursorRef.current = newest.paging_token;
+        }
+      }
 
       // Filter to only new transactions we haven't seen
       const unseenTxs = newTransactions.filter(tx => !seenIdsRef.current.has(tx.hash));
@@ -338,6 +352,14 @@ export default function TransactionsDesktopView({
           Array.from(paymentTxMap.values())
         );
 
+        if (rawTransactions.length > 0) {
+          latestCursorRef.current = rawTransactions[0]?.paging_token || null;
+          setOldestCursor(rawTransactions[rawTransactions.length - 1]?.paging_token || null);
+        } else {
+          latestCursorRef.current = null;
+          setOldestCursor(null);
+        }
+
         setTransactions(allTxs);
         seenIdsRef.current = new Set(allTxs.map(t => t.hash));
         animatedIdsRef.current = new Set(allTxs.map(t => t.hash));
@@ -355,11 +377,20 @@ export default function TransactionsDesktopView({
   }, [network, limit]);
 
   useEffect(() => {
+    const onVisibilityChange = () => {
+      setIsPageVisible(!document.hidden);
+    };
+    onVisibilityChange();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
+
+  useEffect(() => {
     // Don't start polling until initial enrichment is complete
-    if (isEnrichingData) return;
+    if (isEnrichingData || !isPageVisible) return;
     const interval = setInterval(fetchTransactions, 3000);
     return () => clearInterval(interval);
-  }, [fetchTransactions, isEnrichingData]);
+  }, [fetchTransactions, isEnrichingData, isPageVisible]);
 
   // Filter transactions based on selected filter
   const filteredTransactions = transactions.filter(tx => {

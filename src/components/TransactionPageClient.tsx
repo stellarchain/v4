@@ -6,7 +6,6 @@ import CompactTransactionRow from './CompactTransactionRow';
 import {
   Transaction,
   getTransactionDisplayInfo,
-  Operation,
   Effect,
   getTransactionOperations,
   getTransactions,
@@ -88,6 +87,7 @@ export default function TransactionPageClient({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [oldestCursor, setOldestCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [isPageVisible, setIsPageVisible] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const mobileContainerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -95,6 +95,7 @@ export default function TransactionPageClient({
   const seenIdsRef = useRef<Set<string>>(new Set());
   const animatedIdsRef = useRef<Set<string>>(new Set());
   const processedIdsRef = useRef<Set<string>>(new Set());
+  const latestCursorRef = useRef<string | null>(null);
 
   // Mobile infinite scroll state
   const [mobileLoadedCount, setMobileLoadedCount] = useState(PAGE_SIZE);
@@ -104,74 +105,29 @@ export default function TransactionPageClient({
   // The transaction list view uses minimal data from the transaction itself
   // Full operation details are only fetched on the individual transaction detail page
 
-  // Convert payment operations to Transaction format with displayInfo
-  const convertPaymentsToTransactions = useCallback((operations: Operation[]): Transaction[] => {
-    const txMap = new Map<string, Transaction>();
-
-    for (const op of operations) {
-      if (txMap.has(op.transaction_hash)) continue;
-
-      const displayInfo = getTransactionDisplayInfo([op]);
-
-      txMap.set(op.transaction_hash, {
-        id: op.id,
-        paging_token: op.paging_token,
-        successful: op.transaction_successful,
-        hash: op.transaction_hash,
-        ledger: 0,
-        ledger_attr: 0,
-        created_at: op.created_at,
-        source_account: op.source_account,
-        source_account_sequence: '',
-        fee_account: op.source_account,
-        fee_charged: '0',
-        max_fee: '0',
-        operation_count: 1,
-        envelope_xdr: '',
-        result_xdr: '',
-        result_meta_xdr: '',
-        fee_meta_xdr: '',
-        memo_type: 'none',
-        signatures: [],
-        displayInfo,
-      });
-    }
-
-    return Array.from(txMap.values());
-  }, []);
-
   const fetchTransactions = useCallback(async () => {
     try {
-      // Fetch regular transactions (required)
-      const txData = await getTransactions(limit, 'desc');
+      const txData = latestCursorRef.current
+        ? await getTransactions(50, 'asc', latestCursorRef.current)
+        : await getTransactions(limit, 'desc');
       const newTransactions: Transaction[] = txData.records;
 
-      // Fetch payments separately (optional - don't fail if this errors)
-      let paymentOps: Operation[] = [];
-      try {
-        const paymentsData = await getPayments(30, 'desc');
-        paymentOps = paymentsData.records || [];
-      } catch {
-        // Silently ignore payment fetch errors
+      if (newTransactions.length > 0) {
+        const newest =
+          latestCursorRef.current
+            ? newTransactions[newTransactions.length - 1]
+            : newTransactions[0];
+        if (newest?.paging_token) {
+          latestCursorRef.current = newest.paging_token;
+        }
       }
-
-      // Convert payment operations to transactions
-      const paymentTransactions = convertPaymentsToTransactions(paymentOps);
-
-      // Combine all new transactions
-      const allNewTransactions = [...newTransactions, ...paymentTransactions];
-      const newHashes = allNewTransactions.filter(t => !seenIdsRef.current.has(t.hash)).map(t => t.hash);
+      const allNewTransactions = newTransactions;
 
       // Process transactions - use payment displayInfo or generate minimal displayInfo
       const transactionsWithOps = allNewTransactions.map((tx) => {
-        // Payment transactions already have displayInfo
-        if (tx.displayInfo) {
-          return tx;
-        }
-        // For other transactions, generate minimal displayInfo without fetching operations
         return {
           ...tx,
-          displayInfo: getTransactionDisplayInfo([]),
+          displayInfo: tx.displayInfo || getTransactionDisplayInfo([]),
         };
       });
 
@@ -222,7 +178,7 @@ export default function TransactionPageClient({
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
     }
-  }, [limit, convertPaymentsToTransactions]);
+  }, [limit]);
 
   // Fetch more transactions when navigating to pages that need it
   const fetchMoreIfNeeded = useCallback(async (targetPage: number) => {
@@ -489,6 +445,14 @@ export default function TransactionPageClient({
         const txData = await getTransactions(limit, 'desc');
         const newTransactions: Transaction[] = txData.records;
 
+        if (newTransactions.length > 0) {
+          latestCursorRef.current = newTransactions[0]?.paging_token || null;
+          setOldestCursor(newTransactions[newTransactions.length - 1]?.paging_token || null);
+        } else {
+          latestCursorRef.current = null;
+          setOldestCursor(null);
+        }
+
         // Process with minimal displayInfo
         const txsWithOps = newTransactions.map((tx) => ({
           ...tx,
@@ -511,10 +475,19 @@ export default function TransactionPageClient({
   }, [network]); // Re-fetch when network changes
 
   useEffect(() => {
-    if (isInitialLoading) return; // Don't start polling until initial load is done
-    const interval = setInterval(fetchTransactions, 2000);
+    const onVisibilityChange = () => {
+      setIsPageVisible(!document.hidden);
+    };
+    onVisibilityChange();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
+
+  useEffect(() => {
+    if (isInitialLoading || !isPageVisible) return; // Pause while tab is hidden
+    const interval = setInterval(fetchTransactions, 5000);
     return () => clearInterval(interval);
-  }, [fetchTransactions, isInitialLoading]);
+  }, [fetchTransactions, isInitialLoading, isPageVisible]);
 
   const setRowRef = useCallback((hash: string) => (el: HTMLAnchorElement | null) => {
     if (el) {

@@ -155,6 +155,15 @@ type ContractInvocationsPage = {
 };
 
 const HISTORY_PAGE_SIZE = 10;
+const EVENTS_PAGE_SIZE = 25;
+
+type ContractEventsPage = {
+  items: ParsedEvent[];
+  totalItems: number;
+  currentPage: number;
+  totalPages: number;
+  itemsPerPage: number;
+};
 
 type ContractTab = 'overview' | 'history' | 'events' | 'storage' | 'operations' | 'interface' | 'details';
 
@@ -376,12 +385,26 @@ async function fetchContractStorage(contractId: string, totalStorageEntries?: nu
   };
 }
 
-async function fetchContractEvents(contractId: string, itemsPerPage: number = 30): Promise<ParsedEvent[]> {
+async function fetchContractEvents(
+  contractId: string,
+  page: number = 1,
+  itemsPerPage: number = EVENTS_PAGE_SIZE
+): Promise<ContractEventsPage> {
   const data = await getApiV1Data(
-    apiEndpoints.v1.contractEvents(contractId, { page: 1, itemsPerPage })
+    apiEndpoints.v1.contractEvents(contractId, { page, itemsPerPage })
   );
   const records: ContractEventRecord[] = data.member || [];
-  return records.map((item) => parseContractEvent(contractId, item));
+  const items = records.map((item) => parseContractEvent(contractId, item));
+  const totalItems = Number(data.totalItems ?? items.length ?? 0);
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+
+  return {
+    items,
+    totalItems,
+    currentPage: page,
+    totalPages,
+    itemsPerPage,
+  };
 }
 
 type ContractTransactionRecord = {
@@ -496,11 +519,17 @@ function buildVerification(apiData: APIContractData): ContractVerification | nul
 async function fetchContractData(contractId: string): Promise<FullContractData> {
   const verifiedContract = verifiedContracts.contracts.find((contract) => contract.id === contractId);
 
-  const [apiData, invocationsPage, events] = await Promise.all([
+  const [apiData, invocationsPage, eventsPage] = await Promise.all([
     getApiV1Data(apiEndpoints.v1.contractById(contractId)),
     fetchContractTransactions(contractId),
-    fetchContractEvents(contractId, 5).catch(() => []),
-  ]) as [APIContractData, ContractInvocationsPage, ParsedEvent[]];
+    fetchContractEvents(contractId, 1, 5).catch(() => ({
+      items: [],
+      totalItems: 0,
+      currentPage: 1,
+      totalPages: 1,
+      itemsPerPage: 5,
+    })),
+  ]) as [APIContractData, ContractInvocationsPage, ContractEventsPage];
 
   const type = inferContractType(apiData, verifiedContract);
   const tokenMetadata = buildTokenMetadata(contractId, apiData, verifiedContract, type);
@@ -513,8 +542,8 @@ async function fetchContractData(contractId: string): Promise<FullContractData> 
     accessControl: null,
     isVerified: Boolean(apiData.sourceCodeVerified || verifiedContract?.verified),
     apiContractData: apiData,
-    events,
-    eventSummary: mapEventSummary(apiData, events),
+    events: eventsPage.items,
+    eventSummary: mapEventSummary(apiData, eventsPage.items),
     invocations: invocationsPage.items,
     storage: mapStorage(contractId, apiData),
     spec: null,
@@ -575,7 +604,13 @@ export default function ContractPage() {
     currentPage: 1,
     totalPages: 1,
     totalItems: 0,
-    itemsPerPage: 30,
+    itemsPerPage: HISTORY_PAGE_SIZE,
+  });
+  const [eventsPagination, setEventsPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: EVENTS_PAGE_SIZE,
   });
 
   useEffect(() => {
@@ -596,6 +631,12 @@ export default function ContractPage() {
         setEventsLoaded(false);
         setEventsLoading(false);
         setEventsError(null);
+        setEventsPagination({
+          currentPage: 1,
+          totalPages: Math.max(1, Math.ceil(Number(data.apiContractData?.totalEvents ?? 0) / EVENTS_PAGE_SIZE)),
+          totalItems: Number(data.apiContractData?.totalEvents ?? 0),
+          itemsPerPage: EVENTS_PAGE_SIZE,
+        });
         setHistoryInvocations(data.invocations || []);
         setHistoryLoaded(false);
         setHistoryLoading(false);
@@ -640,6 +681,12 @@ export default function ContractPage() {
     setEventsLoaded(false);
     setEventsLoading(false);
     setEventsError(null);
+    setEventsPagination({
+      currentPage: 1,
+      totalPages: 1,
+      totalItems: 0,
+      itemsPerPage: EVENTS_PAGE_SIZE,
+    });
     setStorageLoaded(false);
     setStorageLoading(false);
     setStorageError(null);
@@ -654,20 +701,26 @@ export default function ContractPage() {
     });
   }, [id]);
 
-  const loadContractEvents = useCallback(async () => {
-    if (eventsLoaded || eventsLoading) return;
+  const loadEventsPage = useCallback(async (page: number) => {
+    if (eventsLoading) return;
     setEventsLoading(true);
     setEventsError(null);
     try {
-      const fetched = await fetchContractEvents(id);
-      setContractEvents(fetched);
+      const fetched = await fetchContractEvents(id, page, EVENTS_PAGE_SIZE);
+      setContractEvents(fetched.items);
+      setEventsPagination({
+        currentPage: fetched.currentPage,
+        totalPages: fetched.totalPages,
+        totalItems: fetched.totalItems,
+        itemsPerPage: fetched.itemsPerPage,
+      });
       setEventsLoaded(true);
     } catch (err) {
       setEventsError(err instanceof Error ? err.message : 'Failed to load events');
     } finally {
       setEventsLoading(false);
     }
-  }, [eventsLoaded, eventsLoading, id]);
+  }, [eventsLoading, id]);
 
   const loadContractStorage = useCallback(async () => {
     if (storageLoaded || storageLoading) return;
@@ -708,8 +761,8 @@ export default function ContractPage() {
     if (tabId === 'history' && !historyLoaded) {
       void loadHistoryPage(1);
     }
-    if (tabId === 'events' || tabId === 'operations') {
-      void loadContractEvents();
+    if ((tabId === 'events' || tabId === 'operations') && !eventsLoaded) {
+      void loadEventsPage(1);
     }
     if (tabId === 'storage') {
       void loadContractStorage();
@@ -774,6 +827,12 @@ export default function ContractPage() {
       totalItems: historyPagination.totalItems || Number(baseData.apiContractData?.totalInvokes ?? 0),
       itemsPerPage: historyPagination.itemsPerPage,
     },
+    eventsPagination: {
+      currentPage: eventsPagination.currentPage,
+      totalPages: eventsPagination.totalPages,
+      totalItems: eventsPagination.totalItems || Number(baseData.apiContractData?.totalEvents ?? 0),
+      itemsPerPage: eventsPagination.itemsPerPage,
+    },
     spec: baseData.spec,
     totalTransactions: baseData.apiContractData?.totalTransactions,
     totalInvokes: baseData.apiContractData?.totalInvokes,
@@ -801,6 +860,7 @@ export default function ContractPage() {
           operations={[]}
           onTabChange={handleTabChange}
           onHistoryPageChange={loadHistoryPage}
+          onEventsPageChange={loadEventsPage}
         />
       </div>
       <div className="md:hidden">
@@ -809,6 +869,7 @@ export default function ContractPage() {
           operations={[]}
           onTabChange={handleTabChange}
           onHistoryPageChange={loadHistoryPage}
+          onEventsPageChange={loadEventsPage}
         />
       </div>
     </>

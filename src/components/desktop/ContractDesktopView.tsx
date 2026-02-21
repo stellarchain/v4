@@ -54,6 +54,12 @@ interface ContractData {
   nftInfo?: NFTInfo | null;
   vaultInfo?: VaultInfo | null;
   events?: ParsedEvent[];
+  eventsPagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+  };
   eventSummary?: EventSummary | null;
   storage?: ContractStorageResult | null;
   invocations?: ContractInvocation[];
@@ -87,9 +93,10 @@ interface ContractDesktopViewProps {
   operations: Operation[];
   onTabChange?: (tabId: 'overview' | 'history' | 'events' | 'storage') => void;
   onHistoryPageChange?: (page: number) => void;
+  onEventsPageChange?: (page: number) => void;
 }
 
-export default function ContractDesktopView({ contract, operations, onTabChange, onHistoryPageChange }: ContractDesktopViewProps) {
+export default function ContractDesktopView({ contract, operations, onTabChange, onHistoryPageChange, onEventsPageChange }: ContractDesktopViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'events' | 'storage' | 'history' | 'code'>('overview');
   const [expandedStorageRows, setExpandedStorageRows] = useState<Set<number>>(new Set());
   const [copied, setCopied] = useState(false);
@@ -109,6 +116,8 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
   };
 
   const tokenInfo = contract.tokenMetadata || contract.verifiedContract;
+  const eventsPagination = contract.eventsPagination;
+  const eventsList = contract.events ?? [];
   const historyInvocations = contract.historyInvocations ?? contract.invocations ?? [];
   const historyPagination = contract.historyPagination;
   const isToken = contract.type === 'token' || contract.type === 'lending';
@@ -879,7 +888,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                 <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract Events</h3>
                   <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
-                    {sectionLoading.events ? <InlineSkeleton width="w-10" height="h-3" /> : (contract.events?.length || 0)}
+                    {sectionLoading.events ? <InlineSkeleton width="w-10" height="h-3" /> : (eventsPagination?.totalItems ?? eventsList.length)}
                   </span>
                 </div>
                 <div className="divide-y divide-[var(--border-subtle)]">
@@ -900,10 +909,10 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                         </div>
                       </div>
                     ))
-                  ) : !contract.events || contract.events.length === 0 ? (
+                  ) : eventsList.length === 0 ? (
                     <div className="p-4 text-center text-sm text-[var(--text-muted)]">No events found</div>
                   ) : (
-                    contract.events.map((event, idx) => {
+                    eventsList.map((event, idx) => {
                       const getEventBadgeColor = (type: string) => {
                         switch (type) {
                           case 'transfer': return 'bg-blue-100 text-blue-700 border-blue-200';
@@ -1144,6 +1153,27 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                     })
                   )}
                 </div>
+                {eventsPagination && eventsPagination.totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-subtle)]">
+                    <button
+                      onClick={() => onEventsPageChange?.(Math.max(1, eventsPagination.currentPage - 1))}
+                      disabled={sectionLoading.events || eventsPagination.currentPage <= 1}
+                      className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-xs text-[var(--text-muted)]">
+                      Page {eventsPagination.currentPage} / {eventsPagination.totalPages}
+                    </span>
+                    <button
+                      onClick={() => onEventsPageChange?.(Math.min(eventsPagination.totalPages, eventsPagination.currentPage + 1))}
+                      disabled={sectionLoading.events || eventsPagination.currentPage >= eventsPagination.totalPages}
+                      className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

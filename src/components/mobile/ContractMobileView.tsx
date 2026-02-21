@@ -54,6 +54,12 @@ interface ContractData {
   nftInfo?: NFTInfo | null;
   vaultInfo?: VaultInfo | null;
   events?: ParsedEvent[];
+  eventsPagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+  };
   eventSummary?: EventSummary | null;
   storage?: ContractStorageResult | null;
   invocations?: ContractInvocation[];
@@ -87,9 +93,10 @@ interface ContractMobileViewProps {
   operations: Operation[];
   onTabChange?: (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface' | 'events') => void;
   onHistoryPageChange?: (page: number) => void;
+  onEventsPageChange?: (page: number) => void;
 }
 
-export default function ContractMobileView({ contract, operations, onTabChange, onHistoryPageChange }: ContractMobileViewProps) {
+export default function ContractMobileView({ contract, operations, onTabChange, onHistoryPageChange, onEventsPageChange }: ContractMobileViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'details' | 'history' | 'interface' | 'code'>('overview');
   const [copied, setCopied] = useState(false);
   const [copiedName, setCopiedName] = useState(false);
@@ -131,6 +138,8 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
   };
 
   const tokenInfo = contract.tokenMetadata || contract.verifiedContract;
+  const eventsPagination = contract.eventsPagination;
+  const eventsList = contract.events ?? [];
   const historyInvocations = contract.historyInvocations ?? contract.invocations ?? [];
   const historyPagination = contract.historyPagination;
   const isToken = contract.type === 'token' || contract.type === 'lending';
@@ -829,11 +838,11 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                     </div>
                   ))}
                 </div>
-              ) : !contract.events || contract.events.length === 0 ? (
+              ) : eventsList.length === 0 ? (
                 <div className="text-center py-4 text-[var(--text-muted)] text-sm">No events found</div>
               ) : (
                 <div className="divide-y divide-[var(--border-subtle)]">
-                  {contract.events.map((event, idx) => {
+                  {eventsList.map((event, idx) => {
                     const displayName = event.type !== 'unknown'
                       ? event.type
                       : (event.rawEventName || 'event');
@@ -917,6 +926,27 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                       <div key={idx}>{eventContent}</div>
                     );
                   })}
+                </div>
+              )}
+              {eventsPagination && eventsPagination.totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-subtle)]">
+                  <button
+                    onClick={() => onEventsPageChange?.(Math.max(1, eventsPagination.currentPage - 1))}
+                    disabled={sectionLoading.events || eventsPagination.currentPage <= 1}
+                    className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-xs text-[var(--text-muted)]">
+                    Page {eventsPagination.currentPage} / {eventsPagination.totalPages}
+                  </span>
+                  <button
+                    onClick={() => onEventsPageChange?.(Math.min(eventsPagination.totalPages, eventsPagination.currentPage + 1))}
+                    disabled={sectionLoading.events || eventsPagination.currentPage >= eventsPagination.totalPages}
+                    className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                  >
+                    Next
+                  </button>
                 </div>
               )}
             </div>
