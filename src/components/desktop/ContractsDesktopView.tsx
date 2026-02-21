@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { shortenAddress, timeAgo } from '@/lib/stellar';
 import { StrKey } from '@stellar/stellar-sdk';
@@ -70,9 +70,10 @@ import verifiedContracts from '@/data/verified-contracts.json';
 
 const PAGE_SIZE = 30;
 type ContractsSort =
-  | 'recent'
   | 'activity'
-  | 'name';
+  | 'activity_asc'
+  | 'name'
+  | 'asset_code';
 
 // Pagination component
 const PaginationControls = ({ currentPage, totalPages, onPageChange, loading }: {
@@ -164,9 +165,11 @@ export default function ContractsDesktopView({
   const [pagination, setPagination] = useState(initialPagination);
   const [filter, setFilter] = useState<string>('all');
   const [searchInput, setSearchInput] = useState('');
-  const [sortBy, setSortBy] = useState<ContractsSort>('recent');
+  const [sortBy, setSortBy] = useState<ContractsSort>('activity');
   const [isLoading, setIsLoading] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const lastFetchKeyRef = useRef<string>('');
+  const fetchInFlightRef = useRef(false);
   const { networkConfig } = useNetwork();
 
   useEffect(() => {
@@ -185,15 +188,24 @@ export default function ContractsDesktopView({
   }, [searchInput]);
 
   const buildContractsQueryParams = useCallback(
-    (pageNum: number, activeSort: ContractsSort, rawQuery: string) => {
+    (pageNum: number, activeSort: ContractsSort, rawQuery: string, activeFilter: string) => {
       const params: Record<string, string | number | boolean> = {
         page: pageNum,
         itemsPerPage: PAGE_SIZE,
         pagination: true,
       };
 
-      if (activeSort === 'recent') params['order[createdAt]'] = 'desc';
       if (activeSort === 'activity') params['order[totalTransactions]'] = 'desc';
+      if (activeSort === 'activity_asc') params['order[totalTransactions]'] = 'asc';
+      if (activeSort === 'asset_code') params['order[asset_code]'] = 'asc';
+
+      if (activeFilter === 'verified') {
+        params.sourceCodeVerified = true;
+      } else if (activeFilter === 'token') {
+        params.sac = true;
+      } else if (activeFilter === 'contract') {
+        params.sac = false;
+      }
 
       const query = rawQuery.trim();
       if (query) {
@@ -239,10 +251,10 @@ export default function ContractsDesktopView({
         type,
         symbol: apiContract.assetCode || verifiedContract?.symbol,
         description: verifiedContract?.description,
-        verified: apiContract.sourceCodeVerified || verifiedContract?.verified || false,
+        verified: Boolean(apiContract.sourceCodeVerified),
         sep41: apiContract.sac || !!apiContract.assetCode || verifiedContract?.sep41,
         website: verifiedContract?.website,
-        operationCount: apiContract.totalTransactions || 0,
+        operationCount: Number(apiContract.totalTransactions ?? 0),
         lastActivity: apiContract.createdAt,
         wasmId: apiContract.wasmId || undefined,
         createdAt: apiContract.createdAt,
@@ -260,84 +272,65 @@ export default function ContractsDesktopView({
     return contract.type === activeFilter;
   }, []);
 
-  const MIN_DISPLAY_COUNT = 10;
-  const MAX_PAGES_TO_FETCH = 5;
-
-  // Fetch contracts — when a filter is active, fetches multiple API pages
-  // to ensure we have enough matching items to display
+  // Fetch contracts - one API request per user action (tab/sort/search/page)
   const fetchPage = useCallback(async (page: number, activeFilter?: string, activeSearch?: string, activeSort?: ContractsSort) => {
-    setIsLoading(true);
     const currentFilter = activeFilter ?? filter;
     const currentSearch = activeSearch ?? debouncedSearch;
     const currentSort = activeSort ?? sortBy;
+    const fetchKey = `${page}|${currentFilter}|${currentSearch}|${currentSort}|${networkConfig.name}`;
+
+    if (fetchInFlightRef.current && lastFetchKeyRef.current === fetchKey) {
+      return;
+    }
+
+    fetchInFlightRef.current = true;
+    lastFetchKeyRef.current = fetchKey;
+    setIsLoading(true);
     try {
       const buildUrl = (pageNum: number) => {
-        const params = buildContractsQueryParams(pageNum, currentSort, currentSearch);
+        const params = buildContractsQueryParams(pageNum, currentSort, currentSearch, currentFilter);
         return apiEndpoints.v1.contracts(params);
       };
 
-      // For 'all' filter or search, single page fetch is fine
-      if (currentFilter === 'all') {
-        const data = await getApiV1Data(buildUrl(page));
-        const newContracts = transformContracts(data.member || []);
-        const itemsPerPage = PAGE_SIZE;
-        const totalPages = Math.ceil((data.totalItems || 0) / itemsPerPage);
-        setContracts(newContracts);
-        setPagination({
-          currentPage: page,
-          totalPages,
-          total: data.totalItems || 0,
-          perPage: itemsPerPage,
-        });
-      } else {
-        // For type filters, accumulate items from multiple pages
-        const accumulated: EnhancedContract[] = [];
-        let apiPage = page;
-        let totalItems = 0;
-        let totalPages = 1;
-        let pagesChecked = 0;
+      const data = await getApiV1Data(buildUrl(page));
+      const transformed = transformContracts(data.member || []);
+      const itemsPerPage = PAGE_SIZE;
+      const totalPages = Math.ceil((data.totalItems || 0) / itemsPerPage);
 
-        while (accumulated.length < MIN_DISPLAY_COUNT && pagesChecked < MAX_PAGES_TO_FETCH) {
-          const data = await getApiV1Data(buildUrl(apiPage));
-          totalItems = data.totalItems || 0;
-          totalPages = Math.ceil(totalItems / PAGE_SIZE);
+      const filtered = currentFilter === 'all'
+        ? transformed
+        : transformed.filter(c => matchesFilter(c, currentFilter));
 
-          const pageContracts = transformContracts(data.member || []);
-          const matching = pageContracts.filter(c => matchesFilter(c, currentFilter));
-          accumulated.push(...matching);
-
-          pagesChecked++;
-          apiPage++;
-
-          // Stop if we've reached the last API page
-          if (apiPage > totalPages) break;
-        }
-
-        setContracts(accumulated);
-        setPagination({
-          currentPage: page,
-          totalPages,
-          total: totalItems,
-          perPage: PAGE_SIZE,
-        });
-      }
+      setContracts(filtered);
+      setPagination({
+        currentPage: page,
+        totalPages,
+        total: data.totalItems || 0,
+        perPage: itemsPerPage,
+      });
     } catch (error) {
       console.error('Error fetching contracts:', error);
     } finally {
+      fetchInFlightRef.current = false;
       setIsLoading(false);
     }
-  }, [filter, sortBy, debouncedSearch, transformContracts, matchesFilter, buildContractsQueryParams]);
+  }, [filter, sortBy, debouncedSearch, transformContracts, matchesFilter, buildContractsQueryParams, networkConfig.name]);
 
-  // Re-fetch when filter or sort changes (except for initial load)
-  const [hasInitialized, setHasInitialized] = useState(false);
+  const handleFilterChange = useCallback((nextFilter: string) => {
+    setFilter(nextFilter);
+    fetchPage(1, nextFilter, debouncedSearch, sortBy);
+  }, [fetchPage, debouncedSearch, sortBy]);
+
+  // Re-fetch when sort/search changes (skip initial mount to avoid duplicate request
+  // because initial data is already loaded in parent page).
+  const didMountRef = useRef(false);
   useEffect(() => {
-    if (!hasInitialized) {
-      setHasInitialized(true);
+    if (!didMountRef.current) {
+      didMountRef.current = true;
       return;
     }
-    // When filter or sort changes, re-fetch from page 1
     fetchPage(1, filter, debouncedSearch, sortBy);
-  }, [filter, sortBy, debouncedSearch, hasInitialized, fetchPage]);
+  }, [sortBy, debouncedSearch, fetchPage, filter]);
 
   const filteredContracts = useMemo(() => {
     let result = [...contracts];
@@ -366,6 +359,10 @@ export default function ContractsDesktopView({
       result.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortBy === 'activity') {
       result.sort((a, b) => b.operationCount - a.operationCount);
+    } else if (sortBy === 'activity_asc') {
+      result.sort((a, b) => a.operationCount - b.operationCount);
+    } else if (sortBy === 'asset_code') {
+      result.sort((a, b) => (a.symbol || a.name || '').localeCompare((b.symbol || b.name || '')));
     }
 
     return result;
@@ -470,9 +467,10 @@ export default function ContractsDesktopView({
             onChange={(e) => setSortBy(e.target.value as ContractsSort)}
             className="px-4 py-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-medium text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm cursor-pointer"
           >
-            <option value="recent">Most Recent</option>
             <option value="activity">Most Active</option>
+            <option value="activity_asc">Least Active</option>
             <option value="name">By Name</option>
+            <option value="asset_code">By Asset Code</option>
           </select>
         </div>
 
@@ -482,13 +480,13 @@ export default function ContractsDesktopView({
             size="sm"
             className="border-[var(--border-default)]"
             tabs={[
-              { id: 'all', label: 'All', count: pagination.total },
-              { id: 'verified', label: 'Verified' },
-              { id: 'token', label: 'Tokens' },
-              { id: 'contract', label: 'Contracts' },
+              { id: 'all', label: 'All', count: filter === 'all' ? pagination.total : undefined },
+              { id: 'verified', label: 'Verified', count: filter === 'verified' ? pagination.total : undefined },
+              { id: 'token', label: 'Tokens', count: filter === 'token' ? pagination.total : undefined },
+              { id: 'contract', label: 'Contracts', count: filter === 'contract' ? pagination.total : undefined },
             ]}
             activeId={filter}
-            onChange={setFilter}
+            onChange={handleFilterChange}
           />
         </div>
 
@@ -502,7 +500,7 @@ export default function ContractsDesktopView({
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Name</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Type</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Created</th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Invocations</th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Transactions</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Status</th>
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-center whitespace-nowrap w-10"></th>
                 </tr>
@@ -586,7 +584,7 @@ export default function ContractsDesktopView({
                           {contract.createdAt ? timeAgo(contract.createdAt) : '-'}
                         </td>
 
-                        {/* Invocations */}
+                        {/* Transactions */}
                         <td className="py-3 px-3 text-right">
                           {contract.operationCount > 0 ? (
                             <span className="text-[12px] font-semibold text-[var(--text-primary)]">

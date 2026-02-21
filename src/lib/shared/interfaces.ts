@@ -415,6 +415,11 @@ export interface APIContract {
   network: number;
   sourceCodeVerified: boolean;
   totalTransactions: number;
+  totalOperations?: number;
+  totalInvokes?: number;
+  totalEvents?: number;
+  totalEffects?: number;
+  totalStorageEntries?: number;
 }
 
 // Statistics interfaces
