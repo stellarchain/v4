@@ -542,20 +542,38 @@ export default function TransactionsDesktopView({
             <div className="flex gap-3">
               <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total</div>
-                <div className="text-lg font-bold text-[var(--text-primary)]">{stats.total}</div>
+                <div className="text-lg font-bold text-[var(--text-primary)] inline-flex items-center gap-1.5">
+                  {stats.total}
+                  <svg className="w-3 h-3 text-emerald-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                  </svg>
+                </div>
               </div>
               <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 min-w-[90px]">
                 <div className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-1">Payments</div>
-                <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{stats.payments}</div>
+                <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1.5">
+                  {stats.payments}
+                  <svg className="w-3 h-3 text-emerald-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                  </svg>
+                </div>
               </div>
               <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 min-w-[90px]">
                 <div className="text-[9px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-1">Contracts</div>
-                <div className="text-lg font-bold text-amber-700 dark:text-amber-400">{stats.contracts}</div>
+                <div className="text-lg font-bold text-amber-700 dark:text-amber-400 inline-flex items-center gap-1.5">
+                  {stats.contracts}
+                  <svg className="w-3 h-3 text-emerald-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                  </svg>
+                </div>
               </div>
               <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[90px]">
                 <div className="text-[9px] font-bold text-sky-700 dark:text-sky-400 uppercase tracking-widest mb-1">Success</div>
-                <div className="text-lg font-bold text-sky-700 dark:text-sky-400">
+                <div className="text-lg font-bold text-sky-700 dark:text-sky-400 inline-flex items-center gap-1.5">
                   {stats.total > 0 ? ((stats.successful / stats.total) * 100).toFixed(1) : 0}%
+                  <svg className="w-3 h-3 text-emerald-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                  </svg>
                 </div>
               </div>
             </div>
