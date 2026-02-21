@@ -323,7 +323,7 @@ function decodeStorageEntryXdr(encoded?: string): {
 
 async function fetchContractStorage(contractId: string, totalStorageEntries?: number): Promise<ContractStorageResult | null> {
   const data = await getApiV1Data(
-    apiEndpoints.v1.contractStorage(contractId, { page: 1, itemsPerPage: 100 })
+    apiEndpoints.v1.contractStorage(contractId, { page: 1, itemsPerPage: 30 })
   );
 
   const records: ContractStorageEntryRecord[] = data.member || [];
@@ -366,9 +366,9 @@ async function fetchContractStorage(contractId: string, totalStorageEntries?: nu
   };
 }
 
-async function fetchContractEvents(contractId: string): Promise<ParsedEvent[]> {
+async function fetchContractEvents(contractId: string, itemsPerPage: number = 30): Promise<ParsedEvent[]> {
   const data = await getApiV1Data(
-    apiEndpoints.v1.contractEvents(contractId, { page: 1, itemsPerPage: 50 })
+    apiEndpoints.v1.contractEvents(contractId, { page: 1, itemsPerPage })
   );
   const records: ContractEventRecord[] = data.member || [];
   return records.map((item) => parseContractEvent(contractId, item));
@@ -399,7 +399,11 @@ function parseHostFunctionName(hostFunctions?: string): string {
 
 async function fetchContractTransactions(contractId: string): Promise<ContractInvocation[]> {
   const data = await getApiV1Data(
-    apiEndpoints.v1.contractTransactions(contractId, { page: 1, itemsPerPage: 50 })
+    apiEndpoints.v1.contractTransactions(contractId, {
+      page: 1,
+      itemsPerPage: 5,
+      invocationsOnly: true,
+    })
   );
 
   const records: ContractTransactionRecord[] = data.member || [];
@@ -469,14 +473,14 @@ function buildVerification(apiData: APIContractData): ContractVerification | nul
 async function fetchContractData(contractId: string): Promise<FullContractData> {
   const verifiedContract = verifiedContracts.contracts.find((contract) => contract.id === contractId);
 
-  const [apiData, invocations] = await Promise.all([
+  const [apiData, invocations, events] = await Promise.all([
     getApiV1Data(apiEndpoints.v1.contractById(contractId)),
     fetchContractTransactions(contractId),
-  ]) as [APIContractData, ContractInvocation[]];
+    fetchContractEvents(contractId, 5).catch(() => []),
+  ]) as [APIContractData, ContractInvocation[], ParsedEvent[]];
 
   const type = inferContractType(apiData, verifiedContract);
   const tokenMetadata = buildTokenMetadata(contractId, apiData, verifiedContract, type);
-  const events: ParsedEvent[] = [];
 
   return {
     id: contractId,
@@ -556,6 +560,10 @@ export default function ContractPage() {
         const data = await fetchContractData(id);
         if (cancelled) return;
         setContractData(data);
+        setContractEvents(data.events || []);
+        setEventsLoaded(false);
+        setEventsLoading(false);
+        setEventsError(null);
         setLoadingSections({
           events: false,
           invocations: false,
@@ -666,7 +674,7 @@ export default function ContractPage() {
   }
 
   const baseData = contractData || emptyContractData(id);
-  const visibleEvents = eventsLoaded ? contractEvents : [];
+  const visibleEvents = contractEvents.length > 0 ? contractEvents : baseData.events;
   const visibleStorage = storageLoaded ? contractStorage : baseData.storage;
   const eventSummaryFromData = mapEventSummary(baseData.apiContractData, visibleEvents);
 
@@ -688,6 +696,7 @@ export default function ContractPage() {
     invocations: baseData.invocations,
     spec: baseData.spec,
     totalTransactions: baseData.apiContractData?.totalTransactions,
+    totalInvokes: baseData.apiContractData?.totalInvokes,
     createdAt: baseData.apiContractData?.createdAt,
     wasmId: baseData.apiContractData?.wasmId || undefined,
     contractCode: baseData.apiContractData?.sourceCode || baseData.apiContractData?.contractCode || undefined,

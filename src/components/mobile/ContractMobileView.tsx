@@ -60,6 +60,7 @@ interface ContractData {
   spec?: ContractSpecResult | null;
   // API data fields
   totalTransactions?: number;
+  totalInvokes?: number;
   createdAt?: string;
   wasmId?: string;
   contractCode?: string;
@@ -217,7 +218,7 @@ export default function ContractMobileView({ contract, operations, onTabChange }
     {
       id: 'history',
       label: 'History',
-      count: contract.totalTransactions ?? 0,
+      count: contract.totalInvokes ?? contract.invocations?.length ?? 0,
     },
     {
       id: 'operations',
@@ -472,6 +473,65 @@ export default function ContractMobileView({ contract, operations, onTabChange }
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
             <div className="space-y-4">
+              {/* Recent Invocations */}
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Recent Invocations</div>
+                  <span className="text-[11px] font-semibold" style={{ color: primaryColor }}>
+                    {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${Math.min(contract.invocations?.length || 0, 5)} of ${contract.totalInvokes ?? contract.invocations?.length ?? 0}`}
+                  </span>
+                </div>
+                {sectionLoading.invocations ? (
+                  <div className="divide-y divide-[var(--border-subtle)]">
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                      <div key={`overview-invocations-skeleton-${idx}`} className="flex items-center gap-3 py-3">
+                        <div className="w-9 h-9 bg-[var(--bg-tertiary)] animate-pulse rounded-lg" />
+                        <div className="flex-1 min-w-0">
+                          <InlineSkeleton width="w-24" />
+                          <div className="mt-2">
+                            <InlineSkeleton width="w-32" height="h-3" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : !contract.invocations || contract.invocations.length === 0 ? (
+                  <div className="text-center py-4 text-[var(--text-muted)] text-sm">No recent invocations found</div>
+                ) : (
+                  <div className="divide-y divide-[var(--border-subtle)]">
+                    {contract.invocations.slice(0, 5).map((invocation, idx) => (
+                      <Link
+                        key={`overview-invocation-${idx}`}
+                        href={`/transaction/${invocation.txHash}`}
+                        className="flex items-center gap-3 py-3 hover:bg-[var(--bg-tertiary)] -mx-4 px-4 transition-colors"
+                      >
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-[var(--text-primary)]">{invocation.functionName}</div>
+                          <div className="text-[11px] text-[var(--text-tertiary)]">{timeAgo(invocation.createdAt)}</div>
+                        </div>
+                        <svg className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                {contract.invocations && contract.invocations.length > 5 && (
+                  <button
+                    onClick={() => changeTab('history')}
+                    className="w-full mt-3 py-2 text-center text-xs font-semibold"
+                    style={{ color: primaryColor }}
+                  >
+                    View all {contract.totalInvokes ?? contract.invocations.length} invocations
+                  </button>
+                )}
+              </div>
+
               {/* Recent Activity */}
               <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -622,6 +682,12 @@ export default function ContractMobileView({ contract, operations, onTabChange }
           {/* HISTORY TAB */}
           {activeTab === 'history' && (
             <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
+              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-[var(--border-subtle)]">
+                <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract functions Invocations History</h3>
+                <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
+                  {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${contract.totalInvokes ?? contract.invocations?.length ?? 0} invocations`}
+                </span>
+              </div>
               {sectionLoading.invocations ? (
                 <div className="divide-y divide-[var(--border-subtle)]">
                   {Array.from({ length: 5 }).map((_, idx) => (
