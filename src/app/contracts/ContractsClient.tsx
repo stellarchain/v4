@@ -78,7 +78,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
   const [pagination, setPagination] = useState(initialPagination);
   const [filter, setFilter] = useState<ContractFilter>('all');
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<'activity' | 'name' | 'recent'>('recent');
+  const [sortBy, setSortBy] = useState<'activity' | 'name'>('activity');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -93,7 +93,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
   const fetchPage = useCallback(async (page: number) => {
     setIsLoading(true);
     try {
-      const data = await getApiV1Data(apiEndpoints.v1.contracts({ page, 'order[createdAt]': 'desc' }));
+      const data = await getApiV1Data(apiEndpoints.v1.contracts({ page, 'order[totalTransactions]': 'desc' }));
 
       // Transform API contracts, filtering out invalid IDs
       const newContracts: EnhancedContract[] = (data.member || [])
@@ -126,10 +126,10 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
           type,
           symbol: apiContract.assetCode || verifiedContract?.symbol,
           description: verifiedContract?.description,
-          verified: apiContract.sourceCodeVerified || verifiedContract?.verified || false,
+          verified: Boolean(apiContract.sourceCodeVerified),
           sep41: apiContract.sac || !!apiContract.assetCode || verifiedContract?.sep41,
           website: verifiedContract?.website,
-          operationCount: apiContract.totalTransactions || 0,
+          operationCount: Number(apiContract.totalTransactions ?? 0),
           lastActivity: apiContract.createdAt,
           wasmId: apiContract.wasmId || undefined,
           createdAt: apiContract.createdAt,
@@ -184,8 +184,6 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
     } else if (sortBy === 'activity') {
       result.sort((a, b) => b.operationCount - a.operationCount);
     }
-    // 'recent' keeps the API order (most recent first)
-
     return result;
   }, [contracts, filter, search, sortBy]);
 
