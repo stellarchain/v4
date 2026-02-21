@@ -57,6 +57,13 @@ interface ContractData {
   eventSummary?: EventSummary | null;
   storage?: ContractStorageResult | null;
   invocations?: ContractInvocation[];
+  historyInvocations?: ContractInvocation[];
+  historyPagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+  };
   spec?: unknown;
   // API data fields
   totalTransactions?: number;
@@ -79,9 +86,10 @@ interface ContractDesktopViewProps {
   contract: ContractData;
   operations: Operation[];
   onTabChange?: (tabId: 'overview' | 'history' | 'events' | 'storage') => void;
+  onHistoryPageChange?: (page: number) => void;
 }
 
-export default function ContractDesktopView({ contract, operations, onTabChange }: ContractDesktopViewProps) {
+export default function ContractDesktopView({ contract, operations, onTabChange, onHistoryPageChange }: ContractDesktopViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'events' | 'storage' | 'history' | 'code'>('overview');
   const [expandedStorageRows, setExpandedStorageRows] = useState<Set<number>>(new Set());
   const [copied, setCopied] = useState(false);
@@ -101,6 +109,8 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
   };
 
   const tokenInfo = contract.tokenMetadata || contract.verifiedContract;
+  const historyInvocations = contract.historyInvocations ?? contract.invocations ?? [];
+  const historyPagination = contract.historyPagination;
   const isToken = contract.type === 'token' || contract.type === 'lending';
   const isNFT = contract.type === 'nft';
   const isVault = contract.type === 'vault';
@@ -438,7 +448,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                     count: sectionLoading.storage ? undefined : contract.storage?.totalEntries ?? 0,
                   },
                 // Only show Code tab for actual contracts (not tokens)
-                ...(contract.type === 'contract' ? [{ id: 'code' as const, label: 'Code' }] : []),
+                ...(contract.type === 'contract' ? [{ id: 'code' as const, label: 'WASM' }] : []),
               ]}
               activeId={activeTab as 'overview' | 'history' | 'events' | 'storage' | 'code'}
               onChange={handleTabChange}
@@ -697,7 +707,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                 <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract functions Invocations History</h3>
                   <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
-                    {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${contract.totalInvokes ?? contract.invocations?.length ?? 0} invocations`}
+                    {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${historyPagination?.totalItems ?? contract.totalInvokes ?? historyInvocations.length} invocations`}
                   </span>
                 </div>
                 <div className="overflow-x-auto">
@@ -728,12 +738,12 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                             </td>
                           </tr>
                         ))
-                      ) : !contract.invocations || contract.invocations.length === 0 ? (
+                      ) : historyInvocations.length === 0 ? (
                         <tr>
                           <td colSpan={2} className="p-4 text-center text-sm text-[var(--text-muted)]">No transaction history found</td>
                         </tr>
                       ) : (
-                        contract.invocations.map((invocation, idx) => {
+                        historyInvocations.map((invocation, idx) => {
                           // Find the I128/U128 parameter for display (often the amount)
                           const amountParam = invocation.parameters.find(p => p.type === 'I128' || p.type === 'U128');
                           const displayAmount = amountParam?.decoded;
@@ -839,6 +849,27 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                     </tbody>
                   </table>
                 </div>
+                {historyPagination && historyPagination.totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-subtle)]">
+                    <button
+                      onClick={() => onHistoryPageChange?.(Math.max(1, historyPagination.currentPage - 1))}
+                      disabled={sectionLoading.invocations || historyPagination.currentPage <= 1}
+                      className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-xs text-[var(--text-muted)]">
+                      Page {historyPagination.currentPage} / {historyPagination.totalPages}
+                    </span>
+                    <button
+                      onClick={() => onHistoryPageChange?.(Math.min(historyPagination.totalPages, historyPagination.currentPage + 1))}
+                      disabled={sectionLoading.invocations || historyPagination.currentPage >= historyPagination.totalPages}
+                      className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
