@@ -236,7 +236,7 @@ export default function ContractsDesktopView({
         type = verifiedContract.type;
       }
 
-      let name = 'Smart Contract';
+      let name = type === 'token' ? 'TOKEN' : 'Smart Contract';
       if (verifiedContract?.name) {
         name = verifiedContract.name;
       } else if (apiContract.assetCode) {
