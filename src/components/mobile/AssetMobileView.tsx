@@ -640,6 +640,18 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     };
   }, [chartData, selectedTimeframe]);
 
+  const [copiedIssuer, setCopiedIssuer] = useState(false);
+
+  const handleCopyIssuer = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (asset.issuer) {
+      navigator.clipboard.writeText(asset.issuer);
+      setCopiedIssuer(true);
+      setTimeout(() => setCopiedIssuer(false), 2000);
+    }
+  };
+
   const change24h = asset.change_24h || 0;
   const isPositive = change24h >= 0;
 
@@ -727,6 +739,20 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 <Link href={`/account/${asset.issuer}`} className="text-xs font-mono text-white/70 hover:text-white">
                   {shortenAddress(asset.issuer)}
                 </Link>
+                <button
+                  onClick={handleCopyIssuer}
+                  className="p-1 rounded-md hover:bg-white/10 active:bg-white/20 transition-colors"
+                >
+                  {copiedIssuer ? (
+                    <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                </button>
               </div>
             )}
             {asset.domain && (

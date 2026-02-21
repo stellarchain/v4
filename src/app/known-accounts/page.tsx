@@ -94,11 +94,11 @@ export default function KnownAccountsPage() {
     };
   }, []);
 
-  if (loading) {
+  if (loading && !initialData) {
     return <Loading title="Loading known accounts" description="Fetching labeled accounts." />;
   }
 
-  if (error || !initialData) {
+  if (error && !initialData) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <div className="text-red-400 mb-4">{error || 'Failed to load known accounts'}</div>
@@ -115,6 +115,7 @@ export default function KnownAccountsPage() {
           xlmPriceUsd={xlmPriceUsd}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
+          loading={loading}
         />
       </div>
 
@@ -125,6 +126,7 @@ export default function KnownAccountsPage() {
           xlmPriceUsd={xlmPriceUsd}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
+          loading={loading}
         />
       </div>
     </>
