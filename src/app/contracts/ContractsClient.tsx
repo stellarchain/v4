@@ -93,7 +93,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
   const fetchPage = useCallback(async (page: number) => {
     setIsLoading(true);
     try {
-      const data = await getApiV1Data(apiEndpoints.v1.contracts({ page, 'order[totalTransactions]': 'desc' }));
+      const data = await getApiV1Data(apiEndpoints.v1.contracts({ page, 'order[totalInvokes]': 'desc' }));
 
       // Transform API contracts, filtering out invalid IDs
       const newContracts: EnhancedContract[] = (data.member || [])
@@ -129,7 +129,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
           verified: Boolean(apiContract.sourceCodeVerified),
           sep41: apiContract.sac || !!apiContract.assetCode || verifiedContract?.sep41,
           website: verifiedContract?.website,
-          operationCount: Number(apiContract.totalTransactions ?? 0),
+          operationCount: Number(apiContract.totalInvokes ?? 0),
           lastActivity: apiContract.createdAt,
           wasmId: apiContract.wasmId || undefined,
           createdAt: apiContract.createdAt,
@@ -341,7 +341,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
                     {/* Right Side: Stats */}
                     <div className="text-right flex-shrink-0">
                       <div className="text-xs font-bold text-[var(--text-primary)]">
-                        {contract.operationCount.toLocaleString()} <span className="text-[var(--text-muted)] font-normal">txs</span>
+                        {contract.operationCount.toLocaleString()} <span className="text-[var(--text-muted)] font-normal">invokes</span>
                       </div>
                       <div className="text-[11px] text-[var(--text-muted)]">
                         {contract.createdAt ? timeAgo(contract.createdAt) : '-'}

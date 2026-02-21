@@ -195,8 +195,8 @@ export default function ContractsDesktopView({
         pagination: true,
       };
 
-      if (activeSort === 'activity') params['order[totalTransactions]'] = 'desc';
-      if (activeSort === 'activity_asc') params['order[totalTransactions]'] = 'asc';
+      if (activeSort === 'activity') params['order[totalInvokes]'] = 'desc';
+      if (activeSort === 'activity_asc') params['order[totalInvokes]'] = 'asc';
       if (activeSort === 'asset_code') params['order[asset_code]'] = 'asc';
 
       if (activeFilter === 'verified') {
@@ -254,7 +254,7 @@ export default function ContractsDesktopView({
         verified: Boolean(apiContract.sourceCodeVerified),
         sep41: apiContract.sac || !!apiContract.assetCode || verifiedContract?.sep41,
         website: verifiedContract?.website,
-        operationCount: Number(apiContract.totalTransactions ?? 0),
+        operationCount: Number(apiContract.totalInvokes ?? 0),
         lastActivity: apiContract.createdAt,
         wasmId: apiContract.wasmId || undefined,
         createdAt: apiContract.createdAt,
@@ -500,7 +500,7 @@ export default function ContractsDesktopView({
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Name</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Type</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Created</th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Transactions</th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Invocations</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Status</th>
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-center whitespace-nowrap w-10"></th>
                 </tr>
@@ -584,7 +584,7 @@ export default function ContractsDesktopView({
                           {contract.createdAt ? timeAgo(contract.createdAt) : '-'}
                         </td>
 
-                        {/* Transactions */}
+                        {/* Invocations */}
                         <td className="py-3 px-3 text-right">
                           {contract.operationCount > 0 ? (
                             <span className="text-[12px] font-semibold text-[var(--text-primary)]">

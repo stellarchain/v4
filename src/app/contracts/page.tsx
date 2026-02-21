@@ -95,7 +95,7 @@ function transformContract(apiContract: APIContract): EnhancedContract {
     verified: Boolean(apiContract.sourceCodeVerified),
     sep41: apiContract.sac || !!apiContract.assetCode || verifiedContract?.sep41,
     website: verifiedContract?.website,
-    operationCount: Number(apiContract.totalTransactions ?? 0),
+    operationCount: Number(apiContract.totalInvokes ?? 0),
     lastActivity: apiContract.createdAt,
     wasmId: apiContract.wasmId || undefined,
     createdAt: apiContract.createdAt,
@@ -115,7 +115,7 @@ async function fetchContracts(
     const data = await (async () => {
       try {
         return await getApiV1Data(
-          apiEndpoints.v1.contracts({ page, 'order[totalTransactions]': 'desc' }),
+          apiEndpoints.v1.contracts({ page, 'order[totalInvokes]': 'desc' }),
           {
             signal: controller.signal,
           }
