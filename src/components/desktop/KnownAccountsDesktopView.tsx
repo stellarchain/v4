@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/stellar';
 import type { LabeledAccountsAPIResponse, LabeledAccount } from '@/lib/stellar';
 import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 interface KnownAccountsDesktopViewProps {
-  initialData: LabeledAccountsAPIResponse;
+  initialData: LabeledAccountsAPIResponse | null;
   xlmPriceUsd?: number | null;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
+  loading?: boolean;
 }
 
 type SortField = 'rank' | 'balance' | 'transactions';
@@ -43,37 +44,44 @@ export default function KnownAccountsDesktopView({
   xlmPriceUsd,
   searchQuery,
   onSearchQueryChange,
+  loading: parentLoading,
 }: KnownAccountsDesktopViewProps) {
   const getTransactions = (acc: any) => String(acc.accountMetric?.totalTransactions ?? acc.accountMetric?.transactionsPerHour ?? '0');
-  const didMountRef = useRef(false);
 
-  // Transform new API structure to old format
-  const transformedData = initialData?.member?.map((acc: any) => ({
-    account: acc.address,
-    org_name: null,
-    label: acc.label ? {
-      name: acc.label,
-      description: null,
-      verified: acc.verified ? 1 : 0
-    } : null,
-    balance: parseFloat(acc.accountMetric?.nativeBalance || '0'),
-    transactions: getTransactions(acc),
-    rank: acc.accountMetric?.rankPosition || 0
-  })) || [];
+  const transformData = (data: LabeledAccountsAPIResponse | null) =>
+    data?.member?.map((acc: any) => ({
+      account: acc.address,
+      org_name: null,
+      label: acc.label ? {
+        name: acc.label,
+        description: null,
+        verified: acc.verified ? 1 : 0
+      } : null,
+      balance: parseFloat(acc.accountMetric?.nativeBalance || '0'),
+      transactions: getTransactions(acc),
+      rank: acc.accountMetric?.rankPosition || 0
+    })) || [];
 
-  const [accounts, setAccounts] = useState<LabeledAccount[]>(transformedData);
   const itemsPerPage = 30;
+  const accounts = transformData(initialData);
+  const total = initialData?.totalItems || 0;
+  const totalPages = Math.ceil(total / itemsPerPage);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(Math.ceil((initialData?.totalItems || 0) / itemsPerPage));
-  const [total, setTotal] = useState(initialData?.totalItems || 0);
+  const [paginatedAccounts, setPaginatedAccounts] = useState<LabeledAccount[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sortField, setSortField] = useState<SortField>('balance');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
-  const fetchPage = useCallback(async (page: number, queryValue?: string) => {
+  // Reset pagination when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setPaginatedAccounts(null);
+  }, [searchQuery]);
+
+  const fetchPage = useCallback(async (page: number) => {
     setIsLoading(true);
     try {
-      const query = (queryValue ?? searchQuery).trim();
+      const query = searchQuery.trim();
       const isAddressQuery = /^(G|C)[A-Z0-9]{10,}$/.test(query.toUpperCase());
       const params: Record<string, string | number> = {
         page,
@@ -88,27 +96,9 @@ export default function KnownAccountsDesktopView({
         }
       }
 
-      const json = await getApiV1Data(
-        apiEndpoints.v1.accounts(params)
-      );
-
-      const transformedAccounts = json.member?.map((acc: any) => ({
-        account: acc.address,
-        org_name: null,
-        label: acc.label ? {
-          name: acc.label,
-          description: null,
-          verified: acc.verified ? 1 : 0
-        } : null,
-        balance: parseFloat(acc.accountMetric?.nativeBalance || '0'),
-        transactions: getTransactions(acc),
-        rank: acc.accountMetric?.rankPosition || 0
-      })) || [];
-
-      setAccounts(transformedAccounts);
+      const json = await getApiV1Data(apiEndpoints.v1.accounts(params));
+      setPaginatedAccounts(transformData(json));
       setCurrentPage(page);
-      setTotalPages(Math.ceil((json.totalItems || 0) / itemsPerPage));
-      setTotal(json.totalItems || 0);
     } catch (error) {
       console.error('Error fetching accounts:', error);
     } finally {
@@ -116,31 +106,20 @@ export default function KnownAccountsDesktopView({
     }
   }, [itemsPerPage, searchQuery]);
 
-  useEffect(() => {
-    if (!didMountRef.current) {
-      didMountRef.current = true;
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      fetchPage(1, searchQuery);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery, fetchPage]);
+  const displayAccounts = paginatedAccounts ?? accounts;
 
   // Calculate totals
   const totals = useMemo(() => {
-    const verifiedCount = accounts.filter((acc) => {
+    const verifiedCount = displayAccounts.filter((acc) => {
       const labelText = (acc.label?.name || acc.org_name || '').toLowerCase();
       const isRisk = labelText.includes('scam') || labelText.includes('hack') || labelText.includes('malicious') || labelText.includes('spam');
       return acc.label?.verified === 1 && !isRisk;
     }).length;
     return { verifiedCount };
-  }, [accounts]);
+  }, [displayAccounts]);
 
   const filteredAndSortedAccounts = useMemo(() => {
-    const sorted = [...accounts];
+    const sorted = [...displayAccounts];
 
     sorted.sort((a, b) => {
       let comparison = 0;
@@ -159,7 +138,7 @@ export default function KnownAccountsDesktopView({
     });
 
     return sorted;
-  }, [accounts, sortField, sortOrder]);
+  }, [displayAccounts, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -190,19 +169,6 @@ export default function KnownAccountsDesktopView({
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
-        {/* Loading Overlay */}
-        {isLoading && (
-          <div className="fixed inset-0 bg-[var(--text-primary)]/20 z-50 flex items-center justify-center backdrop-blur-sm">
-            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-xl p-4 flex items-center gap-3">
-              <svg className="animate-spin h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              <span className="font-medium text-[var(--text-secondary)]">Loading accounts...</span>
-            </div>
-          </div>
-        )}
-
         {/* Header Card */}
         <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">

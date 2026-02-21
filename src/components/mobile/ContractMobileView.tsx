@@ -485,6 +485,7 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
           tabs={visibleTabs}
           activeId={activeTab}
           onChange={changeTab}
+          scrollable
         />
 
         {/* Tab Content */}
