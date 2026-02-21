@@ -110,7 +110,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
           type = verifiedContract.type;
         }
 
-        let name = 'Unknown Contract';
+        let name = 'Smart Contract';
         if (verifiedContract?.name) {
           name = verifiedContract.name;
         } else if (apiContract.assetCode) {

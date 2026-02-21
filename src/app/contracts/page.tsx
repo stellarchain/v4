@@ -76,7 +76,7 @@ function transformContract(apiContract: APIContract): EnhancedContract {
   }
 
   // Build name from various sources
-  let name = 'Unknown Contract';
+  let name = 'Smart Contract';
   if (verifiedContract?.name) {
     name = verifiedContract.name;
   } else if (apiContract.assetCode) {
