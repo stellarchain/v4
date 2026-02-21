@@ -106,16 +106,15 @@ function transformContract(apiContract: APIContract): EnhancedContract {
 // Fetch contracts from Stellarchain API
 async function fetchContracts(
   page: number = 1,
-  perPage: number = 30
+  perPage: number = 25
 ): Promise<ContractsAPIResponse> {
-  void perPage;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     const data = await (async () => {
       try {
         return await getApiV1Data(
-          apiEndpoints.v1.contracts({ page, 'order[totalInvokes]': 'desc' }),
+          apiEndpoints.v1.contracts({ page, itemsPerPage: perPage, 'order[totalInvokes]': 'desc' }),
           {
             signal: controller.signal,
           }
@@ -167,7 +166,7 @@ export default function ContractsPage() {
     currentPage: 1,
     totalPages: 1,
     total: 0,
-    perPage: 30,
+    perPage: 25,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -180,7 +179,7 @@ export default function ContractsPage() {
       setError(null);
       try {
         // Fetch first page of contracts from API
-        const initialData = await fetchContracts(1, 30);
+        const initialData = await fetchContracts(1, 25);
 
         // Transform API contracts to display format, filtering out invalid IDs
         const transformedContracts = initialData.member
@@ -196,8 +195,8 @@ export default function ContractsPage() {
           verified: 0, // Don't show count
         };
 
-        // Calculate total pages (assuming 30 items per page)
-        const itemsPerPage = 30;
+        // Calculate total pages (25 items per page)
+        const itemsPerPage = 25;
         const totalPages = Math.ceil(initialData.totalItems / itemsPerPage);
 
         // Pagination info

@@ -68,7 +68,7 @@ interface ContractsDesktopViewProps {
 
 import verifiedContracts from '@/data/verified-contracts.json';
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 25;
 type ContractsSort =
   | 'activity'
   | 'activity_asc'

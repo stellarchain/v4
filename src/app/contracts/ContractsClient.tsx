@@ -93,7 +93,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
   const fetchPage = useCallback(async (page: number) => {
     setIsLoading(true);
     try {
-      const data = await getApiV1Data(apiEndpoints.v1.contracts({ page, 'order[totalInvokes]': 'desc' }));
+      const data = await getApiV1Data(apiEndpoints.v1.contracts({ page, itemsPerPage: 25, 'order[totalInvokes]': 'desc' }));
 
       // Transform API contracts, filtering out invalid IDs
       const newContracts: EnhancedContract[] = (data.member || [])
@@ -137,8 +137,8 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
         };
       });
 
-      // Calculate total pages (assuming 30 items per page)
-      const itemsPerPage = 30;
+      // Calculate total pages (25 items per page)
+      const itemsPerPage = 25;
       const totalPages = Math.ceil((data.totalItems || 0) / itemsPerPage);
 
       setContracts(newContracts);
