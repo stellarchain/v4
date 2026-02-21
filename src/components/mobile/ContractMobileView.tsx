@@ -57,6 +57,13 @@ interface ContractData {
   eventSummary?: EventSummary | null;
   storage?: ContractStorageResult | null;
   invocations?: ContractInvocation[];
+  historyInvocations?: ContractInvocation[];
+  historyPagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+  };
   spec?: ContractSpecResult | null;
   // API data fields
   totalTransactions?: number;
@@ -79,9 +86,10 @@ interface ContractMobileViewProps {
   contract: ContractData;
   operations: Operation[];
   onTabChange?: (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface' | 'events') => void;
+  onHistoryPageChange?: (page: number) => void;
 }
 
-export default function ContractMobileView({ contract, operations, onTabChange }: ContractMobileViewProps) {
+export default function ContractMobileView({ contract, operations, onTabChange, onHistoryPageChange }: ContractMobileViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'details' | 'history' | 'interface' | 'code'>('overview');
   const [copied, setCopied] = useState(false);
   const [copiedName, setCopiedName] = useState(false);
@@ -123,6 +131,8 @@ export default function ContractMobileView({ contract, operations, onTabChange }
   };
 
   const tokenInfo = contract.tokenMetadata || contract.verifiedContract;
+  const historyInvocations = contract.historyInvocations ?? contract.invocations ?? [];
+  const historyPagination = contract.historyPagination;
   const isToken = contract.type === 'token' || contract.type === 'lending';
   const isNFT = contract.type === 'nft';
   const isVault = contract.type === 'vault';
@@ -225,7 +235,7 @@ export default function ContractMobileView({ contract, operations, onTabChange }
       label: 'Events',
       count: contract.eventSummary?.totalEvents ?? 0,
     },
-    { id: 'code', label: 'Code', hide: contract.type !== 'contract' },
+    { id: 'code', label: 'WASM', hide: contract.type !== 'contract' },
     { id: 'interface', label: 'Interface' },
     { id: 'details', label: 'Details' },
   ];
@@ -685,7 +695,7 @@ export default function ContractMobileView({ contract, operations, onTabChange }
               <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-[var(--border-subtle)]">
                 <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract functions Invocations History</h3>
                 <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
-                  {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${contract.totalInvokes ?? contract.invocations?.length ?? 0} invocations`}
+                  {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${historyPagination?.totalItems ?? contract.totalInvokes ?? historyInvocations.length} invocations`}
                 </span>
               </div>
               {sectionLoading.invocations ? (
@@ -702,11 +712,11 @@ export default function ContractMobileView({ contract, operations, onTabChange }
                     </div>
                   ))}
                 </div>
-              ) : !contract.invocations || contract.invocations.length === 0 ? (
+              ) : historyInvocations.length === 0 ? (
                 <div className="text-center py-4 text-[var(--text-muted)] text-sm">No transaction history found</div>
               ) : (
                 <div className="divide-y divide-[var(--border-subtle)]">
-                  {contract.invocations.map((invocation, idx) => {
+                  {historyInvocations.map((invocation, idx) => {
                     const amountParam = invocation.parameters.find(p => p.type === 'I128' || p.type === 'U128');
                     const displayAmount = amountParam?.decoded;
                     const addressParams = invocation.parameters.filter(p =>
@@ -775,6 +785,27 @@ export default function ContractMobileView({ contract, operations, onTabChange }
                       </Link>
                     );
                   })}
+                </div>
+              )}
+              {historyPagination && historyPagination.totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-subtle)]">
+                  <button
+                    onClick={() => onHistoryPageChange?.(Math.max(1, historyPagination.currentPage - 1))}
+                    disabled={sectionLoading.invocations || historyPagination.currentPage <= 1}
+                    className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-xs text-[var(--text-muted)]">
+                    Page {historyPagination.currentPage} / {historyPagination.totalPages}
+                  </span>
+                  <button
+                    onClick={() => onHistoryPageChange?.(Math.min(historyPagination.totalPages, historyPagination.currentPage + 1))}
+                    disabled={sectionLoading.invocations || historyPagination.currentPage >= historyPagination.totalPages}
+                    className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                  >
+                    Next
+                  </button>
                 </div>
               )}
             </div>
