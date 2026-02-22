@@ -935,16 +935,33 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                     {asset.issuer && (
                       <div>
                         <span className="text-[var(--text-tertiary)]">Issuer</span>
-                        <p className="font-mono text-sky-600 text-xs">{shortenAddress(asset.issuer)}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-mono text-sky-600 text-xs">{shortenAddress(asset.issuer)}</p>
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(asset.issuer!); }}
+                            className="text-[var(--text-muted)] hover:text-sky-500 transition-colors"
+                            title="Copy issuer"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                              <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     )}
                     {asset.domain && (
                       <div>
                         <span className="text-[var(--text-tertiary)]">Home Domain</span>
                         <p className="font-medium text-[var(--text-primary)]">{asset.domain}</p>
+                        {asset.homeUrl && (
+                          <a href={asset.homeUrl} target="_blank" rel="noopener noreferrer" className="text-sky-600 text-xs hover:underline break-all">
+                            {asset.homeUrl}
+                          </a>
+                        )}
                       </div>
                     )}
-                    {asset.homeUrl && (
+                    {!asset.domain && asset.homeUrl && (
                       <div>
                         <span className="text-[var(--text-tertiary)]">Home URL</span>
                         <a href={asset.homeUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-sky-600 text-xs hover:underline break-all">
@@ -955,7 +972,19 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                     {asset.assetKey && (
                       <div>
                         <span className="text-[var(--text-tertiary)]">Asset Key</span>
-                        <p className="font-mono text-[11px] text-[var(--text-primary)] break-all">{asset.assetKey}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-mono text-[11px] text-[var(--text-primary)] break-all">{asset.assetKey}</p>
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(asset.assetKey!); }}
+                            className="text-[var(--text-muted)] hover:text-sky-500 transition-colors flex-shrink-0"
+                            title="Copy asset key"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                              <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     )}
                     {asset.network !== undefined && (
@@ -966,7 +995,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                     )}
                     <div>
                       <span className="text-[var(--text-tertiary)]">Rating</span>
-                      <p className="font-medium text-[var(--text-primary)]">{asset.rating}/5</p>
+                      <p className="font-medium text-[var(--text-primary)]">{typeof asset.rating === 'number' ? asset.rating.toFixed(2) : asset.rating}/5</p>
                     </div>
                     {asset.ratingAverage !== undefined && (
                       <div>
@@ -1004,13 +1033,13 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                         <p className="font-medium text-[var(--text-primary)]">{formatNumber(asset.latestStatistic.trustlinesTotal)}</p>
                       </div>
                     )}
-                    {asset.all_time_high && (
+                    {asset.all_time_high != null && asset.all_time_high > 0 && (
                       <div>
                         <span className="text-[var(--text-tertiary)]">All-Time High</span>
                         <p className="font-medium text-emerald-600">{formatPrice(asset.all_time_high)}</p>
                       </div>
                     )}
-                    {asset.all_time_low && (
+                    {asset.all_time_low != null && asset.all_time_low > 0 && (
                       <div>
                         <span className="text-[var(--text-tertiary)]">All-Time Low</span>
                         <p className="font-medium text-rose-600">{formatPrice(asset.all_time_low)}</p>

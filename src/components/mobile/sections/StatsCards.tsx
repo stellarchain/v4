@@ -220,40 +220,31 @@ export default function StatsCards({ stats, xlmVolume, xlmPrice, marketOverview,
 
         {isMainnet && (
           <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">Market Overview API</span>
-              <span className="text-[10px] text-[var(--text-muted)]">
-                {loading ? <InlineSkeleton width="w-20" height="h-3" /> : (overviewRecordedAt || 'No data')}
-              </span>
-            </div>
-            <div className="mb-2">
-              <span className="inline-flex items-center rounded-full border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] px-2 py-1 text-[9px] font-medium text-[var(--text-muted)]">
-                on-chain Horizon/SDEX volume
-              </span>
-            </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-[var(--bg-tertiary)] p-2.5 rounded-lg">
-                <div className="text-[10px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">API Price</div>
+                <div className="text-[10px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">XLM Price</div>
                 <div className="text-sm font-bold text-[var(--text-primary)]">
-                  {loading ? <InlineSkeleton width="w-16" height="h-4" /> : (hasOverview ? `$${overviewPrice.toFixed(6)}` : 'No data')}
+                  {loading ? <InlineSkeleton width="w-16" height="h-4" /> : (hasOverview ? `$${overviewPrice.toFixed(6)}` : '-')}
                 </div>
+                <div className="text-[9px] text-[var(--text-muted)] mt-0.5">on-chain</div>
               </div>
               <div className="bg-[var(--bg-tertiary)] p-2.5 rounded-lg">
-                <div className="text-[10px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">API Vol 24H</div>
+                <div className="text-[10px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">Volume 24H</div>
                 <div className="text-sm font-bold text-[var(--text-primary)]">
-                  {loading ? <InlineSkeleton width="w-16" height="h-4" /> : (hasOverview ? new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(overviewVolume) : 'No data')}
+                  {loading ? <InlineSkeleton width="w-16" height="h-4" /> : (hasOverview ? new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(overviewVolume) : '-')}
                 </div>
+                <div className="text-[9px] text-[var(--text-muted)] mt-0.5">SDEX volume</div>
               </div>
               <div className="bg-[var(--bg-tertiary)] p-2.5 rounded-lg">
-                <div className="text-[10px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">API Trades 24H</div>
+                <div className="text-[10px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">Trades 24H</div>
                 <div className="text-sm font-bold text-[var(--text-primary)]">
-                  {loading ? <InlineSkeleton width="w-16" height="h-4" /> : (hasOverview ? new Intl.NumberFormat('en-US').format(overviewTrades) : 'No data')}
+                  {loading ? <InlineSkeleton width="w-16" height="h-4" /> : (hasOverview ? new Intl.NumberFormat('en-US').format(overviewTrades) : '-')}
                 </div>
               </div>
               <div className="bg-[var(--bg-tertiary)] p-2.5 rounded-lg">
                 <div className="text-[10px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">Active Assets</div>
                 <div className="text-sm font-bold text-[var(--text-primary)]">
-                  {loading ? <InlineSkeleton width="w-16" height="h-4" /> : (hasOverview ? new Intl.NumberFormat('en-US').format(marketOverview?.activeAssets24h || 0) : 'No data')}
+                  {loading ? <InlineSkeleton width="w-16" height="h-4" /> : (hasOverview ? new Intl.NumberFormat('en-US').format(marketOverview?.activeAssets24h || 0) : '-')}
                 </div>
               </div>
             </div>

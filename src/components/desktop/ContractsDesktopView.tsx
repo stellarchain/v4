@@ -522,7 +522,7 @@ export default function ContractsDesktopView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--bg-primary)]">
-                {loading ? (
+                {(loading || (isLoading && filteredContracts.length === 0)) ? (
                   Array.from({ length: 8 }).map((_, idx) => (
                     <tr key={`contracts-skeleton-row-${idx}`}>
                       <td className="py-3 px-4"><InlineSkeleton width="w-20" /></td>
