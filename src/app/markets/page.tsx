@@ -7,7 +7,7 @@ import type { MarketAsset } from '@/lib/shared/interfaces';
 import MarketsMobileView from '@/components/mobile/MarketsMobileView';
 import MarketsDesktopView from '@/components/desktop/MarketsDesktopView';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 30;
 
 export default function MarketsPage() {
   const router = useRouter();
@@ -54,12 +54,9 @@ export default function MarketsPage() {
   }, [debouncedSearchQuery, router, pathname, searchParams]);
 
   const searchFilters = useMemo(() => {
-    const query = debouncedSearchQuery;
+    const query = debouncedSearchQuery.trim();
     if (!query) return {};
-    if (/^G[A-Z2-7]{55}$/i.test(query)) {
-      return { 'asset.issuer': query.toUpperCase() };
-    }
-    return { 'asset.code': query.toUpperCase() };
+    return { search: query };
   }, [debouncedSearchQuery]);
 
   useEffect(() => {

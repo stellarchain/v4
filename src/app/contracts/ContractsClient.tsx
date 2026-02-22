@@ -70,9 +70,6 @@ interface ContractsClientProps {
   loading?: boolean;
 }
 
-// Verified contracts data for client-side enrichment
-import verifiedContracts from '@/data/verified-contracts.json';
-
 export default function ContractsClient({ contracts: initialContracts, stats, categories, pagination: initialPagination, loading = false }: ContractsClientProps) {
   const [contracts, setContracts] = useState<EnhancedContract[]>(initialContracts);
   const [pagination, setPagination] = useState(initialPagination);
@@ -99,20 +96,18 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
       const newContracts: EnhancedContract[] = (data.member || [])
         .filter((apiContract: any) => isContractAddress(apiContract.contractId))
         .map((apiContract: any) => {
-        const verifiedContract = verifiedContracts.contracts.find(
-          c => c.id.toLowerCase() === apiContract.contractId.toLowerCase()
-        );
+        const verifiedMetadata = apiContract.verifiedMetadata || null;
 
         let type = 'contract';
         if (apiContract.sac || apiContract.assetCode) {
           type = 'token';
-        } else if (verifiedContract?.type) {
-          type = verifiedContract.type;
+        } else if (verifiedMetadata?.metadataType) {
+          type = verifiedMetadata.metadataType;
         }
 
         let name = type === 'token' ? 'TOKEN' : 'Smart Contract';
-        if (verifiedContract?.name) {
-          name = verifiedContract.name;
+        if (verifiedMetadata?.displayName) {
+          name = verifiedMetadata.displayName;
         } else if (apiContract.assetCode) {
           name = apiContract.assetCode;
         }
@@ -124,11 +119,11 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
           id: contractId,
           name,
           type,
-          symbol: apiContract.assetCode || verifiedContract?.symbol,
-          description: verifiedContract?.description,
-          verified: Boolean(apiContract.sourceCodeVerified),
-          sep41: apiContract.sac || !!apiContract.assetCode || verifiedContract?.sep41,
-          website: verifiedContract?.website,
+          symbol: apiContract.assetCode || verifiedMetadata?.symbol,
+          description: verifiedMetadata?.description,
+          verified: Boolean(apiContract.sourceCodeVerified || verifiedMetadata?.verified),
+          sep41: apiContract.sac || !!apiContract.assetCode || Boolean(verifiedMetadata?.sep41),
+          website: verifiedMetadata?.website,
           operationCount: Number(apiContract.totalInvokes ?? 0),
           lastActivity: apiContract.createdAt,
           wasmId: apiContract.wasmId || undefined,
