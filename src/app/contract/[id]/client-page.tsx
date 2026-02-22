@@ -6,7 +6,6 @@ import { xdr } from '@stellar/stellar-sdk';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { ContractInvocation } from '@/lib/stellar';
-import verifiedContracts from '@/data/verified-contracts.json';
 import ContractMobileView from '@/components/mobile/ContractMobileView';
 import ContractDesktopView from '@/components/desktop/ContractDesktopView';
 import type { TokenRegistryEntry, ContractVerification } from '@/lib/shared/interfaces';
@@ -125,6 +124,17 @@ interface APIContractData {
   totalEffects?: number;
   totalStorageEntries?: number;
   totalInvokes?: number;
+  verifiedMetadata?: {
+    displayName?: string;
+    metadataType?: string;
+    sep41?: boolean;
+    symbol?: string;
+    decimals?: number;
+    verified?: boolean;
+    website?: string;
+    description?: string;
+    iconUrl?: string;
+  } | null;
   sac: boolean;
   network: number;
 }
@@ -509,6 +519,24 @@ function buildTokenMetadata(
   };
 }
 
+function mapVerifiedContract(apiData: APIContractData): VerifiedContract | undefined {
+  const metadata = apiData.verifiedMetadata;
+  if (!metadata) return undefined;
+
+  return {
+    id: apiData.contractId,
+    name: metadata.displayName || metadata.symbol || apiData.assetCode || 'Smart Contract',
+    type: metadata.metadataType || (apiData.sac || apiData.assetCode ? 'token' : 'contract'),
+    sep41: Boolean(metadata.sep41),
+    symbol: metadata.symbol || undefined,
+    decimals: metadata.decimals,
+    verified: Boolean(metadata.verified),
+    website: metadata.website || undefined,
+    description: metadata.description || undefined,
+    iconUrl: metadata.iconUrl || undefined,
+  };
+}
+
 function buildVerification(apiData: APIContractData): ContractVerification | null {
   return {
     isVerified: Boolean(apiData.sourceCodeVerified),
@@ -516,40 +544,8 @@ function buildVerification(apiData: APIContractData): ContractVerification | nul
   };
 }
 
-async function fetchContractData(contractId: string): Promise<FullContractData> {
-  const verifiedContract = verifiedContracts.contracts.find((contract) => contract.id === contractId);
-
-  const [apiData, invocationsPage, eventsPage] = await Promise.all([
-    getApiV1Data(apiEndpoints.v1.contractById(contractId)),
-    fetchContractTransactions(contractId),
-    fetchContractEvents(contractId, 1, 5).catch(() => ({
-      items: [],
-      totalItems: 0,
-      currentPage: 1,
-      totalPages: 1,
-      itemsPerPage: 5,
-    })),
-  ]) as [APIContractData, ContractInvocationsPage, ContractEventsPage];
-
-  const type = inferContractType(apiData, verifiedContract);
-  const tokenMetadata = buildTokenMetadata(contractId, apiData, verifiedContract, type);
-
-  return {
-    id: contractId,
-    tokenMetadata,
-    verifiedContract,
-    type,
-    accessControl: null,
-    isVerified: Boolean(apiData.sourceCodeVerified || verifiedContract?.verified),
-    apiContractData: apiData,
-    events: eventsPage.items,
-    eventSummary: mapEventSummary(apiData, eventsPage.items),
-    invocations: invocationsPage.items,
-    storage: mapStorage(contractId, apiData),
-    spec: null,
-    verification: buildVerification(apiData),
-    contractMetadata: null,
-  };
+async function fetchContractBaseData(contractId: string): Promise<APIContractData> {
+  return getApiV1Data(apiEndpoints.v1.contractById(contractId));
 }
 
 function emptyContractData(contractId: string): FullContractData {
@@ -624,34 +620,100 @@ export default function ContractPage() {
       setLoadingSections(INITIAL_LOADING_SECTIONS);
 
       try {
-        const data = await fetchContractData(id);
+        const apiData = await fetchContractBaseData(id);
         if (cancelled) return;
-        setContractData(data);
-        setContractEvents(data.events || []);
+
+        const verifiedContract = mapVerifiedContract(apiData);
+        const type = inferContractType(apiData, verifiedContract);
+        const tokenMetadata = buildTokenMetadata(id, apiData, verifiedContract, type);
+
+        setContractData({
+          id,
+          tokenMetadata,
+          verifiedContract,
+          type,
+          accessControl: null,
+          isVerified: Boolean(apiData.sourceCodeVerified || verifiedContract?.verified),
+          apiContractData: apiData,
+          events: [],
+          eventSummary: mapEventSummary(apiData, []),
+          invocations: [],
+          storage: mapStorage(id, apiData),
+          spec: null,
+          verification: buildVerification(apiData),
+          contractMetadata: null,
+        });
+
+        setContractEvents([]);
         setEventsLoaded(false);
         setEventsLoading(false);
         setEventsError(null);
         setEventsPagination({
           currentPage: 1,
-          totalPages: Math.max(1, Math.ceil(Number(data.apiContractData?.totalEvents ?? 0) / EVENTS_PAGE_SIZE)),
-          totalItems: Number(data.apiContractData?.totalEvents ?? 0),
+          totalPages: Math.max(1, Math.ceil(Number(apiData.totalEvents ?? 0) / EVENTS_PAGE_SIZE)),
+          totalItems: Number(apiData.totalEvents ?? 0),
           itemsPerPage: EVENTS_PAGE_SIZE,
         });
-        setHistoryInvocations(data.invocations || []);
+        setHistoryInvocations([]);
         setHistoryLoaded(false);
         setHistoryLoading(false);
         setHistoryPagination({
           currentPage: 1,
-          totalPages: Math.max(1, Math.ceil(Number(data.apiContractData?.totalInvokes ?? 0) / HISTORY_PAGE_SIZE)),
-          totalItems: Number(data.apiContractData?.totalInvokes ?? 0),
+          totalPages: Math.max(1, Math.ceil(Number(apiData.totalInvokes ?? 0) / HISTORY_PAGE_SIZE)),
+          totalItems: Number(apiData.totalInvokes ?? 0),
           itemsPerPage: HISTORY_PAGE_SIZE,
         });
-        setLoadingSections({
-          events: false,
-          invocations: false,
-          storage: false,
-          spec: false,
-        });
+
+        setIsValidating(false);
+
+        // Load overview preview data in background (non-blocking for initial render)
+        void (async () => {
+          if (cancelled) return;
+          setLoadingSections((prev) => ({
+            ...prev,
+            events: true,
+            invocations: true,
+            storage: false,
+            spec: false,
+          }));
+
+          const [historyResult, eventsResult] = await Promise.allSettled([
+            fetchContractTransactions(id, 1, 5),
+            fetchContractEvents(id, 1, 5),
+          ]);
+
+          if (cancelled) return;
+
+          if (historyResult.status === 'fulfilled') {
+            setHistoryInvocations(historyResult.value.items);
+            setHistoryPagination({
+              currentPage: historyResult.value.currentPage,
+              totalPages: historyResult.value.totalPages,
+              totalItems: historyResult.value.totalItems,
+              itemsPerPage: historyResult.value.itemsPerPage,
+            });
+            setHistoryLoaded(true);
+          }
+
+          if (eventsResult.status === 'fulfilled') {
+            setContractEvents(eventsResult.value.items);
+            setEventsPagination({
+              currentPage: eventsResult.value.currentPage,
+              totalPages: eventsResult.value.totalPages,
+              totalItems: eventsResult.value.totalItems,
+              itemsPerPage: eventsResult.value.itemsPerPage,
+            });
+            setEventsLoaded(true);
+          } else {
+            setEventsError(eventsResult.reason instanceof Error ? eventsResult.reason.message : 'Failed to load events');
+          }
+
+          setLoadingSections((prev) => ({
+            ...prev,
+            events: false,
+            invocations: false,
+          }));
+        })();
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : 'Failed to load contract data');

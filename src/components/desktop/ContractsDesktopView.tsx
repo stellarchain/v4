@@ -7,7 +7,6 @@ import { StrKey } from '@stellar/stellar-sdk';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 import { apiEndpoints, getApiV1Data } from '@/services/api';
-import { isContractAddress } from '@/lib/soroban';
 import { useNetwork } from '@/contexts/NetworkContext';
 
 // Convert hex contract ID to StrKey format (C...)
@@ -34,6 +33,7 @@ interface EnhancedContract {
   sep41?: boolean;
   website?: string;
   operationCount: number;
+  totalTransactions?: number;
   lastActivity?: string;
   functions?: string[];
   wasmId?: string;
@@ -66,13 +66,11 @@ interface ContractsDesktopViewProps {
   loading?: boolean;
 }
 
-import verifiedContracts from '@/data/verified-contracts.json';
-
 const PAGE_SIZE = 25;
 type ContractsSort =
   | 'activity'
   | 'activity_asc'
-  | 'name'
+  | 'transactions'
   | 'asset_code';
 
 // Pagination component
@@ -197,6 +195,7 @@ export default function ContractsDesktopView({
 
       if (activeSort === 'activity') params['order[totalInvokes]'] = 'desc';
       if (activeSort === 'activity_asc') params['order[totalInvokes]'] = 'asc';
+      if (activeSort === 'transactions') params['order[totalTransactions]'] = 'desc';
       if (activeSort === 'asset_code') params['order[asset_code]'] = 'asc';
 
       if (activeFilter === 'verified') {
@@ -209,12 +208,7 @@ export default function ContractsDesktopView({
 
       const query = rawQuery.trim();
       if (query) {
-        const normalized = query.toUpperCase();
-        if (isContractAddress(normalized)) {
-          params.contract_id = normalized;
-        } else if (/^[A-Za-z0-9]{1,12}$/.test(query)) {
-          params.asset_code = normalized;
-        }
+        params.search = query;
       }
 
       return params;
@@ -225,20 +219,18 @@ export default function ContractsDesktopView({
   // Transform raw API contracts into EnhancedContract[]
   const transformContracts = useCallback((apiContracts: any[]): EnhancedContract[] => {
     return apiContracts.map((apiContract: any) => {
-      const verifiedContract = verifiedContracts.contracts.find(
-        c => c.id.toLowerCase() === apiContract.contractId.toLowerCase()
-      );
+      const verifiedMetadata = apiContract.verifiedMetadata || null;
 
       let type = 'contract';
       if (apiContract.sac || apiContract.assetCode) {
         type = 'token';
-      } else if (verifiedContract?.type) {
-        type = verifiedContract.type;
+      } else if (verifiedMetadata?.metadataType) {
+        type = verifiedMetadata.metadataType;
       }
 
       let name = type === 'token' ? 'TOKEN' : 'Smart Contract';
-      if (verifiedContract?.name) {
-        name = verifiedContract.name;
+      if (verifiedMetadata?.displayName) {
+        name = verifiedMetadata.displayName;
       } else if (apiContract.assetCode) {
         name = apiContract.assetCode;
       }
@@ -249,12 +241,13 @@ export default function ContractsDesktopView({
         id: contractId,
         name,
         type,
-        symbol: apiContract.assetCode || verifiedContract?.symbol,
-        description: verifiedContract?.description,
-        verified: Boolean(apiContract.sourceCodeVerified),
-        sep41: apiContract.sac || !!apiContract.assetCode || verifiedContract?.sep41,
-        website: verifiedContract?.website,
+        symbol: apiContract.assetCode || verifiedMetadata?.symbol,
+        description: verifiedMetadata?.description,
+        verified: Boolean(apiContract.sourceCodeVerified || verifiedMetadata?.verified),
+        sep41: apiContract.sac || !!apiContract.assetCode || Boolean(verifiedMetadata?.sep41),
+        website: verifiedMetadata?.website,
         operationCount: Number(apiContract.totalInvokes ?? 0),
+        totalTransactions: Number(apiContract.totalTransactions ?? 0),
         lastActivity: apiContract.createdAt,
         wasmId: apiContract.wasmId || undefined,
         createdAt: apiContract.createdAt,
@@ -355,12 +348,12 @@ export default function ContractsDesktopView({
     }
 
     // Client-side sorting fallback for current in-memory slice.
-    if (sortBy === 'name') {
-      result.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortBy === 'activity') {
+    if (sortBy === 'activity') {
       result.sort((a, b) => b.operationCount - a.operationCount);
     } else if (sortBy === 'activity_asc') {
       result.sort((a, b) => a.operationCount - b.operationCount);
+    } else if (sortBy === 'transactions') {
+      result.sort((a, b) => (b.totalTransactions ?? 0) - (a.totalTransactions ?? 0));
     } else if (sortBy === 'asset_code') {
       result.sort((a, b) => (a.symbol || a.name || '').localeCompare((b.symbol || b.name || '')));
     }
@@ -469,7 +462,7 @@ export default function ContractsDesktopView({
           >
             <option value="activity">Most Active</option>
             <option value="activity_asc">Least Active</option>
-            <option value="name">By Name</option>
+            <option value="transactions">By Transactions</option>
             <option value="asset_code">By Asset Code</option>
           </select>
         </div>
@@ -500,6 +493,7 @@ export default function ContractsDesktopView({
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Name</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Type</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Created</th>
+                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Transactions</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Invocations</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Status</th>
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-center whitespace-nowrap w-10"></th>
@@ -518,6 +512,7 @@ export default function ContractsDesktopView({
                       </td>
                       <td className="py-3 px-3"><InlineSkeleton width="w-16" /></td>
                       <td className="py-3 px-3"><InlineSkeleton width="w-14" /></td>
+                      <td className="py-3 px-3 text-right"><InlineSkeleton width="w-12" /></td>
                       <td className="py-3 px-3 text-right"><InlineSkeleton width="w-12" /></td>
                       <td className="py-3 px-3"><InlineSkeleton width="w-12" /></td>
                       <td className="py-3 px-4 text-center"><InlineSkeleton width="w-6" height="h-6" /></td>
@@ -584,6 +579,13 @@ export default function ContractsDesktopView({
                           {contract.createdAt ? timeAgo(contract.createdAt) : '-'}
                         </td>
 
+                        {/* Transactions */}
+                        <td className="py-3 px-3 text-right">
+                          <span className="text-[12px] font-semibold text-[var(--text-primary)]">
+                            {(contract.totalTransactions ?? 0).toLocaleString()}
+                          </span>
+                        </td>
+
                         {/* Invocations */}
                         <td className="py-3 px-3 text-right">
                           {contract.operationCount > 0 ? (
@@ -623,7 +625,7 @@ export default function ContractsDesktopView({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="text-center py-4">
+                    <td colSpan={8} className="text-center py-4">
                       <div className="flex flex-col items-center justify-center">
                         <div className="w-12 h-12 bg-[var(--bg-tertiary)] rounded-xl flex items-center justify-center mb-3">
                           <svg className="w-6 h-6 text-[var(--text-muted)]" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">

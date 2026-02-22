@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import verifiedContracts from '@/data/verified-contracts.json';
 import { APIContract } from '@/lib/stellar';
 import ContractsClient from './ContractsClient';
 import ContractDetailsClientPage from '@/app/contract/[id]/client-page';
@@ -60,25 +59,29 @@ interface ContractsAPIResponse {
   };
 }
 
+const CONTRACT_CATEGORIES = [
+  { id: 'all', name: 'All' },
+  { id: 'verified', name: 'Verified' },
+  { id: 'token', name: 'Token' },
+  { id: 'contract', name: 'Contract' },
+];
+
 // Transform API contract to display format
 function transformContract(apiContract: APIContract): EnhancedContract {
-  // Check if this is a verified contract from static data
-  const verifiedContract = verifiedContracts.contracts.find(
-    c => c.id.toLowerCase() === apiContract.contractId.toLowerCase()
-  );
+  const verifiedMetadata = apiContract.verifiedMetadata || null;
 
   // Determine contract type
   let type = 'contract';
   if (apiContract.sac || apiContract.assetCode) {
     type = 'token';
-  } else if (verifiedContract?.type) {
-    type = verifiedContract.type;
+  } else if (verifiedMetadata?.metadataType) {
+    type = verifiedMetadata.metadataType;
   }
 
   // Build name from various sources
   let name = type === 'token' ? 'TOKEN' : 'Smart Contract';
-  if (verifiedContract?.name) {
-    name = verifiedContract.name;
+  if (verifiedMetadata?.displayName) {
+    name = verifiedMetadata.displayName;
   } else if (apiContract.assetCode) {
     name = apiContract.assetCode;
   }
@@ -90,11 +93,11 @@ function transformContract(apiContract: APIContract): EnhancedContract {
     id: contractId,
     name,
     type,
-    symbol: apiContract.assetCode || verifiedContract?.symbol,
-    description: verifiedContract?.description,
-    verified: Boolean(apiContract.sourceCodeVerified),
-    sep41: apiContract.sac || !!apiContract.assetCode || verifiedContract?.sep41,
-    website: verifiedContract?.website,
+    symbol: apiContract.assetCode || verifiedMetadata?.symbol,
+    description: verifiedMetadata?.description,
+    verified: Boolean(apiContract.sourceCodeVerified || verifiedMetadata?.verified),
+    sep41: apiContract.sac || !!apiContract.assetCode || Boolean(verifiedMetadata?.sep41),
+    website: verifiedMetadata?.website,
     operationCount: Number(apiContract.totalInvokes ?? 0),
     lastActivity: apiContract.createdAt,
     wasmId: apiContract.wasmId || undefined,
@@ -237,7 +240,7 @@ export default function ContractsPage() {
     <ContractsClient
       contracts={contracts}
       stats={stats}
-      categories={verifiedContracts.categories}
+      categories={CONTRACT_CATEGORIES}
       pagination={pagination}
       loading={isLoading}
     />

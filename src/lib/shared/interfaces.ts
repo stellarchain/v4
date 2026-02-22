@@ -414,7 +414,26 @@ export interface APIContract {
   sac: boolean; // Stellar Asset Contract flag
   network: number;
   sourceCodeVerified: boolean;
+  verifiedMetadata?: {
+    '@type'?: string;
+    '@id'?: string;
+    id?: number;
+    contract?: string;
+    displayName?: string;
+    metadataType?: string;
+    sep41?: boolean;
+    symbol?: string;
+    decimals?: number;
+    verified?: boolean;
+    website?: string;
+    description?: string;
+    iconUrl?: string;
+    sourceName?: string;
+    createdAt?: string;
+    updatedAt?: string;
+  } | null;
   totalTransactions: number;
+  totalInvokeTransactions?: number;
   totalOperations?: number;
   totalInvokes?: number;
   totalEvents?: number;
