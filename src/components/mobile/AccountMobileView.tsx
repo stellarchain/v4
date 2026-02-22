@@ -1158,8 +1158,15 @@ export default function AccountMobileView({ account, accountId, transactions, op
             </div>
 
             {currentDataSource.length === 0 ? (
-              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] text-center py-4 text-[var(--text-muted)]">
-                <p className="text-xs font-medium">No activity found</p>
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] text-center py-6 text-[var(--text-muted)]">
+                {loadingOperations ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-xs font-medium">Loading activity...</p>
+                  </div>
+                ) : (
+                  <p className="text-xs font-medium">No activity found</p>
+                )}
               </div>
             ) : (
               <div className="space-y-2">
