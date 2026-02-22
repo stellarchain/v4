@@ -20,7 +20,10 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'StellarChain - Blockchain Explorer',
+  title: {
+    default: 'Explore Stellar Lumens (XLM) - Real-time Price, Assets, Charts & More',
+    template: '%s | StellarChain Explorer',
+  },
   description: 'Explore the Stellar blockchain - transactions, accounts, ledgers, and operations',
   keywords: ['Stellar', 'blockchain', 'explorer', 'XLM', 'crypto', 'Lumens'],
   manifest: '/manifest.webmanifest',

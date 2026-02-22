@@ -443,9 +443,14 @@ export default function DesktopHomePage({
                 </div>
 
                 <div className="max-w-[1400px] mx-auto px-4 relative z-10 text-center">
-                    <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold mb-4 text-[var(--text-primary)] tracking-tight leading-tight [text-wrap:balance]">
-                        Blockchain Explorer
+                    <h1 className="text-4xl md:text-5xl lg:text-[56px] font-extrabold mb-2 tracking-tight leading-tight [text-wrap:balance]">
+                        <span className="text-[var(--info)]">StellarChain</span>
+                        <span className="text-[var(--text-muted)] font-light mx-2"></span>
+                        <span className="text-[var(--text-primary)]">Explorer</span>
                     </h1>
+                    <p className="text-lg text-[var(--text-tertiary)] mb-4">
+                        StellarChain Explorer: Your Stellar Blockchain Discovery Tool
+                    </p>
 
                     {/* Search Bar */}
                     <div className="max-w-2xl mx-auto relative mb-4 group">
@@ -747,7 +752,7 @@ export default function DesktopHomePage({
                 </div>
             </section>
 
-                    {/* Transaction Flow Animation */}
+            {/* Transaction Flow Animation */}
             <section className="pb-4">
                 <div className="max-w-[1400px] mx-auto px-4 space-y-3">
                     <TransactionFlowAnimation operations={operations} ledgers={liveLedgers} height={240} currentLedger={liveStats.ledger_count} ledgerProgress={ledgerProgress} />
@@ -906,10 +911,10 @@ export default function DesktopHomePage({
                                             const details = getDetails();
                                             const amount = getAmount();
 
-	                                            return (
-	                                                <tr
-	                                                    key={`${op.id}:${op.transaction_hash}`}
-	                                                    className="hover:bg-[var(--info-muted)]/30 transition-colors group cursor-pointer"
+                                            return (
+                                                <tr
+                                                    key={`${op.id}:${op.transaction_hash}`}
+                                                    className="hover:bg-[var(--info-muted)]/30 transition-colors group cursor-pointer"
                                                     onClick={() => router.push(`/tx/${op.transaction_hash}`)}
                                                 >
                                                     {/* Txn Hash */}
