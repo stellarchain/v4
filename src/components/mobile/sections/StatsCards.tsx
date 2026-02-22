@@ -19,10 +19,20 @@ interface StatsCardsProps {
   };
   xlmVolume: number;
   xlmPrice: number;
+  marketOverview?: {
+    xlmPriceUsd: string;
+    xlmVolume24h: string;
+    totalTrades24h: string;
+    activeAssets24h: number;
+    trackedAssets: number;
+    totalAccounts: number;
+    totalContracts: number;
+    recordedAt: string;
+  } | null;
   loading?: boolean;
 }
 
-export default function StatsCards({ stats, xlmVolume, xlmPrice, loading = false }: StatsCardsProps) {
+export default function StatsCards({ stats, xlmVolume, xlmPrice, marketOverview, loading = false }: StatsCardsProps) {
   const [liveStats, setLiveStats] = useState(stats);
   const ledgerCountRef = useRef<HTMLDivElement>(null);
   const tpsRef = useRef<HTMLDivElement>(null);
@@ -89,6 +99,13 @@ export default function StatsCards({ stats, xlmVolume, xlmPrice, loading = false
   }).format(marketCap);
 
   const primaryColor = '#0F4C81';
+  const hasOverview = Boolean(marketOverview);
+  const overviewPrice = Number(marketOverview?.xlmPriceUsd || 0);
+  const overviewVolume = Number(marketOverview?.xlmVolume24h || 0);
+  const overviewTrades = Number(marketOverview?.totalTrades24h || 0);
+  const overviewRecordedAt = marketOverview?.recordedAt
+    ? new Date(marketOverview.recordedAt).toLocaleString()
+    : null;
 
   return (
     <div className="px-3 mt-2 relative z-20">
@@ -200,6 +217,48 @@ export default function StatsCards({ stats, xlmVolume, xlmPrice, loading = false
             </Link>
           )}
         </div>
+
+        {isMainnet && (
+          <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">Market Overview API</span>
+              <span className="text-[10px] text-[var(--text-muted)]">
+                {loading ? <InlineSkeleton width="w-20" height="h-3" /> : (overviewRecordedAt || 'No data')}
+              </span>
+            </div>
+            <div className="mb-2">
+              <span className="inline-flex items-center rounded-full border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] px-2 py-1 text-[9px] font-medium text-[var(--text-muted)]">
+                on-chain Horizon/SDEX volume
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-[var(--bg-tertiary)] p-2.5 rounded-lg">
+                <div className="text-[10px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">API Price</div>
+                <div className="text-sm font-bold text-[var(--text-primary)]">
+                  {loading ? <InlineSkeleton width="w-16" height="h-4" /> : (hasOverview ? `$${overviewPrice.toFixed(6)}` : 'No data')}
+                </div>
+              </div>
+              <div className="bg-[var(--bg-tertiary)] p-2.5 rounded-lg">
+                <div className="text-[10px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">API Vol 24H</div>
+                <div className="text-sm font-bold text-[var(--text-primary)]">
+                  {loading ? <InlineSkeleton width="w-16" height="h-4" /> : (hasOverview ? new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(overviewVolume) : 'No data')}
+                </div>
+              </div>
+              <div className="bg-[var(--bg-tertiary)] p-2.5 rounded-lg">
+                <div className="text-[10px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">API Trades 24H</div>
+                <div className="text-sm font-bold text-[var(--text-primary)]">
+                  {loading ? <InlineSkeleton width="w-16" height="h-4" /> : (hasOverview ? new Intl.NumberFormat('en-US').format(overviewTrades) : 'No data')}
+                </div>
+              </div>
+              <div className="bg-[var(--bg-tertiary)] p-2.5 rounded-lg">
+                <div className="text-[10px] font-bold uppercase tracking-tighter text-[var(--text-muted)]">Active Assets</div>
+                <div className="text-sm font-bold text-[var(--text-primary)]">
+                  {loading ? <InlineSkeleton width="w-16" height="h-4" /> : (hasOverview ? new Intl.NumberFormat('en-US').format(marketOverview?.activeAssets24h || 0) : 'No data')}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

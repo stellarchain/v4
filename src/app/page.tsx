@@ -7,7 +7,7 @@ import type { Ledger, Transaction, Operation, NetworkStats } from '@/lib/stellar
 import DesktopHomePage from '@/components/desktop/DesktopHomePage';
 import StatsSection from '@/components/mobile/sections/StatsSection';
 import TransactionsSection from '@/components/mobile/sections/TransactionsSection';
-import { fetchStellarCoinData } from '@/services/api';
+import { fetchMarketOverviewData, fetchStellarCoinData } from '@/services/api';
 import { createHorizonServer } from '@/services/horizon';
 
 interface MarketAsset {
@@ -30,6 +30,23 @@ interface XLMMarketData {
   sdfMandate: number;
   feePool: number;
   upgradeReserve: number;
+}
+
+interface MarketOverviewSnapshot {
+  id: number;
+  network: number;
+  xlmPriceUsd: string;
+  xlmVolume24h: string;
+  totalTrades24h: string;
+  activeAssets24h: number;
+  trackedAssets: number;
+  totalAccounts: number;
+  totalContracts: number;
+  recordedAt: string;
+}
+
+interface MarketOverviewResponse {
+  member?: MarketOverviewSnapshot[];
 }
 
 export default function HomePage() {
@@ -87,6 +104,7 @@ export default function HomePage() {
   const [operations, setOperations] = useState<Operation[]>([]);
   const [xlmVolume, setXlmVolume] = useState<number>(0);
   const [xlmMarketData, setXlmMarketData] = useState<XLMMarketData | null>(null);
+  const [marketOverview, setMarketOverview] = useState<MarketOverviewSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -98,6 +116,10 @@ export default function HomePage() {
           console.warn('Homepage coin data fetch failed, continuing with core network data:', coinError);
           return null;
         });
+        const marketOverviewPromise = fetchMarketOverviewData({ network: 'mainnet' }).catch((overviewError) => {
+          console.warn('Homepage market overview fetch failed, continuing without compare cards:', overviewError);
+          return null;
+        });
 
         // Fetch all data in parallel
         const [
@@ -105,19 +127,22 @@ export default function HomePage() {
           transactionsResponse,
           operationsResponse,
           paymentsResponse,
-          stellarChainData
+          stellarChainData,
+          marketOverviewData
         ] = await Promise.all([
           server.ledgers().order('desc').limit(8).call(),
           server.transactions().order('desc').limit(8).call(),
           server.operations().order('desc').limit(30).call(),
           server.payments().order('desc').limit(20).call(),
-          stellarCoinDataPromise
+          stellarCoinDataPromise,
+          marketOverviewPromise
         ]);
 
         const marketAssets = stellarChainData?.stellar_expert;
         const xlmMarketData = stellarChainData?.coingecko_stellar;
         const globalMarketData = stellarChainData?.coingecko_global;
         const networkSupply = stellarChainData?.stellar_dashboard;
+        const overviewSnapshot = (marketOverviewData as MarketOverviewResponse | null)?.member?.[0] || null;
 
         const ledgersData = (ledgersResponse.records || []) as unknown as Ledger[];
         const transactionsData = normalizeTransactions(transactionsResponse.records || []);
@@ -187,6 +212,7 @@ export default function HomePage() {
         setOperations(operationsData);
         setXlmVolume(xlmVol);
         setXlmMarketData(xlmData);
+        setMarketOverview(overviewSnapshot);
         setIsLoading(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -225,6 +251,7 @@ export default function HomePage() {
           stats={resolvedStats}
           xlmVolume={xlmVolume}
           xlmPrice={resolvedXlm.price}
+          marketOverview={marketOverview}
           loading={isLoading}
         />
         <TransactionsSection transactions={transactions} />
@@ -239,6 +266,7 @@ export default function HomePage() {
           initialOperations={operations}
           xlmVolume={xlmVolume}
           xlmMarketData={resolvedXlm}
+          marketOverview={marketOverview}
           loading={isLoading}
         />
       </div>
