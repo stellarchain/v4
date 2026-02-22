@@ -109,7 +109,8 @@ function transformContract(apiContract: APIContract): EnhancedContract {
 // Fetch contracts from Stellarchain API
 async function fetchContracts(
   page: number = 1,
-  perPage: number = 25
+  perPage: number = 25,
+  search?: string
 ): Promise<ContractsAPIResponse> {
   try {
     const controller = new AbortController();
@@ -117,7 +118,13 @@ async function fetchContracts(
     const data = await (async () => {
       try {
         return await getApiV1Data(
-          apiEndpoints.v1.contracts({ page, itemsPerPage: perPage, 'order[totalInvokes]': 'desc' }),
+          apiEndpoints.v1.contracts({
+            page,
+            itemsPerPage: perPage,
+            pagination: true,
+            'order[totalInvokes]': 'desc',
+            ...(search ? { search } : {}),
+          }),
           {
             signal: controller.signal,
           }
@@ -150,6 +157,7 @@ async function fetchContracts(
 export default function ContractsPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const urlQuery = (searchParams.get('q') || '').trim();
   const detailsContractId = getDetailRouteValue({
     pathname,
     searchParams,
@@ -182,7 +190,7 @@ export default function ContractsPage() {
       setError(null);
       try {
         // Fetch first page of contracts from API
-        const initialData = await fetchContracts(1, 25);
+        const initialData = await fetchContracts(1, 25, urlQuery || undefined);
 
         // Transform API contracts to display format, filtering out invalid IDs
         const transformedContracts = initialData.member
