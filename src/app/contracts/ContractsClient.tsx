@@ -245,7 +245,7 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
           )}
 
           {/* Mobile List View - Individual Cards */}
-          {loading ? (
+          {(loading || (isLoading && filteredContracts.length === 0)) ? (
             <div className="space-y-2">
               {Array.from({ length: 6 }).map((_, idx) => (
                 <div

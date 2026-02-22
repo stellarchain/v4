@@ -571,7 +571,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                             const summary = getActionSummary();
 
                             return (
-                              <tr key={`overview-invocation-${idx}`} className="hover:bg-[var(--bg-tertiary)] transition-colors">
+                              <tr key={`overview-invocation-${idx}`} className="hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer" onClick={() => window.location.href = `/transaction/${invocation.txHash}`}>
                                 <td className="px-4 py-4">
                                   <div className="flex items-center gap-3">
                                     <div className="h-9 w-9 rounded-lg bg-sky-50 dark:bg-sky-900/40 flex items-center justify-center flex-shrink-0">
@@ -581,13 +581,13 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                                     </div>
                                     <div className="min-w-0">
                                       <div className="flex items-center gap-2 flex-wrap">
-                                        <Link href={`/account/${invocation.sourceAccount}`} className="font-mono text-xs text-sky-600 hover:underline">
+                                        <Link href={`/account/${invocation.sourceAccount}`} onClick={(e) => e.stopPropagation()} className="font-mono text-xs text-sky-600 hover:underline">
                                           {shortenAddress(invocation.sourceAccount)}
                                         </Link>
                                         <span className="text-[var(--text-muted)] text-xs">invoked</span>
-                                        <span className="font-mono text-sm font-bold text-indigo-600">
+                                        <Link href={`/transaction/${invocation.txHash}`} className="font-mono text-sm font-bold text-indigo-600 hover:underline">
                                           {invocation.functionName}
-                                        </span>
+                                        </Link>
                                       </div>
                                       {summary && (
                                         <div className="text-xs text-[var(--text-tertiary)] mt-0.5">
@@ -867,7 +867,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                           const summary = getActionSummary();
 
                           return (
-                            <tr key={idx} className="hover:bg-[var(--bg-tertiary)] transition-colors">
+                            <tr key={idx} className="hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer" onClick={() => window.location.href = `/transaction/${invocation.txHash}`}>
                               <td className="px-4 py-4">
                                 <div className="flex items-center gap-3">
                                   <div className="h-9 w-9 rounded-lg bg-sky-50 dark:bg-sky-900/40 flex items-center justify-center flex-shrink-0">
@@ -877,13 +877,13 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                                   </div>
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <Link href={`/account/${invocation.sourceAccount}`} className="font-mono text-xs text-sky-600 hover:underline">
+                                      <Link href={`/account/${invocation.sourceAccount}`} onClick={(e) => e.stopPropagation()} className="font-mono text-xs text-sky-600 hover:underline">
                                         {shortenAddress(invocation.sourceAccount)}
                                       </Link>
                                       <span className="text-[var(--text-muted)] text-xs">invoked</span>
-                                      <span className="font-mono text-sm font-bold text-indigo-600">
+                                      <Link href={`/transaction/${invocation.txHash}`} className="font-mono text-sm font-bold text-indigo-600 hover:underline">
                                         {invocation.functionName}
-                                      </span>
+                                      </Link>
                                     </div>
                                     {summary && (
                                       <div className="text-xs text-[var(--text-tertiary)] mt-0.5">

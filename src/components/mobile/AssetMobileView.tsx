@@ -1147,12 +1147,24 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
               {asset.issuer && (
                 <div className="mb-3">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Issuer:</span>
-                  <Link
-                    href={`/account/${asset.issuer}`}
-                    className="block text-xs font-mono mt-1 break-all hover:underline" style={{ color: 'var(--primary-blue)' }}
-                  >
-                    {asset.issuer}
-                  </Link>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Link
+                      href={`/account/${asset.issuer}`}
+                      className="text-xs font-mono break-all hover:underline" style={{ color: 'var(--primary-blue)' }}
+                    >
+                      {asset.issuer}
+                    </Link>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(asset.issuer!); }}
+                      className="text-[var(--text-muted)] hover:text-sky-500 transition-colors flex-shrink-0"
+                      title="Copy issuer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1160,7 +1172,19 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 {asset.assetKey && (
                   <div className="col-span-2">
                     <span className="text-[var(--text-muted)] uppercase tracking-wider">Asset Key</span>
-                    <div className="font-mono text-[var(--text-secondary)] break-all mt-0.5">{asset.assetKey}</div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className="font-mono text-[var(--text-secondary)] break-all">{asset.assetKey}</div>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(asset.assetKey!); }}
+                        className="text-[var(--text-muted)] hover:text-sky-500 transition-colors flex-shrink-0"
+                        title="Copy asset key"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                          <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 )}
                 {asset.network !== undefined && (
