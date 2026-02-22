@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { shortenAddress, timeAgo } from '@/lib/stellar';
 import { StrKey } from '@stellar/stellar-sdk';
 import GliderTabs from '@/components/ui/GliderTabs';
@@ -159,13 +160,18 @@ export default function ContractsDesktopView({
   pagination: initialPagination,
   loading = false,
 }: ContractsDesktopViewProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlQuery = (searchParams.get('q') || '').trim();
+
   const [contracts, setContracts] = useState<EnhancedContract[]>(initialContracts);
   const [pagination, setPagination] = useState(initialPagination);
   const [filter, setFilter] = useState<string>('all');
-  const [searchInput, setSearchInput] = useState('');
+  const [searchInput, setSearchInput] = useState(urlQuery);
   const [sortBy, setSortBy] = useState<ContractsSort>('activity');
   const [isLoading, setIsLoading] = useState(false);
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(urlQuery);
   const lastFetchKeyRef = useRef<string>('');
   const fetchInFlightRef = useRef(false);
   const { networkConfig } = useNetwork();
@@ -179,11 +185,31 @@ export default function ContractsDesktopView({
   }, [initialPagination]);
 
   useEffect(() => {
+    setSearchInput(urlQuery);
+    setDebouncedSearch(urlQuery);
+  }, [urlQuery]);
+
+  useEffect(() => {
     const timeout = window.setTimeout(() => {
       setDebouncedSearch(searchInput.trim());
     }, 300);
     return () => window.clearTimeout(timeout);
   }, [searchInput]);
+
+  useEffect(() => {
+    const currentQ = (searchParams.get('q') || '').trim();
+    if (currentQ === debouncedSearch) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (debouncedSearch) {
+      params.set('q', debouncedSearch);
+    } else {
+      params.delete('q');
+    }
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [debouncedSearch, router, pathname, searchParams]);
 
   const buildContractsQueryParams = useCallback(
     (pageNum: number, activeSort: ContractsSort, rawQuery: string, activeFilter: string) => {
@@ -326,7 +352,13 @@ export default function ContractsDesktopView({
   }, [sortBy, debouncedSearch, fetchPage, filter]);
 
   const filteredContracts = useMemo(() => {
-    let result = [...contracts];
+    const seen = new Set<string>();
+    let result = contracts.filter((contract) => {
+      const key = String(contract.id || '').trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
     if (filter === 'active') {
       result = result.filter(c => c.operationCount > 0);
@@ -336,15 +368,6 @@ export default function ContractsDesktopView({
       result = result.filter(c => c.type === 'token');
     } else if (filter === 'contract') {
       result = result.filter(c => c.type !== 'token');
-    }
-
-    if (debouncedSearch.trim()) {
-      const q = debouncedSearch.toLowerCase();
-      result = result.filter(c =>
-        c.name.toLowerCase().includes(q) ||
-        c.symbol?.toLowerCase().includes(q) ||
-        c.id.toLowerCase().includes(q)
-      );
     }
 
     // Client-side sorting fallback for current in-memory slice.
@@ -517,12 +540,12 @@ export default function ContractsDesktopView({
                     </tr>
                   ))
                 ) : filteredContracts.length > 0 ? (
-                  filteredContracts.map((contract) => {
+                  filteredContracts.map((contract, idx) => {
                     const typeBadge = getTypeBadge(contract.type);
 
                     return (
                       <tr
-                        key={contract.id}
+                        key={`${contract.id}-${contract.createdAt || idx}`}
                         className="hover:bg-sky-50/30 transition-colors group cursor-pointer"
                         onClick={() => window.location.href = `/contracts/${contract.id}`}
                       >

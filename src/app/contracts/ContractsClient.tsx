@@ -151,7 +151,13 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
   }, []);
 
   const filteredContracts = useMemo(() => {
-    let result = [...contracts];
+    const seen = new Set<string>();
+    let result = contracts.filter((contract) => {
+      const key = String(contract.id || '').trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
     // Filter by type
     if (filter === 'verified') {
@@ -278,9 +284,9 @@ export default function ContractsClient({ contracts: initialContracts, stats, ca
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredContracts.map((contract) => (
+              {filteredContracts.map((contract, idx) => (
                 <Link
-                  key={contract.id}
+                  key={`${contract.id}-${contract.createdAt || idx}`}
                   href={`/contracts/${contract.id}`}
                   className="block bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
                 >
