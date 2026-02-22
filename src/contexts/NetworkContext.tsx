@@ -72,8 +72,8 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
     // Small delay to allow UI to update before potential page refresh
     setTimeout(() => {
       setIsChangingNetwork(false);
-      // Reload the page to fetch fresh data for the new network
-      window.location.reload();
+      // Redirect to homepage to avoid 404s when current page doesn't exist on the new network
+      window.location.href = '/';
     }, 100);
   }, [network]);
 
