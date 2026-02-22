@@ -493,7 +493,6 @@ export default function ContractsDesktopView({
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Name</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Type</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Created</th>
-                  <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Transactions</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right whitespace-nowrap">Invocations</th>
                   <th className="py-3 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Status</th>
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-center whitespace-nowrap w-10"></th>
@@ -512,7 +511,6 @@ export default function ContractsDesktopView({
                       </td>
                       <td className="py-3 px-3"><InlineSkeleton width="w-16" /></td>
                       <td className="py-3 px-3"><InlineSkeleton width="w-14" /></td>
-                      <td className="py-3 px-3 text-right"><InlineSkeleton width="w-12" /></td>
                       <td className="py-3 px-3 text-right"><InlineSkeleton width="w-12" /></td>
                       <td className="py-3 px-3"><InlineSkeleton width="w-12" /></td>
                       <td className="py-3 px-4 text-center"><InlineSkeleton width="w-6" height="h-6" /></td>
@@ -579,13 +577,6 @@ export default function ContractsDesktopView({
                           {contract.createdAt ? timeAgo(contract.createdAt) : '-'}
                         </td>
 
-                        {/* Transactions */}
-                        <td className="py-3 px-3 text-right">
-                          <span className="text-[12px] font-semibold text-[var(--text-primary)]">
-                            {(contract.totalTransactions ?? 0).toLocaleString()}
-                          </span>
-                        </td>
-
                         {/* Invocations */}
                         <td className="py-3 px-3 text-right">
                           {contract.operationCount > 0 ? (
@@ -625,7 +616,7 @@ export default function ContractsDesktopView({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={8} className="text-center py-4">
+                    <td colSpan={7} className="text-center py-4">
                       <div className="flex flex-col items-center justify-center">
                         <div className="w-12 h-12 bg-[var(--bg-tertiary)] rounded-xl flex items-center justify-center mb-3">
                           <svg className="w-6 h-6 text-[var(--text-muted)]" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">

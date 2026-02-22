@@ -160,19 +160,23 @@ type ContractInvocationsPage = {
   items: ContractInvocation[];
   totalItems: number;
   currentPage: number;
-  totalPages: number;
   itemsPerPage: number;
+  hasMore: boolean;
+  nextBeforeId?: number | null;
+  beforeId?: number | null;
 };
 
 const HISTORY_PAGE_SIZE = 10;
-const EVENTS_PAGE_SIZE = 25;
+const EVENTS_PAGE_SIZE = 10;
 
 type ContractEventsPage = {
   items: ParsedEvent[];
   totalItems: number;
   currentPage: number;
-  totalPages: number;
   itemsPerPage: number;
+  hasMore: boolean;
+  nextBeforeId?: number | null;
+  beforeId?: number | null;
 };
 
 type ContractTab = 'overview' | 'history' | 'events' | 'storage' | 'operations' | 'interface' | 'details';
@@ -217,21 +221,130 @@ type ContractStorageEntryRecord = {
   updatedAt?: string;
 };
 
+function sanitizeDecodedValue(raw?: string | null): string {
+  return String(raw || '')
+    .trim()
+    .replace(/^"+|"+$/g, '')
+    .replace(/^'+|'+$/g, '');
+}
+
+function toDecodedAddress(raw?: string | null): string | null {
+  const value = sanitizeDecodedValue(raw);
+  if (!value) return null;
+  if (/^[GC][A-Z2-7]{55}$/.test(value)) return value;
+  return null;
+}
+
+function toDecodedAmount(raw?: string | null): string | null {
+  const value = sanitizeDecodedValue(raw);
+  if (!value) return null;
+  const normalized = value.replace(/,/g, '');
+  if (/^-?\d+(\.\d+)?$/.test(normalized)) return normalized;
+  return value || null;
+}
+
 function parseContractEvent(contractId: string, event: ContractEventRecord): ParsedEvent {
   const timestamp = event.ledgerClosedAt || event.createdAt;
   const decodedTopics = (event.topicDecoded || [])
     .map((topic) => decodeScValBase64(topic))
     .filter((topic): topic is string => Boolean(topic));
   const decodedValue = decodeScValBase64(event.valueDecoded);
+  const topic0 = sanitizeDecodedValue(decodedTopics[0]);
+  const topic1 = sanitizeDecodedValue(decodedTopics[1]);
+  const topic2 = sanitizeDecodedValue(decodedTopics[2]);
+  const topic3 = sanitizeDecodedValue(decodedTopics[3]);
+  const eventName = sanitizeDecodedValue(event.eventType) || topic0 || 'contractEvent';
+  const normalizedType = eventName.toLowerCase();
+  const amount = toDecodedAmount(decodedValue);
+
+  if (normalizedType.includes('transfer') && topic1 && topic2 && amount) {
+    return {
+      type: 'transfer',
+      rawEventName: eventName,
+      contractId,
+      ledger: Number(event.ledger || 0),
+      timestamp,
+      txHash: event.txHash,
+      data: {
+        from: toDecodedAddress(topic1) || topic1,
+        to: toDecodedAddress(topic2) || topic2,
+        amount,
+      },
+    };
+  }
+
+  if (normalizedType.includes('approve') && topic1 && topic2 && amount) {
+    return {
+      type: 'approve',
+      rawEventName: eventName,
+      contractId,
+      ledger: Number(event.ledger || 0),
+      timestamp,
+      txHash: event.txHash,
+      data: {
+        from: toDecodedAddress(topic1) || topic1,
+        spender: toDecodedAddress(topic2) || topic2,
+        amount,
+        expirationLedger: Number(topic3 || 0),
+      },
+    };
+  }
+
+  if (normalizedType.includes('mint') && topic1 && amount) {
+    return {
+      type: 'mint',
+      rawEventName: eventName,
+      contractId,
+      ledger: Number(event.ledger || 0),
+      timestamp,
+      txHash: event.txHash,
+      data: {
+        to: toDecodedAddress(topic1) || topic1,
+        amount,
+      },
+    };
+  }
+
+  if (normalizedType.includes('burn') && topic1 && amount) {
+    return {
+      type: 'burn',
+      rawEventName: eventName,
+      contractId,
+      ledger: Number(event.ledger || 0),
+      timestamp,
+      txHash: event.txHash,
+      data: {
+        from: toDecodedAddress(topic1) || topic1,
+        amount,
+      },
+    };
+  }
+
+  if (normalizedType.includes('clawback') && topic1 && amount) {
+    return {
+      type: 'clawback',
+      rawEventName: eventName,
+      contractId,
+      ledger: Number(event.ledger || 0),
+      timestamp,
+      txHash: event.txHash,
+      data: {
+        from: toDecodedAddress(topic1) || topic1,
+        amount,
+      },
+    };
+  }
+
   return {
     type: 'unknown',
-    rawEventName: event.eventType,
+    rawEventName: eventName,
     contractId,
     ledger: Number(event.ledger || 0),
     timestamp,
     txHash: event.txHash,
     data: {
-      eventName: event.eventType || 'contractEvent',
+      eventName,
+      subType: topic0 && topic0 !== eventName ? topic0 : undefined,
       topics: event.topicDecoded || [],
       decodedTopics,
       value: event.valueDecoded || '',
@@ -405,15 +518,19 @@ async function fetchContractEvents(
   );
   const records: ContractEventRecord[] = data.member || [];
   const items = records.map((item) => parseContractEvent(contractId, item));
-  const totalItems = Number(data.totalItems ?? items.length ?? 0);
-  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const totalItems = Number(data.totalItems ?? data.meta?.totalItems ?? items.length ?? 0);
+  const hasMore = Boolean(data.meta?.hasMore);
+  const nextBeforeId = data.meta?.nextBeforeId ?? null;
+  const beforeId = data.meta?.beforeId ?? null;
 
   return {
     items,
     totalItems,
     currentPage: page,
-    totalPages,
     itemsPerPage,
+    hasMore,
+    nextBeforeId,
+    beforeId,
   };
 }
 
@@ -465,15 +582,19 @@ async function fetchContractTransactions(
     ledger: Number(item.ledger ?? 0),
     successful: item.successful ?? true,
   }));
-  const totalItems = Number(data.totalItems ?? items.length ?? 0);
-  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const totalItems = Number(data.totalItems ?? data.meta?.totalItems ?? items.length ?? 0);
+  const hasMore = Boolean(data.meta?.hasMore);
+  const nextBeforeId = data.meta?.nextBeforeId ?? null;
+  const beforeId = data.meta?.beforeId ?? null;
 
   return {
     items,
     totalItems,
     currentPage: page,
-    totalPages,
     itemsPerPage,
+    hasMore,
+    nextBeforeId,
+    beforeId,
   };
 }
 
@@ -598,15 +719,19 @@ export default function ContractPage() {
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [historyPagination, setHistoryPagination] = useState({
     currentPage: 1,
-    totalPages: 1,
     totalItems: 0,
     itemsPerPage: HISTORY_PAGE_SIZE,
+    hasMore: false,
+    nextBeforeId: null as number | null,
+    beforeId: null as number | null,
   });
   const [eventsPagination, setEventsPagination] = useState({
     currentPage: 1,
-    totalPages: 1,
     totalItems: 0,
     itemsPerPage: EVENTS_PAGE_SIZE,
+    hasMore: false,
+    nextBeforeId: null as number | null,
+    beforeId: null as number | null,
   });
 
   useEffect(() => {
@@ -650,18 +775,22 @@ export default function ContractPage() {
         setEventsError(null);
         setEventsPagination({
           currentPage: 1,
-          totalPages: Math.max(1, Math.ceil(Number(apiData.totalEvents ?? 0) / EVENTS_PAGE_SIZE)),
           totalItems: Number(apiData.totalEvents ?? 0),
           itemsPerPage: EVENTS_PAGE_SIZE,
+          hasMore: Number(apiData.totalEvents ?? 0) > EVENTS_PAGE_SIZE,
+          nextBeforeId: null,
+          beforeId: null,
         });
         setHistoryInvocations([]);
         setHistoryLoaded(false);
         setHistoryLoading(false);
         setHistoryPagination({
           currentPage: 1,
-          totalPages: Math.max(1, Math.ceil(Number(apiData.totalInvokes ?? 0) / HISTORY_PAGE_SIZE)),
           totalItems: Number(apiData.totalInvokes ?? 0),
           itemsPerPage: HISTORY_PAGE_SIZE,
+          hasMore: Number(apiData.totalInvokes ?? 0) > HISTORY_PAGE_SIZE,
+          nextBeforeId: null,
+          beforeId: null,
         });
 
         setIsValidating(false);
@@ -686,24 +815,10 @@ export default function ContractPage() {
 
           if (historyResult.status === 'fulfilled') {
             setHistoryInvocations(historyResult.value.items);
-            setHistoryPagination({
-              currentPage: historyResult.value.currentPage,
-              totalPages: historyResult.value.totalPages,
-              totalItems: historyResult.value.totalItems,
-              itemsPerPage: historyResult.value.itemsPerPage,
-            });
-            setHistoryLoaded(true);
           }
 
           if (eventsResult.status === 'fulfilled') {
             setContractEvents(eventsResult.value.items);
-            setEventsPagination({
-              currentPage: eventsResult.value.currentPage,
-              totalPages: eventsResult.value.totalPages,
-              totalItems: eventsResult.value.totalItems,
-              itemsPerPage: eventsResult.value.itemsPerPage,
-            });
-            setEventsLoaded(true);
           } else {
             setEventsError(eventsResult.reason instanceof Error ? eventsResult.reason.message : 'Failed to load events');
           }
@@ -745,9 +860,11 @@ export default function ContractPage() {
     setEventsError(null);
     setEventsPagination({
       currentPage: 1,
-      totalPages: 1,
       totalItems: 0,
       itemsPerPage: EVENTS_PAGE_SIZE,
+      hasMore: false,
+      nextBeforeId: null,
+      beforeId: null,
     });
     setStorageLoaded(false);
     setStorageLoading(false);
@@ -757,9 +874,11 @@ export default function ContractPage() {
     setHistoryLoading(false);
     setHistoryPagination({
       currentPage: 1,
-      totalPages: 1,
       totalItems: 0,
       itemsPerPage: HISTORY_PAGE_SIZE,
+      hasMore: false,
+      nextBeforeId: null,
+      beforeId: null,
     });
   }, [id]);
 
@@ -772,9 +891,11 @@ export default function ContractPage() {
       setContractEvents(fetched.items);
       setEventsPagination({
         currentPage: fetched.currentPage,
-        totalPages: fetched.totalPages,
         totalItems: fetched.totalItems,
         itemsPerPage: fetched.itemsPerPage,
+        hasMore: fetched.hasMore,
+        nextBeforeId: fetched.nextBeforeId ?? null,
+        beforeId: fetched.beforeId ?? null,
       });
       setEventsLoaded(true);
     } catch (err) {
@@ -807,9 +928,11 @@ export default function ContractPage() {
       setHistoryInvocations(result.items);
       setHistoryPagination({
         currentPage: result.currentPage,
-        totalPages: result.totalPages,
         totalItems: result.totalItems,
         itemsPerPage: result.itemsPerPage,
+        hasMore: result.hasMore,
+        nextBeforeId: result.nextBeforeId ?? null,
+        beforeId: result.beforeId ?? null,
       });
       setHistoryLoaded(true);
     } catch (err) {
@@ -881,19 +1004,23 @@ export default function ContractPage() {
     events: visibleEvents,
     eventSummary: eventsLoaded ? eventSummaryFromData : baseData.eventSummary ?? eventSummaryFromData,
     storage: visibleStorage,
-    invocations: baseData.invocations,
+    invocations: historyInvocations.length > 0 ? historyInvocations : baseData.invocations,
     historyInvocations: historyInvocations.length > 0 ? historyInvocations : baseData.invocations,
     historyPagination: {
       currentPage: historyPagination.currentPage,
-      totalPages: historyPagination.totalPages,
       totalItems: historyPagination.totalItems || Number(baseData.apiContractData?.totalInvokes ?? 0),
       itemsPerPage: historyPagination.itemsPerPage,
+      hasMore: historyPagination.hasMore,
+      nextBeforeId: historyPagination.nextBeforeId,
+      beforeId: historyPagination.beforeId,
     },
     eventsPagination: {
       currentPage: eventsPagination.currentPage,
-      totalPages: eventsPagination.totalPages,
       totalItems: eventsPagination.totalItems || Number(baseData.apiContractData?.totalEvents ?? 0),
       itemsPerPage: eventsPagination.itemsPerPage,
+      hasMore: eventsPagination.hasMore,
+      nextBeforeId: eventsPagination.nextBeforeId,
+      beforeId: eventsPagination.beforeId,
     },
     spec: baseData.spec,
     totalTransactions: baseData.apiContractData?.totalTransactions,
