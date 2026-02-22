@@ -43,6 +43,17 @@ interface XLMMarketData {
     upgradeReserve: number;
 }
 
+interface MarketOverviewSnapshot {
+    xlmPriceUsd: string;
+    xlmVolume24h: string;
+    totalTrades24h: string;
+    activeAssets24h: number;
+    trackedAssets: number;
+    totalAccounts: number;
+    totalContracts: number;
+    recordedAt: string;
+}
+
 interface DesktopHomePageProps {
     stats: NetworkStats;
     initialTransactions: Transaction[];
@@ -50,6 +61,7 @@ interface DesktopHomePageProps {
     initialOperations: Operation[];
     xlmVolume: number;
     xlmMarketData: XLMMarketData;
+    marketOverview?: MarketOverviewSnapshot | null;
     loading?: boolean;
 }
 
@@ -60,6 +72,7 @@ export default function DesktopHomePage({
     initialOperations,
     xlmVolume,
     xlmMarketData,
+    marketOverview,
     loading = false
 }: DesktopHomePageProps) {
     const router = useRouter();
@@ -353,6 +366,13 @@ export default function DesktopHomePage({
     const totalSupply = xlmMarketData.totalSupply;
     const dominance = xlmMarketData.dominance;
     const sparklineData = xlmMarketData.sparkline;
+    const hasOverview = Boolean(marketOverview);
+    const overviewPrice = Number(marketOverview?.xlmPriceUsd || 0);
+    const overviewVolume = Number(marketOverview?.xlmVolume24h || 0);
+    const overviewTrades24h = Number(marketOverview?.totalTrades24h || 0);
+    const overviewRecordedAt = marketOverview?.recordedAt
+        ? new Date(marketOverview.recordedAt).toLocaleString()
+        : null;
 
     const getOpStyle = (typePath: string) => {
         const type = String(typePath);
@@ -555,6 +575,65 @@ export default function DesktopHomePage({
                                     </svg>
                                 </div>
                             )}
+                        </div>
+                    </div>
+
+                    {/* Compare Row - Market Overview API */}
+                    <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[var(--border-subtle)] mb-3">
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Market Overview API Compare</span>
+                            <span className="text-[11px] text-[var(--text-muted)]">
+                                {loading ? <InlineSkeleton width="w-28" height="h-3" /> : (overviewRecordedAt || 'No data')}
+                            </span>
+                        </div>
+                        <div className="mb-3">
+                            <span className="inline-flex items-center rounded-full border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] px-2 py-1 text-[10px] font-medium text-[var(--text-muted)]">
+                                on-chain Horizon/SDEX volume
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                            <div className="bg-[var(--bg-tertiary)] rounded-lg p-3">
+                                <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)] mb-1">API XLM Price</div>
+                                <div className="text-base font-bold text-[var(--text-primary)]">
+                                    {loading ? <InlineSkeleton width="w-20" height="h-5" /> : (hasOverview ? `$${overviewPrice.toFixed(6)}` : 'No data')}
+                                </div>
+                            </div>
+                            <div className="bg-[var(--bg-tertiary)] rounded-lg p-3">
+                                <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)] mb-1">API Vol 24H</div>
+                                <div className="text-base font-bold text-[var(--text-primary)]">
+                                    {loading ? <InlineSkeleton width="w-20" height="h-5" /> : (hasOverview ? new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 }).format(overviewVolume) : 'No data')}
+                                </div>
+                            </div>
+                            <div className="bg-[var(--bg-tertiary)] rounded-lg p-3">
+                                <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)] mb-1">API Trades 24H</div>
+                                <div className="text-base font-bold text-[var(--text-primary)]">
+                                    {loading ? <InlineSkeleton width="w-20" height="h-5" /> : (hasOverview ? new Intl.NumberFormat('en-US').format(overviewTrades24h) : 'No data')}
+                                </div>
+                            </div>
+                            <div className="bg-[var(--bg-tertiary)] rounded-lg p-3">
+                                <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)] mb-1">Active Assets</div>
+                                <div className="text-base font-bold text-[var(--text-primary)]">
+                                    {loading ? <InlineSkeleton width="w-20" height="h-5" /> : (hasOverview ? new Intl.NumberFormat('en-US').format(marketOverview?.activeAssets24h || 0) : 'No data')}
+                                </div>
+                            </div>
+                            <div className="bg-[var(--bg-tertiary)] rounded-lg p-3">
+                                <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)] mb-1">Tracked Assets</div>
+                                <div className="text-base font-bold text-[var(--text-primary)]">
+                                    {loading ? <InlineSkeleton width="w-20" height="h-5" /> : (hasOverview ? new Intl.NumberFormat('en-US').format(marketOverview?.trackedAssets || 0) : 'No data')}
+                                </div>
+                            </div>
+                            <div className="bg-[var(--bg-tertiary)] rounded-lg p-3">
+                                <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)] mb-1">Total Accounts</div>
+                                <div className="text-base font-bold text-[var(--text-primary)]">
+                                    {loading ? <InlineSkeleton width="w-20" height="h-5" /> : (hasOverview ? new Intl.NumberFormat('en-US').format(marketOverview?.totalAccounts || 0) : 'No data')}
+                                </div>
+                            </div>
+                            <div className="bg-[var(--bg-tertiary)] rounded-lg p-3">
+                                <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)] mb-1">Total Contracts</div>
+                                <div className="text-base font-bold text-[var(--text-primary)]">
+                                    {loading ? <InlineSkeleton width="w-20" height="h-5" /> : (hasOverview ? new Intl.NumberFormat('en-US').format(marketOverview?.totalContracts || 0) : 'No data')}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
