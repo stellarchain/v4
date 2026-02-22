@@ -56,9 +56,11 @@ interface ContractData {
   events?: ParsedEvent[];
   eventsPagination?: {
     currentPage: number;
-    totalPages: number;
     totalItems: number;
     itemsPerPage: number;
+    hasMore?: boolean;
+    nextBeforeId?: number | null;
+    beforeId?: number | null;
   };
   eventSummary?: EventSummary | null;
   storage?: ContractStorageResult | null;
@@ -66,9 +68,11 @@ interface ContractData {
   historyInvocations?: ContractInvocation[];
   historyPagination?: {
     currentPage: number;
-    totalPages: number;
     totalItems: number;
     itemsPerPage: number;
+    hasMore?: boolean;
+    nextBeforeId?: number | null;
+    beforeId?: number | null;
   };
   spec?: unknown;
   // API data fields
@@ -655,6 +659,24 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                           : (event.rawEventName || 'event');
                         const customData = isCustomEventData(event.data) ? event.data : null;
                         const subType = customData?.subType;
+                        const cleanedTopics = (customData?.decodedTopics || [])
+                          .map((topic) => String(topic || '').replace(/^"+|"+$/g, '').trim())
+                          .filter(Boolean);
+                        const eventBadgeLabel = String(displayName || 'Event').toLowerCase() === 'contract'
+                          ? 'Event'
+                          : String(displayName || 'Event');
+                        const topicLabel = cleanedTopics[0] && cleanedTopics[0].toLowerCase() !== eventBadgeLabel.toLowerCase()
+                          ? cleanedTopics[0]
+                          : null;
+                        const transferFlow = isTransferEventData(event.data)
+                          ? `${shortenAddress(event.data.from)} -> ${shortenAddress(event.data.to)}`
+                          : null;
+                        const customFlow = !transferFlow && cleanedTopics.length > 2
+                          ? `${shortenAddress(cleanedTopics[1])} -> ${shortenAddress(cleanedTopics[2])}`
+                          : null;
+                        const valueText = customData?.decodedValue
+                          ? String(customData.decodedValue).replace(/^"+|"+$/g, '').trim()
+                          : '';
 
                         const eventContent = (
                           <div className="px-4 py-4 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] transition-colors">
@@ -670,9 +692,21 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                               </svg>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="text-xs font-semibold text-[var(--text-primary)]">
-                                {displayName}{subType && <span className="text-[var(--text-tertiary)] font-normal"> · {subType}</span>}
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700">
+                                  {eventBadgeLabel}
+                                </span>
+                                {(topicLabel || subType) && (
+                                  <span className="inline-flex items-center rounded-full border border-[var(--border-default)] bg-[var(--bg-tertiary)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
+                                    {topicLabel || subType}
+                                  </span>
+                                )}
                               </div>
+                              {(transferFlow || customFlow || valueText) && (
+                                <div className="text-[11px] text-[var(--text-secondary)] truncate">
+                                  {transferFlow || customFlow || valueText}
+                                </div>
+                              )}
                               {event.timestamp && (
                                 <div className="text-[11px] text-[var(--text-tertiary)]">{timeAgo(event.timestamp)}</div>
                               )}
@@ -715,9 +749,32 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
               <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                 <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract functions Invocations History</h3>
-                  <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
-                    {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${historyPagination?.totalItems ?? contract.totalInvokes ?? historyInvocations.length} invocations`}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
+                      {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${historyPagination?.totalItems ?? contract.totalInvokes ?? historyInvocations.length} invocations`}
+                    </span>
+                    {historyPagination && (historyPagination.currentPage > 1 || historyPagination.hasMore) && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => onHistoryPageChange?.(Math.max(1, historyPagination.currentPage - 1))}
+                          disabled={sectionLoading.invocations || historyPagination.currentPage <= 1}
+                          className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                        >
+                          Previous
+                        </button>
+                        <span className="text-xs text-[var(--text-muted)] min-w-[52px] text-center">
+                          Page {historyPagination.currentPage}
+                        </span>
+                        <button
+                          onClick={() => onHistoryPageChange?.(historyPagination.currentPage + 1)}
+                          disabled={sectionLoading.invocations || !historyPagination.hasMore}
+                          className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full sc-table">
@@ -858,27 +915,6 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                     </tbody>
                   </table>
                 </div>
-                {historyPagination && historyPagination.totalPages > 1 && (
-                  <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-subtle)]">
-                    <button
-                      onClick={() => onHistoryPageChange?.(Math.max(1, historyPagination.currentPage - 1))}
-                      disabled={sectionLoading.invocations || historyPagination.currentPage <= 1}
-                      className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
-                    >
-                      Previous
-                    </button>
-                    <span className="text-xs text-[var(--text-muted)]">
-                      Page {historyPagination.currentPage} / {historyPagination.totalPages}
-                    </span>
-                    <button
-                      onClick={() => onHistoryPageChange?.(Math.min(historyPagination.totalPages, historyPagination.currentPage + 1))}
-                      disabled={sectionLoading.invocations || historyPagination.currentPage >= historyPagination.totalPages}
-                      className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
               </div>
             )}
 
@@ -887,9 +923,32 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
               <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                 <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract Events</h3>
-                  <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
-                    {sectionLoading.events ? <InlineSkeleton width="w-10" height="h-3" /> : (eventsPagination?.totalItems ?? eventsList.length)}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
+                      {sectionLoading.events ? <InlineSkeleton width="w-10" height="h-3" /> : (eventsPagination?.totalItems ?? eventsList.length)}
+                    </span>
+                    {eventsPagination && (eventsPagination.currentPage > 1 || eventsPagination.hasMore) && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => onEventsPageChange?.(Math.max(1, eventsPagination.currentPage - 1))}
+                          disabled={sectionLoading.events || eventsPagination.currentPage <= 1}
+                          className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                        >
+                          Previous
+                        </button>
+                        <span className="text-xs text-[var(--text-muted)] min-w-[52px] text-center">
+                          Page {eventsPagination.currentPage}
+                        </span>
+                        <button
+                          onClick={() => onEventsPageChange?.(eventsPagination.currentPage + 1)}
+                          disabled={sectionLoading.events || !eventsPagination.hasMore}
+                          className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="divide-y divide-[var(--border-subtle)]">
                   {sectionLoading.events ? (
@@ -1153,27 +1212,6 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                     })
                   )}
                 </div>
-                {eventsPagination && eventsPagination.totalPages > 1 && (
-                  <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-subtle)]">
-                    <button
-                      onClick={() => onEventsPageChange?.(Math.max(1, eventsPagination.currentPage - 1))}
-                      disabled={sectionLoading.events || eventsPagination.currentPage <= 1}
-                      className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
-                    >
-                      Previous
-                    </button>
-                    <span className="text-xs text-[var(--text-muted)]">
-                      Page {eventsPagination.currentPage} / {eventsPagination.totalPages}
-                    </span>
-                    <button
-                      onClick={() => onEventsPageChange?.(Math.min(eventsPagination.totalPages, eventsPagination.currentPage + 1))}
-                      disabled={sectionLoading.events || eventsPagination.currentPage >= eventsPagination.totalPages}
-                      className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
               </div>
             )}
 
