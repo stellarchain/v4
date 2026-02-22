@@ -942,19 +942,19 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                             )}
                           </div>
                           {decodedTopics && decodedTopics.length > 0 && (
-                            <dl className="mt-2 grid gap-1 sm:grid-cols-2 text-[10px] text-[var(--text-muted)]">
+                            <dl className="mt-2 grid gap-1 sm:grid-cols-2 text-[10px] text-[var(--text-muted)] overflow-hidden">
                               {decodedTopics.map((topic: string, idx: number) => (
-                                <div key={`decoded-topic-${idx}`} className="rounded-xl bg-[var(--bg-tertiary)] px-2 py-1 text-[var(--text-secondary)]">
+                                <div key={`decoded-topic-${idx}`} className="rounded-xl bg-[var(--bg-tertiary)] px-2 py-1 text-[var(--text-secondary)] overflow-hidden min-w-0">
                                   <dt className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">Topic {idx + 1}</dt>
-                                  <dd className="font-mono truncate block leading-tight max-w-full">{topic}</dd>
+                                  <dd className="font-mono truncate block leading-tight">{topic}</dd>
                                 </div>
                               ))}
                             </dl>
                           )}
                           {decodedValue && (
-                            <div className="mt-2 rounded-xl bg-[var(--bg-tertiary)] px-2 py-1 text-[10px] text-[var(--text-muted)] font-mono">
+                            <div className="mt-2 rounded-xl bg-[var(--bg-tertiary)] px-2 py-1 text-[10px] text-[var(--text-muted)] font-mono overflow-hidden min-w-0">
                               <span className="text-[8px] uppercase tracking-wider text-[var(--text-secondary)] block">Value</span>
-                              {decodedValue}
+                              <span className="truncate block">{decodedValue}</span>
                             </div>
                           )}
                         </div>
