@@ -56,6 +56,7 @@ export const apiEndpoints = {
     contractEvents: (contractId, params) => withQuery(`/contracts/${contractId}/events`, params),
     contractStorage: (contractId, params) => withQuery(`/contracts/${contractId}/storage`, params),
     marketAssets: (params) => withQuery('/market/assets', params),
+    marketOverview: (params) => withQuery('/market/overview', params),
     assets: (params) => withQuery('/assets', params),
     assetById: (assetId, params) => withQuery(`/assets/${assetId}`, params),
   },
@@ -92,6 +93,10 @@ export async function postApiV1Data(path, data = {}, config = {}) {
 
 export const fetchStellarCoinData = async () => {
   return getApiData(apiEndpoints.coins.stellar());
+};
+
+export const fetchMarketOverviewData = async (params) => {
+  return getApiV1Data(apiEndpoints.v1.marketOverview(params));
 };
 
 export const buildApiUrl = (path) => `${API_BASE_URL}${ensureNetworkInPath(path)}`;
