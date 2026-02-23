@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { apiEndpoints, getApiData, getApiV1Data } from '@/services/api';
+import { useNetwork, type NetworkType } from '@/contexts/NetworkContext';
+import { apiEndpoints, getApiData, getApiV1Data, patchApiV1Data } from '@/services/api';
+import { startAccountPaymentsStreamListener } from '@/services/horizon';
 
 type OrderState = {
   id?: string;
@@ -27,12 +29,71 @@ type OrderState = {
   [key: string]: unknown;
 };
 
+type StreamStatus = 'idle' | 'connecting' | 'listening' | 'event' | 'error';
+
+const STREAMABLE_PAYMENT_TYPES = new Set([
+  'payment',
+  'path_payment_strict_send',
+  'path_payment_strict_receive',
+]);
+
+function resolveOrderNetwork(value: string | number | undefined, fallback: NetworkType): NetworkType {
+  if (value === 'mainnet' || value === 'testnet' || value === 'futurenet') {
+    return value;
+  }
+
+  const normalized = Number(value);
+  if (Number.isFinite(normalized)) {
+    if (normalized === 2) return 'testnet';
+    if (normalized === 3) return 'futurenet';
+    if (normalized === 1) return 'mainnet';
+  }
+
+  return fallback;
+}
+
+function normalizeAccount(value: string): string {
+  return String(value || '').trim().toUpperCase();
+}
+
+function isIncomingPaymentForAccount(payment: any, monitorAccount: string, sourceAccount: string): boolean {
+  const paymentType = String(payment?.type || '').toLowerCase();
+  if (!STREAMABLE_PAYMENT_TYPES.has(paymentType)) {
+    return false;
+  }
+
+  const destination = normalizeAccount(payment?.to || '');
+  const expectedDestination = normalizeAccount(monitorAccount);
+  if (!destination || destination !== expectedDestination) {
+    return false;
+  }
+
+  const expectedSource = normalizeAccount(sourceAccount);
+  if (!expectedSource) {
+    return false;
+  }
+
+  const possibleSources = [
+    normalizeAccount(payment?.from || ''),
+    normalizeAccount(payment?.source_account || ''),
+    normalizeAccount(payment?.account || ''),
+  ].filter(Boolean);
+
+  return possibleSources.includes(expectedSource);
+}
+
+function extractPaymentTxHash(payment: any): string {
+  return String(payment?.transaction_hash || payment?.transaction?.hash || '').trim();
+}
+
 export default function OrderStatusClient({ initialOrderId = '' }: { initialOrderId?: string }) {
   const USER_DEFINED_USD = 99;
   const VERIFIED_USD = 299;
+  const { network: selectedNetwork } = useNetwork();
   const searchParams = useSearchParams();
   const queryOrderId = searchParams.get('order_id') || '';
   const orderId = queryOrderId || initialOrderId;
+
   const [order, setOrder] = useState<OrderState | null>(null);
   const [responseMeta, setResponseMeta] = useState<{ message?: string; status?: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,40 +101,78 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
   const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
   const [xlmPriceUsd, setXlmPriceUsd] = useState<number | null>(null);
 
+  const [streamStatus, setStreamStatus] = useState<StreamStatus>('idle');
+  const [streamError, setStreamError] = useState('');
+  const [lastPaymentEventAt, setLastPaymentEventAt] = useState<Date | null>(null);
+  const [lastPaymentTx, setLastPaymentTx] = useState('');
+
+  const activeNetwork = useMemo(() => resolveOrderNetwork(order?.network, selectedNetwork), [order?.network, selectedNetwork]);
+
+  const applyOrderResponse = (data: any) => {
+    const orderPayload = data?.data || data;
+    setResponseMeta({ message: data?.message, status: data?.status });
+    setOrder(orderPayload || null);
+    setError('');
+    setLastCheckedAt(new Date());
+  };
+
+  const fetchOrder = async ({ reason, paymentTxHash, eventId, showLoading = false }: {
+    reason: string;
+    paymentTxHash?: string;
+    eventId?: string;
+    showLoading?: boolean;
+  }) => {
+    try {
+      if (showLoading) setIsLoading(true);
+      const data = await getApiV1Data(apiEndpoints.v1.orderById(orderId), {
+        headers: { Accept: 'application/ld+json' },
+        params: {
+          network: activeNetwork,
+          stream_reason: reason,
+          payment_tx_hash: paymentTxHash,
+          payment_event_id: eventId,
+        },
+      });
+      applyOrderResponse(data);
+    } catch (err) {
+      setError('Failed to fetch order status.');
+      console.error('Order status fetch failed:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const notifyPaymentDetected = async ({ paymentTxHash, eventId }: { paymentTxHash?: string; eventId?: string }) => {
+    const data = await patchApiV1Data(apiEndpoints.v1.orderById(orderId), {}, {
+      headers: {
+        Accept: 'application/ld+json',
+        'Content-Type': 'application/json',
+      },
+      params: {
+        network: activeNetwork,
+        stream_reason: 'payment_stream_event',
+        payment_tx_hash: paymentTxHash,
+        payment_event_id: eventId,
+      },
+    });
+    applyOrderResponse(data);
+  };
+
   useEffect(() => {
     if (!orderId) return;
+    let active = true;
 
-    let isActive = true;
-
-    const fetchOrder = async () => {
-      try {
-        if (!lastCheckedAt) setIsLoading(true);
-        const data = await getApiV1Data(`${apiEndpoints.v1.orderById(orderId)}?network=testnet`, {
-          headers: { Accept: 'application/ld+json' },
-        });
-        if (!isActive) return;
-        const orderPayload = data?.data || data;
-        setResponseMeta({ message: data?.message, status: data?.status });
-        setOrder(orderPayload || null);
-        setError('');
-        setLastCheckedAt(new Date());
-      } catch (err) {
-        if (!isActive) return;
-        setError('Failed to fetch order status.');
-        console.error('Order status fetch failed:', err);
-      } finally {
-        if (isActive) setIsLoading(false);
-      }
+    const run = async () => {
+      await fetchOrder({ reason: 'page_load', showLoading: true });
+      if (!active) return;
     };
 
-    fetchOrder();
-    const intervalId = setInterval(fetchOrder, 60000);
+    void run();
 
     return () => {
-      isActive = false;
-      clearInterval(intervalId);
+      active = false;
     };
-  }, [orderId]);
+  }, [orderId, activeNetwork]);
 
   useEffect(() => {
     let active = true;
@@ -100,6 +199,80 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
   const displayAccount = String(order?.accountid || order?.account || '').trim();
   const displayLabel = String(order?.label_name || order?.label || '').trim();
 
+  useEffect(() => {
+    if (!orderId || !paymentMonitorAccount || isCompleted) {
+      setStreamStatus(isCompleted ? 'idle' : 'connecting');
+      return;
+    }
+
+    setStreamStatus('connecting');
+    setStreamError('');
+
+    const seenEvents = new Set<string>();
+
+    const closeStream = startAccountPaymentsStreamListener({
+      accountId: paymentMonitorAccount,
+      network: activeNetwork,
+      cursor: 'now',
+      onmessage: (payment: any) => {
+        if (!isIncomingPaymentForAccount(payment, paymentMonitorAccount, displayAccount)) {
+          return;
+        }
+
+        const eventId = String(payment?.id || payment?.paging_token || '').trim();
+        if (eventId && seenEvents.has(eventId)) {
+          return;
+        }
+        if (eventId) {
+          seenEvents.add(eventId);
+        }
+
+        const streamTxHash = extractPaymentTxHash(payment);
+        if (streamTxHash) {
+          setLastPaymentTx(streamTxHash);
+        }
+        setLastPaymentEventAt(new Date());
+        setStreamStatus('event');
+
+        void notifyPaymentDetected({
+          paymentTxHash: streamTxHash || undefined,
+          eventId: eventId || undefined,
+        }).catch((patchError) => {
+          console.error('Failed to PATCH payment stream event:', patchError);
+          return fetchOrder({
+            reason: 'payment_stream_event_fallback_fetch',
+            paymentTxHash: streamTxHash || undefined,
+            eventId: eventId || undefined,
+          });
+        }).finally(() => {
+          setStreamStatus('listening');
+        });
+      },
+      onerror: () => {
+        setStreamStatus('error');
+        setStreamError('Streaming temporarily disconnected. Reconnecting...');
+      },
+      reconnectTimeout: 15000,
+    });
+
+    setStreamStatus('listening');
+
+    return () => {
+      closeStream();
+    };
+  }, [orderId, paymentMonitorAccount, displayAccount, isCompleted, activeNetwork]);
+
+  const streamLabel =
+    streamStatus === 'event'
+      ? 'Payment detected'
+      : streamStatus === 'listening'
+        ? 'Streaming active'
+        : streamStatus === 'connecting'
+          ? 'Connecting stream'
+          : streamStatus === 'error'
+            ? 'Reconnecting stream'
+            : 'Streaming paused';
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-4">
       <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-2xl p-4">
@@ -109,7 +282,7 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
             <p className="text-sm text-[var(--text-tertiary)] mt-1 font-mono break-all">{orderId || '-'}</p>
           </div>
           <span className="text-xs px-2 py-1 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-            Auto refresh: 60s
+            {streamLabel}
           </span>
         </div>
 
@@ -165,6 +338,19 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
                   Payment TX: <span className="font-mono break-all">{paymentTxHash}</span>
                 </div>
               )}
+              {lastPaymentTx && !paymentTxHash && (
+                <div className="mt-2 text-xs text-[var(--text-secondary)]">
+                  Stream TX: <span className="font-mono break-all">{lastPaymentTx}</span>
+                </div>
+              )}
+              {lastPaymentEventAt && (
+                <div className="mt-1 text-xs text-[var(--text-muted)]">
+                  Last stream event: {lastPaymentEventAt.toLocaleTimeString()}
+                </div>
+              )}
+              {streamError && (
+                <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">{streamError}</div>
+              )}
             </div>
             <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] p-3">
               <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">Price</div>
@@ -200,7 +386,7 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
                 </div>
                 <div>
                   <span className="text-[var(--text-muted)]">Network:</span>{' '}
-                  <span className="font-medium text-[var(--text-primary)]">{String(order?.network ?? '-')}</span>
+                  <span className="font-medium text-[var(--text-primary)]">{String(order?.network ?? activeNetwork)}</span>
                 </div>
               </div>
             </div>
