@@ -9,6 +9,8 @@ interface LedgersDesktopViewProps {
   currentPage: number;
   hasNextPage: boolean;
   onPageChange: (page: number) => void;
+  order: 'asc' | 'desc';
+  onOrderChange: (order: 'asc' | 'desc') => void;
 }
 
 const timeAgo = (dateStr: string) => {
@@ -38,6 +40,8 @@ export default function LedgersDesktopView({
   currentPage,
   hasNextPage,
   onPageChange,
+  order,
+  onOrderChange,
 }: LedgersDesktopViewProps) {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
@@ -64,6 +68,30 @@ export default function LedgersDesktopView({
                   Browse all ledgers on the Stellar network
                 </div>
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onOrderChange('desc')}
+                className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+                  order === 'desc'
+                    ? 'bg-sky-50 border-sky-200 text-sky-700'
+                    : 'bg-[var(--bg-secondary)] border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                }`}
+              >
+                Newest first
+              </button>
+              <button
+                type="button"
+                onClick={() => onOrderChange('asc')}
+                className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+                  order === 'asc'
+                    ? 'bg-sky-50 border-sky-200 text-sky-700'
+                    : 'bg-[var(--bg-secondary)] border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                }`}
+              >
+                Oldest first
+              </button>
             </div>
           </div>
         </div>
