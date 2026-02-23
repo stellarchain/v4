@@ -139,6 +139,18 @@ export default function ContractsPage() {
   // Sync state to URL
   useEffect(() => {
     if (hasDetailsRoute) return;
+
+    // If local state is still catching up from a URL change (back/forward or child-driven replace),
+    // skip writing to URL for this render to avoid clobbering query params.
+    if (
+      searchQuery !== urlQuery ||
+      debouncedSearchQuery !== urlQuery ||
+      currentPage !== urlPage ||
+      filter !== urlFilter
+    ) {
+      return;
+    }
+
     const currentQ = (searchParams.get('q') || '').trim();
     const currentP = parseInt(searchParams.get('page') || '1', 10) || 1;
     const currentF = (VALID_FILTERS.includes(searchParams.get('filter') as ContractFilter) ? searchParams.get('filter') : 'all') as ContractFilter;
@@ -151,7 +163,19 @@ export default function ContractsPage() {
 
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [debouncedSearchQuery, currentPage, filter, router, pathname, searchParams]);
+  }, [
+    debouncedSearchQuery,
+    currentPage,
+    filter,
+    searchQuery,
+    urlQuery,
+    urlPage,
+    urlFilter,
+    router,
+    pathname,
+    searchParams,
+    hasDetailsRoute,
+  ]);
 
   // Fetch data
   useEffect(() => {
