@@ -164,10 +164,12 @@ export default function ContractsDesktopView({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const urlQuery = (searchParams.get('q') || '').trim();
+  const urlPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+  const urlFilter = (['all', 'verified', 'token', 'contract'].includes(searchParams.get('filter') || '') ? searchParams.get('filter') : 'all') as string;
 
   const [contracts, setContracts] = useState<EnhancedContract[]>(initialContracts);
   const [pagination, setPagination] = useState(initialPagination);
-  const [filter, setFilter] = useState<string>('all');
+  const [filter, setFilter] = useState<string>(urlFilter);
   const [searchInput, setSearchInput] = useState(urlQuery);
   const [sortBy, setSortBy] = useState<ContractsSort>('activity');
   const [isLoading, setIsLoading] = useState(false);
@@ -196,20 +198,22 @@ export default function ContractsDesktopView({
     return () => window.clearTimeout(timeout);
   }, [searchInput]);
 
+  // Sync page, filter, and search to URL
+  const syncUrlRef = useRef(false);
   useEffect(() => {
-    const currentQ = (searchParams.get('q') || '').trim();
-    if (currentQ === debouncedSearch) return;
-
-    const params = new URLSearchParams(searchParams.toString());
-    if (debouncedSearch) {
-      params.set('q', debouncedSearch);
-    } else {
-      params.delete('q');
+    if (!syncUrlRef.current) {
+      syncUrlRef.current = true;
+      return;
     }
+
+    const params = new URLSearchParams();
+    if (pagination.currentPage > 1) params.set('page', String(pagination.currentPage));
+    if (filter !== 'all') params.set('filter', filter);
+    if (debouncedSearch) params.set('q', debouncedSearch);
 
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [debouncedSearch, router, pathname, searchParams]);
+  }, [pagination.currentPage, filter, debouncedSearch, router, pathname]);
 
   const buildContractsQueryParams = useCallback(
     (pageNum: number, activeSort: ContractsSort, rawQuery: string, activeFilter: string) => {
@@ -305,6 +309,7 @@ export default function ContractsDesktopView({
     fetchInFlightRef.current = true;
     lastFetchKeyRef.current = fetchKey;
     setIsLoading(true);
+    window.scrollTo(0, 0);
     try {
       const buildUrl = (pageNum: number) => {
         const params = buildContractsQueryParams(pageNum, currentSort, currentSearch, currentFilter);
@@ -334,6 +339,16 @@ export default function ContractsDesktopView({
       setIsLoading(false);
     }
   }, [filter, sortBy, debouncedSearch, transformContracts, matchesFilter, buildContractsQueryParams, networkConfig.name]);
+
+  // On mount: if URL has non-default page/filter, fetch that data
+  const initialFetchRef = useRef(false);
+  useEffect(() => {
+    if (initialFetchRef.current) return;
+    initialFetchRef.current = true;
+    if (urlPage > 1 || urlFilter !== 'all' || urlQuery) {
+      fetchPage(urlPage, urlFilter, urlQuery, sortBy as ContractsSort);
+    }
+  }, []);
 
   const handleFilterChange = useCallback((nextFilter: string) => {
     setFilter(nextFilter);

@@ -1,16 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { Ledger, getLedgers, formatStroopsToXLM } from '@/lib/stellar';
-import { useNetwork } from '@/contexts/NetworkContext';
+import { Ledger, formatStroopsToXLM } from '@/lib/stellar';
 
 interface LedgersDesktopViewProps {
-  initialLedgers: Ledger[];
-  limit?: number;
+  ledgers: Ledger[];
+  loading: boolean;
+  currentPage: number;
+  hasNextPage: boolean;
+  onPageChange: (page: number) => void;
 }
-
-const PAGE_SIZE = 25;
 
 const timeAgo = (dateStr: string) => {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -34,159 +33,12 @@ const formatCompact = (numStr: string | undefined): string => {
 };
 
 export default function LedgersDesktopView({
-  initialLedgers,
-  limit = 50
+  ledgers,
+  loading,
+  currentPage,
+  hasNextPage,
+  onPageChange,
 }: LedgersDesktopViewProps) {
-  const { network } = useNetwork();
-
-  // Initialize with server-provided data immediately (no loading state)
-  const [ledgers, setLedgers] = useState<Ledger[]>(initialLedgers);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [oldestCursor, setOldestCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const seenIdsRef = useRef<Set<string>>(new Set(initialLedgers.map(l => l.id)));
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
-
-  const fetchLedgers = useCallback(async () => {
-    try {
-      const data = await getLedgers(15, 'desc');
-      const newLedgers: Ledger[] = data.records;
-
-      // Filter to only new ledgers we haven't seen
-      const unseenLedgers = newLedgers.filter(l => !seenIdsRef.current.has(l.id));
-
-      if (unseenLedgers.length === 0) return;
-
-      setLedgers(prevLedgers => {
-        const existingMap = new Map(prevLedgers.map(l => [l.id, l]));
-
-        unseenLedgers.forEach(l => {
-          existingMap.set(l.id, l);
-        });
-
-        const merged = Array.from(existingMap.values())
-          .sort((a, b) => b.sequence - a.sequence);
-
-        seenIdsRef.current = new Set(merged.map(l => l.id));
-        return merged;
-      });
-    } catch (error) {
-      console.error('Failed to fetch ledgers:', error);
-    }
-  }, []);
-
-  const fetchMoreLedgers = useCallback(async () => {
-    if (!hasMore || isLoadingMore) return;
-    setIsLoadingMore(true);
-
-    try {
-      const sortedLedgers = [...ledgers].sort(
-        (a, b) => a.sequence - b.sequence
-      );
-      const cursor = oldestCursor || sortedLedgers[0]?.paging_token;
-
-      if (!cursor) {
-        setIsLoadingMore(false);
-        setHasMore(false);
-        return;
-      }
-
-      const data = await getLedgers(PAGE_SIZE, 'desc', cursor);
-      const olderLedgers: Ledger[] = data.records;
-
-      if (olderLedgers.length === 0) {
-        setIsLoadingMore(false);
-        setHasMore(false);
-        return;
-      }
-
-      const oldestLedger = olderLedgers[olderLedgers.length - 1];
-      setOldestCursor(oldestLedger.paging_token);
-      setHasMore(olderLedgers.length >= PAGE_SIZE);
-
-      // Filter out already seen ledgers
-      const unseenLedgers = olderLedgers.filter(l => !seenIdsRef.current.has(l.id));
-
-      setLedgers(prev => {
-        const existingMap = new Map(prev.map(l => [l.id, l]));
-        unseenLedgers.forEach(l => {
-          if (!existingMap.has(l.id)) {
-            existingMap.set(l.id, l);
-          }
-        });
-
-        const merged = Array.from(existingMap.values())
-          .sort((a, b) => b.sequence - a.sequence);
-
-        seenIdsRef.current = new Set(merged.map(l => l.id));
-        return merged;
-      });
-    } catch (error) {
-      console.error('Failed to load more ledgers:', error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [hasMore, isLoadingMore, ledgers, oldestCursor]);
-
-  useEffect(() => {
-    // When network changes, reset to initial ledgers
-    setLedgers(initialLedgers);
-    seenIdsRef.current = new Set(initialLedgers.map(l => l.id));
-  }, [network, initialLedgers]);
-
-  useEffect(() => {
-    // Start polling for new ledgers right away (data is already shown from server)
-    const interval = setInterval(fetchLedgers, 6000);
-    return () => clearInterval(interval);
-  }, [fetchLedgers]);
-
-  useEffect(() => {
-    const el = loadMoreRef.current;
-    if (!el) return;
-    if (!hasMore || isLoadingMore) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (entry?.isIntersecting) fetchMoreLedgers();
-      },
-      { root: null, rootMargin: '400px', threshold: 0.01 }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [fetchMoreLedgers, hasMore, isLoadingMore]);
-
-  // Calculate stats
-  const stats = useMemo(() => {
-    const total = ledgers.length;
-    const totalTxs = ledgers.reduce((sum, l) => sum + l.successful_transaction_count + l.failed_transaction_count, 0);
-    const totalOps = ledgers.reduce((sum, l) => sum + l.operation_count, 0);
-    const successfulTxs = ledgers.reduce((sum, l) => sum + l.successful_transaction_count, 0);
-    const failedTxs = ledgers.reduce((sum, l) => sum + l.failed_transaction_count, 0);
-
-    // Calculate average close time from recent ledgers
-    let avgCloseTime = 0;
-    if (ledgers.length >= 2) {
-      const times = ledgers.slice(0, 10).map(l => new Date(l.closed_at).getTime());
-      const diffs: number[] = [];
-      for (let i = 0; i < times.length - 1; i++) {
-        diffs.push(Math.abs(times[i] - times[i + 1]) / 1000);
-      }
-      if (diffs.length > 0) {
-        avgCloseTime = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-      }
-    }
-
-    // Get latest ledger for total coins
-    const latestLedger = ledgers[0];
-    const totalCoins = latestLedger?.total_coins || '0';
-
-    return { total, totalTxs, totalOps, successfulTxs, failedTxs, avgCloseTime, totalCoins };
-  }, [ledgers]);
-
-  const visibleLedgers = ledgers.slice(0, Math.max(limit, 50));
-
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
@@ -206,42 +58,11 @@ export default function LedgersDesktopView({
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Network</span>
-                  <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
-                    Live
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Real-time
-                  </span>
                 </div>
                 <div className="text-xl font-bold text-[var(--text-primary)]">Ledgers</div>
                 <div className="mt-1 text-xs text-[var(--text-tertiary)]">
                   Browse all ledgers on the Stellar network
                 </div>
-              </div>
-            </div>
-
-            {/* Right: Quick Stats */}
-            <div className="flex gap-3 flex-wrap">
-              <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
-                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Loaded</div>
-                <div className="text-lg font-bold text-[var(--text-primary)]">{stats.total}</div>
-              </div>
-              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 min-w-[90px]">
-                <div className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-1">Transactions</div>
-                <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{stats.totalTxs.toLocaleString()}</div>
-              </div>
-              <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[90px]">
-                <div className="text-[9px] font-bold text-sky-700 dark:text-sky-400 uppercase tracking-widest mb-1">Operations</div>
-                <div className="text-lg font-bold text-sky-700 dark:text-sky-400">{stats.totalOps.toLocaleString()}</div>
-              </div>
-              <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800/50 min-w-[90px]">
-                <div className="text-[9px] font-bold text-violet-700 dark:text-violet-400 uppercase tracking-widest mb-1">Avg Close</div>
-                <div className="text-lg font-bold text-violet-700 dark:text-violet-400">{stats.avgCloseTime.toFixed(1)}s</div>
-              </div>
-              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 min-w-[110px]">
-                <div className="text-[9px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-1">Total Coins</div>
-                <div className="text-lg font-bold text-amber-700 dark:text-amber-400">{formatCompact(stats.totalCoins)}</div>
               </div>
             </div>
           </div>
@@ -263,8 +84,21 @@ export default function LedgersDesktopView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--bg-primary)]">
-                {visibleLedgers.length > 0 ? (
-                  visibleLedgers.map((ledger) => {
+                {loading ? (
+                  // Skeleton rows
+                  Array.from({ length: 15 }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="py-2.5 px-4"><div className="h-4 w-24 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-2.5 px-3"><div className="h-4 w-16 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-2.5 px-3"><div className="h-4 w-20 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-2.5 px-3"><div className="h-4 w-14 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-2.5 px-3"><div className="h-4 w-16 bg-[var(--bg-tertiary)] rounded animate-pulse ml-auto" /></td>
+                      <td className="py-2.5 px-3"><div className="h-4 w-20 bg-[var(--bg-tertiary)] rounded animate-pulse ml-auto" /></td>
+                      <td className="py-2.5 px-4"><div className="h-4 w-10 bg-[var(--bg-tertiary)] rounded animate-pulse mx-auto" /></td>
+                    </tr>
+                  ))
+                ) : ledgers.length > 0 ? (
+                  ledgers.map((ledger) => {
                     const totalTx = ledger.successful_transaction_count + ledger.failed_transaction_count;
                     const hasFailedTx = ledger.failed_transaction_count > 0;
 
@@ -351,23 +185,32 @@ export default function LedgersDesktopView({
               </tbody>
             </table>
           </div>
-          <div className="px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-[var(--text-tertiary)]">
-                {isLoadingMore ? 'Loading more...' : hasMore ? 'Scroll to load more...' : 'End of results'}
-              </div>
-              {hasMore && (
-                <button
-                  type="button"
-                  onClick={fetchMoreLedgers}
-                  disabled={isLoadingMore}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-sky-600 hover:bg-sky-50 disabled:opacity-50"
-                >
-                  {isLoadingMore ? 'Loading...' : 'Load More'}
-                </button>
-              )}
-            </div>
-            <div ref={loadMoreRef} className="h-1" />
+
+          {/* Pagination Footer */}
+          <div className="flex items-center justify-center gap-1.5 px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
+            <button
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage <= 1 || loading}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            <span className="mx-2 text-[10px] font-medium text-[var(--text-muted)]">
+              Page {currentPage}
+            </span>
+
+            <button
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={!hasNextPage || loading}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
