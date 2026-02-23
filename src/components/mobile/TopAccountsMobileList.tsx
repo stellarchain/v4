@@ -10,6 +10,9 @@ interface TopAccountsMobileListProps {
     searchQuery: string;
     onSearchQueryChange: (value: string) => void;
     loading?: boolean;
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
 }
 
 function AccountStatusIcons({ labelName, verified }: { labelName?: string; verified?: boolean }) {
@@ -56,6 +59,9 @@ export default function TopAccountsMobileList({
     searchQuery,
     onSearchQueryChange,
     loading = false,
+    currentPage,
+    totalPages,
+    onPageChange,
 }: TopAccountsMobileListProps) {
     const accounts = initialAccounts || [];
 
@@ -106,7 +112,9 @@ export default function TopAccountsMobileList({
                     </div>
                 ) : (
                     <div className="space-y-1.5">
-                        {accounts.map((account) => (
+                        {accounts.map((account, index) => {
+                            const displayRank = (currentPage - 1) * 30 + index + 1;
+                            return (
                             <Link
                                 key={account.account}
                                 href={`/account/${account.account}`}
@@ -117,12 +125,12 @@ export default function TopAccountsMobileList({
                                     <div className="flex items-center">
                                         {/* Rank */}
                                         <span className={`w-7 flex-shrink-0 text-[13px] font-bold ${
-                                            account.rank === 1 ? 'text-yellow-500' :
-                                            account.rank === 2 ? 'text-gray-400' :
-                                            account.rank === 3 ? 'text-amber-600' :
+                                            displayRank === 1 ? 'text-yellow-500' :
+                                            displayRank === 2 ? 'text-gray-400' :
+                                            displayRank === 3 ? 'text-amber-600' :
                                             'text-[var(--text-muted)]'
                                         }`}>
-                                            #{account.rank}
+                                            #{displayRank}
                                         </span>
 
                                         {/* Name & Address */}
@@ -153,7 +161,37 @@ export default function TopAccountsMobileList({
                                     </div>
                                 </div>
                             </Link>
-                        ))}
+                        );
+                        })}
+                    </div>
+                )}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="mt-4 flex items-center justify-center gap-3">
+                        <button
+                            onClick={() => onPageChange(currentPage - 1)}
+                            disabled={currentPage === 1 || loading}
+                            className="w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+
+                        <span className="text-sm text-[var(--text-muted)] min-w-[100px] text-center">
+                            Page {currentPage} of {totalPages}
+                        </span>
+
+                        <button
+                            onClick={() => onPageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages || loading}
+                            className="w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
                     </div>
                 )}
             </div>

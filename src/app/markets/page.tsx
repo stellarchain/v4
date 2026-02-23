@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getMarketAssetsFromMarketV1 } from '@/lib/stellar';
 import type { MarketAsset } from '@/lib/shared/interfaces';
@@ -14,12 +14,13 @@ export default function MarketsPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const urlQuery = (searchParams.get('q') || '').trim();
+  const urlPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
 
   const [pageAssets, setPageAssets] = useState<MarketAsset[]>([]);
   const [xlmPrice, setXlmPrice] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(urlPage);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -31,27 +32,33 @@ export default function MarketsPage() {
       setSearchQuery(urlQuery);
       setDebouncedSearchQuery(urlQuery);
     }
-  }, [urlQuery]);
+    if (urlPage !== currentPage) {
+      setCurrentPage(urlPage);
+    }
+  }, [urlQuery, urlPage]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 350);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Sync search + page to URL
   useEffect(() => {
     const currentQ = (searchParams.get('q') || '').trim();
-    if (currentQ === debouncedSearchQuery) return;
+    const currentP = parseInt(searchParams.get('page') || '1', 10) || 1;
+    if (currentQ === debouncedSearchQuery && currentP === currentPage) return;
 
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams();
     if (debouncedSearchQuery) {
       params.set('q', debouncedSearchQuery);
-    } else {
-      params.delete('q');
+    }
+    if (currentPage > 1) {
+      params.set('page', String(currentPage));
     }
 
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [debouncedSearchQuery, router, pathname, searchParams]);
+  }, [debouncedSearchQuery, currentPage, router, pathname, searchParams]);
 
   const searchFilters = useMemo(() => {
     const query = debouncedSearchQuery.trim();
@@ -87,7 +94,12 @@ export default function MarketsPage() {
     return () => { cancelled = true; };
   }, [currentPage, searchFilters]);
 
+  const searchMountedRef = useRef(false);
   useEffect(() => {
+    if (!searchMountedRef.current) {
+      searchMountedRef.current = true;
+      return;
+    }
     setCurrentPage(1);
   }, [debouncedSearchQuery]);
 

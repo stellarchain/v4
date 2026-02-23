@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/stellar';
-import type { LabeledAccountsAPIResponse, LabeledAccount } from '@/lib/stellar';
-import { apiEndpoints, getApiV1Data } from '@/services/api';
+import type { LabeledAccountsAPIResponse } from '@/lib/stellar';
 
 interface KnownAccountsDesktopViewProps {
   initialData: LabeledAccountsAPIResponse | null;
@@ -12,6 +11,10 @@ interface KnownAccountsDesktopViewProps {
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   loading?: boolean;
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
 }
 
 type SortField = 'rank' | 'balance' | 'transactions';
@@ -45,11 +48,17 @@ export default function KnownAccountsDesktopView({
   searchQuery,
   onSearchQueryChange,
   loading: parentLoading,
+  currentPage,
+  totalPages,
+  totalItems,
+  onPageChange,
 }: KnownAccountsDesktopViewProps) {
   const getTransactions = (acc: any) => String(acc.accountMetric?.totalTransactions ?? acc.accountMetric?.transactionsPerHour ?? '0');
 
-  const transformData = (data: LabeledAccountsAPIResponse | null) =>
-    data?.member?.map((acc: any) => ({
+  const itemsPerPage = 30;
+
+  const displayAccounts = useMemo(() =>
+    (initialData?.member || []).map((acc: any) => ({
       account: acc.address,
       org_name: null,
       label: acc.label ? {
@@ -60,53 +69,11 @@ export default function KnownAccountsDesktopView({
       balance: parseFloat(acc.accountMetric?.nativeBalance || '0'),
       transactions: getTransactions(acc),
       rank: acc.accountMetric?.rankPosition || 0
-    })) || [];
+    })),
+  [initialData]);
 
-  const itemsPerPage = 30;
-  const accounts = transformData(initialData);
-  const total = initialData?.totalItems || 0;
-  const totalPages = Math.ceil(total / itemsPerPage);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [paginatedAccounts, setPaginatedAccounts] = useState<LabeledAccount[] | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [sortField, setSortField] = useState<SortField>('balance');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-
-  // Reset pagination when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-    setPaginatedAccounts(null);
-  }, [searchQuery]);
-
-  const fetchPage = useCallback(async (page: number) => {
-    setIsLoading(true);
-    try {
-      const query = searchQuery.trim();
-      const isAddressQuery = /^(G|C)[A-Z0-9]{10,}$/.test(query.toUpperCase());
-      const params: Record<string, string | number> = {
-        page,
-        itemsPerPage,
-        'order[accountMetric.rankPosition]': 'asc',
-      };
-      if (query) {
-        if (isAddressQuery) {
-          params.address = query;
-        } else {
-          params.label = query;
-        }
-      }
-
-      const json = await getApiV1Data(apiEndpoints.v1.accounts(params));
-      setPaginatedAccounts(transformData(json));
-      setCurrentPage(page);
-    } catch (error) {
-      console.error('Error fetching accounts:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [itemsPerPage, searchQuery]);
-
-  const displayAccounts = paginatedAccounts ?? accounts;
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -186,7 +153,7 @@ export default function KnownAccountsDesktopView({
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Directory</span>
                   <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
-                    {(total || 0).toLocaleString()} Accounts
+                    {totalItems.toLocaleString()} Accounts
                   </span>
                   <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -274,7 +241,7 @@ export default function KnownAccountsDesktopView({
                     {/* Rank */}
                     <td className="py-4 px-4">
                       <span className="text-sm font-bold text-[var(--text-muted)]">
-                        {account.rank || ((currentPage - 1) * 25 + index + 1)}
+                        {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
 
@@ -402,8 +369,8 @@ export default function KnownAccountsDesktopView({
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-1.5 px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
               <button
-                onClick={() => fetchPage(currentPage - 1)}
-                disabled={currentPage === 1 || isLoading}
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1 || parentLoading}
                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -425,8 +392,8 @@ export default function KnownAccountsDesktopView({
                 return (
                   <button
                     key={pageNum}
-                    onClick={() => fetchPage(pageNum)}
-                    disabled={isLoading}
+                    onClick={() => onPageChange(pageNum)}
+                    disabled={parentLoading}
                     className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${currentPage === pageNum
                         ? 'bg-sky-600 text-white shadow-sm'
                         : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
@@ -442,8 +409,8 @@ export default function KnownAccountsDesktopView({
               )}
 
               <button
-                onClick={() => fetchPage(currentPage + 1)}
-                disabled={currentPage === totalPages || isLoading}
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || parentLoading}
                 className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

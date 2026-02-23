@@ -11,6 +11,9 @@ interface TopAccountsDesktopViewProps {
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   loading?: boolean;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
 type SortField = 'rank' | 'balance' | 'percent';
@@ -52,6 +55,9 @@ export default function TopAccountsDesktopView({
   searchQuery,
   onSearchQueryChange,
   loading = false,
+  currentPage,
+  totalPages,
+  onPageChange,
 }: TopAccountsDesktopViewProps) {
   const [sortField, setSortField] = useState<SortField>('balance');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -198,7 +204,7 @@ export default function TopAccountsDesktopView({
               Known Accounts
             </Link>
             <span className="text-sm text-[var(--text-muted)]">
-              {loading ? 'Searching...' : `Showing ${filteredAndSortedAccounts.length} accounts`}
+              {loading ? 'Searching...' : `Page ${currentPage} of ${totalPages}`}
             </span>
           </div>
         </div>
@@ -218,7 +224,8 @@ export default function TopAccountsDesktopView({
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]">
-              {filteredAndSortedAccounts.map((account) => {
+              {filteredAndSortedAccounts.map((account, index) => {
+                const displayRank = (currentPage - 1) * 30 + index + 1;
                 const labelText = (account.label?.name || '').toLowerCase();
                 const isSpam = labelText.includes('spam');
                 const isRisk = labelText.includes('scam') || labelText.includes('hack') || labelText.includes('malicious') || isSpam;
@@ -233,12 +240,12 @@ export default function TopAccountsDesktopView({
                   >
                     {/* Rank */}
                     <td className="py-4 px-4">
-                      <span className={`text-sm font-bold ${account.rank === 1 ? 'text-amber-500' :
-                          account.rank === 2 ? 'text-[var(--text-muted)]' :
-                            account.rank === 3 ? 'text-amber-700' :
+                      <span className={`text-sm font-bold ${displayRank === 1 ? 'text-amber-500' :
+                          displayRank === 2 ? 'text-[var(--text-muted)]' :
+                            displayRank === 3 ? 'text-amber-700' :
                               'text-[var(--text-tertiary)]'
                         }`}>
-                        #{account.rank}
+                        #{displayRank}
                       </span>
                     </td>
 
@@ -357,6 +364,61 @@ export default function TopAccountsDesktopView({
               </div>
               <h3 className="text-[var(--text-primary)] font-semibold mb-1">No accounts found</h3>
               <p className="text-[var(--text-muted)] text-sm">No accounts matching &quot;{searchQuery}&quot;</p>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-1.5 px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
+              <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1 || loading}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                let pageNum: number;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => onPageChange(pageNum)}
+                    disabled={loading}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${currentPage === pageNum
+                        ? 'bg-sky-600 text-white shadow-sm'
+                        : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
+                      }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              {totalPages > 5 && currentPage < totalPages - 2 && (
+                <span className="text-[var(--text-muted)] text-xs px-1">...</span>
+              )}
+
+              <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || loading}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
           )}
         </div>

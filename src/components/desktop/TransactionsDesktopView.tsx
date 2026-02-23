@@ -416,11 +416,14 @@ export default function TransactionsDesktopView({
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const visibleTransactions = filteredTransactions.slice(startIndex, startIndex + PAGE_SIZE);
 
-  // Lazily enrich visible transactions that haven't been enriched yet
-  // This effect re-runs when visibleTransactions changes (e.g. after setTransactions).
-  // We mark candidates per-batch so that when the effect re-triggers after state updates,
-  // remaining unenriched transactions are still picked up.
+  // Lazily enrich visible transactions that haven't been enriched yet.
+  // Single controlled loop with delay between batches to avoid flooding the API.
+  const isEnrichingVisibleRef = useRef(false);
+  const enrichVisibleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
+    if (isEnrichingVisibleRef.current) return;
+
     const candidates = visibleTransactions.filter(tx =>
       (!tx.displayInfo || tx.displayInfo.type === 'other') &&
       !enrichedIdsRef.current.has(tx.hash)
@@ -428,23 +431,44 @@ export default function TransactionsDesktopView({
 
     if (candidates.length === 0) return;
 
-    // Only take the first batch — after setTransactions, the effect will re-run
-    // and pick up the next batch automatically
-    const batch = candidates.slice(0, 5);
-    batch.forEach(tx => enrichedIdsRef.current.add(tx.hash));
-
+    isEnrichingVisibleRef.current = true;
     let mounted = true;
-    const enrichBatch = async () => {
-      const batchResults = await Promise.all(batch.map(fetchTransactionWithOps));
-      if (!mounted) return;
-      setTransactions(prev => prev.map(t => {
-        const enriched = batchResults.find(r => r.hash === t.hash);
-        return enriched ? enriched : t;
-      }));
+
+    const runEnrichment = async () => {
+      const BATCH_SIZE = 3;
+      const allCandidates = [...candidates];
+
+      for (let i = 0; i < allCandidates.length; i += BATCH_SIZE) {
+        if (!mounted) break;
+
+        const batch = allCandidates.slice(i, i + BATCH_SIZE);
+        batch.forEach(tx => enrichedIdsRef.current.add(tx.hash));
+
+        const batchResults = await Promise.all(batch.map(fetchTransactionWithOps));
+        if (!mounted) break;
+
+        setTransactions(prev => prev.map(t => {
+          const enriched = batchResults.find(r => r.hash === t.hash);
+          return enriched ? enriched : t;
+        }));
+
+        if (i + BATCH_SIZE < allCandidates.length) {
+          await new Promise(resolve => {
+            enrichVisibleTimerRef.current = setTimeout(resolve, 1000);
+          });
+        }
+      }
+
+      isEnrichingVisibleRef.current = false;
     };
 
-    enrichBatch();
-    return () => { mounted = false; };
+    runEnrichment();
+
+    return () => {
+      mounted = false;
+      isEnrichingVisibleRef.current = false;
+      if (enrichVisibleTimerRef.current) clearTimeout(enrichVisibleTimerRef.current);
+    };
   }, [visibleTransactions]);
 
   // Get transaction type info
