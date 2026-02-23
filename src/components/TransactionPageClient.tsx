@@ -21,6 +21,24 @@ interface TransactionPageClientProps {
 
 const PAGE_SIZE = 25;
 
+function TimeAgoLabel({ dateStr }: { dateStr: string }) {
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const seconds = Math.floor((nowMs - new Date(dateStr).getTime()) / 1000);
+  if (seconds < 60) return <>{seconds}s ago</>;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return <>{minutes}m ago</>;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return <>{hours}h ago</>;
+  const days = Math.floor(hours / 24);
+  return <>{days}d ago</>;
+}
+
 // Helper to fetch operations for a transaction (same as TransactionsDesktopView)
 async function fetchTransactionWithOps(tx: Transaction): Promise<Transaction> {
   try {
@@ -68,6 +86,7 @@ export default function TransactionPageClient({
   const seenIdsRef = useRef<Set<string>>(new Set());
   const enrichedIdsRef = useRef<Set<string>>(new Set());
   const latestCursorRef = useRef<string | null>(null);
+  const isPollingRef = useRef(false);
 
   // Mobile infinite scroll state
   const [mobileLoadedCount, setMobileLoadedCount] = useState(PAGE_SIZE);
@@ -75,36 +94,74 @@ export default function TransactionPageClient({
   const hasMoreRef = useRef(true);
   const loadMoreRef = useRef<() => void>(() => {});
   const sentinelVisibleRef = useRef(false);
+  const pollingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAutoLoadAtRef = useRef(0);
 
   // Poll for new transactions (same logic as TransactionsDesktopView)
   const fetchTransactions = useCallback(async () => {
+    if (isPollingRef.current) return;
+    isPollingRef.current = true;
+
     try {
-      const txData = latestCursorRef.current
-        ? await getTransactions(50, 'asc', latestCursorRef.current)
-        : await getTransactions(15, 'desc');
+      // Simpler, desktop-like reliability: always poll latest page and merge unseen hashes.
+      const txData = await getTransactions(30, 'desc');
       const newTransactions: Transaction[] = normalizeTransactions(txData.records || []);
 
-      if (newTransactions.length > 0) {
-        const newest = latestCursorRef.current
-          ? newTransactions[newTransactions.length - 1]
-          : newTransactions[0];
-        if (newest?.paging_token) {
-          latestCursorRef.current = newest.paging_token;
-        }
-      }
-
       const unseenTxs = newTransactions.filter(tx => !seenIdsRef.current.has(tx.hash));
-      if (unseenTxs.length === 0) return;
-
       const txsWithBasicInfo = unseenTxs.map(tx => ({
         ...tx,
         displayInfo: tx.displayInfo || { type: 'other' as const },
       }));
 
+      // Payments tab needs immediate payment-typed items; otherwise new txs stay "other"
+      // until later enrichment and won't appear in the payments filter.
+      let paymentPollTxs: Transaction[] = [];
+      if (filter === 'transfers') {
+        const paymentsData = await getPayments(20, 'desc').catch(() => null);
+        const paymentOps: Operation[] = paymentsData?.records || [];
+        const paymentTxMap = new Map<string, Transaction>();
+
+        for (const op of paymentOps) {
+          const opAny = op as any;
+          if (paymentTxMap.has(opAny.transaction_hash)) continue;
+          if (seenIdsRef.current.has(opAny.transaction_hash)) continue;
+
+          const displayInfo = getTransactionDisplayInfo([op]);
+          if (displayInfo.type !== 'payment') continue;
+
+          paymentTxMap.set(opAny.transaction_hash, {
+            id: op.id,
+            paging_token: op.paging_token,
+            successful: opAny.transaction_successful,
+            hash: opAny.transaction_hash,
+            ledger: 0,
+            ledger_attr: 0,
+            created_at: op.created_at,
+            source_account: op.source_account,
+            source_account_sequence: '',
+            fee_account: op.source_account,
+            fee_charged: '0',
+            max_fee: '0',
+            operation_count: 1,
+            envelope_xdr: '',
+            result_xdr: '',
+            result_meta_xdr: '',
+            fee_meta_xdr: '',
+            memo_type: 'none',
+            signatures: [],
+            displayInfo,
+          } as Transaction);
+        }
+
+        paymentPollTxs = Array.from(paymentTxMap.values());
+      }
+
+      if (txsWithBasicInfo.length === 0 && paymentPollTxs.length === 0) return;
+
       setTransactions(prevTransactions => {
         const existingMap = new Map(prevTransactions.map(t => [t.hash, t]));
 
-        txsWithBasicInfo.forEach(tx => {
+        [...txsWithBasicInfo, ...paymentPollTxs].forEach(tx => {
           const existing = existingMap.get(tx.hash);
           if (!existing || (tx.displayInfo && tx.displayInfo.type !== 'other' && existing.displayInfo?.type === 'other')) {
             existingMap.set(tx.hash, tx);
@@ -119,8 +176,10 @@ export default function TransactionPageClient({
       });
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
+    } finally {
+      isPollingRef.current = false;
     }
-  }, []);
+  }, [filter]);
 
   // Load more (older) transactions for infinite scroll
   const loadMoreForMobile = useCallback(async () => {
@@ -155,121 +214,50 @@ export default function TransactionPageClient({
         return;
       }
 
-      // For payments filter, use /payments endpoint
-      if (filter === 'transfers') {
-        const data = await getPayments(PAGE_SIZE, 'desc', cursor);
-        const paymentOps: Operation[] = data.records || [];
+      // Same pagination/enrichment strategy as desktop for all filters.
+      const data = await getTransactions(PAGE_SIZE, 'desc', cursor);
+      const olderTransactions: Transaction[] = normalizeTransactions(data.records || []);
 
-        if (paymentOps.length === 0) {
-          setIsLoadingMore(false);
-          setHasMore(false);
-          return;
-        }
-
-        const newTxs: Transaction[] = [];
-        const seenHashes = new Set<string>();
-        for (const op of paymentOps) {
-          const opAny = op as any;
-          if (seenHashes.has(opAny.transaction_hash) || seenIdsRef.current.has(opAny.transaction_hash)) continue;
-          seenHashes.add(opAny.transaction_hash);
-
-          const displayInfo = getTransactionDisplayInfo([op]);
-          if (displayInfo.type !== 'payment') continue;
-
-          newTxs.push({
-            id: op.id,
-            paging_token: op.paging_token,
-            successful: opAny.transaction_successful,
-            hash: opAny.transaction_hash,
-            ledger: 0,
-            ledger_attr: 0,
-            created_at: op.created_at,
-            source_account: op.source_account,
-            source_account_sequence: '',
-            fee_account: op.source_account,
-            fee_charged: '0',
-            max_fee: '0',
-            operation_count: 1,
-            envelope_xdr: '',
-            result_xdr: '',
-            result_meta_xdr: '',
-            fee_meta_xdr: '',
-            memo_type: 'none',
-            signatures: [],
-            displayInfo,
-          });
-        }
-
-        const oldestOp = paymentOps[paymentOps.length - 1];
-        setOldestCursor(oldestOp.paging_token);
-        setHasMore(paymentOps.length >= PAGE_SIZE);
-
-        setTransactions(prev => {
-          const existingMap = new Map(prev.map(t => [t.hash, t]));
-          newTxs.forEach(tx => {
-            if (!existingMap.has(tx.hash)) existingMap.set(tx.hash, tx);
-          });
-          const merged = Array.from(existingMap.values())
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          seenIdsRef.current = new Set(merged.map(t => t.hash));
-          return merged;
-        });
-
-        setMobileLoadedCount(prev => prev + PAGE_SIZE);
-      } else {
-        // For all/contracts, fetch transactions and enrich in batches (same as desktop)
-        const data = await getTransactions(PAGE_SIZE, 'desc', cursor);
-        const olderTransactions: Transaction[] = normalizeTransactions(data.records || []);
-
-        if (olderTransactions.length === 0) {
-          setIsLoadingMore(false);
-          setHasMore(false);
-          return;
-        }
-
-        const oldestTx = olderTransactions[olderTransactions.length - 1];
-        setOldestCursor(oldestTx.paging_token);
-        setHasMore(olderTransactions.length >= PAGE_SIZE);
-
-        const unseenTxs = olderTransactions.filter(tx => !seenIdsRef.current.has(tx.hash));
-
-        // Enrich in batches of 5 (same as desktop fetchMoreIfNeeded)
-        const txsWithOps: Transaction[] = [];
-        const batchSize = 5;
-        for (let i = 0; i < unseenTxs.length; i += batchSize) {
-          const batch = unseenTxs.slice(i, i + batchSize);
-          const batchResults = await Promise.all(batch.map(fetchTransactionWithOps));
-          txsWithOps.push(...batchResults);
-        }
-
-        // Mark all as enriched so lazy enrichment doesn't re-process them
-        txsWithOps.forEach(tx => enrichedIdsRef.current.add(tx.hash));
-
-        setTransactions(prev => {
-          const existingMap = new Map(prev.map(t => [t.hash, t]));
-          txsWithOps.forEach(tx => {
-            if (!existingMap.has(tx.hash)) existingMap.set(tx.hash, tx);
-          });
-          const merged = Array.from(existingMap.values())
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          seenIdsRef.current = new Set(merged.map(t => t.hash));
-          return merged;
-        });
-
-        setMobileLoadedCount(prev => prev + PAGE_SIZE);
+      if (olderTransactions.length === 0) {
+        setIsLoadingMore(false);
+        setHasMore(false);
+        return;
       }
+
+      const oldestTx = olderTransactions[olderTransactions.length - 1];
+      setOldestCursor(oldestTx.paging_token);
+      setHasMore(olderTransactions.length >= PAGE_SIZE);
+
+      const unseenTxs = olderTransactions.filter(tx => !seenIdsRef.current.has(tx.hash));
+
+      // Enrich in batches of 5 (same as desktop fetchMoreIfNeeded)
+      const txsWithOps: Transaction[] = [];
+      const batchSize = 5;
+      for (let i = 0; i < unseenTxs.length; i += batchSize) {
+        const batch = unseenTxs.slice(i, i + batchSize);
+        const batchResults = await Promise.all(batch.map(fetchTransactionWithOps));
+        txsWithOps.push(...batchResults);
+      }
+
+      // Mark all as enriched so lazy enrichment doesn't re-process them
+      txsWithOps.forEach(tx => enrichedIdsRef.current.add(tx.hash));
+
+      setTransactions(prev => {
+        const existingMap = new Map(prev.map(t => [t.hash, t]));
+        txsWithOps.forEach(tx => {
+          if (!existingMap.has(tx.hash)) existingMap.set(tx.hash, tx);
+        });
+        const merged = Array.from(existingMap.values())
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        seenIdsRef.current = new Set(merged.map(t => t.hash));
+        return merged;
+      });
+
+      setMobileLoadedCount(prev => prev + PAGE_SIZE);
     } catch (error) {
       console.error('Failed to load more transactions:', error);
     } finally {
       setIsLoadingMore(false);
-      // If sentinel is still visible, schedule another check
-      if (sentinelVisibleRef.current) {
-        setTimeout(() => {
-          if (!isLoadingMoreRef.current && hasMoreRef.current && sentinelVisibleRef.current) {
-            loadMoreRef.current();
-          }
-        }, 200);
-      }
     }
   }, [isLoadingMore, hasMore, mobileLoadedCount, transactions, oldestCursor, filter]);
 
@@ -291,8 +279,11 @@ export default function TransactionPageClient({
       (entries) => {
         const entry = entries[0];
         sentinelVisibleRef.current = entry.isIntersecting;
-        if (entry.isIntersecting && !isLoadingMoreRef.current && hasMoreRef.current) {
-          loadMoreRef.current();
+        const now = Date.now();
+        const canAutoLoad = now - lastAutoLoadAtRef.current > 100000;
+        if (entry.isIntersecting && !isLoadingMoreRef.current && hasMoreRef.current && canAutoLoad) {
+          lastAutoLoadAtRef.current = now;
+          // Keep infinite-scroll mostly manual on mobile to avoid request flooding.
         }
       },
       { root: null, rootMargin: '100px', threshold: 0.1 }
@@ -383,11 +374,33 @@ export default function TransactionPageClient({
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, []);
 
-  // Polling (same as desktop: 3s, pause when hidden or enriching)
+  // Polling (3s, pause when hidden or enriching, avoid overlapping requests)
   useEffect(() => {
-    if (isEnrichingData || !isPageVisible) return;
-    const interval = setInterval(fetchTransactions, 3000);
-    return () => clearInterval(interval);
+    if (isEnrichingData || !isPageVisible) {
+      if (pollingTimerRef.current) {
+        clearTimeout(pollingTimerRef.current);
+        pollingTimerRef.current = null;
+      }
+      return;
+    }
+
+    let active = true;
+    const tick = async () => {
+      if (!active) return;
+      await fetchTransactions();
+      if (!active) return;
+      pollingTimerRef.current = setTimeout(tick, 5000);
+    };
+
+    pollingTimerRef.current = setTimeout(tick, 5000);
+
+    return () => {
+      active = false;
+      if (pollingTimerRef.current) {
+        clearTimeout(pollingTimerRef.current);
+        pollingTimerRef.current = null;
+      }
+    };
   }, [fetchTransactions, isEnrichingData, isPageVisible]);
 
   // Filter transactions
@@ -403,7 +416,7 @@ export default function TransactionPageClient({
   const mobileVisibleTransactions = filteredTransactions.slice(0, mobileLoadedCount);
   const mobileHasMore = hasMore || mobileLoadedCount < filteredTransactions.length;
 
-  // Enrichment: single controlled loop that processes all 'other' transactions
+  // Enrichment: process only visible 'other' transactions to reduce request volume.
   // Uses a ref to prevent concurrent runs. Processes in batches of 3 with 1s delay between.
   const isEnrichingRef = useRef(false);
   const enrichTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -412,7 +425,7 @@ export default function TransactionPageClient({
     // Skip if already running
     if (isEnrichingRef.current) return;
 
-    const candidates = transactions.filter(tx =>
+    const candidates = mobileVisibleTransactions.filter(tx =>
       (!tx.displayInfo || tx.displayInfo.type === 'other') &&
       !enrichedIdsRef.current.has(tx.hash)
     );
@@ -458,7 +471,7 @@ export default function TransactionPageClient({
       isEnrichingRef.current = false;
       if (enrichTimerRef.current) clearTimeout(enrichTimerRef.current);
     };
-  }, [transactions]);
+  }, [mobileVisibleTransactions]);
 
   const formatCompact = (numStr: string | undefined): string => {
     if (!numStr) return '0';
@@ -467,17 +480,6 @@ export default function TransactionPageClient({
     if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
     return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  };
-
-  const getTimeAgo = (dateStr: string) => {
-    const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
   };
 
   return (
@@ -557,7 +559,7 @@ export default function TransactionPageClient({
                             <span className="text-xs text-[var(--text-muted)] font-medium font-mono mt-0.5 flex items-center">
                               {tx.hash.substring(0, 4)}...{tx.hash.substring(tx.hash.length - 4)}
                               <span className="mx-1 text-[var(--text-muted)]">•</span>
-                              {getTimeAgo(tx.created_at)}
+                              <TimeAgoLabel dateStr={tx.created_at} />
                             </span>
                           </div>
                         </div>
