@@ -24,12 +24,14 @@ export default function LedgersPage() {
   const hasDetailsRoute = Boolean(detailsSequence);
 
   const urlPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+  const urlOrder = searchParams.get('order') === 'asc' ? 'asc' : 'desc';
 
   const [ledgers, setLedgers] = useState<Ledger[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(urlPage);
   const [hasNextPage, setHasNextPage] = useState(false);
+  const [order, setOrder] = useState<'asc' | 'desc'>(urlOrder);
 
   // Store cursors for each page so we can navigate back
   const cursorsRef = useRef<Map<number, string>>(new Map());
@@ -37,23 +39,28 @@ export default function LedgersPage() {
   // Sync from URL (back/forward)
   useEffect(() => {
     if (hasDetailsRoute) return;
-    if (urlPage !== currentPage) {
-      setCurrentPage(urlPage);
-    }
-  }, [urlPage]);
+    setCurrentPage((prev) => (prev === urlPage ? prev : urlPage));
+    setOrder((prev) => {
+      if (prev === urlOrder) return prev;
+      cursorsRef.current = new Map();
+      return urlOrder;
+    });
+  }, [urlPage, urlOrder, hasDetailsRoute]);
 
   // Sync state to URL
   useEffect(() => {
     if (hasDetailsRoute) return;
     const currentP = parseInt(searchParams.get('page') || '1', 10) || 1;
-    if (currentP === currentPage) return;
+    const currentOrderInUrl = searchParams.get('order') === 'asc' ? 'asc' : 'desc';
+    if (currentP === currentPage && currentOrderInUrl === order) return;
 
     const params = new URLSearchParams();
     if (currentPage > 1) params.set('page', String(currentPage));
+    if (order === 'asc') params.set('order', 'asc');
 
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [currentPage, router, pathname, searchParams]);
+  }, [currentPage, order, router, pathname, searchParams, hasDetailsRoute]);
 
   // Fetch data
   useEffect(() => {
@@ -64,7 +71,7 @@ export default function LedgersPage() {
       try {
         setIsLoading(true);
         const cursor = cursorsRef.current.get(currentPage);
-        const data = await getLedgers(PAGE_SIZE, 'desc', cursor);
+        const data = await getLedgers(PAGE_SIZE, order, cursor);
         if (cancelled) return;
 
         const records: Ledger[] = data.records || [];
@@ -90,7 +97,7 @@ export default function LedgersPage() {
 
     fetchData();
     return () => { cancelled = true; };
-  }, [currentPage, hasDetailsRoute]);
+  }, [currentPage, hasDetailsRoute, order]);
 
   if (hasDetailsRoute) {
     return <LedgerDetailsClientPage />;
@@ -114,6 +121,14 @@ export default function LedgersPage() {
     window.scrollTo(0, 0);
   };
 
+  const handleOrderChange = (nextOrder: 'asc' | 'desc') => {
+    if (nextOrder === order) return;
+    setOrder(nextOrder);
+    setCurrentPage(1);
+    cursorsRef.current = new Map();
+    window.scrollTo(0, 0);
+  };
+
   return (
     <LedgersPageClient
       ledgers={ledgers}
@@ -121,6 +136,8 @@ export default function LedgersPage() {
       currentPage={currentPage}
       hasNextPage={hasNextPage}
       onPageChange={handlePageChange}
+      order={order}
+      onOrderChange={handleOrderChange}
     />
   );
 }
