@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, useId } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { MarketAsset } from '@/lib/stellar';
@@ -68,17 +68,14 @@ function formatXLMPrice(priceInXlm: number): string {
 }
 
 function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
-  if (!data || data.length === 0) {
-    return (
-      <svg className="overflow-visible" height="18" viewBox="0 0 48 18" width="48">
-        <path d="M0 9 L24 9 L48 9" fill="none" stroke="var(--text-muted)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-      </svg>
-    );
-  }
+  const gradientId = useId();
+  const width = 64;
+  const height = 28;
+  const padding = 3;
 
-  const width = 48;
-  const height = 18;
-  const padding = 2;
+  if (!data || data.length === 0) {
+    return <div style={{ width, height }} />;
+  }
 
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -86,37 +83,64 @@ function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
 
   const denominator = Math.max(data.length - 1, 1);
   const points = data.map((value, index) => {
-    const x = (index / denominator) * width;
+    const x = padding + (index / denominator) * (width - padding * 2);
     const y = height - padding - ((value - min) / range) * (height - padding * 2);
     return { x, y, value };
   });
-  const pathPoints = points.map((point) => `${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' L ');
+
+  const makeSmoothLinePath = () => {
+    if (points.length === 1) {
+      const p = points[0];
+      return `M ${p.x} ${p.y} L ${p.x + 0.1} ${p.y}`;
+    }
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i += 1) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const cx = (prev.x + curr.x) / 2;
+      d += ` Q ${prev.x} ${prev.y} ${cx} ${(prev.y + curr.y) / 2}`;
+    }
+    const last = points[points.length - 1];
+    d += ` T ${last.x} ${last.y}`;
+    return d;
+  };
+
+  const linePath = makeSmoothLinePath();
+  const firstPoint = `${padding},${height - padding}`;
+  const lastPoint = `${width - padding},${height - padding}`;
+  const areaPath = `${linePath} L ${lastPoint} L ${firstPoint} Z`;
 
   const color = positive ? '#10b981' : '#ef4444';
+  const fillColor = positive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)';
+  const lastVisiblePoint = points[points.length - 1];
 
   return (
-    <svg className="overflow-visible" height="18" viewBox="0 0 48 18" width="48">
+    <svg width={width} height={height} className="overflow-visible">
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={fillColor} />
+          <stop offset="100%" stopColor="transparent" />
+        </linearGradient>
+      </defs>
+
+      <path d={areaPath} fill={`url(#${gradientId})`} />
       <path
-        d={`M ${pathPoints}`}
+        d={linePath}
         fill="none"
         stroke={color}
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="1.5"
       />
-      {points.map((point, index) => (
-        <circle
-          key={`spark-m-${index}`}
-          cx={point.x}
-          cy={point.y}
-          r="1.1"
-          fill={color}
-          stroke="var(--bg-secondary)"
-          strokeWidth="0.7"
-        >
-          <title>{point.value.toFixed(7)}</title>
-        </circle>
-      ))}
+
+      <circle
+        cx={lastVisiblePoint.x}
+        cy={lastVisiblePoint.y}
+        r="2"
+        fill={color}
+        stroke="var(--bg-secondary)"
+        strokeWidth="1"
+      />
     </svg>
   );
 }

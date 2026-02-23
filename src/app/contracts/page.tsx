@@ -1,33 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { APIContract } from '@/lib/stellar';
 import ContractsClient from './ContractsClient';
 import ContractDetailsClientPage from '@/app/contract/[id]/client-page';
-import { StrKey } from '@stellar/stellar-sdk';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { isContractAddress } from '@/lib/soroban';
 import { apiEndpoints, getApiV1Data } from '@/services/api';
 
-// Convert hex contract ID to StrKey format (C...)
-function hexToContractStrKey(hexId: string): string {
-  try {
-    // If already in StrKey format (starts with C and is 56 chars), return as is
-    if (hexId.startsWith('C') && hexId.length === 56) {
-      return hexId;
-    }
-    // Convert hex to buffer and encode as contract strkey
-    const buffer = Buffer.from(hexId, 'hex');
-    return StrKey.encodeContract(buffer);
-  } catch (e) {
-    console.error('Failed to convert contract ID:', e);
-    return hexId; // Return original if conversion fails
-  }
-}
+type ContractFilter = 'all' | 'verified' | 'token' | 'contract';
+const VALID_FILTERS: ContractFilter[] = ['all', 'verified', 'token', 'contract'];
+const PAGE_SIZE = 25;
 
-// Enhanced contract interface for display
-export interface EnhancedContract {
+interface EnhancedContract {
   id: string;
   name: string;
   type: string;
@@ -38,39 +24,13 @@ export interface EnhancedContract {
   website?: string;
   operationCount: number;
   lastActivity?: string;
-  functions?: string[];
   wasmId?: string;
   createdAt?: string;
-  createTxHash?: string;
 }
 
-interface ContractsAPIResponse {
-  '@context': string;
-  '@id': string;
-  '@type': string;
-  totalItems: number;
-  member: APIContract[];
-  view?: {
-    '@type': string;
-    first?: string;
-    last?: string;
-    next?: string;
-    previous?: string;
-  };
-}
-
-const CONTRACT_CATEGORIES = [
-  { id: 'all', name: 'All' },
-  { id: 'verified', name: 'Verified' },
-  { id: 'token', name: 'Token' },
-  { id: 'contract', name: 'Contract' },
-];
-
-// Transform API contract to display format
 function transformContract(apiContract: APIContract): EnhancedContract {
   const verifiedMetadata = apiContract.verifiedMetadata || null;
 
-  // Determine contract type
   let type = 'contract';
   if (apiContract.sac || apiContract.assetCode) {
     type = 'token';
@@ -78,7 +38,6 @@ function transformContract(apiContract: APIContract): EnhancedContract {
     type = verifiedMetadata.metadataType;
   }
 
-  // Build name from various sources
   let name = type === 'token' ? 'TOKEN' : 'Smart Contract';
   if (verifiedMetadata?.displayName) {
     name = verifiedMetadata.displayName;
@@ -86,11 +45,8 @@ function transformContract(apiContract: APIContract): EnhancedContract {
     name = apiContract.assetCode;
   }
 
-  // Use contractId directly (already in StrKey format from API)
-  const contractId = apiContract.contractId;
-
   return {
-    id: contractId,
+    id: apiContract.contractId,
     name,
     type,
     symbol: apiContract.assetCode || verifiedMetadata?.symbol,
@@ -102,62 +58,39 @@ function transformContract(apiContract: APIContract): EnhancedContract {
     lastActivity: apiContract.createdAt,
     wasmId: apiContract.wasmId || undefined,
     createdAt: apiContract.createdAt,
-    createTxHash: undefined, // Not available in new API
   };
 }
 
-// Fetch contracts from Stellarchain API
-async function fetchContracts(
-  page: number = 1,
-  perPage: number = 25,
-  search?: string
-): Promise<ContractsAPIResponse> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    const data = await (async () => {
-      try {
-        return await getApiV1Data(
-          apiEndpoints.v1.contracts({
-            page,
-            itemsPerPage: perPage,
-            pagination: true,
-            'order[totalInvokes]': 'desc',
-            ...(search ? { search } : {}),
-          }),
-          {
-            signal: controller.signal,
-          }
-        );
-      } finally {
-        clearTimeout(timeout);
-      }
-    })();
+function buildQueryParams(page: number, filter: ContractFilter, search: string) {
+  const params: Record<string, string | number | boolean> = {
+    page,
+    itemsPerPage: PAGE_SIZE,
+    pagination: true,
+    'order[totalInvokes]': 'desc',
+  };
 
-    return {
-      '@context': data['@context'] || '',
-      '@id': data['@id'] || '',
-      '@type': data['@type'] || '',
-      totalItems: data.totalItems || 0,
-      member: data.member || [],
-      view: data.view,
-    };
-  } catch (error) {
-    console.error('Error fetching contracts:', error);
-    return {
-      '@context': '',
-      '@id': '',
-      '@type': '',
-      totalItems: 0,
-      member: [],
-    };
-  }
+  if (filter === 'verified') params.sourceCodeVerified = true;
+  else if (filter === 'token') params.sac = true;
+  else if (filter === 'contract') params.sac = false;
+
+  if (search) params.search = search;
+
+  return params;
 }
 
+const CONTRACT_CATEGORIES = [
+  { id: 'all', name: 'All' },
+  { id: 'verified', name: 'Verified' },
+  { id: 'token', name: 'Token' },
+  { id: 'contract', name: 'Contract' },
+];
+
 export default function ContractsPage() {
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const urlQuery = (searchParams.get('q') || '').trim();
+
+  // Detail route check
   const detailsContractId = getDetailRouteValue({
     pathname,
     searchParams,
@@ -166,70 +99,104 @@ export default function ContractsPage() {
   });
   const hasDetailsRoute = Boolean(detailsContractId);
 
+  // Read URL params
+  const urlQuery = (searchParams.get('q') || '').trim();
+  const urlPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+  const urlFilter = (VALID_FILTERS.includes(searchParams.get('filter') as ContractFilter) ? searchParams.get('filter') : 'all') as ContractFilter;
+
   const [contracts, setContracts] = useState<EnhancedContract[]>([]);
-  const [stats, setStats] = useState({
-    total: 0,
-    contracts: 0,
-    tokens: 0,
-    verified: 0,
-  });
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    total: 0,
-    perPage: 25,
-  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(urlPage);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [filter, setFilter] = useState<ContractFilter>(urlFilter);
+  const [searchQuery, setSearchQuery] = useState(urlQuery);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(urlQuery);
 
+  // Sync from URL changes (back/forward)
   useEffect(() => {
     if (hasDetailsRoute) return;
+    if (urlQuery !== searchQuery) {
+      setSearchQuery(urlQuery);
+      setDebouncedSearchQuery(urlQuery);
+    }
+    if (urlPage !== currentPage) {
+      setCurrentPage(urlPage);
+    }
+    if (urlFilter !== filter) {
+      setFilter(urlFilter);
+    }
+  }, [urlQuery, urlPage, urlFilter]);
 
-    const loadContracts = async () => {
-      setIsLoading(true);
-      setError(null);
+  // Debounce search
+  useEffect(() => {
+    if (hasDetailsRoute) return;
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Sync state to URL
+  useEffect(() => {
+    if (hasDetailsRoute) return;
+    const currentQ = (searchParams.get('q') || '').trim();
+    const currentP = parseInt(searchParams.get('page') || '1', 10) || 1;
+    const currentF = (VALID_FILTERS.includes(searchParams.get('filter') as ContractFilter) ? searchParams.get('filter') : 'all') as ContractFilter;
+    if (currentQ === debouncedSearchQuery && currentP === currentPage && currentF === filter) return;
+
+    const params = new URLSearchParams();
+    if (debouncedSearchQuery) params.set('q', debouncedSearchQuery);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    if (filter !== 'all') params.set('filter', filter);
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [debouncedSearchQuery, currentPage, filter, router, pathname, searchParams]);
+
+  // Fetch data
+  useEffect(() => {
+    if (hasDetailsRoute) return;
+    let cancelled = false;
+
+    const fetchData = async () => {
       try {
-        // Fetch first page of contracts from API
-        const initialData = await fetchContracts(1, 25, urlQuery || undefined);
+        setIsLoading(true);
+        const params = buildQueryParams(currentPage, filter, debouncedSearchQuery);
+        const data = await getApiV1Data(apiEndpoints.v1.contracts(params));
+        if (cancelled) return;
 
-        // Transform API contracts to display format, filtering out invalid IDs
-        const transformedContracts = initialData.member
-          .filter(c => isContractAddress(c.contractId))
+        const transformed = (data.member || [])
+          .filter((c: APIContract) => isContractAddress(c.contractId))
           .map(transformContract);
 
-        // Only show total count (API provides accurate totalItems)
-        // Don't calculate subset counts as they would be misleading without fetching all pages
-        const calculatedStats = {
-          total: initialData.totalItems,
-          tokens: 0, // Don't show count
-          contracts: 0, // Don't show count
-          verified: 0, // Don't show count
-        };
-
-        // Calculate total pages (25 items per page)
-        const itemsPerPage = 25;
-        const totalPages = Math.ceil(initialData.totalItems / itemsPerPage);
-
-        // Pagination info
-        const paginationInfo = {
-          currentPage: 1,
-          totalPages: totalPages,
-          total: initialData.totalItems,
-          perPage: itemsPerPage,
-        };
-
-        setContracts(transformedContracts);
-        setStats(calculatedStats);
-        setPagination(paginationInfo);
+        setContracts(transformed);
+        setTotalPages(Math.ceil((data.totalItems || 0) / PAGE_SIZE));
+        setTotalItems(data.totalItems || 0);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load contracts.');
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load contracts.');
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
-    loadContracts();
-  }, [hasDetailsRoute]);
+    fetchData();
+    return () => { cancelled = true; };
+  }, [currentPage, filter, debouncedSearchQuery, hasDetailsRoute]);
+
+  // Reset to page 1 when search or filter changes
+  const searchMountedRef = useRef(false);
+  useEffect(() => {
+    if (hasDetailsRoute) return;
+    if (!searchMountedRef.current) {
+      searchMountedRef.current = true;
+      return;
+    }
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, filter]);
 
   if (hasDetailsRoute) {
     return <ContractDetailsClientPage />;
@@ -237,20 +204,38 @@ export default function ContractsPage() {
 
   if (!isLoading && error) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 px-4">
-        <h1 className="text-2xl font-bold mb-2">Error</h1>
-        <p className="text-muted">{error}</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-2">Error loading contracts</h2>
+          <p className="text-gray-600">{error}</p>
+        </div>
       </div>
     );
   }
 
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
+  };
+
+  const handleFilterChange = (nextFilter: ContractFilter) => {
+    setFilter(nextFilter);
+    window.scrollTo(0, 0);
+  };
+
   return (
     <ContractsClient
       contracts={contracts}
-      stats={stats}
+      stats={{ total: totalItems, contracts: 0, tokens: 0, verified: 0 }}
       categories={CONTRACT_CATEGORIES}
-      pagination={pagination}
       loading={isLoading}
+      currentPage={currentPage}
+      totalPages={totalPages}
+      totalItems={totalItems}
+      filter={filter}
+      onFilterChange={handleFilterChange}
+      onPageChange={handlePageChange}
     />
   );
 }
