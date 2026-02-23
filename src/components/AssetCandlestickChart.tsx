@@ -248,7 +248,15 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
                     totalTrades: trades.reduce((a, b) => a + b, 0),
                 });
 
-                chart.timeScale().fitContent();
+                chart.timeScale().scrollToRealTime();
+
+                // Set visible range to show only the data range (no empty left space)
+                if (candleData.length > 1) {
+                    chart.timeScale().setVisibleRange({
+                        from: candleData[0].time,
+                        to: candleData[candleData.length - 1].time,
+                    });
+                }
 
             } catch (error) {
                 console.error("Failed to fetch candlestick data", error);
