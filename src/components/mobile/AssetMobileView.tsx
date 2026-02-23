@@ -74,6 +74,14 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   const [loading, setLoading] = useState(true);
   const [initialChartLoad, setInitialChartLoad] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
+
+  // Refs for infinite chart scroll
+  const allCandleDataRef = useRef<any[]>([]);
+  const allVolumeDataRef = useRef<any[]>([]);
+  const earliestTimestampRef = useRef<number>(0);
+  const isFetchingMoreRef = useRef(false);
+  const noMoreDataRef = useRef(false);
+  const xlmUsdPriceRef = useRef<number>(0);
   const [tooltipData, setTooltipData] = useState<{
     open: number;
     high: number;
@@ -152,6 +160,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
       try {
         const timeframe = timeframes.find(t => t.label === selectedTimeframe) || timeframes[1];
         const xlmUsdPrice = await getXLMUSDPriceFromHorizon(controller.signal);
+        xlmUsdPriceRef.current = xlmUsdPrice;
 
         const isXLM = asset.code === 'XLM';
         const counterAsset = isXLM
@@ -515,6 +524,10 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
     const currentTimeframe = timeframes.find(t => t.label === selectedTimeframe) || timeframes[1];
 
+    // Reset infinite scroll state
+    noMoreDataRef.current = false;
+    isFetchingMoreRef.current = false;
+
     // Format time axis based on timeframe
     const formatTimeLabel = (time: number) => {
       const date = new Date(time * 1000);
@@ -558,8 +571,16 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
         vertLine: { labelBackgroundColor: '#1E293B', color: 'rgba(148, 163, 184, 0.2)' },
         horzLine: { labelBackgroundColor: '#1E293B', color: 'rgba(148, 163, 184, 0.2)' },
       },
-      handleScale: false,
-      handleScroll: false,
+      handleScale: {
+        pinch: true,
+        mouseWheel: false,
+        axisPressedMouseMove: true,
+      },
+      handleScroll: {
+        pressedMouseMove: true,
+        horzTouchDrag: true,
+        vertTouchDrag: false,
+      },
     });
 
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
@@ -580,21 +601,138 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
       scaleMargins: { top: 0.85, bottom: 0 },
     });
 
-    candlestickSeries.setData(chartData.map(d => ({
+    const candleData = chartData.map(d => ({
       time: d.time,
       open: d.open,
       high: d.high,
       low: d.low,
       close: d.close,
-    })));
+    }));
 
-    volumeSeries.setData(chartData.map(d => ({
+    const volData = chartData.map(d => ({
       time: d.time,
       value: d.volume,
       color: d.color,
-    })));
+    }));
 
-    chart.timeScale().fitContent();
+    allCandleDataRef.current = candleData;
+    allVolumeDataRef.current = volData;
+    if (candleData.length > 0) {
+      earliestTimestampRef.current = (candleData[0].time as number) * 1000;
+    }
+
+    candlestickSeries.setData(candleData);
+    volumeSeries.setData(volData);
+
+    // Set visible range to data bounds (no empty left space)
+    if (candleData.length > 1) {
+      chart.timeScale().setVisibleRange({
+        from: candleData[0].time,
+        to: candleData[candleData.length - 1].time,
+      });
+    } else {
+      chart.timeScale().fitContent();
+    }
+
+    // Fetch older data when user scrolls to the left edge
+    const isXLM = asset.code === 'XLM';
+    const counterAsset = isXLM
+      ? { code: 'USDC', issuer: USDC_ISSUER }
+      : { code: 'XLM' };
+
+    const fetchOlderData = async () => {
+      if (isFetchingMoreRef.current || noMoreDataRef.current || cancelled) return;
+      isFetchingMoreRef.current = true;
+
+      try {
+        const endTime = earliestTimestampRef.current;
+        if (!endTime) {
+          isFetchingMoreRef.current = false;
+          return;
+        }
+
+        const rawData = await getTradeAggregations(
+          { code: asset.code, issuer: asset.issuer },
+          counterAsset,
+          currentTimeframe.resolution,
+          200,
+          undefined,
+          endTime
+        );
+        if (cancelled) return;
+
+        // API returns desc order when no startTime — reverse to chronological
+        const data = [...rawData].reverse();
+
+        if (data.length === 0) {
+          noMoreDataRef.current = true;
+          return;
+        }
+
+        const xlmUsdPrice = xlmUsdPriceRef.current;
+        const processedData = data.map(item => {
+          let close = parseFloat(item.close);
+          let open = parseFloat(item.open);
+          let high = parseFloat(item.high);
+          let low = parseFloat(item.low);
+
+          if (!isXLM) {
+            close *= xlmUsdPrice;
+            open *= xlmUsdPrice;
+            high *= xlmUsdPrice;
+            low *= xlmUsdPrice;
+          }
+
+          const bodyMax = Math.max(open, close);
+          const bodyMin = Math.min(open, close);
+          const saneHigh = high > bodyMax * 5 ? bodyMax * 1.5 : high;
+          const saneLow = low < bodyMin * 0.2 ? bodyMin * 0.5 : low;
+
+          return {
+            time: item.timestamp / 1000 as any,
+            open,
+            high: saneHigh,
+            low: saneLow,
+            close,
+            volume: parseFloat(item.base_volume),
+            color: close >= open ? 'rgba(16, 185, 129, 0.5)' : 'rgba(244, 63, 94, 0.5)',
+          };
+        });
+
+        const existingTimes = new Set(allCandleDataRef.current.map(d => d.time));
+        const newCandles = processedData
+          .filter(d => !existingTimes.has(d.time))
+          .map(d => ({ time: d.time, open: d.open, high: d.high, low: d.low, close: d.close }));
+        const newVolumes = processedData
+          .filter(d => !existingTimes.has(d.time))
+          .map(d => ({ time: d.time, value: d.volume, color: d.color }));
+
+        if (newCandles.length === 0) {
+          noMoreDataRef.current = true;
+          return;
+        }
+
+        allCandleDataRef.current = [...newCandles, ...allCandleDataRef.current];
+        allVolumeDataRef.current = [...newVolumes, ...allVolumeDataRef.current];
+        earliestTimestampRef.current = (newCandles[0].time as number) * 1000;
+
+        candlestickSeries.setData(allCandleDataRef.current);
+        volumeSeries.setData(allVolumeDataRef.current);
+      } catch (error) {
+        console.error('Failed to fetch older chart data', error);
+      } finally {
+        isFetchingMoreRef.current = false;
+      }
+    };
+
+    // Subscribe to visible range changes for infinite scroll
+    const onVisibleRangeChange = (newRange: any) => {
+      if (cancelled || !newRange) return;
+      if (newRange.from < 10) {
+        fetchOlderData();
+      }
+    };
+    chart.timeScale().subscribeVisibleLogicalRangeChange(onVisibleRangeChange);
 
     // Subscribe to crosshair move for tooltip
     const crosshairHandler = (param: any) => {
@@ -635,6 +773,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     return () => {
       cancelled = true;
       window.removeEventListener('resize', handleResize);
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(onVisibleRangeChange);
       chart.unsubscribeCrosshairMove(crosshairHandler);
       chart.remove();
     };
