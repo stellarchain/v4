@@ -165,6 +165,7 @@ export default function AccountMobileView({ account, accountId, transactions, op
   const isCurrentFavorite = isFavorite(accountId);
   const currentFavorite = getFavorite(accountId);
   const accountLabelText = currentFavorite?.label || currentAccountLabel?.name || currentAccountLabel?.org_name;
+  const labelActionText = accountLabelText ? 'Update label' : 'Add label';
 
   // Update URL when tab changes
   const handleTabChange = (tab: 'assets' | 'activity' | 'details') => {
@@ -860,6 +861,14 @@ export default function AccountMobileView({ account, accountId, transactions, op
           <button onClick={() => setShowBadgeModal(true)} className="flex items-center gap-1 flex-shrink-0">
             <AccountStatusIcons labelText={accountLabelText || undefined} verified={currentAccountLabel?.verified} size="lg" />
           </button>
+        </div>
+        <div className="flex justify-center mb-3">
+          <Link
+            href={`/accounts/directory/update?account=${encodeURIComponent(accountId)}`}
+            className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-xs font-semibold text-sky-600 hover:text-sky-700 hover:border-sky-300 transition-colors"
+          >
+            {labelActionText}
+          </Link>
         </div>
 
         {/* Total Balance Section - Centered */}
