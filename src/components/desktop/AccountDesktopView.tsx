@@ -151,6 +151,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
   const isCurrentFavorite = isFavorite(accountId);
   const currentFavorite = getFavorite(accountId);
   const accountLabelText = currentFavorite?.label || currentAccountLabel?.name || currentAccountLabel?.org_name;
+  const labelActionText = accountLabelText ? 'Update label' : 'Add label';
 
   // Read initial tab from URL params
   const initialTab = (searchParams.get('tab') as 'assets' | 'transactions' | 'operations' | 'details') || 'assets';
@@ -827,18 +828,26 @@ export default function AccountDesktopView({ account, accountId, transactions, o
               <div>
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Account Label</div>
                 {accountLabelText ? (
-                  <div className="flex items-center gap-2">
-                    <AccountStatusIcons labelText={accountLabelText} verified={currentAccountLabel?.verified} size="sm" />
-                    <span className="text-sm font-medium text-[var(--text-primary)]">{accountLabelText}</span>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <AccountStatusIcons labelText={accountLabelText} verified={currentAccountLabel?.verified} size="sm" />
+                      <span className="text-sm font-medium text-[var(--text-primary)]">{accountLabelText}</span>
+                    </div>
+                    <Link
+                      href={`/accounts/directory/update?account=${encodeURIComponent(accountId)}`}
+                      className="text-xs text-sky-600 hover:text-sky-700 hover:underline"
+                    >
+                      {labelActionText}
+                    </Link>
                   </div>
                 ) : loading ? (
                   <InlineSkeleton width="w-20" />
                 ) : (
                   <Link
-                    href={`/accounts/directory/update?account=${accountId}`}
+                    href={`/accounts/directory/update?account=${encodeURIComponent(accountId)}`}
                     className="text-sm text-sky-600 hover:text-sky-700 hover:underline"
                   >
-                    + Add Label
+                    + {labelActionText}
                   </Link>
                 )}
               </div>
