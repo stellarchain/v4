@@ -225,24 +225,65 @@ export async function getAssetTrades(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<AssetTrade>> {
-  const isNative = assetCode === 'XLM' && (!assetIssuer || assetIssuer === '');
-  let base: Asset;
-  let counter: Asset;
-
-  if (isNative) {
-    base = Asset.native();
-    counter = new Asset('USDC', USDC_ISSUER);
-  } else if (assetIssuer) {
-    base = new Asset(assetCode, assetIssuer);
-    counter = Asset.native();
-  } else {
+  const pair = resolveAssetPair(assetCode, assetIssuer);
+  if (!pair) {
     throw new Error(`Cannot fetch trades for ${assetCode} without issuer`);
   }
 
-  const builder = getHorizonServer().trades().forAssetPair(base, counter).limit(limit).order(order);
+  const builder = getHorizonServer()
+    .trades()
+    .forAssetPair(pair.base, pair.counter)
+    .limit(limit)
+    .order(order);
   if (cursor) builder.cursor(cursor);
   const response = await builder.call();
   return response as unknown as PaginatedResponse<AssetTrade>;
+}
+
+export function resolveAssetPair(
+  assetCode: string,
+  assetIssuer?: string
+): { base: Asset; counter: Asset } | null {
+  const isNative = assetCode === 'XLM' && (!assetIssuer || assetIssuer === '');
+
+  if (isNative) {
+    return {
+      base: Asset.native(),
+      counter: new Asset('USDC', USDC_ISSUER),
+    };
+  }
+
+  if (!assetIssuer) {
+    return null;
+  }
+
+  return {
+    base: new Asset(assetCode, assetIssuer),
+    counter: Asset.native(),
+  };
+}
+
+export function startAssetTradeStream(options: {
+  assetCode: string;
+  assetIssuer?: string;
+  onmessage: (trade: Horizon.ServerApi.TradeRecord) => void;
+  onerror?: (err: unknown) => void;
+  cursor?: string;
+}) {
+  const pair = resolveAssetPair(options.assetCode, options.assetIssuer);
+  if (!pair) {
+    throw new Error('Invalid asset pair for trade stream');
+  }
+
+  return getHorizonServer()
+    .trades()
+    .forAssetPair(pair.base, pair.counter)
+    .order('desc')
+    .cursor(options.cursor || 'now')
+    .stream({
+      onmessage: options.onmessage,
+      onerror: options.onerror,
+    });
 }
 
 // Get transaction hash from an asset trade's operation
@@ -2188,6 +2229,68 @@ export async function getOrderBook(
 
   inFlight.set(key, request);
   return request;
+}
+
+export function startOrderBookStream(options: {
+  sellingAsset: { code: string; issuer?: string };
+  buyingAsset: { code: string; issuer?: string };
+  cursor?: string;
+  onmessage: (book: OrderBook) => void;
+  onerror?: (err: unknown) => void;
+}) {
+  const selling = toHorizonAsset(options.sellingAsset);
+  const buying = toHorizonAsset(options.buyingAsset);
+  if (!selling || !buying) {
+    throw new Error('Invalid assets for order book stream');
+  }
+
+  const normalizeAsset = (asset: Asset | { asset_type?: string; asset_code?: string; asset_issuer?: string }) => {
+    const assetType = typeof (asset as Asset).getAssetType === 'function'
+      ? (asset as Asset).getAssetType()
+      : asset.asset_type || 'native';
+    const assetCode = typeof (asset as Asset).getCode === 'function'
+      ? (asset as Asset).getCode() || 'XLM'
+      : asset.asset_code || 'XLM';
+    const assetIssuer = typeof (asset as Asset).getIssuer === 'function'
+      ? (asset as Asset).getIssuer() || ''
+      : asset.asset_issuer || '';
+    return {
+      asset_type: assetType,
+      asset_code: assetCode,
+      asset_issuer: assetIssuer,
+    };
+  };
+
+  const normalizeRecord = (record: Horizon.ServerApi.OrderbookRecord): OrderBook => ({
+    bids: record.bids.map((entry) => ({
+      price: entry.price,
+      amount: entry.amount,
+      price_r: {
+        n: entry.price_r.n,
+        d: entry.price_r.d,
+      },
+    })),
+    asks: record.asks.map((entry) => ({
+      price: entry.price,
+      amount: entry.amount,
+      price_r: {
+        n: entry.price_r.n,
+        d: entry.price_r.d,
+      },
+    })),
+    base: normalizeAsset(record.base),
+    counter: normalizeAsset(record.counter),
+  });
+
+  return createHorizonServer()
+    .orderbook(selling, buying)
+    .cursor(options.cursor ?? 'now')
+    .stream({
+      onmessage: (record: Horizon.ServerApi.OrderbookRecord) => {
+        options.onmessage(normalizeRecord(record));
+      },
+      onerror: options.onerror,
+    });
 }
 
 // Fetch OHLC Data
