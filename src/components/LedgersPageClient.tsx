@@ -25,6 +25,8 @@ interface LedgersPageClientProps {
   currentPage: number;
   hasNextPage: boolean;
   onPageChange: (page: number) => void;
+  order: 'asc' | 'desc';
+  onOrderChange: (order: 'asc' | 'desc') => void;
 }
 
 export default function LedgersPageClient({
@@ -33,6 +35,8 @@ export default function LedgersPageClient({
   currentPage,
   hasNextPage,
   onPageChange,
+  order,
+  onOrderChange,
 }: LedgersPageClientProps) {
   const isMobile = useIsMobile();
 
@@ -45,6 +49,8 @@ export default function LedgersPageClient({
         currentPage={currentPage}
         hasNextPage={hasNextPage}
         onPageChange={onPageChange}
+        order={order}
+        onOrderChange={onOrderChange}
       />
     );
   }
@@ -60,6 +66,13 @@ export default function LedgersPageClient({
               Ledgers
             </span>
           </div>
+          <button
+            type="button"
+            onClick={() => onOrderChange(order === 'desc' ? 'asc' : 'desc')}
+            className="h-8 px-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors"
+          >
+            {order === 'desc' ? 'Newest first' : 'Oldest first'}
+          </button>
         </div>
 
         {/* Mobile Card List */}

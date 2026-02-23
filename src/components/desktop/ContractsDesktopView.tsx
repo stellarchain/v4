@@ -1,28 +1,14 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { shortenAddress, timeAgo } from '@/lib/stellar';
-import { StrKey } from '@stellar/stellar-sdk';
 import GliderTabs from '@/components/ui/GliderTabs';
-import InlineSkeleton from '@/components/ui/InlineSkeleton';
-import { apiEndpoints, getApiV1Data } from '@/services/api';
 import { useNetwork } from '@/contexts/NetworkContext';
 
-// Convert hex contract ID to StrKey format (C...)
-function hexToContractStrKey(hexId: string): string {
-  try {
-    if (hexId.startsWith('C') && hexId.length === 56) {
-      return hexId;
-    }
-    const buffer = Buffer.from(hexId, 'hex');
-    return StrKey.encodeContract(buffer);
-  } catch (e) {
-    console.error('Failed to convert contract ID:', e);
-    return hexId;
-  }
-}
+type ContractFilter = 'all' | 'verified' | 'token' | 'contract';
+type ContractsSort = 'activity' | 'activity_asc' | 'transactions' | 'asset_code';
 
 interface EnhancedContract {
   id: string;
@@ -65,16 +51,15 @@ interface ContractsDesktopViewProps {
   categories: Category[];
   pagination: PaginationInfo;
   loading?: boolean;
+  filter: ContractFilter;
+  searchInput: string;
+  onSearchInputChange: (value: string) => void;
+  sortBy: ContractsSort;
+  onSortChange: (value: ContractsSort) => void;
+  onFilterChange: (filter: ContractFilter) => void;
+  onPageChange: (page: number) => void;
 }
 
-const PAGE_SIZE = 25;
-type ContractsSort =
-  | 'activity'
-  | 'activity_asc'
-  | 'transactions'
-  | 'asset_code';
-
-// Pagination component
 const PaginationControls = ({ currentPage, totalPages, onPageChange, loading }: {
   currentPage: number;
   totalPages: number;
@@ -154,217 +139,21 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading }: 
 };
 
 export default function ContractsDesktopView({
-  contracts: initialContracts,
+  contracts,
   stats,
   categories,
-  pagination: initialPagination,
+  pagination,
   loading = false,
+  filter,
+  searchInput,
+  onSearchInputChange,
+  sortBy,
+  onSortChange,
+  onFilterChange,
+  onPageChange,
 }: ContractsDesktopViewProps) {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const urlQuery = (searchParams.get('q') || '').trim();
-  const urlPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
-  const urlFilter = (['all', 'verified', 'token', 'contract'].includes(searchParams.get('filter') || '') ? searchParams.get('filter') : 'all') as string;
-
-  const [contracts, setContracts] = useState<EnhancedContract[]>(initialContracts);
-  const [pagination, setPagination] = useState(initialPagination);
-  const [filter, setFilter] = useState<string>(urlFilter);
-  const [searchInput, setSearchInput] = useState(urlQuery);
-  const [sortBy, setSortBy] = useState<ContractsSort>('activity');
-  const [isLoading, setIsLoading] = useState(false);
-  const [debouncedSearch, setDebouncedSearch] = useState(urlQuery);
-  const lastFetchKeyRef = useRef<string>('');
-  const fetchInFlightRef = useRef(false);
   const { networkConfig } = useNetwork();
-
-  useEffect(() => {
-    setContracts(initialContracts);
-  }, [initialContracts]);
-
-  useEffect(() => {
-    setPagination(initialPagination);
-  }, [initialPagination]);
-
-  useEffect(() => {
-    setSearchInput(urlQuery);
-    setDebouncedSearch(urlQuery);
-  }, [urlQuery]);
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setDebouncedSearch(searchInput.trim());
-    }, 300);
-    return () => window.clearTimeout(timeout);
-  }, [searchInput]);
-
-  // Sync page, filter, and search to URL
-  const syncUrlRef = useRef(false);
-  useEffect(() => {
-    if (!syncUrlRef.current) {
-      syncUrlRef.current = true;
-      return;
-    }
-
-    const params = new URLSearchParams();
-    if (pagination.currentPage > 1) params.set('page', String(pagination.currentPage));
-    if (filter !== 'all') params.set('filter', filter);
-    if (debouncedSearch) params.set('q', debouncedSearch);
-
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [pagination.currentPage, filter, debouncedSearch, router, pathname]);
-
-  const buildContractsQueryParams = useCallback(
-    (pageNum: number, activeSort: ContractsSort, rawQuery: string, activeFilter: string) => {
-      const params: Record<string, string | number | boolean> = {
-        page: pageNum,
-        itemsPerPage: PAGE_SIZE,
-        pagination: true,
-      };
-
-      if (activeSort === 'activity') params['order[totalInvokes]'] = 'desc';
-      if (activeSort === 'activity_asc') params['order[totalInvokes]'] = 'asc';
-      if (activeSort === 'transactions') params['order[totalTransactions]'] = 'desc';
-      if (activeSort === 'asset_code') params['order[asset_code]'] = 'asc';
-
-      if (activeFilter === 'verified') {
-        params.sourceCodeVerified = true;
-      } else if (activeFilter === 'token') {
-        params.sac = true;
-      } else if (activeFilter === 'contract') {
-        params.sac = false;
-      }
-
-      const query = rawQuery.trim();
-      if (query) {
-        params.search = query;
-      }
-
-      return params;
-    },
-    []
-  );
-
-  // Transform raw API contracts into EnhancedContract[]
-  const transformContracts = useCallback((apiContracts: any[]): EnhancedContract[] => {
-    return apiContracts.map((apiContract: any) => {
-      const verifiedMetadata = apiContract.verifiedMetadata || null;
-
-      let type = 'contract';
-      if (apiContract.sac || apiContract.assetCode) {
-        type = 'token';
-      } else if (verifiedMetadata?.metadataType) {
-        type = verifiedMetadata.metadataType;
-      }
-
-      let name = type === 'token' ? 'TOKEN' : 'Smart Contract';
-      if (verifiedMetadata?.displayName) {
-        name = verifiedMetadata.displayName;
-      } else if (apiContract.assetCode) {
-        name = apiContract.assetCode;
-      }
-
-      const contractId = apiContract.contractId;
-
-      return {
-        id: contractId,
-        name,
-        type,
-        symbol: apiContract.assetCode || verifiedMetadata?.symbol,
-        description: verifiedMetadata?.description,
-        verified: Boolean(apiContract.sourceCodeVerified || verifiedMetadata?.verified),
-        sep41: apiContract.sac || !!apiContract.assetCode || Boolean(verifiedMetadata?.sep41),
-        website: verifiedMetadata?.website,
-        operationCount: Number(apiContract.totalInvokes ?? 0),
-        totalTransactions: Number(apiContract.totalTransactions ?? 0),
-        lastActivity: apiContract.createdAt,
-        wasmId: apiContract.wasmId || undefined,
-        createdAt: apiContract.createdAt,
-        createTxHash: undefined,
-      };
-    });
-  }, []);
-
-  // Check if a contract matches the current filter
-  const matchesFilter = useCallback((contract: EnhancedContract, activeFilter: string): boolean => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'verified') return contract.verified;
-    if (activeFilter === 'token') return contract.type === 'token';
-    if (activeFilter === 'contract') return contract.type !== 'token';
-    return contract.type === activeFilter;
-  }, []);
-
-  // Fetch contracts - one API request per user action (tab/sort/search/page)
-  const fetchPage = useCallback(async (page: number, activeFilter?: string, activeSearch?: string, activeSort?: ContractsSort) => {
-    const currentFilter = activeFilter ?? filter;
-    const currentSearch = activeSearch ?? debouncedSearch;
-    const currentSort = activeSort ?? sortBy;
-    const fetchKey = `${page}|${currentFilter}|${currentSearch}|${currentSort}|${networkConfig.name}`;
-
-    if (fetchInFlightRef.current && lastFetchKeyRef.current === fetchKey) {
-      return;
-    }
-
-    fetchInFlightRef.current = true;
-    lastFetchKeyRef.current = fetchKey;
-    setIsLoading(true);
-    window.scrollTo(0, 0);
-    try {
-      const buildUrl = (pageNum: number) => {
-        const params = buildContractsQueryParams(pageNum, currentSort, currentSearch, currentFilter);
-        return apiEndpoints.v1.contracts(params);
-      };
-
-      const data = await getApiV1Data(buildUrl(page));
-      const transformed = transformContracts(data.member || []);
-      const itemsPerPage = PAGE_SIZE;
-      const totalPages = Math.ceil((data.totalItems || 0) / itemsPerPage);
-
-      const filtered = currentFilter === 'all'
-        ? transformed
-        : transformed.filter(c => matchesFilter(c, currentFilter));
-
-      setContracts(filtered);
-      setPagination({
-        currentPage: page,
-        totalPages,
-        total: data.totalItems || 0,
-        perPage: itemsPerPage,
-      });
-    } catch (error) {
-      console.error('Error fetching contracts:', error);
-    } finally {
-      fetchInFlightRef.current = false;
-      setIsLoading(false);
-    }
-  }, [filter, sortBy, debouncedSearch, transformContracts, matchesFilter, buildContractsQueryParams, networkConfig.name]);
-
-  // On mount: if URL has non-default page/filter, fetch that data
-  const initialFetchRef = useRef(false);
-  useEffect(() => {
-    if (initialFetchRef.current) return;
-    initialFetchRef.current = true;
-    if (urlPage > 1 || urlFilter !== 'all' || urlQuery) {
-      fetchPage(urlPage, urlFilter, urlQuery, sortBy as ContractsSort);
-    }
-  }, []);
-
-  const handleFilterChange = useCallback((nextFilter: string) => {
-    setFilter(nextFilter);
-    fetchPage(1, nextFilter, debouncedSearch, sortBy);
-  }, [fetchPage, debouncedSearch, sortBy]);
-
-  // Re-fetch when sort/search changes (skip initial mount to avoid duplicate request
-  // because initial data is already loaded in parent page).
-  const didMountRef = useRef(false);
-  useEffect(() => {
-    if (!didMountRef.current) {
-      didMountRef.current = true;
-      return;
-    }
-    fetchPage(1, filter, debouncedSearch, sortBy);
-  }, [sortBy, debouncedSearch, fetchPage, filter]);
 
   const filteredContracts = useMemo(() => {
     const seen = new Set<string>();
@@ -375,17 +164,6 @@ export default function ContractsDesktopView({
       return true;
     });
 
-    if (filter === 'active') {
-      result = result.filter(c => c.operationCount > 0);
-    } else if (filter === 'verified') {
-      result = result.filter(c => c.verified);
-    } else if (filter === 'token') {
-      result = result.filter(c => c.type === 'token');
-    } else if (filter === 'contract') {
-      result = result.filter(c => c.type !== 'token');
-    }
-
-    // Client-side sorting fallback for current in-memory slice.
     if (sortBy === 'activity') {
       result.sort((a, b) => b.operationCount - a.operationCount);
     } else if (sortBy === 'activity_asc') {
@@ -397,9 +175,8 @@ export default function ContractsDesktopView({
     }
 
     return result;
-  }, [contracts, filter, debouncedSearch, sortBy]);
+  }, [contracts, sortBy]);
 
-  // Get type badge style
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'token':
@@ -417,29 +194,11 @@ export default function ContractsDesktopView({
     }
   };
 
-  // Use stats from parent (calculated from sample of pages) for accurate counts
-  const currentStats = useMemo(() => ({
-    total: pagination.total,
-    tokens: stats.tokens,
-    contracts: stats.contracts,
-    verified: stats.verified,
-  }), [stats, pagination.total]);
-
-  const typeCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const c of contracts) {
-      counts[c.type] = (counts[c.type] ?? 0) + 1;
-    }
-    return counts;
-  }, [contracts]);
-
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
-        {/* Header Card */}
         <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
               <Link
                 href="/"
@@ -458,22 +217,24 @@ export default function ContractsDesktopView({
                 </div>
                 <div className="text-xl font-bold text-[var(--text-primary)]">Smart Contracts</div>
                 <div className="mt-1 text-xs text-[var(--text-tertiary)]">
-                  {loading ? <InlineSkeleton width="w-48" height="h-3" /> : `${pagination.total.toLocaleString()} smart contracts deployed on Stellar`}
+                  {pagination.total.toLocaleString()} smart contracts deployed on Stellar
                 </div>
               </div>
             </div>
 
-            {/* Right: Quick Stats */}
             <div className="flex gap-3">
               <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total</div>
-                <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-16" /> : pagination.total.toLocaleString()}</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{pagination.total.toLocaleString()}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Tokens</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{stats.tokens.toLocaleString()}</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Search and Sort Row */}
         <div className="flex items-center gap-4 mb-4">
           <div className="relative flex-1 max-w-md">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-4 h-4 text-[var(--text-muted)] pointer-events-none" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -483,10 +244,10 @@ export default function ContractsDesktopView({
               type="text"
               placeholder="Search by name, symbol, or contract ID..."
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
+              onChange={(e) => onSearchInputChange(e.target.value)}
               className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-sky-500 focus:border-transparent shadow-sm"
             />
-            {isLoading && (
+            {loading && (
               <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-sky-500" aria-hidden="true" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -495,7 +256,7 @@ export default function ContractsDesktopView({
           </div>
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as ContractsSort)}
+            onChange={(e) => onSortChange(e.target.value as ContractsSort)}
             className="px-4 py-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-medium text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm cursor-pointer"
           >
             <option value="activity">Most Active</option>
@@ -505,23 +266,16 @@ export default function ContractsDesktopView({
           </select>
         </div>
 
-        {/* Filter Tabs */}
         <div className="mb-4 max-w-full">
           <GliderTabs
             size="sm"
             className="border-[var(--border-default)]"
-            tabs={[
-              { id: 'all', label: 'All', count: filter === 'all' ? pagination.total : undefined },
-              { id: 'verified', label: 'Verified', count: filter === 'verified' ? pagination.total : undefined },
-              { id: 'token', label: 'Tokens', count: filter === 'token' ? pagination.total : undefined },
-              { id: 'contract', label: 'Contracts', count: filter === 'contract' ? pagination.total : undefined },
-            ]}
+            tabs={categories.map((category) => ({ id: category.id, label: category.name }))}
             activeId={filter}
-            onChange={handleFilterChange}
+            onChange={(id) => onFilterChange(id as ContractFilter)}
           />
         </div>
 
-        {/* Contracts Table */}
         <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden min-h-[520px]">
           <div className="overflow-x-auto">
             <table className="w-full sc-table">
@@ -537,21 +291,16 @@ export default function ContractsDesktopView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--bg-primary)]">
-                {(loading || (isLoading && filteredContracts.length === 0)) ? (
+                {loading ? (
                   Array.from({ length: 8 }).map((_, idx) => (
                     <tr key={`contracts-skeleton-row-${idx}`}>
-                      <td className="py-3 px-4"><InlineSkeleton width="w-20" /></td>
-                      <td className="py-3 px-3">
-                        <div className="flex items-center gap-2">
-                          <InlineSkeleton width="w-28" />
-                          <InlineSkeleton width="w-10" height="h-3" />
-                        </div>
-                      </td>
-                      <td className="py-3 px-3"><InlineSkeleton width="w-16" /></td>
-                      <td className="py-3 px-3"><InlineSkeleton width="w-14" /></td>
-                      <td className="py-3 px-3 text-right"><InlineSkeleton width="w-12" /></td>
-                      <td className="py-3 px-3"><InlineSkeleton width="w-12" /></td>
-                      <td className="py-3 px-4 text-center"><InlineSkeleton width="w-6" height="h-6" /></td>
+                      <td className="py-3 px-4"><div className="h-4 w-20 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-3 px-3"><div className="h-4 w-40 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-3 px-3"><div className="h-4 w-16 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-3 px-3"><div className="h-4 w-14 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-3 px-3 text-right"><div className="h-4 w-12 bg-[var(--bg-tertiary)] rounded animate-pulse ml-auto" /></td>
+                      <td className="py-3 px-3"><div className="h-4 w-12 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-3 px-4"><div className="h-4 w-6 bg-[var(--bg-tertiary)] rounded animate-pulse mx-auto" /></td>
                     </tr>
                   ))
                 ) : filteredContracts.length > 0 ? (
@@ -562,9 +311,8 @@ export default function ContractsDesktopView({
                       <tr
                         key={`${contract.id}-${contract.createdAt || idx}`}
                         className="hover:bg-sky-50/30 transition-colors group cursor-pointer"
-                        onClick={() => window.location.href = `/contracts/${contract.id}`}
+                        onClick={() => router.push(`/contracts/${contract.id}`)}
                       >
-                        {/* Contract ID */}
                         <td className="py-3 px-4">
                           <Link
                             href={`/contracts/${contract.id}`}
@@ -575,7 +323,6 @@ export default function ContractsDesktopView({
                           </Link>
                         </td>
 
-                        {/* Name */}
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
                             <Link
@@ -598,7 +345,6 @@ export default function ContractsDesktopView({
                           </div>
                         </td>
 
-                        {/* Type */}
                         <td className="py-3 px-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${typeBadge.bg} ${typeBadge.color}`}>
                             {typeBadge.label}
@@ -610,12 +356,10 @@ export default function ContractsDesktopView({
                           )}
                         </td>
 
-                        {/* Created */}
                         <td className="py-3 px-3 text-[12px] text-[var(--text-tertiary)] whitespace-nowrap">
                           {contract.createdAt ? timeAgo(contract.createdAt) : '-'}
                         </td>
 
-                        {/* Invocations */}
                         <td className="py-3 px-3 text-right">
                           {contract.operationCount > 0 ? (
                             <span className="text-[12px] font-semibold text-[var(--text-primary)]">
@@ -626,7 +370,6 @@ export default function ContractsDesktopView({
                           )}
                         </td>
 
-                        {/* Status */}
                         <td className="py-3 px-3">
                           {contract.operationCount > 0 ? (
                             <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600">
@@ -641,7 +384,6 @@ export default function ContractsDesktopView({
                           )}
                         </td>
 
-                        {/* Arrow */}
                         <td className="py-3 px-4 text-center">
                           <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-muted)] group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
                             <svg className="w-3.5 h-3.5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -674,8 +416,8 @@ export default function ContractsDesktopView({
           <PaginationControls
             currentPage={pagination.currentPage}
             totalPages={pagination.totalPages}
-            onPageChange={fetchPage}
-            loading={isLoading || loading}
+            onPageChange={onPageChange}
+            loading={loading}
           />
         </div>
       </div>
