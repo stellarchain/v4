@@ -91,6 +91,11 @@ export async function postApiV1Data(path, data = {}, config = {}) {
   return response.data;
 }
 
+export async function patchApiV1Data(path, data = {}, config = {}) {
+  const response = await apiV1Client.patch(path, data, config);
+  return response.data;
+}
+
 export const fetchStellarCoinData = async () => {
   return getApiData(apiEndpoints.coins.stellar());
 };
