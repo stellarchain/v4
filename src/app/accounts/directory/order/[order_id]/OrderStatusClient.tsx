@@ -37,6 +37,8 @@ const STREAMABLE_PAYMENT_TYPES = new Set([
   'path_payment_strict_receive',
 ]);
 
+const STEPS = ['Payment', 'Done'] as const;
+
 function resolveOrderNetwork(value: string | number | undefined, fallback: NetworkType): NetworkType {
   if (value === 'mainnet' || value === 'testnet' || value === 'futurenet') {
     return value;
@@ -86,6 +88,98 @@ function extractPaymentTxHash(payment: any): string {
   return String(payment?.transaction_hash || payment?.transaction?.hash || '').trim();
 }
 
+function getStepIndex(status: string): number {
+  if (status === 'completed') return 1;
+  return 0;
+}
+
+function StepIndicator({ step, currentStep }: { step: number; currentStep: number }) {
+  const isComplete = step < currentStep;
+  const isActive = step === currentStep;
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <div
+        className={`
+          w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold
+          transition-all duration-500 ease-out
+          ${isComplete
+            ? 'bg-[var(--success)] text-white'
+            : isActive
+              ? 'bg-[var(--info)] text-white shadow-[0_0_12px_rgba(59,130,246,0.4)]'
+              : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] border border-[var(--border-default)]'
+          }
+        `}
+        style={isActive ? { animation: 'pulse-soft 3.5s ease-in-out infinite' } : undefined}
+      >
+        {isComplete ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        ) : (
+          step + 1
+        )}
+      </div>
+      <span
+        className={`text-[11px] font-medium tracking-wide ${
+          isComplete
+            ? 'text-[var(--success)]'
+            : isActive
+              ? 'text-[var(--text-primary)]'
+              : 'text-[var(--text-muted)]'
+        }`}
+      >
+        {STEPS[step]}
+      </span>
+    </div>
+  );
+}
+
+function StepConnector({ isComplete }: { isComplete: boolean }) {
+  return (
+    <div className="flex-1 h-px mx-1 relative">
+      <div className="absolute inset-0 bg-[var(--border-default)]" />
+      <div
+        className="absolute inset-0 bg-[var(--success)] origin-left transition-transform duration-700 ease-out"
+        style={{ transform: isComplete ? 'scaleX(1)' : 'scaleX(0)' }}
+      />
+    </div>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* noop */
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="ml-2 p-1.5 rounded-md hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+      title="Copy address"
+    >
+      {copied ? (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 export default function OrderStatusClient({ initialOrderId = '' }: { initialOrderId?: string }) {
   const USER_DEFINED_USD = 99;
   const VERIFIED_USD = 299;
@@ -95,7 +189,6 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
   const orderId = queryOrderId || initialOrderId;
 
   const [order, setOrder] = useState<OrderState | null>(null);
-  const [responseMeta, setResponseMeta] = useState<{ message?: string; status?: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
@@ -103,14 +196,12 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
 
   const [streamStatus, setStreamStatus] = useState<StreamStatus>('idle');
   const [streamError, setStreamError] = useState('');
-  const [lastPaymentEventAt, setLastPaymentEventAt] = useState<Date | null>(null);
   const [lastPaymentTx, setLastPaymentTx] = useState('');
 
   const activeNetwork = useMemo(() => resolveOrderNetwork(order?.network, selectedNetwork), [order?.network, selectedNetwork]);
 
   const applyOrderResponse = (data: any) => {
     const orderPayload = data?.data || data;
-    setResponseMeta({ message: data?.message, status: data?.status });
     setOrder(orderPayload || null);
     setError('');
     setLastCheckedAt(new Date());
@@ -231,7 +322,6 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
         if (streamTxHash) {
           setLastPaymentTx(streamTxHash);
         }
-        setLastPaymentEventAt(new Date());
         setStreamStatus('event');
 
         void notifyPaymentDetected({
@@ -250,7 +340,7 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
       },
       onerror: () => {
         setStreamStatus('error');
-        setStreamError('Streaming temporarily disconnected. Reconnecting...');
+        setStreamError('Stream disconnected. Reconnecting...');
       },
       reconnectTimeout: 15000,
     });
@@ -262,161 +352,143 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
     };
   }, [orderId, paymentMonitorAccount, displayAccount, isCompleted, activeNetwork]);
 
-  const streamLabel =
-    streamStatus === 'event'
-      ? 'Payment detected'
-      : streamStatus === 'listening'
-        ? 'Streaming active'
-        : streamStatus === 'connecting'
-          ? 'Connecting stream'
-          : streamStatus === 'error'
-            ? 'Reconnecting stream'
-            : 'Streaming paused';
+  const currentStep = getStepIndex(orderStatus);
+
+  const streamDot =
+    streamStatus === 'listening' || streamStatus === 'event'
+      ? 'bg-[var(--success)]'
+      : streamStatus === 'error'
+        ? 'bg-[var(--warning)]'
+        : 'bg-[var(--text-muted)]';
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-4">
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-2xl p-4">
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div>
-            <h1 className="text-lg font-semibold text-[var(--text-primary)]">Order Status</h1>
-            <p className="text-sm text-[var(--text-tertiary)] mt-1 font-mono break-all">{orderId || '-'}</p>
-          </div>
-          <span className="text-xs px-2 py-1 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-            {streamLabel}
-          </span>
+    <div className="max-w-lg mx-auto px-4 py-6">
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-2xl p-5">
+        {/* Header */}
+        <div className="text-center mb-5">
+          <h1 className="text-base font-semibold text-[var(--text-primary)]">Order Status</h1>
+          <p className="text-[11px] text-[var(--text-muted)] mt-1 font-mono">{orderId || '-'}</p>
         </div>
 
         {isLoading ? (
-          <p className="text-sm text-[var(--text-tertiary)]">Loading order status...</p>
+          <div className="flex items-center justify-center py-12">
+            <div className="w-5 h-5 border-2 border-[var(--info)] border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : error ? (
-          <p className="text-sm text-red-500">{error}</p>
+          <div className="text-center py-8">
+            <p className="text-sm text-[var(--error)]">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-3 text-xs text-[var(--info)] hover:underline"
+            >
+              Try again
+            </button>
+          </div>
         ) : (
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] p-3">
-                <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1">Status</div>
-                <div className="font-semibold text-[var(--text-primary)]">{String(order?.status || 'pending')}</div>
-              </div>
-              <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] p-3">
-                <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1">Last Check</div>
-                <div className="font-medium text-[var(--text-secondary)]">
-                  {lastCheckedAt ? lastCheckedAt.toLocaleTimeString() : '-'}
-                </div>
-              </div>
+          <>
+            {/* Stepper */}
+            <div className="flex items-center mb-6 px-2">
+              <StepIndicator step={0} currentStep={currentStep} />
+              <StepConnector isComplete={currentStep > 0} />
+              <StepIndicator step={1} currentStep={currentStep} />
             </div>
+
+            {/* Main Content Card */}
             <div
-              className={`rounded-lg border p-3 ${
+              className={`rounded-xl border p-5 transition-colors duration-500 ${
                 isCompleted
-                  ? 'border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20'
-                  : 'border-amber-300 bg-amber-50 dark:bg-amber-900/20'
+                  ? 'border-emerald-500/30 bg-emerald-500/5'
+                  : 'border-[var(--border-default)] bg-[var(--bg-primary)]'
               }`}
             >
-              <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">Payment Flow</div>
-              {!isCompleted ? (
-                <p className="text-sm text-[var(--text-primary)]">
-                  Send{' '}
-                  <span className="font-bold">
-                    {selectedXlmTotal
-                      ? `${selectedXlmTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} XLM`
-                      : 'the required XLM amount'}
-                  </span>{' '}
-                  to the monitor account below to complete label processing.
-                </p>
+              {isCompleted ? (
+                /* ---- DONE STATE ---- */
+                <div className="text-center py-4">
+                  <div className="w-14 h-14 rounded-full bg-[var(--success)] mx-auto mb-4 flex items-center justify-center">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <p className="text-lg font-semibold text-[var(--text-primary)]">All Done!</p>
+                  <p className="text-sm text-[var(--text-secondary)] mt-2">
+                    Label <span className="font-semibold text-[var(--text-primary)]">&ldquo;{displayLabel}&rdquo;</span> has been applied to your account.
+                  </p>
+                  {(paymentTxHash || lastPaymentTx) && (
+                    <p className="text-[11px] text-[var(--text-muted)] mt-3 font-mono break-all">
+                      TX: {paymentTxHash || lastPaymentTx}
+                    </p>
+                  )}
+                </div>
               ) : (
-                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                  Payment received. Label flow completed.
-                </p>
-              )}
-              {paymentMonitorAccount && (
-                <div className="mt-2 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2">
-                  <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1">Payment Monitor Account</div>
-                  <div className="text-sm font-mono break-all text-[var(--text-primary)]">{paymentMonitorAccount}</div>
+                /* ---- WAITING FOR PAYMENT STATE ---- */
+                <div className="text-center">
+                  <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-3">
+                    Send to complete your order
+                  </p>
+                  <div className="mb-1">
+                    <span className="text-2xl font-bold font-mono text-[var(--text-primary)] tabular-nums">
+                      {selectedXlmTotal
+                        ? selectedXlmTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                        : '---'}
+                    </span>
+                    <span className="text-sm font-semibold text-[var(--text-secondary)] ml-1.5">XLM</span>
+                  </div>
+                  <p className="text-xs text-[var(--text-muted)] mb-5">
+                    ${selectedUsdTotal}.00 USD
+                    {xlmPriceUsd && (
+                      <span className="ml-1">(1 XLM = ${xlmPriceUsd.toFixed(4)})</span>
+                    )}
+                  </p>
+
+                  {paymentMonitorAccount && (
+                    <div className="rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] px-3 py-3">
+                      <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-1.5">Send to</p>
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-[13px] font-mono text-[var(--text-primary)] break-all leading-relaxed">
+                          {paymentMonitorAccount}
+                        </span>
+                        <CopyButton text={paymentMonitorAccount} />
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-              {paymentTxHash && (
-                <div className="mt-2 text-xs text-[var(--text-secondary)]">
-                  Payment TX: <span className="font-mono break-all">{paymentTxHash}</span>
-                </div>
-              )}
-              {lastPaymentTx && !paymentTxHash && (
-                <div className="mt-2 text-xs text-[var(--text-secondary)]">
-                  Stream TX: <span className="font-mono break-all">{lastPaymentTx}</span>
-                </div>
-              )}
-              {lastPaymentEventAt && (
-                <div className="mt-1 text-xs text-[var(--text-muted)]">
-                  Last stream event: {lastPaymentEventAt.toLocaleTimeString()}
-                </div>
-              )}
-              {streamError && (
-                <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">{streamError}</div>
               )}
             </div>
-            <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] p-3">
-              <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">Price</div>
-              <div className="text-sm text-[var(--text-secondary)]">
-                <span className="font-medium text-[var(--text-primary)]">User Defined:</span> ${USER_DEFINED_USD}
-                <span className="mx-2 text-[var(--text-muted)]">|</span>
-                <span className="font-medium text-[var(--text-primary)]">Verified:</span> ${VERIFIED_USD}
-              </div>
-              <div className="mt-2 text-sm text-[var(--text-secondary)]">
-                <span className="font-medium text-[var(--text-primary)]">Total ({orderType || 'user_defined'}):</span>{' '}
-                {selectedXlmTotal ? `${selectedXlmTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} XLM` : 'N/A'}
-                {xlmPriceUsd ? (
-                  <span className="text-[var(--text-muted)]"> (1 XLM = ${xlmPriceUsd.toFixed(4)})</span>
-                ) : (
-                  <span className="text-[var(--text-muted)]"> (XLM price unavailable)</span>
-                )}
-              </div>
-            </div>
-            <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] p-3">
-              <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">Order Details</div>
-              <div className="space-y-1 text-sm text-[var(--text-secondary)]">
-                <div>
-                  <span className="text-[var(--text-muted)]">Order Type:</span>{' '}
-                  <span className="font-medium text-[var(--text-primary)]">{orderType || '-'}</span>
-                </div>
-                <div>
-                  <span className="text-[var(--text-muted)]">Label:</span>{' '}
-                  <span className="font-medium text-[var(--text-primary)]">{displayLabel || '-'}</span>
-                </div>
-                <div>
-                  <span className="text-[var(--text-muted)]">Account:</span>{' '}
-                  <span className="font-mono break-all text-[var(--text-primary)]">{displayAccount || '-'}</span>
-                </div>
-                <div>
-                  <span className="text-[var(--text-muted)]">Network:</span>{' '}
-                  <span className="font-medium text-[var(--text-primary)]">{String(order?.network ?? activeNetwork)}</span>
-                </div>
-              </div>
-            </div>
-            {responseMeta?.message && (
-              <div className="text-sm text-[var(--text-tertiary)]">
-                {responseMeta.message} {responseMeta.status ? `(HTTP ${responseMeta.status})` : ''}
+
+            {/* Stream / polling indicator */}
+            {!isCompleted && (
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${streamDot}`}
+                  style={{ animation: 'pulse-soft 3.5s ease-in-out infinite' }}
+                />
+                <span className="text-[11px] text-[var(--text-muted)]">
+                  {streamStatus === 'listening' || streamStatus === 'event' ? 'Live' : streamStatus === 'error' ? 'Reconnecting' : 'Connecting'}
+                  {lastCheckedAt && <span className="mx-0.5">&middot;</span>}
+                  {lastCheckedAt && lastCheckedAt.toLocaleTimeString()}
+                </span>
               </div>
             )}
 
-            <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] p-3">
-              <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-2">Raw Response</div>
-              <pre className="text-xs text-[var(--text-secondary)] overflow-auto max-h-[360px]">
-                {JSON.stringify(order, null, 2)}
-              </pre>
-            </div>
-          </div>
+            {streamError && !isCompleted && (
+              <p className="text-[11px] text-[var(--warning)] text-center mt-1">{streamError}</p>
+            )}
+          </>
         )}
 
-        <div className="mt-4 flex gap-3">
+        {/* Actions */}
+        <div className="mt-5 flex gap-3">
           <Link
             href="/accounts/directory/update"
-            className="px-4 py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+            className="flex-1 text-center px-4 py-2.5 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
           >
-            New Label Order
+            New Order
           </Link>
           <Link
             href="/accounts/directory"
-            className="px-4 py-2 rounded-lg bg-[var(--info)] text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            className="flex-1 text-center px-4 py-2.5 rounded-xl bg-[var(--info)] text-sm font-medium text-white hover:opacity-90 transition-opacity"
           >
-            Account Directory
+            Directory
           </Link>
         </div>
       </div>
