@@ -8,6 +8,7 @@ import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 type ContractFilter = 'all' | 'verified' | 'token' | 'contract';
+type ContractsSort = 'activity' | 'activity_asc' | 'transactions' | 'asset_code';
 
 interface EnhancedContract {
   id: string;
@@ -39,10 +40,15 @@ interface ContractsClientProps {
   };
   categories: Category[];
   loading?: boolean;
+  tableLoading?: boolean;
   currentPage: number;
   totalPages: number;
   totalItems: number;
   filter: ContractFilter;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+  sortBy: ContractsSort;
+  onSortChange: (value: ContractsSort) => void;
   onFilterChange: (filter: ContractFilter) => void;
   onPageChange: (page: number) => void;
 }
@@ -52,10 +58,15 @@ export default function ContractsClient({
   stats,
   categories,
   loading = false,
+  tableLoading = false,
   currentPage,
   totalPages,
   totalItems,
   filter,
+  searchQuery,
+  onSearchQueryChange,
+  sortBy,
+  onSortChange,
   onFilterChange,
   onPageChange,
 }: ContractsClientProps) {
@@ -79,7 +90,14 @@ export default function ContractsClient({
           stats={stats}
           categories={categories}
           pagination={{ currentPage, totalPages, total: totalItems, perPage: 25 }}
-          loading={loading}
+          loading={tableLoading}
+          filter={filter}
+          searchInput={searchQuery}
+          onSearchInputChange={onSearchQueryChange}
+          sortBy={sortBy}
+          onSortChange={onSortChange}
+          onFilterChange={onFilterChange}
+          onPageChange={onPageChange}
         />
       </div>
 
