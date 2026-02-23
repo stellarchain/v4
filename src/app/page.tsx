@@ -249,7 +249,7 @@ export default function HomePage() {
       <div className="md:hidden min-h-screen bg-[var(--bg-primary)] pb-20">
         <StatsSection
           stats={resolvedStats}
-          xlmVolume={xlmVolume}
+          xlmVolume={resolvedXlm.volume24h || xlmVolume}
           xlmPrice={resolvedXlm.price}
           marketOverview={marketOverview}
           loading={isLoading}

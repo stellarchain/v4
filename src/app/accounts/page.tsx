@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { RichListAccount } from '@/lib/stellar';
 import TopAccountsMobileList from '@/components/mobile/TopAccountsMobileList';
@@ -10,11 +10,15 @@ import Loading from '@/components/ui/Loading';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { apiEndpoints, getApiData, getApiV1Data } from '@/services/api';
 
+const ITEMS_PER_PAGE = 30;
+const TOTAL_XLM_SUPPLY = 50_000_000_000;
+
 export default function AccountsPage() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const urlQuery = (searchParams.get('q') || '').trim();
+    const urlPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
     const detailsAccountId = getDetailRouteValue({
         pathname,
         searchParams,
@@ -30,32 +34,50 @@ export default function AccountsPage() {
     const [xlmPriceUsd, setXlmPriceUsd] = useState<number | null>(null);
     const [searchQuery, setSearchQuery] = useState(urlQuery);
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(urlQuery);
+    const [currentPage, setCurrentPage] = useState(urlPage);
 
+    // Sync from URL on back/forward
     useEffect(() => {
         if (urlQuery !== searchQuery) {
             setSearchQuery(urlQuery);
             setDebouncedSearchQuery(urlQuery);
         }
-    }, [urlQuery]);
+        if (urlPage !== currentPage) {
+            setCurrentPage(urlPage);
+        }
+    }, [urlQuery, urlPage]);
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 300);
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
+    // Reset page when search changes (skip initial mount)
+    const searchMountedRef = useRef(false);
+    useEffect(() => {
+        if (!searchMountedRef.current) {
+            searchMountedRef.current = true;
+            return;
+        }
+        setCurrentPage(1);
+    }, [debouncedSearchQuery]);
+
+    // Sync search + page to URL
     useEffect(() => {
         const currentQ = (searchParams.get('q') || '').trim();
-        if (currentQ === debouncedSearchQuery) return;
+        const currentP = parseInt(searchParams.get('page') || '1', 10) || 1;
+        if (currentQ === debouncedSearchQuery && currentP === currentPage) return;
 
-        const params = new URLSearchParams(searchParams.toString());
+        const params = new URLSearchParams();
         if (debouncedSearchQuery) {
             params.set('q', debouncedSearchQuery);
-        } else {
-            params.delete('q');
+        }
+        if (currentPage > 1) {
+            params.set('page', String(currentPage));
         }
         const query = params.toString();
         router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    }, [debouncedSearchQuery, router, pathname, searchParams]);
+    }, [debouncedSearchQuery, currentPage, router, pathname, searchParams]);
 
     useEffect(() => {
         if (hasDetailsRoute) return;
@@ -69,8 +91,8 @@ export default function AccountsPage() {
                 const query = debouncedSearchQuery;
                 const isAddressQuery = /^(G|C)[A-Z0-9]{10,}$/.test(query.toUpperCase());
                 const params: Record<string, string | number> = {
-                    page: 1,
-                    itemsPerPage: 30,
+                    page: currentPage,
+                    itemsPerPage: ITEMS_PER_PAGE,
                     'order[accountMetric.nativeBalance]': 'desc',
                 };
                 if (query) {
@@ -83,12 +105,8 @@ export default function AccountsPage() {
 
                 const result = await getApiV1Data(apiEndpoints.v1.accounts(params));
 
-                // Calculate total supply from all accounts (sum of balances on this page as approximation)
-                const TOTAL_XLM_SUPPLY = 50_000_000_000; // 50 billion XLM
-
                 const accounts = (result.member || [])
                     .filter((record: any) => {
-                        // Filter out burn account
                         const isBurnAccount = record.label?.toLowerCase().includes('burn');
                         return !isBurnAccount;
                     })
@@ -105,7 +123,7 @@ export default function AccountsPage() {
                             label: record.label ? {
                                 name: record.label,
                                 verified: record.verified === true,
-                                description: undefined // Not available in new API
+                                description: undefined
                             } : undefined
                         };
                     });
@@ -121,7 +139,7 @@ export default function AccountsPage() {
         };
 
         fetchRichList();
-    }, [hasDetailsRoute, debouncedSearchQuery]);
+    }, [hasDetailsRoute, debouncedSearchQuery, currentPage]);
 
     useEffect(() => {
         let active = true;
@@ -154,6 +172,14 @@ export default function AccountsPage() {
         );
     }
 
+    const totalPages = Math.ceil(totalAccounts / ITEMS_PER_PAGE);
+
+    const handlePageChange = (page: number) => {
+        if (page < 1 || page > totalPages) return;
+        setCurrentPage(page);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     return (
         <>
             {/* Mobile View */}
@@ -165,6 +191,9 @@ export default function AccountsPage() {
                     searchQuery={searchQuery}
                     onSearchQueryChange={setSearchQuery}
                     loading={loading}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
                 />
             </div>
 
@@ -177,6 +206,9 @@ export default function AccountsPage() {
                     searchQuery={searchQuery}
                     onSearchQueryChange={setSearchQuery}
                     loading={loading}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
                 />
             </div>
         </>

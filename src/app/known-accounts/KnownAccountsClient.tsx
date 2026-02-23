@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/stellar';
-import type { LabeledAccountsAPIResponse, LabeledAccount } from '@/lib/stellar';
-import { apiEndpoints, getApiV1Data } from '@/services/api';
+import type { LabeledAccountsAPIResponse } from '@/lib/stellar';
 
 interface KnownAccountsClientProps {
   initialData: LabeledAccountsAPIResponse | null;
@@ -12,6 +10,10 @@ interface KnownAccountsClientProps {
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   loading?: boolean;
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
 }
 
 function AccountStatusIcons({ labelText, verified }: { labelText?: string; verified?: boolean }) {
@@ -56,67 +58,25 @@ export default function KnownAccountsClient({
   xlmPriceUsd,
   searchQuery,
   onSearchQueryChange,
-  loading: parentLoading,
+  loading,
+  currentPage,
+  totalPages,
+  totalItems,
+  onPageChange,
 }: KnownAccountsClientProps) {
   const getTransactions = (acc: any) => String(acc.accountMetric?.totalTransactions ?? acc.accountMetric?.transactionsPerHour ?? '0');
 
-  const transformData = (data: LabeledAccountsAPIResponse | null) =>
-    data?.member?.map((acc: any) => ({
-      account: acc.address,
-      org_name: null,
-      label: acc.label ? {
-        name: acc.label,
-        description: null,
-        verified: acc.verified ? 1 : 0
-      } : null,
-      balance: parseFloat(acc.accountMetric?.nativeBalance || '0'),
-      transactions: getTransactions(acc),
-      rank: acc.accountMetric?.rankPosition || 0
-    })) || [];
-
-  const itemsPerPage = 30;
-  const accounts = transformData(initialData);
-  const total = initialData?.totalItems || 0;
-  const totalPages = Math.ceil(total / itemsPerPage);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [paginatedAccounts, setPaginatedAccounts] = useState<LabeledAccount[] | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Reset pagination when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-    setPaginatedAccounts(null);
-  }, [searchQuery]);
-
-  const fetchPage = useCallback(async (page: number) => {
-    setIsLoading(true);
-    try {
-      const query = searchQuery.trim();
-      const isAddressQuery = /^(G|C)[A-Z0-9]{10,}$/.test(query.toUpperCase());
-      const params: Record<string, string | number> = {
-        page,
-        itemsPerPage,
-        'order[accountMetric.rankPosition]': 'asc',
-      };
-      if (query) {
-        if (isAddressQuery) {
-          params.address = query;
-        } else {
-          params.label = query;
-        }
-      }
-
-      const json = await getApiV1Data(apiEndpoints.v1.accounts(params));
-      setPaginatedAccounts(transformData(json));
-      setCurrentPage(page);
-    } catch (error) {
-      console.error('Error fetching accounts:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [itemsPerPage, searchQuery]);
-
-  const displayAccounts = paginatedAccounts ?? accounts;
+  const accounts = (initialData?.member || []).map((acc: any) => ({
+    account: acc.address,
+    org_name: null,
+    label: acc.label ? {
+      name: acc.label,
+      description: null,
+      verified: acc.verified ? 1 : 0
+    } : null,
+    balance: parseFloat(acc.accountMetric?.nativeBalance || '0'),
+    transactions: getTransactions(acc),
+  }));
 
   const formatBalance = (balance: number) => {
     if (balance >= 1e9) return `${(balance / 1e9).toFixed(2)}B`;
@@ -132,134 +92,50 @@ export default function KnownAccountsClient({
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] pb-20 pt-1 md:pt-4">
-      <div className="max-w-[1400px] mx-auto px-3 md:px-4">
-        {/* Mobile Header */}
-        <div className="md:hidden">
-          <div className="flex items-center justify-between py-3">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-primary)]">
-                Known Accounts
-              </span>
-              <span className="bg-[var(--primary-blue)]/10 text-[var(--primary-blue)] text-[10px] px-1.5 py-0.5 rounded font-bold">
-                {(total || 0).toLocaleString()}
-              </span>
-            </div>
-          </div>
-          <div className="relative mb-3">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchQueryChange(e.target.value)}
-              placeholder="Search by label or address..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] pl-10 pr-3 py-2.5 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm shadow-sm"
-            />
+    <div className="min-h-screen bg-[var(--bg-primary)] pb-20 pt-1">
+      <div className="px-3">
+        {/* Header */}
+        <div className="flex items-center justify-between py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-primary)]">
+              Known Accounts
+            </span>
+            <span className="bg-[var(--primary-blue)]/10 text-[var(--primary-blue)] text-[10px] px-1.5 py-0.5 rounded font-bold">
+              {totalItems.toLocaleString()}
+            </span>
           </div>
         </div>
+        <div className="relative mb-3">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchQueryChange(e.target.value)}
+            placeholder="Search by label or address..."
+            className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] pl-10 pr-3 py-2.5 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm shadow-sm"
+          />
+        </div>
 
-        {/* Desktop Header */}
-        <div className="hidden md:block mb-4">
-          <div className="flex items-center gap-4 mb-4">
-            <Link
-              href="/"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-muted)] transition hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Known Accounts</h1>
-              <p className="text-sm text-[var(--text-muted)] mt-1">
-                {(total || 0).toLocaleString()} labeled accounts in the directory
-              </p>
-            </div>
+        {/* Accounts List */}
+        {accounts.length === 0 ? (
+          <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4 text-center text-[var(--text-muted)] italic text-sm">
+            {loading ? 'Searching accounts...' : searchQuery ? `No accounts matching "${searchQuery}"` : 'No accounts found'}
           </div>
-        </div>
-
-        {/* Mobile List View - Compact Cards */}
-        <div className="md:hidden">
-          {displayAccounts.length === 0 ? (
-            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4 text-center text-[var(--text-muted)] italic text-sm">
-              {searchQuery ? `No accounts matching "${searchQuery}"` : 'No accounts found'}
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {displayAccounts.map((account) => (
-                <Link
-                  key={account.account}
-                  href={`/account/${account.account}`}
-                  className="block bg-[var(--bg-secondary)] rounded-lg shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
-                >
-                  <div className="px-3 py-2">
-                    {/* Single Row Layout */}
-                    <div className="flex items-center">
-                      {/* Name & Address */}
-                      <div className="flex-1 min-w-0 mr-2">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[13px] font-semibold text-[var(--primary-blue)] truncate">
-                            {account.label?.name || account.org_name || 'Unknown'}
-                          </span>
-                          <AccountStatusIcons
-                            labelText={account.label?.name || account.org_name || undefined}
-                            verified={account.label?.verified === 1}
-                          />
-                        </div>
-                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                          {shortenAddress(account.account)}
-                        </span>
-                      </div>
-
-                      {/* Balance & Transactions */}
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-[13px] font-bold text-[var(--text-primary)]">
-                          {formatBalance(account.balance || 0)} <span className="text-[var(--text-muted)] font-normal text-[10px]">XLM</span>
-                        </div>
-                        <div className="text-[10px] text-[var(--text-tertiary)]">
-                          {formatUsdBalance(account.balance || 0)}
-                        </div>
-                        <div className="text-[10px] text-[var(--text-muted)]">
-                          {parseInt(account.transactions || '0').toLocaleString()} txs
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Desktop Table View */}
-        <div className="hidden md:block bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] overflow-hidden">
-          {displayAccounts.length === 0 ? (
-            <div className="px-4 py-4 text-center text-[var(--text-muted)] italic text-sm">
-              No accounts found
-            </div>
-          ) : (
-            <table className="w-full sc-table">
-              <thead>
-                <tr className="border-b border-[var(--border-subtle)]">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Account</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Address</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Balance</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Transactions</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-16"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border-subtle)]">
-                {displayAccounts.map((account) => (
-                  <tr
-                    key={account.account}
-                    className="hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
-                    onClick={() => window.location.href = `/account/${account.account}`}
-                  >
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-[var(--primary-blue)]">
+        ) : (
+          <div className="space-y-1.5">
+            {accounts.map((account) => (
+              <Link
+                key={account.account}
+                href={`/account/${account.account}`}
+                className="block bg-[var(--bg-secondary)] rounded-lg shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
+              >
+                <div className="px-3 py-2">
+                  <div className="flex items-center">
+                    <div className="flex-1 min-w-0 mr-2">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[13px] font-semibold text-[var(--primary-blue)] truncate">
                           {account.label?.name || account.org_name || 'Unknown'}
                         </span>
                         <AccountStatusIcons
@@ -267,44 +143,34 @@ export default function KnownAccountsClient({
                           verified={account.label?.verified === 1}
                         />
                       </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="font-mono text-sm text-[var(--text-muted)]">
+                      <span className="text-[10px] text-[var(--text-muted)] font-mono">
                         {shortenAddress(account.account)}
                       </span>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <div className="font-mono font-semibold text-[var(--text-primary)]">
-                        {formatBalance(account.balance || 0)}
-                        <span className="text-[var(--text-muted)] ml-1">XLM</span>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-[13px] font-bold text-[var(--text-primary)]">
+                        {formatBalance(account.balance || 0)} <span className="text-[var(--text-muted)] font-normal text-[10px]">XLM</span>
                       </div>
                       <div className="text-[10px] text-[var(--text-tertiary)]">
                         {formatUsdBalance(account.balance || 0)}
                       </div>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <span className="text-[var(--text-secondary)]">
-                        {parseInt(account.transactions || '0').toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <svg className="w-4 h-4 text-[var(--text-muted)] inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                      <div className="text-[10px] text-[var(--text-muted)]">
+                        {parseInt(account.transactions || '0').toLocaleString()} txs
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
 
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="mt-4 flex items-center justify-center gap-3">
             <button
-              onClick={() => fetchPage(currentPage - 1)}
-              disabled={currentPage === 1 || isLoading}
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1 || loading}
               className="w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -317,8 +183,8 @@ export default function KnownAccountsClient({
             </span>
 
             <button
-              onClick={() => fetchPage(currentPage + 1)}
-              disabled={currentPage === totalPages || isLoading}
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage === totalPages || loading}
               className="w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
