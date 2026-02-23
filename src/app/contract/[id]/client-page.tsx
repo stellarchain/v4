@@ -802,13 +802,14 @@ export default function ContractPage() {
             ...prev,
             events: true,
             invocations: true,
-            storage: false,
+            storage: true,
             spec: false,
           }));
 
-          const [historyResult, eventsResult] = await Promise.allSettled([
+          const [historyResult, eventsResult, storageResult] = await Promise.allSettled([
             fetchContractTransactions(id, 1, 5),
             fetchContractEvents(id, 1, 5),
+            fetchContractStorage(id, apiData.totalStorageEntries ? Number(apiData.totalStorageEntries) : undefined),
           ]);
 
           if (cancelled) return;
@@ -823,10 +824,16 @@ export default function ContractPage() {
             setEventsError(eventsResult.reason instanceof Error ? eventsResult.reason.message : 'Failed to load events');
           }
 
+          if (storageResult.status === 'fulfilled' && storageResult.value) {
+            setContractStorage(storageResult.value);
+            setStorageLoaded(true);
+          }
+
           setLoadingSections((prev) => ({
             ...prev,
             events: false,
             invocations: false,
+            storage: false,
           }));
         })();
       } catch (err) {
@@ -949,7 +956,7 @@ export default function ContractPage() {
     if ((tabId === 'events' || tabId === 'operations') && !eventsLoaded) {
       void loadEventsPage(1);
     }
-    if (tabId === 'storage') {
+    if (tabId === 'storage' || tabId === 'overview') {
       void loadContractStorage();
     }
   };
