@@ -49,6 +49,8 @@ interface MarketOverviewResponse {
   member?: MarketOverviewSnapshot[];
 }
 
+const TRANSACTION_STREAM_LIMIT = 8;
+
 export default function HomePage() {
   const emptyLedger: Ledger = {
     id: '',
@@ -221,6 +223,33 @@ export default function HomePage() {
     };
 
     loadData();
+  }, []);
+
+  useEffect(() => {
+    const server = createHorizonServer();
+    const closeStream = server
+      .transactions()
+      .order('desc')
+      .cursor('now')
+      .stream({
+        onmessage: (tx: Horizon.ServerApi.TransactionRecord) => {
+          setTransactions((prev) => {
+            if (prev.some((item) => item.id === tx.id)) {
+              return prev;
+            }
+            const normalized = normalizeTransactions([tx])[0];
+            const updated = [normalized, ...prev];
+            return updated.slice(0, TRANSACTION_STREAM_LIMIT);
+          });
+        },
+        onerror: (err) => {
+          console.error('Transaction stream error:', err);
+        },
+      });
+
+    return () => {
+      closeStream();
+    };
   }, []);
 
   if (error) {
