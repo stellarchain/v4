@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
 import { getAccountLabels, normalizeTransactions } from '@/lib/stellar';
 import type { AccountLabel, Transaction, Operation, Effect } from '@/lib/stellar';
 import TransactionMobileView from '@/components/mobile/TransactionMobileView';
 import TransactionDesktopView from '@/components/desktop/TransactionDesktopView';
-import { notFound } from 'next/navigation';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { createHorizonServer } from '@/services/horizon';
+import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
+import { persistNetwork } from '@/lib/network/state';
 
 // Extract all unique account addresses from transaction data
 function extractAccountAddresses(
@@ -55,7 +56,16 @@ function extractAccountAddresses(
   return Array.from(addresses).filter(addr => addr.startsWith('G'));
 }
 
+function isTransactionNotFoundError(error: unknown): boolean {
+  const status = Number((error as any)?.response?.status);
+  const title = String((error as any)?.response?.title || '').toLowerCase();
+  const message = String((error as any)?.message || '').toLowerCase();
+
+  return status === 404 || title.includes('not found') || message.includes('not found');
+}
+
 export default function TransactionPage() {
+  const { network: activeNetwork } = useNetwork();
   const params = useParams<{ hash?: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -64,6 +74,8 @@ export default function TransactionPage() {
   const [effects, setEffects] = useState<Effect[]>([]);
   const [accountLabels, setAccountLabels] = useState<Record<string, AccountLabel>>({});
   const [error, setError] = useState<string | null>(null);
+  const [checkingOtherNetworks, setCheckingOtherNetworks] = useState(false);
+  const [availableNetworks, setAvailableNetworks] = useState<NetworkType[]>([]);
   const isLoading = !error && !transaction;
 
   const hash = getDetailRouteValue({
@@ -89,6 +101,34 @@ export default function TransactionPage() {
     };
   };
 
+  const switchNetworkAndReload = useCallback((targetNetwork: NetworkType) => {
+    persistNetwork(targetNetwork);
+    const query = searchParams.toString();
+    const targetUrl = query ? `${pathname}?${query}` : pathname;
+    window.location.href = targetUrl;
+  }, [pathname, searchParams]);
+
+  const checkOtherNetworksForTransaction = useCallback(async (txHash: string, currentNetwork: NetworkType) => {
+    const otherNetworks: NetworkType[] = ['mainnet', 'testnet'].filter(
+      (network): network is NetworkType => network !== currentNetwork
+    );
+
+    if (!txHash || otherNetworks.length === 0) return [];
+
+    const checks = await Promise.all(
+      otherNetworks.map(async (network) => {
+        try {
+          await createHorizonServer(network).transactions().transaction(txHash).call();
+          return network;
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    return checks.filter((network): network is NetworkType => network !== null);
+  }, []);
+
   useEffect(() => {
     const run = async () => {
       if (!hash) {
@@ -97,6 +137,9 @@ export default function TransactionPage() {
       }
 
       try {
+        setError(null);
+        setAvailableNetworks([]);
+        setCheckingOtherNetworks(false);
         const { transaction: txResult, operations: ops, effects: effs } = await loadTransactionData(hash);
         setTransaction(txResult);
         setOperations(ops);
@@ -118,14 +161,66 @@ export default function TransactionPage() {
         setAccountLabels(labels);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load transaction.');
+        if (hash && isTransactionNotFoundError(err)) {
+          setCheckingOtherNetworks(true);
+          const networksWithTx = await checkOtherNetworksForTransaction(hash, activeNetwork);
+          setAvailableNetworks(networksWithTx);
+          setCheckingOtherNetworks(false);
+        }
       }
     };
 
     void run();
-  }, [hash]);
+  }, [hash, activeNetwork, checkOtherNetworksForTransaction]);
 
   if (!isLoading && (error || !transaction)) {
-    notFound();
+    const hasNetworkMatch = availableNetworks.length > 0;
+    const title = hasNetworkMatch ? 'Transaction Found On Another Network' : 'Transaction Not Found';
+    const description = hasNetworkMatch
+      ? 'This transaction hash exists, but not on the currently selected network.'
+      : (error || 'Transaction not found.');
+
+    return (
+      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center ${hasNetworkMatch ? 'bg-sky-500/10' : 'bg-[var(--error)]/10'}`}>
+            <svg className={`w-10 h-10 ${hasNetworkMatch ? 'text-sky-500' : 'text-[var(--error)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">{title}</h1>
+          <p className="text-[var(--text-secondary)] mb-3">{description}</p>
+          {hash && (
+            <p className="text-[var(--text-muted)] font-mono text-xs mb-3 break-all">{hash}</p>
+          )}
+          <p className="text-sm text-[var(--text-muted)] mb-4">
+            Current network: <span className="font-semibold text-[var(--text-secondary)]">{NETWORK_CONFIGS[activeNetwork].displayName}</span>
+          </p>
+
+          {checkingOtherNetworks && (
+            <p className="text-sm text-[var(--text-muted)] mb-4">Checking other networks...</p>
+          )}
+
+          {!checkingOtherNetworks && availableNetworks.length > 0 && (
+            <div className="mb-2">
+              <p className="text-sm text-[var(--text-secondary)] mb-2">This transaction exists on:</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {availableNetworks.map((network) => (
+                  <button
+                    key={network}
+                    onClick={() => switchNetworkAndReload(network)}
+                    className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+                  >
+                    Switch to {NETWORK_CONFIGS[network].displayName}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   }
 
   const transactionData: Transaction = transaction || {
