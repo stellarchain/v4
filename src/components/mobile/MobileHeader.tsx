@@ -79,6 +79,7 @@ export default function MobileHeader({ forceShow = false }: MobileHeaderProps) {
             alt="StellarChain Explorer"
             width={200}
             height={56}
+            priority
             className="h-9 w-auto"
           />
         </Link>
