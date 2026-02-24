@@ -10,7 +10,6 @@ import {
   shortenAddress,
   formatXLM,
   AccountLabel,
-  getXLMStats,
   getOrderBook,
   getTradeAggregations,
   getAccountOperations,
@@ -85,6 +84,42 @@ interface AccountMobileViewProps {
   currentAccountLabel?: AccountLabel | null;
   firstTransactionAt?: string;
   lastTransactionAt?: string;
+  accountMeta?: {
+    label?: string;
+    verified?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+    network?: number;
+    accountMetric?: {
+      nativeBalance?: string | number;
+      totalTransactions?: string | number;
+      transactionsPerHour?: string | number;
+      paymentsCount?: string | number;
+      tradesCount?: string | number;
+      rankPosition?: string | number;
+      metricUpdatedAt?: string;
+      firstTransactionAt?: string;
+      lastTransactionAt?: string;
+    };
+    stellarData?: {
+      activity24h?: {
+        totalTransactions?: number;
+        paymentOperations?: number;
+        tradeOperations?: number;
+        operationCount?: number;
+        successRatePercent?: number | null;
+        nativeBalanceChange24h?: string | number | null;
+      };
+    };
+    activity24h?: {
+      totalTransactions?: number;
+      paymentOperations?: number;
+      tradeOperations?: number;
+      operationCount?: number;
+      successRatePercent?: number | null;
+      nativeBalanceChange24h?: string | number | null;
+    };
+  } | null;
   loading?: boolean;
   onTabChange?: (tab: string) => void;
   loadingTransactions?: boolean;
@@ -135,7 +170,7 @@ function AccountStatusIcons({ labelText, verified, size = 'sm' }: { labelText?: 
   );
 }
 
-export default function AccountMobileView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt: _firstTransactionAt, lastTransactionAt: _lastTransactionAt, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false }: AccountMobileViewProps) {
+export default function AccountMobileView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false }: AccountMobileViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -166,6 +201,15 @@ export default function AccountMobileView({ account, accountId, transactions, op
   const currentFavorite = getFavorite(accountId);
   const accountLabelText = currentFavorite?.label || currentAccountLabel?.name || currentAccountLabel?.org_name;
   const labelActionText = accountLabelText ? 'Update label' : 'Add label';
+  const rankPosition = Number(accountMeta?.accountMetric?.rankPosition || 0) || null;
+  const totalTransactions24h = Number(
+    accountMeta?.activity24h?.totalTransactions
+    ?? accountMeta?.stellarData?.activity24h?.totalTransactions
+    ?? accountMeta?.accountMetric?.transactionsPerHour
+    ?? 0
+  ) || 0;
+  const totalTransactionsAllTime = Number(accountMeta?.accountMetric?.totalTransactions ?? 0) || 0;
+  const xlmChange24h = 0;
 
   // Update URL when tab changes
   const handleTabChange = (tab: 'assets' | 'activity' | 'details') => {
@@ -198,7 +242,6 @@ export default function AccountMobileView({ account, accountId, transactions, op
   const fetchedEffectIds = useRef<Set<string>>(new Set());
   const fetchedBalancePriceKeys = useRef<Set<string>>(new Set());
   const fetchedActivityPriceKeys = useRef<Set<string>>(new Set());
-  const [xlmChange24h, setXlmChange24h] = useState(0);
   const [activityAssets, setActivityAssets] = useState<Array<{ code: string; issuer: string; type: string }>>([]);
 
   // Operations state for infinite scroll
@@ -345,44 +388,18 @@ export default function AccountMobileView({ account, accountId, transactions, op
   // Calculate total USD value
   const totalValueUSD = totalBalanceXLM * xlmPrice;
 
-  // Calculate 24h PNL
+  // Calculate 24h balance delta from directory metric (nativeBalanceChange24h)
   const pnlData = useMemo(() => {
-    let totalPnlUSD = 0;
-
-    // XLM PNL
-    const xlmValue = xlmAmount * xlmPrice;
-    const xlmPnl = xlmValue * (xlmChange24h / 100);
-    totalPnlUSD += xlmPnl;
-
-    // Other assets PNL
-    otherBalances.forEach(b => {
-      const key = `${b.asset_code}:${b.asset_issuer}`;
-      const priceData = assetPrices[key];
-      if (priceData && priceData.price > 0) {
-        const value = parseFloat(b.balance) * priceData.price;
-        const pnl = value * (priceData.change24h / 100);
-        totalPnlUSD += pnl;
-      }
-    });
-
-    const pnlPercent = totalValueUSD > 0 ? (totalPnlUSD / (totalValueUSD - totalPnlUSD)) * 100 : 0;
-    return { amount: totalPnlUSD, percent: pnlPercent };
-  }, [xlmAmount, xlmPrice, xlmChange24h, otherBalances, assetPrices, totalValueUSD]);
-
-  // Fetch XLM 24h change
-  useEffect(() => {
-    const fetchXlmChange = async () => {
-      try {
-        const data = await getXLMStats();
-        if (data && typeof data.usd_24h_change === 'number') {
-          setXlmChange24h(data.usd_24h_change);
-        }
-      } catch {
-        // Ignore
-      }
-    };
-    fetchXlmChange();
-  }, []);
+    const nativeDeltaXlm = Number(
+      accountMeta?.activity24h?.nativeBalanceChange24h
+      ?? accountMeta?.stellarData?.activity24h?.nativeBalanceChange24h
+      ?? 0
+    ) || 0;
+    const amountUsd = nativeDeltaXlm * xlmPrice;
+    const previousBalanceUsd = totalValueUSD - amountUsd;
+    const percent = previousBalanceUsd > 0 ? (amountUsd / previousBalanceUsd) * 100 : 0;
+    return { amount: amountUsd, percent };
+  }, [accountMeta?.activity24h?.nativeBalanceChange24h, accountMeta?.stellarData?.activity24h?.nativeBalanceChange24h, totalValueUSD, xlmPrice]);
 
   // Fetch asset prices with 24h change
   useEffect(() => {
@@ -476,7 +493,11 @@ export default function AccountMobileView({ account, accountId, transactions, op
       const newOps = data.records || [];
 
       if (newOps.length > 0) {
-        setAllOperations(prev => [...prev, ...newOps]);
+        setAllOperations(prev => {
+          const existing = new Set(prev.map(op => op.id));
+          const uniqueNew = newOps.filter((op: Operation) => !existing.has(op.id));
+          return [...prev, ...uniqueNew];
+        });
         setLastCursor(newOps[newOps.length - 1].paging_token);
         setHasMoreToFetch(newOps.length >= 100);
       } else {
@@ -782,7 +803,6 @@ export default function AccountMobileView({ account, accountId, transactions, op
   };
 
   const currentDataSource = getCurrentDataSource();
-
   const isPositivePnl = pnlData.amount >= 0;
 
   return (
@@ -864,7 +884,8 @@ export default function AccountMobileView({ account, accountId, transactions, op
         </div>
         <div className="flex justify-center mb-3">
           <Link
-            href={`/accounts/directory/update?account=${encodeURIComponent(accountId)}`}
+            href="/accounts/directory/update"
+            prefetch={false}
             className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-xs font-semibold text-sky-600 hover:text-sky-700 hover:border-sky-300 transition-colors"
           >
             {labelActionText}
@@ -1130,8 +1151,8 @@ export default function AccountMobileView({ account, accountId, transactions, op
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                {showCurrencyDropdown && (
-                  <div className="absolute right-0 top-full mt-1 min-w-[100px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
+                  {showCurrencyDropdown && (
+                    <div className="absolute right-0 top-full mt-1 min-w-[100px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
                     <button
                       onClick={() => { setShowUsdValue(!showUsdValue); setShowCurrencyDropdown(false); }}
                       className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${showUsdValue ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
@@ -1161,8 +1182,8 @@ export default function AccountMobileView({ account, accountId, transactions, op
                         </button>
                       ))}
                     </div>
-                  </div>
-                )}
+                    </div>
+                  )}
               </div>
             </div>
 
@@ -1472,6 +1493,45 @@ export default function AccountMobileView({ account, accountId, transactions, op
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4">
+              <div className="text-[11px] uppercase tracking-widest text-[var(--text-muted)] font-bold pb-2 border-b border-[var(--border-subtle)] mb-3">
+                Directory
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                  <div className="text-[10px] text-[var(--text-muted)]">Network</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{accountMeta?.network === 2 ? 'testnet' : 'mainnet'}</div>
+                </div>
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                  <div className="text-[10px] text-[var(--text-muted)]">Rank</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{rankPosition || '-'}</div>
+                </div>
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                  <div className="text-[10px] text-[var(--text-muted)]">Tx 24h</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{totalTransactions24h.toLocaleString()}</div>
+                </div>
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                  <div className="text-[10px] text-[var(--text-muted)]">Tx Total</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{totalTransactionsAllTime.toLocaleString()}</div>
+                </div>
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                  <div className="text-[10px] text-[var(--text-muted)]">Payments</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{Number(accountMeta?.accountMetric?.paymentsCount || 0).toLocaleString()}</div>
+                </div>
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                  <div className="text-[10px] text-[var(--text-muted)]">Trades</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{Number(accountMeta?.accountMetric?.tradesCount || 0).toLocaleString()}</div>
+                </div>
+              </div>
+              <div className="mt-3 space-y-1 text-[11px] text-[var(--text-muted)]">
+                <div>Created: {accountMeta?.createdAt ? new Date(accountMeta.createdAt).toLocaleString() : '-'}</div>
+                <div>Updated: {accountMeta?.updatedAt ? new Date(accountMeta.updatedAt).toLocaleString() : '-'}</div>
+                <div>Metric updated: {accountMeta?.accountMetric?.metricUpdatedAt ? new Date(accountMeta.accountMetric.metricUpdatedAt).toLocaleString() : '-'}</div>
+                <div>First tx: {firstTransactionAt ? new Date(firstTransactionAt).toLocaleString() : '-'}</div>
+                <div>Last tx: {lastTransactionAt ? new Date(lastTransactionAt).toLocaleString() : '-'}</div>
               </div>
             </div>
 

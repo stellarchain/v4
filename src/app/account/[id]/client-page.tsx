@@ -15,6 +15,42 @@ import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
 
 type Account = Horizon.ServerApi.AccountRecord;
+type AccountMeta = {
+  label?: string;
+  verified?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  network?: number;
+  accountMetric?: {
+    nativeBalance?: string | number;
+    totalTransactions?: string | number;
+    transactionsPerHour?: string | number;
+    paymentsCount?: string | number;
+    tradesCount?: string | number;
+    rankPosition?: string | number;
+    metricUpdatedAt?: string;
+    firstTransactionAt?: string;
+    lastTransactionAt?: string;
+  };
+  stellarData?: {
+    activity24h?: {
+      totalTransactions?: number;
+      paymentOperations?: number;
+      tradeOperations?: number;
+      operationCount?: number;
+      successRatePercent?: number | null;
+      nativeBalanceChange24h?: string | number | null;
+    };
+  };
+  activity24h?: {
+    totalTransactions?: number;
+    paymentOperations?: number;
+    tradeOperations?: number;
+    operationCount?: number;
+    successRatePercent?: number | null;
+    nativeBalanceChange24h?: string | number | null;
+  };
+};
 
 // Extract counterparty addresses from operations
 function extractCounterpartyAddresses(operations: Operation[], accountId: string): string[] {
@@ -63,6 +99,7 @@ export default function AccountPage() {
   const [accountLabels, setAccountLabels] = useState<Record<string, AccountLabel>>({});
   const [currentAccountLabel, setCurrentAccountLabel] = useState<AccountLabel | null>(null);
   const [accountMetricDates, setAccountMetricDates] = useState<{ firstTransactionAt?: string; lastTransactionAt?: string }>({});
+  const [accountMeta, setAccountMeta] = useState<AccountMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
@@ -92,7 +129,7 @@ export default function AccountPage() {
         const [accountResponse, priceData, accountMetaResponse] = await Promise.all([
           server.accounts().accountId(id).call(),
           getXLMUSDPriceFromHorizon(),
-          getApiV1Data(apiEndpoints.v1.accounts({ 'address[]': id, itemsPerPage: 1 })).catch(() => null),
+          getApiV1Data(apiEndpoints.v1.accountById(id)).catch(() => null),
         ]);
 
         const accountData = accountResponse as unknown as Account;
@@ -100,9 +137,8 @@ export default function AccountPage() {
         setAccount(accountData);
         setXlmPrice(priceData);
 
-        const accountMetaRecord = accountMetaResponse?.member?.find(
-          (entry: any) => String(entry?.address || '').toUpperCase() === id.toUpperCase()
-        ) || accountMetaResponse?.member?.[0];
+        const accountMetaRecord = accountMetaResponse as AccountMeta | null;
+        setAccountMeta(accountMetaRecord);
 
         setCurrentAccountLabel(
           accountMetaRecord?.label
@@ -136,6 +172,7 @@ export default function AccountPage() {
       setAccountLabels({});
       setCurrentAccountLabel(null);
       setAccountMetricDates({});
+      setAccountMeta(null);
       fetchAccountData();
     }
   }, [id]);
@@ -250,6 +287,14 @@ export default function AccountPage() {
     );
   }
 
+  if (isMobile === null) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="text-sm text-[var(--text-muted)]">Loading account view...</div>
+      </div>
+    );
+  }
+
   const accountData = account ? {
     id,
     balances: account.balances,
@@ -278,6 +323,7 @@ export default function AccountPage() {
           currentAccountLabel={currentAccountLabel}
           firstTransactionAt={accountMetricDates.firstTransactionAt}
           lastTransactionAt={accountMetricDates.lastTransactionAt}
+          accountMeta={accountMeta}
           loading={loading}
           onTabChange={(tab: string) => {
             if (tab === 'transactions' && !transactionsFetched) fetchTransactions();
@@ -297,6 +343,7 @@ export default function AccountPage() {
           currentAccountLabel={currentAccountLabel}
           firstTransactionAt={accountMetricDates.firstTransactionAt}
           lastTransactionAt={accountMetricDates.lastTransactionAt}
+          accountMeta={accountMeta}
           loading={loading}
           onTabChange={(tab: string) => {
             if (tab === 'transactions' && !transactionsFetched) fetchTransactions();
