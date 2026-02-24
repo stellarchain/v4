@@ -1016,10 +1016,11 @@ export default function ContractPage() {
 
   if (isInvalidId) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 px-4">
-        <div className="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
-          <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      <div className="min-h-[70vh] bg-[var(--bg-primary)] flex items-center justify-center p-4">
+        <div className="text-center max-w-md w-full mx-auto my-auto">
+        <div className="w-24 h-24 mx-auto bg-violet-500/12 rounded-2xl flex items-center justify-center mb-4">
+          <svg className="w-12 h-12 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 8l-4 4 4 4m8-8l4 4-4 4M14 5l-4 14" />
           </svg>
         </div>
         <h1 className="text-2xl font-bold text-slate-900 mb-2">Invalid Contract ID</h1>
@@ -1031,6 +1032,7 @@ export default function ContractPage() {
         >
           Back to Home
         </Link>
+        </div>
       </div>
     );
   }
@@ -1043,10 +1045,11 @@ export default function ContractPage() {
       : 'The contract may not exist on this network.';
 
     return (
-      <div className="flex flex-col items-center justify-center py-20 px-4">
-        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-4 ${hasNetworkMatch ? 'bg-sky-500/10' : 'bg-[var(--bg-tertiary)]'}`}>
-          <svg className={`w-10 h-10 ${hasNetworkMatch ? 'text-sky-500' : 'text-red-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      <div className="min-h-[70vh] bg-[var(--bg-primary)] flex items-center justify-center p-4">
+        <div className="text-center max-w-md w-full mx-auto my-auto">
+        <div className={`w-24 h-24 mx-auto rounded-2xl flex items-center justify-center mb-4 ${hasNetworkMatch ? 'bg-violet-500/12' : 'bg-fuchsia-500/12'}`}>
+          <svg className={`w-12 h-12 ${hasNetworkMatch ? 'text-violet-500' : 'text-fuchsia-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 8l-4 4 4 4m8-8l4 4-4 4M14 5l-4 14" />
           </svg>
         </div>
         <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">{title}</h1>
@@ -1058,22 +1061,26 @@ export default function ContractPage() {
         {checkingOtherNetworks && (
           <p className="text-[var(--text-muted)] text-sm mb-4">Checking other networks...</p>
         )}
-        {!checkingOtherNetworks && availableNetworks.length > 0 && (
-          <div className="mb-4 text-center">
-            <p className="text-sm text-[var(--text-secondary)] mb-2">This contract exists on:</p>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {availableNetworks.map((network) => (
-                <button
-                  key={network}
-                  onClick={() => switchNetworkAndReload(network)}
-                  className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
-                >
-                  Switch to {NETWORK_CONFIGS[network].displayName}
-                </button>
-              ))}
-            </div>
+        {!checkingOtherNetworks && (
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+            {availableNetworks.map((network) => (
+              <button
+                key={network}
+                onClick={() => switchNetworkAndReload(network)}
+                className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                Switch to {NETWORK_CONFIGS[network].displayName}
+              </button>
+            ))}
+            <Link
+              href="/contracts"
+              className="px-4 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+            >
+              Go to Contracts
+            </Link>
           </div>
         )}
+        </div>
       </div>
     );
   }

@@ -1407,6 +1407,21 @@ export async function getMarketAssetRankPosition(code: string, issuer?: string):
   }
 }
 
+function isExpectedAssetV1LookupError(error: unknown): boolean {
+  const status = Number((error as any)?.response?.status);
+  const message = String((error as any)?.message || '').toLowerCase();
+  const title = String((error as any)?.response?.title || '').toLowerCase();
+
+  return (
+    status === 400 ||
+    status === 404 ||
+    message.includes('not found') ||
+    message.includes('bad request') ||
+    title.includes('not found') ||
+    title.includes('bad request')
+  );
+}
+
 // Fetch detailed asset information
 export async function getAssetDetails(code: string, issuer?: string): Promise<AssetDetails | null> {
   // Parse issuer from code if provided in "CODE-ISSUER" format (e.g., "AQUA-GBNZILSTVQZ...")
@@ -1434,7 +1449,9 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
     }
     stellarChainData = parseStellarchainV1AssetData(json);
   } catch (e) {
-    console.error('Error fetching from Stellarchain.dev v1:', e);
+    if (!isExpectedAssetV1LookupError(e)) {
+      console.error('Error fetching from Stellarchain.dev v1:', e);
+    }
   }
 
   const latestStatisticNode = (v1AssetPayload?.latestStatistic as Record<string, unknown>) || null;

@@ -54,6 +54,14 @@ const getMenuCategories = (): MenuCategory[] => [
       { name: 'Add Label', href: '/accounts/directory/update', icon: 'verified', description: 'Submit a label for an account' },
     ],
   },
+  {
+    name: 'News',
+    icon: 'news',
+    items: [
+      { name: 'News', href: '/news', icon: 'news', description: 'Latest ecosystem updates' },
+      { name: 'Projects', href: '/projects', icon: 'projects', description: 'SCF-funded projects directory' },
+    ],
+  },
 ];
 
 const icons: Record<string, React.ReactNode> = {
@@ -110,6 +118,11 @@ const categoryIcons: Record<string, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
     </svg>
   ),
+  news: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 5H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2zM7 9h10M7 13h6" />
+    </svg>
+  ),
 };
 
 const itemIcons: Record<string, React.ReactNode> = {
@@ -143,13 +156,23 @@ const itemIcons: Record<string, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
     </svg>
   ),
+  news: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 5H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2zM7 9h10M7 13h6" />
+    </svg>
+  ),
+  projects: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+    </svg>
+  ),
 };
 
 export default function FloatingBottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(['Blockchain', 'Accounts']);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(['Blockchain', 'Accounts', 'News']);
   const [mounted, setMounted] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { favorites } = useFavorites();

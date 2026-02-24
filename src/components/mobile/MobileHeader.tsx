@@ -8,7 +8,11 @@ import { NetworkBadge } from '@/components/NetworkSwitcher';
 import { getXLMStats, getTradeAggregations, USDC_ISSUER } from '@/lib/stellar';
 import { getRouteFromSearchQuery } from '@/lib/searchRouting';
 
-export default function MobileHeader() {
+interface MobileHeaderProps {
+  forceShow?: boolean;
+}
+
+export default function MobileHeader({ forceShow = false }: MobileHeaderProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [xlmPrice, setXlmPrice] = useState(0);
   const [xlmChange24h, setXlmChange24h] = useState<number | null>(null);
@@ -54,12 +58,16 @@ export default function MobileHeader() {
   };
 
   // Hide header on pages that have their own custom header
-  if (pathname?.startsWith('/address/')) return null;
-  if (pathname?.startsWith('/markets')) return null;
-  if (pathname?.startsWith('/assets/')) return null;
-  if (pathname?.startsWith('/tx/')) return null;
-  if (pathname?.startsWith('/contracts/')) return null;
-  if (pathname?.startsWith('/liquidity-pool/')) return null;
+  if (!forceShow) {
+    if (pathname?.startsWith('/address/')) return null;
+    if (pathname?.startsWith('/markets')) return null;
+    // Asset pages have their own dedicated mobile header (with price/stats)
+    if (pathname?.startsWith('/assets/')) return null;
+    if (pathname?.startsWith('/asset/')) return null;
+    if (pathname?.startsWith('/tx/')) return null;
+    // Keep the global header visible on contract detail pages (including fallback states)
+    if (pathname?.startsWith('/liquidity-pool/')) return null;
+  }
 
   // Same header for all pages (with stats)
   return (

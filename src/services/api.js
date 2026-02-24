@@ -30,6 +30,7 @@ const toQueryString = (params = {}) => {
 };
 
 const withQuery = (path, params) => `${path}${toQueryString(withDefaultNetworkParam(params || {}))}`;
+const withPlainQuery = (path, params) => `${path}${toQueryString(params || {})}`;
 
 const ensureNetworkInPath = (path) => {
   const [baseWithQuery, hash = ''] = String(path).split('#');
@@ -59,6 +60,9 @@ export const apiEndpoints = {
     marketOverview: (params) => withQuery('/market/overview', params),
     assets: (params) => withQuery('/assets', params),
     assetById: (assetId, params) => withQuery(`/assets/${assetId}`, params),
+    projects: (params) => withPlainQuery('/projects', params),
+    projectById: (projectId, params) => withPlainQuery(`/projects/${projectId}`, params),
+    projectCategories: () => '/projects/categories',
   },
 };
 
