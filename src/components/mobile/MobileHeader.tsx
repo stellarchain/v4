@@ -64,7 +64,6 @@ export default function MobileHeader({ forceShow = false }: MobileHeaderProps) {
     // Asset pages have their own dedicated mobile header (with price/stats)
     if (pathname?.startsWith('/assets/')) return null;
     if (pathname?.startsWith('/asset/')) return null;
-    if (pathname?.startsWith('/tx/')) return null;
     // Keep the global header visible on contract detail pages (including fallback states)
     if (pathname?.startsWith('/liquidity-pool/')) return null;
   }

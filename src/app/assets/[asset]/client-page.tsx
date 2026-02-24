@@ -63,8 +63,8 @@ export default function AssetDetailsRoute() {
   }, [pathname, searchParams]);
 
   const checkOtherNetworksForAsset = useCallback(async (assetId: string, currentNetwork: NetworkType) => {
-    const otherNetworks: NetworkType[] = ['mainnet', 'testnet'].filter(
-      (network): network is NetworkType => network !== currentNetwork
+    const otherNetworks = (Object.keys(NETWORK_CONFIGS) as NetworkType[]).filter(
+      (network) => network !== currentNetwork
     );
 
     if (!assetId || otherNetworks.length === 0) return [];
@@ -147,7 +147,7 @@ export default function AssetDetailsRoute() {
     const title = hasNetworkMatch ? 'Asset Found On Another Network' : 'Asset Not Found';
     const description = hasNetworkMatch
       ? 'This asset is not available on the currently selected network.'
-      : 'We could not find this asset on Mainnet or Testnet.';
+      : 'We could not find this asset on other available networks.';
     const fallbackHref = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
 
     return (
