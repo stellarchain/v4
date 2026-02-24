@@ -3,17 +3,28 @@ import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 export async function generateStaticParams(): Promise<Array<{ slug: string }>> {
   try {
-    const data = await getApiV1Data(apiEndpoints.v1.projects({
-      page: 1,
-      itemsPerPage: 500,
-      'order[id]': 'asc',
-    }));
-    const members = Array.isArray(data?.member) ? data.member : [];
+    const maxPages = 200;
+    const itemsPerPage = 500;
+    const slugs = new Set<string>();
 
-    return members
-      .map((item: any) => String(item?.id || '').trim())
-      .filter((id: string) => id.length > 0)
-      .map((id: string) => ({ slug: id }));
+    for (let page = 1; page <= maxPages; page += 1) {
+      const data = await getApiV1Data(apiEndpoints.v1.projects({
+        page,
+        itemsPerPage,
+        'order[id]': 'asc',
+      }));
+
+      const members = Array.isArray(data?.member) ? data.member : [];
+      for (const item of members) {
+        const id = String(item?.id || '').trim();
+        if (id) slugs.add(id);
+      }
+
+      const hasNext = Boolean(data?.view?.next);
+      if (!hasNext || members.length === 0) break;
+    }
+
+    return Array.from(slugs).map((slug) => ({ slug }));
   } catch {
     return [];
   }
