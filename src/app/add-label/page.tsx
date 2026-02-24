@@ -15,8 +15,10 @@ export default function AddLabelPage() {
   const router = useRouter();
   const { network } = useNetwork();
   const searchParams = useSearchParams();
-  const [accountId, setAccountId] = useState(searchParams.get('account') || '');
-  const [label, setLabel] = useState('');
+  const prefilledAccountId = searchParams.get('account') || searchParams.get('address') || searchParams.get('id') || '';
+  const prefilledLabel = searchParams.get('label') || searchParams.get('name') || '';
+  const [accountId, setAccountId] = useState(prefilledAccountId);
+  const [label, setLabel] = useState(prefilledLabel);
   const [email, setEmail] = useState('');
   const [verificationType, setVerificationType] = useState<VerificationType>('user_defined');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,6 +64,16 @@ export default function AddLabelPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    setAccountId(prefilledAccountId);
+  }, [prefilledAccountId]);
+
+  useEffect(() => {
+    if (prefilledLabel) {
+      setLabel(prefilledLabel);
+    }
+  }, [prefilledLabel]);
 
   const extractOrderId = (payload: any): string | null => {
     const direct = payload?.order_uuid || payload?.orderId || payload?.id || payload?.uuid || payload?.data?.order_no || payload?.data?.id || null;

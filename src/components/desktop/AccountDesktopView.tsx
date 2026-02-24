@@ -894,7 +894,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                       <span className="text-sm font-medium text-[var(--text-primary)]">{accountLabelText}</span>
                     </div>
                     <Link
-                      href="/accounts/directory/update"
+                      href={`/accounts/directory/update?account=${encodeURIComponent(accountId)}`}
                       prefetch={false}
                       className="text-xs text-sky-600 hover:text-sky-700 hover:underline"
                     >
@@ -905,7 +905,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                   <InlineSkeleton width="w-20" />
                 ) : (
                   <Link
-                    href="/accounts/directory/update"
+                    href={`/accounts/directory/update?account=${encodeURIComponent(accountId)}`}
                     prefetch={false}
                     className="text-sm text-sky-600 hover:text-sky-700 hover:underline"
                   >
