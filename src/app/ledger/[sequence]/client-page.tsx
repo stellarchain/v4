@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Horizon } from '@stellar/stellar-sdk';
 import { normalizeTransactions } from '@/lib/stellar';
 import type { Ledger, Transaction, Operation } from '@/lib/stellar';
@@ -12,14 +13,6 @@ import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { createHorizonServer } from '@/services/horizon';
 import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
 import { persistNetwork } from '@/lib/network/state';
-
-function isLedgerNotFoundError(error: unknown): boolean {
-  const status = Number((error as any)?.response?.status);
-  const title = String((error as any)?.response?.title || '').toLowerCase();
-  const message = String((error as any)?.message || '').toLowerCase();
-
-  return status === 404 || title.includes('not found') || message.includes('not found');
-}
 
 export default function LedgerPage() {
   const { network: activeNetwork } = useNetwork();
@@ -108,12 +101,11 @@ export default function LedgerPage() {
           sequence: sequenceNum,
           message: err instanceof Error ? err.message : 'Failed to load ledger.',
         });
-        if (isLedgerNotFoundError(err)) {
-          setCheckingOtherNetworks(true);
-          const networksWithLedger = await checkOtherNetworksForLedger(sequenceNum, activeNetwork);
-          setAvailableNetworks(networksWithLedger);
-          setCheckingOtherNetworks(false);
-        }
+        // Some Horizon SDK errors don't expose a clean 404 shape; always try cross-network lookup.
+        setCheckingOtherNetworks(true);
+        const networksWithLedger = await checkOtherNetworksForLedger(sequenceNum, activeNetwork);
+        setAvailableNetworks(networksWithLedger);
+        setCheckingOtherNetworks(false);
       }
     };
 
@@ -127,15 +119,39 @@ export default function LedgerPage() {
   if (errorMessage || !ledger) {
     const hasNetworkMatch = availableNetworks.length > 0;
     const title = hasNetworkMatch ? 'Ledger Found On Another Network' : 'Ledger Not Found';
+    const normalizedError = String(errorMessage || '').toLowerCase();
+    const fallbackDescription = normalizedError.includes('gone')
+      ? 'We could not find this ledger on Mainnet or Testnet.'
+      : normalizedError.includes('not found')
+        ? 'We could not find this ledger on Mainnet or Testnet.'
+        : 'We could not load this ledger right now.';
     const description = hasNetworkMatch
       ? 'This ledger sequence exists, but not on the currently selected network.'
-      : (errorMessage || 'Ledger not found.');
+      : fallbackDescription;
+
+    if (checkingOtherNetworks) {
+      return (
+        <div className="min-h-[70vh] bg-[var(--bg-primary)] flex items-center justify-center p-4">
+          <div className="text-center max-w-md w-full mx-auto my-auto">
+            <div className="w-20 h-20 mx-auto rounded-2xl bg-[var(--bg-tertiary)] animate-pulse mb-4" />
+            <div className="h-7 w-64 mx-auto rounded bg-[var(--bg-tertiary)] animate-pulse mb-3" />
+            <div className="h-4 w-80 max-w-full mx-auto rounded bg-[var(--bg-tertiary)] animate-pulse mb-2" />
+            <div className="h-4 w-56 mx-auto rounded bg-[var(--bg-tertiary)] animate-pulse mb-6" />
+            <div className="flex justify-center gap-2">
+              <div className="h-10 w-36 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+              <div className="h-10 w-36 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
-      <div className="flex flex-col items-center justify-center py-20 px-4">
-        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-4 ${hasNetworkMatch ? 'bg-sky-500/10' : 'bg-[var(--bg-tertiary)]'}`}>
-          <svg className={`w-10 h-10 ${hasNetworkMatch ? 'text-sky-500' : 'text-red-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      <div className="min-h-[70vh] bg-[var(--bg-primary)] flex items-center justify-center p-4">
+        <div className="text-center max-w-md w-full mx-auto my-auto">
+        <div className={`w-24 h-24 mx-auto rounded-2xl flex items-center justify-center mb-4 ${hasNetworkMatch ? 'bg-blue-500/12' : 'bg-orange-500/12'}`}>
+          <svg className={`w-12 h-12 ${hasNetworkMatch ? 'text-blue-500' : 'text-orange-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 6h11M8 12h11M8 18h11M4 6h.01M4 12h.01M4 18h.01" />
           </svg>
         </div>
         <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">{title}</h1>
@@ -146,25 +162,24 @@ export default function LedgerPage() {
         <p className="text-[var(--text-muted)] text-sm mb-4 text-center">
           Current network: <span className="font-semibold text-[var(--text-secondary)]">{NETWORK_CONFIGS[activeNetwork].displayName}</span>
         </p>
-        {checkingOtherNetworks && (
-          <p className="text-[var(--text-muted)] text-sm mb-4">Checking other networks...</p>
-        )}
-        {!checkingOtherNetworks && availableNetworks.length > 0 && (
-          <div className="mb-4 text-center">
-            <p className="text-sm text-[var(--text-secondary)] mb-2">This ledger exists on:</p>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {availableNetworks.map((network) => (
-                <button
-                  key={network}
-                  onClick={() => switchNetworkAndReload(network)}
-                  className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
-                >
-                  Switch to {NETWORK_CONFIGS[network].displayName}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+          {availableNetworks.map((network) => (
+            <button
+              key={network}
+              onClick={() => switchNetworkAndReload(network)}
+              className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+            >
+              Switch to {NETWORK_CONFIGS[network].displayName}
+            </button>
+          ))}
+          <Link
+            href="/ledgers"
+            className="px-4 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+          >
+            Go to Ledgers
+          </Link>
+        </div>
+        </div>
       </div>
     );
   }

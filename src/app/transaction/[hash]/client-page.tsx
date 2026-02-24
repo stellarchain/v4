@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Horizon } from '@stellar/stellar-sdk';
 import { getAccountLabels, normalizeTransactions } from '@/lib/stellar';
 import type { AccountLabel, Transaction, Operation, Effect } from '@/lib/stellar';
@@ -181,11 +182,11 @@ export default function TransactionPage() {
       : (error || 'Transaction not found.');
 
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <div className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center ${hasNetworkMatch ? 'bg-sky-500/10' : 'bg-[var(--error)]/10'}`}>
-            <svg className={`w-10 h-10 ${hasNetworkMatch ? 'text-sky-500' : 'text-[var(--error)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      <div className="min-h-[70vh] bg-[var(--bg-primary)] flex items-center justify-center p-4">
+        <div className="text-center max-w-md w-full mx-auto my-auto">
+          <div className={`w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center ${hasNetworkMatch ? 'bg-blue-500/12' : 'bg-indigo-500/12'}`}>
+            <svg className={`w-12 h-12 ${hasNetworkMatch ? 'text-blue-500' : 'text-indigo-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 7h10m0 0-3-3m3 3-3 3M17 17H7m0 0 3-3m-3 3 3 3" />
             </svg>
           </div>
 
@@ -202,20 +203,23 @@ export default function TransactionPage() {
             <p className="text-sm text-[var(--text-muted)] mb-4">Checking other networks...</p>
           )}
 
-          {!checkingOtherNetworks && availableNetworks.length > 0 && (
-            <div className="mb-2">
-              <p className="text-sm text-[var(--text-secondary)] mb-2">This transaction exists on:</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {availableNetworks.map((network) => (
-                  <button
-                    key={network}
-                    onClick={() => switchNetworkAndReload(network)}
-                    className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
-                  >
-                    Switch to {NETWORK_CONFIGS[network].displayName}
-                  </button>
-                ))}
-              </div>
+          {!checkingOtherNetworks && (
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+              {availableNetworks.map((network) => (
+                <button
+                  key={network}
+                  onClick={() => switchNetworkAndReload(network)}
+                  className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+                >
+                  Switch to {NETWORK_CONFIGS[network].displayName}
+                </button>
+              ))}
+              <Link
+                href="/transactions"
+                className="px-4 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                Go to Transactions
+              </Link>
             </div>
           )}
         </div>

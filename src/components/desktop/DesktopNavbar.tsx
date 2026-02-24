@@ -52,12 +52,17 @@ export default function DesktopNavbar() {
         { name: 'Add Label', href: '/accounts/directory/update', description: 'Submit a label for an account' },
     ];
 
+    const newsItems: MenuItem[] = [
+        { name: 'News', href: '/news', description: 'Latest ecosystem updates' },
+        { name: 'Projects', href: '/projects', description: 'SCF-funded projects directory' },
+    ];
+
     const navItems = [
         { name: 'Home', href: '/' },
         { name: 'Blockchain', dropdown: blockchainItems },
         { name: 'Accounts', dropdown: accountsItems },
         { name: 'Markets', href: '/markets' },
-        { name: 'News', href: '/news' },
+        { name: 'News', dropdown: newsItems },
     ];
 
     // Close dropdowns when clicking outside
