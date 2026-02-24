@@ -10,6 +10,8 @@ import AccountMobileView from '@/components/mobile/AccountMobileView';
 import AccountDesktopView from '@/components/desktop/AccountDesktopView';
 import { createHorizonServer } from '@/services/horizon';
 import { apiEndpoints, getApiV1Data } from '@/services/api';
+import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
+import { persistNetwork } from '@/lib/network/state';
 
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
@@ -52,6 +54,14 @@ type AccountMeta = {
   };
 };
 
+function isAccountNotFoundError(error: unknown): boolean {
+  const status = Number((error as any)?.response?.status);
+  const title = String((error as any)?.response?.title || '').toLowerCase();
+  const message = String((error as any)?.message || '').toLowerCase();
+
+  return status === 404 || title.includes('not found') || message.includes('not found');
+}
+
 // Extract counterparty addresses from operations
 function extractCounterpartyAddresses(operations: Operation[], accountId: string): string[] {
   const addresses = new Set<string>();
@@ -82,6 +92,7 @@ function extractCounterpartyAddresses(operations: Operation[], accountId: string
 }
 
 export default function AccountPage() {
+  const { network: activeNetwork } = useNetwork();
   const params = useParams<{ id?: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -109,6 +120,43 @@ export default function AccountPage() {
   const [operationsFetched, setOperationsFetched] = useState(false);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [loadingOperations, setLoadingOperations] = useState(false);
+  const [checkingOtherNetworks, setCheckingOtherNetworks] = useState(false);
+  const [availableNetworks, setAvailableNetworks] = useState<NetworkType[]>([]);
+
+  const isLikelyStellarAccount = useCallback((value: string) => {
+    const normalized = String(value || '').trim();
+    return normalized.length === 56 && normalized.startsWith('G');
+  }, []);
+
+  const checkOtherNetworksForAccount = useCallback(async (accountId: string, currentNetwork: NetworkType) => {
+    const otherNetworks: NetworkType[] = ['mainnet', 'testnet'].filter(
+      (network): network is NetworkType => network !== currentNetwork
+    );
+
+    if (otherNetworks.length === 0) {
+      return [];
+    }
+
+    const checks = await Promise.all(
+      otherNetworks.map(async (network) => {
+        try {
+          await createHorizonServer(network).accounts().accountId(accountId).call();
+          return network;
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    return checks.filter((network): network is NetworkType => network !== null);
+  }, []);
+
+  const switchNetworkAndReload = useCallback((targetNetwork: NetworkType) => {
+    persistNetwork(targetNetwork);
+    const query = searchParams.toString();
+    const targetUrl = query ? `${pathname}?${query}` : pathname;
+    window.location.href = targetUrl;
+  }, [pathname, searchParams]);
 
   // Detect mobile/desktop to conditionally render only one component
   useEffect(() => {
@@ -124,6 +172,9 @@ export default function AccountPage() {
     const fetchAccountData = async () => {
       try {
         setLoading(true);
+        setError(null);
+        setAvailableNetworks([]);
+        setCheckingOtherNetworks(false);
         const server = createHorizonServer();
 
         const [accountResponse, priceData, accountMetaResponse] = await Promise.all([
@@ -157,7 +208,15 @@ export default function AccountPage() {
         });
       } catch (e) {
         setError('Account not found or invalid account ID');
-        console.error('Error fetching account data:', e);
+        if (isLikelyStellarAccount(id)) {
+          setCheckingOtherNetworks(true);
+          const networksWithAccount = await checkOtherNetworksForAccount(id, activeNetwork);
+          setAvailableNetworks(networksWithAccount);
+          setCheckingOtherNetworks(false);
+        }
+        if (!isAccountNotFoundError(e)) {
+          console.error('Error fetching account data:', e);
+        }
       } finally {
         setLoading(false);
       }
@@ -173,9 +232,11 @@ export default function AccountPage() {
       setCurrentAccountLabel(null);
       setAccountMetricDates({});
       setAccountMeta(null);
+      setAvailableNetworks([]);
+      setCheckingOtherNetworks(false);
       fetchAccountData();
     }
-  }, [id]);
+  }, [id, activeNetwork, isLikelyStellarAccount, checkOtherNetworksForAccount]);
 
   // Fetch transactions lazily when tab is activated
   const fetchTransactions = useCallback(async () => {
@@ -267,22 +328,44 @@ export default function AccountPage() {
   }, [id, operationsFetched, loadingOperations, transactionsFetched, transactions]);
 
   if (!loading && (error || !account)) {
+    const hasNetworkMatch = availableNetworks.length > 0;
+    const title = hasNetworkMatch ? 'Account Found On Another Network' : 'Account Not Found';
+    const description = hasNetworkMatch
+      ? 'This address is valid, but not on the currently selected network.'
+      : 'The account ID may be invalid or the account does not exist.';
+
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="w-20 h-20 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mb-4">
-          <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-4 ${hasNetworkMatch ? 'bg-sky-500/10' : 'bg-[var(--bg-tertiary)]'}`}>
+          <svg className={`w-10 h-10 ${hasNetworkMatch ? 'text-sky-500' : 'text-red-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Account Not Found</h1>
-        <p className="text-[var(--text-tertiary)] mb-4">The account ID may be invalid or the account doesn&apos;t exist.</p>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">{title}</h1>
+        <p className="text-[var(--text-tertiary)] mb-4 text-center px-4">{description}</p>
+        <p className="text-[var(--text-muted)] text-sm mb-2 text-center px-4">
+          Current network: <span className="font-semibold text-[var(--text-secondary)]">{NETWORK_CONFIGS[activeNetwork].displayName}</span>
+        </p>
         <p className="text-[var(--text-muted)] font-mono text-sm mb-4 break-all max-w-lg text-center px-4">{id}</p>
-        <Link
-          href="/"
-          className="px-4 py-3 bg-[var(--primary)] text-black font-semibold rounded-xl hover:opacity-90 transition-opacity"
-        >
-          Back to Home
-        </Link>
+        {checkingOtherNetworks && (
+          <p className="text-[var(--text-muted)] text-sm mb-4">Checking other networks...</p>
+        )}
+        {!checkingOtherNetworks && availableNetworks.length > 0 && (
+          <div className="mb-4 text-center">
+            <p className="text-sm text-[var(--text-secondary)] mb-2">This account exists on:</p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {availableNetworks.map((network) => (
+                <button
+                  key={network}
+                  onClick={() => switchNetworkAndReload(network)}
+                  className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+                >
+                  Switch to {NETWORK_CONFIGS[network].displayName}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }

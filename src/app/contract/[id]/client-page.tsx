@@ -12,6 +12,8 @@ import type { TokenRegistryEntry, ContractVerification } from '@/lib/shared/inte
 import { decodeScVal } from '@/lib/shared/xdr';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { apiEndpoints, getApiV1Data } from '@/services/api';
+import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
+import { persistNetwork } from '@/lib/network/state';
 
 type ParsedEventType = 'transfer' | 'approve' | 'mint' | 'burn' | 'clawback' | 'unknown';
 
@@ -669,6 +671,14 @@ async function fetchContractBaseData(contractId: string): Promise<APIContractDat
   return getApiV1Data(apiEndpoints.v1.contractById(contractId));
 }
 
+function isContractNotFoundError(error: unknown): boolean {
+  const status = Number((error as any)?.response?.status);
+  const title = String((error as any)?.response?.title || '').toLowerCase();
+  const message = String((error as any)?.message || '').toLowerCase();
+
+  return status === 404 || title.includes('not found') || message.includes('not found');
+}
+
 function emptyContractData(contractId: string): FullContractData {
   return {
     id: contractId,
@@ -689,6 +699,7 @@ function emptyContractData(contractId: string): FullContractData {
 }
 
 export default function ContractPage() {
+  const { network: activeNetwork } = useNetwork();
   const params = useParams<{ id?: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -733,6 +744,36 @@ export default function ContractPage() {
     nextBeforeId: null as number | null,
     beforeId: null as number | null,
   });
+  const [checkingOtherNetworks, setCheckingOtherNetworks] = useState(false);
+  const [availableNetworks, setAvailableNetworks] = useState<NetworkType[]>([]);
+
+  const switchNetworkAndReload = useCallback((targetNetwork: NetworkType) => {
+    persistNetwork(targetNetwork);
+    const query = searchParams.toString();
+    const targetUrl = query ? `${pathname}?${query}` : pathname;
+    window.location.href = targetUrl;
+  }, [pathname, searchParams]);
+
+  const checkOtherNetworksForContract = useCallback(async (contractId: string, currentNetwork: NetworkType) => {
+    const otherNetworks: NetworkType[] = ['mainnet', 'testnet'].filter(
+      (network): network is NetworkType => network !== currentNetwork
+    );
+
+    if (!contractId || otherNetworks.length === 0) return [];
+
+    const checks = await Promise.all(
+      otherNetworks.map(async (network) => {
+        try {
+          await getApiV1Data(apiEndpoints.v1.contractById(contractId, { network }));
+          return network;
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    return checks.filter((network): network is NetworkType => network !== null);
+  }, []);
 
   useEffect(() => {
     if (isInvalidId) return;
@@ -742,6 +783,8 @@ export default function ContractPage() {
     const loadContractData = async () => {
       setIsValidating(true);
       setError(null);
+      setAvailableNetworks([]);
+      setCheckingOtherNetworks(false);
       setLoadingSections(INITIAL_LOADING_SECTIONS);
 
       try {
@@ -839,6 +882,14 @@ export default function ContractPage() {
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : 'Failed to load contract data');
+        if (isContractNotFoundError(err)) {
+          setCheckingOtherNetworks(true);
+          const networksWithContract = await checkOtherNetworksForContract(id, activeNetwork);
+          if (!cancelled) {
+            setAvailableNetworks(networksWithContract);
+            setCheckingOtherNetworks(false);
+          }
+        }
         setLoadingSections({
           events: false,
           invocations: false,
@@ -857,11 +908,13 @@ export default function ContractPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, isInvalidId]);
+  }, [id, isInvalidId, checkOtherNetworksForContract, activeNetwork]);
 
   useEffect(() => {
     setContractEvents([]);
     setContractStorage(null);
+    setAvailableNetworks([]);
+    setCheckingOtherNetworks(false);
     setEventsLoaded(false);
     setEventsLoading(false);
     setEventsError(null);
@@ -983,10 +1036,44 @@ export default function ContractPage() {
   }
 
   if (error) {
+    const hasNetworkMatch = availableNetworks.length > 0;
+    const title = hasNetworkMatch ? 'Contract Found On Another Network' : 'Contract Not Found';
+    const description = hasNetworkMatch
+      ? 'This contract is not available on the currently selected network.'
+      : 'The contract may not exist on this network.';
+
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4">
-        <h1 className="text-2xl font-bold mb-2">Error</h1>
-        <p className="text-muted">{error}</p>
+        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-4 ${hasNetworkMatch ? 'bg-sky-500/10' : 'bg-[var(--bg-tertiary)]'}`}>
+          <svg className={`w-10 h-10 ${hasNetworkMatch ? 'text-sky-500' : 'text-red-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">{title}</h1>
+        <p className="text-[var(--text-tertiary)] mb-4 text-center">{description}</p>
+        <p className="text-[var(--text-muted)] text-sm mb-2 text-center">
+          Current network: <span className="font-semibold text-[var(--text-secondary)]">{NETWORK_CONFIGS[activeNetwork].displayName}</span>
+        </p>
+        <p className="text-[var(--text-muted)] font-mono text-sm mb-4 break-all max-w-lg text-center">{id}</p>
+        {checkingOtherNetworks && (
+          <p className="text-[var(--text-muted)] text-sm mb-4">Checking other networks...</p>
+        )}
+        {!checkingOtherNetworks && availableNetworks.length > 0 && (
+          <div className="mb-4 text-center">
+            <p className="text-sm text-[var(--text-secondary)] mb-2">This contract exists on:</p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {availableNetworks.map((network) => (
+                <button
+                  key={network}
+                  onClick={() => switchNetworkAndReload(network)}
+                  className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+                >
+                  Switch to {NETWORK_CONFIGS[network].displayName}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
