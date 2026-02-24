@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import type { Project } from '@/lib/projects';
 
 interface ProjectListProps {
@@ -26,10 +27,36 @@ export default function ProjectList({
 }: ProjectListProps) {
   const canPrev = currentPage > 1;
   const canNext = currentPage < totalPages;
+  const [isHovered, setIsHovered] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimeoutRef = useRef<number | null>(null);
   const pageWindow = 2;
   const startPage = Math.max(1, currentPage - pageWindow);
   const endPage = Math.min(totalPages, currentPage + pageWindow);
   const pageNumbers = Array.from({ length: endPage - startPage + 1 }, (_, idx) => startPage + idx);
+  const isFloatingActive = isHovered || isScrolling;
+
+  useEffect(() => {
+    const onScroll = () => {
+      setIsScrolling(true);
+
+      if (scrollTimeoutRef.current) {
+        window.clearTimeout(scrollTimeoutRef.current);
+      }
+
+      scrollTimeoutRef.current = window.setTimeout(() => {
+        setIsScrolling(false);
+      }, 700);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (scrollTimeoutRef.current) {
+        window.clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="space-y-5">
@@ -38,7 +65,6 @@ export default function ProjectList({
           <p className="text-sm font-medium text-[var(--text-primary)]">
             {loading ? 'Loading projects...' : `${totalItems.toLocaleString()} total projects`}
           </p>
-          <p className="text-xs text-[var(--text-tertiary)]">Results from StellarChain API v1</p>
         </div>
         <p className="rounded-lg bg-[var(--bg-tertiary)] px-3 py-1 text-xs font-mono text-[var(--text-muted)]">
           Page {currentPage} / {Math.max(1, totalPages)}
@@ -137,14 +163,26 @@ export default function ProjectList({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-center gap-2">
+      <div className="h-24 md:h-20" aria-hidden="true" />
+
+      <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-30 w-[calc(100%-1.5rem)] md:w-auto max-w-4xl">
+        <div
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          className={`mx-auto flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)]/95 backdrop-blur-md px-3 py-2 shadow-xl transition-opacity duration-300 ${
+            isFloatingActive ? 'opacity-100' : 'opacity-45'
+          }`}
+        >
         <button
           type="button"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={!canPrev}
+          aria-label="Previous page"
           className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Previous
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
         </button>
 
         {pageNumbers.map((page) => {
@@ -169,10 +207,14 @@ export default function ProjectList({
           type="button"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={!canNext}
+          aria-label="Next page"
           className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Next
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
         </button>
+        </div>
       </div>
     </div>
   );

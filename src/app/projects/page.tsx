@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import ProjectList from '@/components/ProjectList';
 import { fetchProjectCategories, fetchProjects, type Project, type ProjectCategory } from '@/lib/projects';
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 21;
 type ProjectsSort = 'default' | 'awarded_asc' | 'awarded_desc' | 'rounds_desc';
 const VALID_SORTS: ProjectsSort[] = ['default', 'awarded_asc', 'awarded_desc', 'rounds_desc'];
 
