@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useNetwork, type NetworkType } from '@/contexts/NetworkContext';
 import { apiEndpoints, getApiData, getApiV1Data, patchApiV1Data } from '@/services/api';
@@ -197,17 +197,19 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
   const [streamStatus, setStreamStatus] = useState<StreamStatus>('idle');
   const [streamError, setStreamError] = useState('');
   const [lastPaymentTx, setLastPaymentTx] = useState('');
+  const streamCursorRef = useRef<string>('now');
+  const [streamRestartKey, setStreamRestartKey] = useState(0);
 
   const activeNetwork = useMemo(() => resolveOrderNetwork(order?.network, selectedNetwork), [order?.network, selectedNetwork]);
 
-  const applyOrderResponse = (data: any) => {
+  const applyOrderResponse = useCallback((data: any) => {
     const orderPayload = data?.data || data;
     setOrder(orderPayload || null);
     setError('');
     setLastCheckedAt(new Date());
-  };
+  }, []);
 
-  const fetchOrder = async ({ reason, paymentTxHash, eventId, showLoading = false }: {
+  const fetchOrder = useCallback(async ({ reason, paymentTxHash, eventId, showLoading = false }: {
     reason: string;
     paymentTxHash?: string;
     eventId?: string;
@@ -231,9 +233,9 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeNetwork, applyOrderResponse, orderId]);
 
-  const notifyPaymentDetected = async ({ paymentTxHash, eventId }: { paymentTxHash?: string; eventId?: string }) => {
+  const notifyPaymentDetected = useCallback(async ({ paymentTxHash, eventId }: { paymentTxHash?: string; eventId?: string }) => {
     const data = await patchApiV1Data(apiEndpoints.v1.orderById(orderId), {}, {
       headers: {
         Accept: 'application/ld+json',
@@ -247,7 +249,7 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
       },
     });
     applyOrderResponse(data);
-  };
+  }, [activeNetwork, applyOrderResponse, orderId]);
 
   useEffect(() => {
     if (!orderId) return;
@@ -263,7 +265,7 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
     return () => {
       active = false;
     };
-  }, [orderId, activeNetwork]);
+  }, [orderId, activeNetwork, fetchOrder]);
 
   useEffect(() => {
     let active = true;
@@ -304,18 +306,19 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
     const closeStream = startAccountPaymentsStreamListener({
       accountId: paymentMonitorAccount,
       network: activeNetwork,
-      cursor: 'now',
+      cursor: streamCursorRef.current || 'now',
       onmessage: (payment: any) => {
         if (!isIncomingPaymentForAccount(payment, paymentMonitorAccount, displayAccount)) {
           return;
         }
 
-        const eventId = String(payment?.id || payment?.paging_token || '').trim();
+        const eventId = String(payment?.paging_token || payment?.id || '').trim();
         if (eventId && seenEvents.has(eventId)) {
           return;
         }
         if (eventId) {
           seenEvents.add(eventId);
+          streamCursorRef.current = eventId;
         }
 
         const streamTxHash = extractPaymentTxHash(payment);
@@ -350,7 +353,59 @@ export default function OrderStatusClient({ initialOrderId = '' }: { initialOrde
     return () => {
       closeStream();
     };
-  }, [orderId, paymentMonitorAccount, displayAccount, isCompleted, activeNetwork]);
+  }, [orderId, paymentMonitorAccount, displayAccount, isCompleted, activeNetwork, notifyPaymentDetected, fetchOrder, streamRestartKey]);
+
+  useEffect(() => {
+    if (!orderId || isCompleted) {
+      return;
+    }
+
+    const handleResume = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
+
+      setStreamError('');
+      setStreamStatus('connecting');
+      setStreamRestartKey((prev) => prev + 1);
+      void fetchOrder({ reason: 'app_resumed' });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleResume();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleResume);
+    window.addEventListener('pageshow', handleResume);
+    window.addEventListener('online', handleResume);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleResume);
+      window.removeEventListener('pageshow', handleResume);
+      window.removeEventListener('online', handleResume);
+    };
+  }, [orderId, isCompleted, fetchOrder]);
+
+  useEffect(() => {
+    if (!orderId || isCompleted) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
+      void fetchOrder({ reason: 'poll_fallback' });
+    }, 10000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [orderId, isCompleted, fetchOrder]);
 
   const currentStep = getStepIndex(orderStatus);
 
