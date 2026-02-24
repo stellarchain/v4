@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { shortenAddress, timeAgo } from '@/lib/stellar';
@@ -60,84 +60,6 @@ interface ContractsDesktopViewProps {
   onPageChange: (page: number) => void;
 }
 
-const PaginationControls = ({ currentPage, totalPages, onPageChange, loading }: {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-  loading: boolean;
-}) => {
-  if (totalPages <= 1) return null;
-
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      if (currentPage > 3) pages.push('...');
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
-      for (let i = start; i <= end; i++) pages.push(i);
-      if (currentPage < totalPages - 2) pages.push('...');
-      pages.push(totalPages);
-    }
-    return pages;
-  };
-
-  return (
-    <div className="flex items-center justify-center gap-1.5 px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1 || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-
-      {getPageNumbers().map((page, idx) => (
-        page === '...' ? (
-          <span key={`ellipsis-${idx}`} className="text-[var(--text-muted)] text-xs px-1">...</span>
-        ) : (
-          <button
-            key={page}
-            onClick={() => onPageChange(page as number)}
-            disabled={loading}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${currentPage === page
-              ? 'bg-sky-600 text-white shadow-sm'
-              : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
-              }`}
-          >
-            {page}
-          </button>
-        )
-      ))}
-
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage >= totalPages || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-
-      {loading && (
-        <svg className="w-4 h-4 animate-spin ml-2 text-sky-500" aria-hidden="true" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      )}
-
-      <span className="ml-3 text-[10px] font-medium text-[var(--text-muted)]">
-        Page {currentPage} of {totalPages}
-      </span>
-    </div>
-  );
-};
-
 export default function ContractsDesktopView({
   contracts,
   stats,
@@ -154,6 +76,23 @@ export default function ContractsDesktopView({
 }: ContractsDesktopViewProps) {
   const router = useRouter();
   const { networkConfig } = useNetwork();
+  const [isPaginationHovered, setIsPaginationHovered] = useState(false);
+  const [isScrollActive, setIsScrollActive] = useState(false);
+
+  useEffect(() => {
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+    const handleScroll = () => {
+      setIsScrollActive(true);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => setIsScrollActive(false), 900);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
+  }, []);
 
   const filteredContracts = useMemo(() => {
     const seen = new Set<string>();
@@ -276,9 +215,9 @@ export default function ContractsDesktopView({
           />
         </div>
 
-        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden min-h-[520px]">
-          <div className="overflow-x-auto">
-            <table className="w-full sc-table">
+        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden relative min-h-[520px] pb-20">
+            <div className="overflow-x-auto">
+              <table className="w-full sc-table">
               <thead>
                 <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Contract ID</th>
@@ -412,14 +351,71 @@ export default function ContractsDesktopView({
               </tbody>
             </table>
           </div>
-
-          <PaginationControls
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            onPageChange={onPageChange}
-            loading={loading}
-          />
         </div>
+
+        {/* Floating Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="fixed bottom-4 left-1/2 z-30 pointer-events-none w-full max-w-[1400px] -translate-x-1/2 px-4">
+            <div className="mx-auto px-4 flex justify-center">
+              <div
+                onMouseEnter={() => setIsPaginationHovered(true)}
+                onMouseLeave={() => setIsPaginationHovered(false)}
+                className={`pointer-events-auto bg-[var(--bg-secondary)]/90 backdrop-blur-xl rounded-xl px-3 py-2 flex items-center gap-1.5 shadow-xl border border-[var(--border-default)] transition-opacity duration-300 ${isScrollActive || isPaginationHovered ? 'opacity-100' : 'opacity-20'}`}
+              >
+                <button
+                  onClick={() => onPageChange(pagination.currentPage - 1)}
+                  disabled={pagination.currentPage === 1 || loading}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+              {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => {
+                let pageNum: number;
+                if (pagination.totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (pagination.currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                  pageNum = pagination.totalPages - 4 + i;
+                } else {
+                  pageNum = pagination.currentPage - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => onPageChange(pageNum)}
+                    disabled={loading}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
+                      pagination.currentPage === pageNum
+                        ? 'bg-sky-600 text-white shadow-sm'
+                        : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              {pagination.totalPages > 5 && pagination.currentPage < pagination.totalPages - 2 && (
+                <span className="text-[var(--text-muted)] text-xs px-1">...</span>
+              )}
+
+              <button
+                onClick={() => onPageChange(pagination.currentPage + 1)}
+                disabled={pagination.currentPage === pagination.totalPages || loading}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

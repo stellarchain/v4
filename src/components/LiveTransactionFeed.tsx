@@ -106,7 +106,6 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
   const rowRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
   const previousIdsRef = useRef<Set<string>>(new Set());
   const enrichedIdsRef = useRef<Set<string>>(new Set());
-
   // Merge helper: merge new transactions, animate new ones, save to cache
   const mergeAndAnimate = useCallback((newTxs: Transaction[], isInitial: boolean) => {
     setTransactions(prev => {
@@ -150,6 +149,26 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
       return merged;
     });
   }, []);
+
+  useEffect(() => {
+    if (initialTransactions.length === 0) return;
+    if (transactions.length > 0) return;
+
+    mergeAndAnimate(initialTransactions, true);
+    if (isInitialLoading) {
+      setIsInitialLoading(false);
+    }
+  }, [initialTransactions, transactions.length, mergeAndAnimate, isInitialLoading]);
+
+  useEffect(() => {
+    if (initialTransactions.length === 0) return;
+    if (transactions.length > 0) return;
+
+    mergeAndAnimate(initialTransactions, true);
+    if (isInitialLoading) {
+      setIsInitialLoading(false);
+    }
+  }, [initialTransactions, transactions.length, mergeAndAnimate, isInitialLoading]);
 
   // Fetch payments from /payments endpoint (same as desktop for Payments tab)
   const fetchPayments = useCallback(async (isInitial: boolean) => {
