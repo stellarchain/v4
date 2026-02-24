@@ -110,8 +110,8 @@ export default function TransactionPage() {
   }, [pathname, searchParams]);
 
   const checkOtherNetworksForTransaction = useCallback(async (txHash: string, currentNetwork: NetworkType) => {
-    const otherNetworks: NetworkType[] = ['mainnet', 'testnet'].filter(
-      (network): network is NetworkType => network !== currentNetwork
+    const otherNetworks = (Object.keys(NETWORK_CONFIGS) as NetworkType[]).filter(
+      (network) => network !== currentNetwork
     );
 
     if (!txHash || otherNetworks.length === 0) return [];
