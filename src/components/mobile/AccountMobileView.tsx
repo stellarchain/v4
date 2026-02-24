@@ -884,7 +884,7 @@ export default function AccountMobileView({ account, accountId, transactions, op
         </div>
         <div className="flex justify-center mb-3">
           <Link
-            href="/accounts/directory/update"
+            href={`/accounts/directory/update?account=${encodeURIComponent(accountId)}`}
             prefetch={false}
             className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-xs font-semibold text-sky-600 hover:text-sky-700 hover:border-sky-300 transition-colors"
           >
