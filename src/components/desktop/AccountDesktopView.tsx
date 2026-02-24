@@ -64,6 +64,42 @@ interface AccountDesktopViewProps {
   currentAccountLabel?: AccountLabel | null;
   firstTransactionAt?: string;
   lastTransactionAt?: string;
+  accountMeta?: {
+    label?: string;
+    verified?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+    network?: number;
+    accountMetric?: {
+      nativeBalance?: string | number;
+      totalTransactions?: string | number;
+      transactionsPerHour?: string | number;
+      paymentsCount?: string | number;
+      tradesCount?: string | number;
+      rankPosition?: string | number;
+      metricUpdatedAt?: string;
+      firstTransactionAt?: string;
+      lastTransactionAt?: string;
+    };
+    stellarData?: {
+      activity24h?: {
+        totalTransactions?: number;
+        paymentOperations?: number;
+        tradeOperations?: number;
+        operationCount?: number;
+        successRatePercent?: number | null;
+        nativeBalanceChange24h?: string | number | null;
+      };
+    };
+    activity24h?: {
+      totalTransactions?: number;
+      paymentOperations?: number;
+      tradeOperations?: number;
+      operationCount?: number;
+      successRatePercent?: number | null;
+      nativeBalanceChange24h?: string | number | null;
+    };
+  } | null;
   loading?: boolean;
   onTabChange?: (tab: string) => void;
   loadingTransactions?: boolean;
@@ -138,7 +174,7 @@ const getOperationCategory = (type: string): { label: string; color: string; bgC
   return { label: 'Action', color: 'text-[var(--text-secondary)]', bgColor: 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]' };
 };
 
-export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false }: AccountDesktopViewProps) {
+export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false }: AccountDesktopViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -279,6 +315,14 @@ export default function AccountDesktopView({ account, accountId, transactions, o
 
   // Calculate total USD value
   const totalValueUSD = totalBalanceXLM * xlmPrice;
+  const nativeBalanceChange24hXlm = Number(
+    accountMeta?.activity24h?.nativeBalanceChange24h
+    ?? accountMeta?.stellarData?.activity24h?.nativeBalanceChange24h
+    ?? 0
+  ) || 0;
+  const balanceChange24hUsd = nativeBalanceChange24hXlm * xlmPrice;
+  const previousBalanceUsd = totalValueUSD - balanceChange24hUsd;
+  const balanceChange24hPercent = previousBalanceUsd > 0 ? (balanceChange24hUsd / previousBalanceUsd) * 100 : 0;
 
   // Calculate tokens total value
   const tokensValueUSD = useMemo(() => {
@@ -780,6 +824,22 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                 </div>
               </div>
 
+              <div>
+                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">24H Balance Change</div>
+                <div className={`text-sm font-semibold ${balanceChange24hUsd >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {loading ? (
+                    <InlineSkeleton width="w-24" />
+                  ) : (
+                    <>
+                      {balanceChange24hUsd >= 0 ? '+' : '-'}${Math.abs(balanceChange24hUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <span className="text-xs text-[var(--text-muted)] ml-1">
+                        ({balanceChange24hPercent >= 0 ? '+' : ''}{balanceChange24hPercent.toFixed(2)}%)
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
               <div ref={tokensDropdownRef} className="relative">
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Token Holdings</div>
                 <button
@@ -834,7 +894,8 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                       <span className="text-sm font-medium text-[var(--text-primary)]">{accountLabelText}</span>
                     </div>
                     <Link
-                      href={`/accounts/directory/update?account=${encodeURIComponent(accountId)}`}
+                      href="/accounts/directory/update"
+                      prefetch={false}
                       className="text-xs text-sky-600 hover:text-sky-700 hover:underline"
                     >
                       {labelActionText}
@@ -844,7 +905,8 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                   <InlineSkeleton width="w-20" />
                 ) : (
                   <Link
-                    href={`/accounts/directory/update?account=${encodeURIComponent(accountId)}`}
+                    href="/accounts/directory/update"
+                    prefetch={false}
                     className="text-sm text-sky-600 hover:text-sky-700 hover:underline"
                   >
                     + {labelActionText}
