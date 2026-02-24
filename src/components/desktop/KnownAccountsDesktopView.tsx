@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/stellar';
 import type { LabeledAccountsAPIResponse } from '@/lib/stellar';
@@ -56,6 +56,23 @@ export default function KnownAccountsDesktopView({
   const getTransactions = (acc: any) => String(acc.accountMetric?.totalTransactions ?? acc.accountMetric?.transactionsPerHour ?? '0');
 
   const itemsPerPage = 30;
+  const [isPaginationHovered, setIsPaginationHovered] = useState(false);
+  const [isScrollActive, setIsScrollActive] = useState(false);
+
+  useEffect(() => {
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+    const handleScroll = () => {
+      setIsScrollActive(true);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => setIsScrollActive(false), 900);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
+  }, []);
 
   const displayAccounts = useMemo(() =>
     (initialData?.member || []).map((acc: any) => ({
@@ -210,7 +227,7 @@ export default function KnownAccountsDesktopView({
         </div>
 
         {/* Table */}
-        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden relative pb-20">
           <table className="w-full sc-table">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
@@ -364,19 +381,26 @@ export default function KnownAccountsDesktopView({
               </p>
             </div>
           )}
+        </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-1.5 px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
-              <button
-                onClick={() => onPageChange(currentPage - 1)}
-                disabled={currentPage === 1 || parentLoading}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        {/* Floating Pagination */}
+        {totalPages > 1 && (
+          <div className="fixed bottom-4 left-1/2 z-30 pointer-events-none w-full max-w-[1400px] -translate-x-1/2 px-4">
+            <div className="mx-auto px-4 flex justify-center">
+              <div
+                onMouseEnter={() => setIsPaginationHovered(true)}
+                onMouseLeave={() => setIsPaginationHovered(false)}
+                className={`pointer-events-auto bg-[var(--bg-secondary)]/90 backdrop-blur-xl rounded-xl px-3 py-2 flex items-center gap-1.5 shadow-xl border border-[var(--border-default)] transition-opacity duration-300 ${isScrollActive || isPaginationHovered ? 'opacity-100' : 'opacity-20'}`}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
+                <button
+                  onClick={() => onPageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || parentLoading}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
 
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                 let pageNum: number;
@@ -394,10 +418,11 @@ export default function KnownAccountsDesktopView({
                     key={pageNum}
                     onClick={() => onPageChange(pageNum)}
                     disabled={parentLoading}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${currentPage === pageNum
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
+                      currentPage === pageNum
                         ? 'bg-sky-600 text-white shadow-sm'
                         : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
-                      }`}
+                    }`}
                   >
                     {pageNum}
                   </button>
@@ -411,15 +436,16 @@ export default function KnownAccountsDesktopView({
               <button
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage === totalPages || parentLoading}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

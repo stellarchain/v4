@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState, useMemo } from 'react';
+import { useId, useState, useMemo, useEffect } from 'react';
 import { MarketAsset } from '@/lib/stellar';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -230,7 +230,24 @@ export default function MarketsDesktopView({
   const [sortField, setSortField] = useState<SortField>('rank');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [isPaginationHovered, setIsPaginationHovered] = useState(false);
+  const [isScrollActive, setIsScrollActive] = useState(false);
   const paginationTotalPages = Math.max(totalPages, hasNextPage ? currentPage + 1 : currentPage, 1);
+
+  useEffect(() => {
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+    const handleScroll = () => {
+      setIsScrollActive(true);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => setIsScrollActive(false), 900);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
+  }, []);
 
   // Calculate market totals
   const marketTotals = useMemo(() => {
@@ -375,12 +392,12 @@ export default function MarketsDesktopView({
           </div>
 
           <div className="text-sm text-[var(--text-muted)]">
-            {loading ? <InlineSkeleton width="w-32" /> : <>Showing {filteredAndSortedAssets.length} assets</>}
+            {loading ? <InlineSkeleton width="w-32" /> : null}
           </div>
         </div>
 
         {/* Table */}
-        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden relative pb-16">
           <table className="w-full sc-table">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50">
@@ -516,64 +533,68 @@ export default function MarketsDesktopView({
           </table>
         </div>
 
-        {/* Pagination Controls */}
+        {/* Floating Pagination (sticky at viewport bottom) */}
         {!loading && filteredAndSortedAssets.length > 0 && (paginationTotalPages > 1 || hasNextPage || currentPage > 1) && (
-          <div className="mt-6 flex items-center justify-center gap-1.5">
-            <button
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
+          <div className="fixed bottom-4 left-1/2 z-30 pointer-events-none w-full max-w-[1400px] -translate-x-1/2 px-4">
+            <div className="mx-auto px-4 flex justify-center">
+              <div
+                onMouseEnter={() => setIsPaginationHovered(true)}
+                onMouseLeave={() => setIsPaginationHovered(false)}
+                className={`pointer-events-auto bg-[var(--bg-secondary)]/90 backdrop-blur-xl rounded-xl px-3 py-2 flex items-center gap-1.5 shadow-xl border border-[var(--border-default)] transition-opacity duration-300 ${isScrollActive || isPaginationHovered ? 'opacity-100' : 'opacity-20'}`}
+              >
+                <button
+                  onClick={() => onPageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
 
-            {(() => {
-              const pages: (number | string)[] = [];
-              if (paginationTotalPages <= 7) {
-                for (let i = 1; i <= paginationTotalPages; i++) pages.push(i);
-              } else {
-                pages.push(1);
-                if (currentPage > 3) pages.push('...');
-                const start = Math.max(2, currentPage - 1);
-                const end = Math.min(paginationTotalPages - 1, currentPage + 1);
-                for (let i = start; i <= end; i++) pages.push(i);
-                if (currentPage < paginationTotalPages - 2) pages.push('...');
-                pages.push(paginationTotalPages);
-              }
-              return pages.map((page, idx) =>
-                page === '...' ? (
-                  <span key={`ellipsis-${idx}`} className="text-[var(--text-muted)] text-xs px-1">...</span>
-                ) : (
-                  <button
-                    key={page}
-                    onClick={() => onPageChange(page as number)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
-                      currentPage === page
-                        ? 'bg-sky-600 text-white shadow-sm'
-                        : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                )
-              );
-            })()}
+                {(() => {
+                  const pages: (number | string)[] = [];
+                  if (paginationTotalPages <= 7) {
+                    for (let i = 1; i <= paginationTotalPages; i++) pages.push(i);
+                  } else {
+                    pages.push(1);
+                    if (currentPage > 3) pages.push('...');
+                    const start = Math.max(2, currentPage - 1);
+                    const end = Math.min(paginationTotalPages - 1, currentPage + 1);
+                    for (let i = start; i <= end; i++) pages.push(i);
+                    if (currentPage < paginationTotalPages - 2) pages.push('...');
+                    pages.push(paginationTotalPages);
+                  }
+                  return pages.map((page, idx) =>
+                    page === '...' ? (
+                      <span key={`ellipsis-${idx}`} className="text-[var(--text-muted)] text-xs px-1">...</span>
+                    ) : (
+                      <button
+                        key={page}
+                        onClick={() => onPageChange(page as number)}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
+                          currentPage === page
+                            ? 'bg-sky-600 text-white shadow-sm'
+                            : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  );
+                })()}
 
-            <button
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={!hasNextPage}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-
-            <span className="ml-3 text-[10px] font-medium text-[var(--text-muted)]">
-              Page {currentPage} of {paginationTotalPages} ({totalItems.toLocaleString()} assets)
-            </span>
+                <button
+                  onClick={() => onPageChange(currentPage + 1)}
+                  disabled={!hasNextPage}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

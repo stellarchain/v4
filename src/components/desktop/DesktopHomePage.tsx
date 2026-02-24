@@ -103,6 +103,7 @@ export default function DesktopHomePage({
     const ledgerCountRef = useRef<HTMLDivElement>(null);
     const tpsRef = useRef<HTMLDivElement>(null);
     const progressBarRef = useRef<HTMLDivElement>(null);
+    const hasFetchedAllActivityRef = useRef(false);
 
     // Ledger progress animation - resets every ~5 seconds (avg ledger time)
     useEffect(() => {
@@ -317,9 +318,19 @@ export default function DesktopHomePage({
             }
         };
 
-        if (activeTab === 'Payments' || activeTab !== 'All Activity') {
-            fetchInitialData();
-        } else if (activeTab === 'All Activity' && operations !== initialOperations) {
+        const shouldFetchInitialData = (() => {
+            if (activeTab === 'All Activity') {
+                if (hasFetchedAllActivityRef.current) {
+                    return false;
+                }
+                hasFetchedAllActivityRef.current = true;
+                return true;
+            }
+            hasFetchedAllActivityRef.current = false;
+            return true;
+        })();
+
+        if (shouldFetchInitialData) {
             fetchInitialData();
         }
 
