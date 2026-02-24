@@ -2244,20 +2244,25 @@ export function startOrderBookStream(options: {
     throw new Error('Invalid assets for order book stream');
   }
 
-  const normalizeAsset = (asset: Asset | { asset_type?: string; asset_code?: string; asset_issuer?: string }) => {
-    const assetType = typeof (asset as Asset).getAssetType === 'function'
-      ? (asset as Asset).getAssetType()
-      : asset.asset_type || 'native';
-    const assetCode = typeof (asset as Asset).getCode === 'function'
-      ? (asset as Asset).getCode() || 'XLM'
-      : asset.asset_code || 'XLM';
-    const assetIssuer = typeof (asset as Asset).getIssuer === 'function'
-      ? (asset as Asset).getIssuer() || ''
-      : asset.asset_issuer || '';
+  type RawOrderbookAsset = { asset_type?: string; asset_code?: string; asset_issuer?: string };
+  const isSdkAsset = (asset: Asset | RawOrderbookAsset): asset is Asset =>
+    typeof (asset as Asset).getAssetType === 'function'
+    && typeof (asset as Asset).getCode === 'function'
+    && typeof (asset as Asset).getIssuer === 'function';
+
+  const normalizeAsset = (asset: Asset | RawOrderbookAsset) => {
+    if (isSdkAsset(asset)) {
+      return {
+        asset_type: asset.getAssetType(),
+        asset_code: asset.getCode() || 'XLM',
+        asset_issuer: asset.getIssuer() || '',
+      };
+    }
+
     return {
-      asset_type: assetType,
-      asset_code: assetCode,
-      asset_issuer: assetIssuer,
+      asset_type: asset.asset_type || 'native',
+      asset_code: asset.asset_code || 'XLM',
+      asset_issuer: asset.asset_issuer || '',
     };
   };
 
