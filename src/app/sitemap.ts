@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 
 export const dynamic = 'force-static';
 
-const SITE_URL = 'https://stellarchain.dev';
+const SITE_URL = 'https://stellarchain.io';
 
 const STATIC_ROUTES = [
   '',

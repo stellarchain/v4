@@ -30,3 +30,10 @@ export const SOROBAN_SIMULATION_TIMEOUT = 30;
 export function isNetworkType(value: string): value is NetworkType {
   return value in HORIZON_URLS;
 }
+
+export function getForcedNetworkFromHostname(hostname: string): NetworkType | null {
+  const host = String(hostname || '').toLowerCase();
+  if (host.startsWith('testnet.')) return 'testnet';
+  if (host.startsWith('futurenet.')) return 'futurenet';
+  return null;
+}

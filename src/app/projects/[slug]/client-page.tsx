@@ -111,7 +111,7 @@ export default function ProjectDetailPage() {
         <section className="relative overflow-hidden rounded-3xl border border-[var(--border-default)] bg-[var(--bg-secondary)]">
           <div className="relative h-56 w-full bg-sky-500/10 md:h-72">
             <img
-              src={project.imagePublicUrl || 'https://stellarchain.dev/stellarchain-logo.svg'}
+              src={project.imagePublicUrl || 'https://stellarchain.io/stellarchain-logo.svg'}
               alt={project.imageAlt || project.name}
               className={`h-full w-full ${project.imagePublicUrl ? 'object-cover' : 'object-contain p-14'}`}
             />
