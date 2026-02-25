@@ -5,9 +5,10 @@ import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl, shortenAddress, timeAgo } from '@/lib/stellar';
-import { txRoute, addressRoute } from '@/lib/routes';
+import { shortenAddress, timeAgo } from '@/lib/stellar';
+import { txRoute, addressRoute } from '@/lib/shared/routes';
 import Loading from '@/components/ui/Loading';
+import { createHorizonServer } from '@/services/horizon';
 
 
 type Operation = Horizon.ServerApi.OperationRecord;
@@ -27,7 +28,7 @@ export default function OperationDetailsPage() {
   const isLoading = !error && !op;
 
   const loadOperationData = async (opId: string) => {
-    const server = new Horizon.Server(getBaseUrl());
+    const server = createHorizonServer();
     const operation = await server.operations().operation(opId).call();
     return operation as unknown as Operation;
   };
@@ -37,13 +38,18 @@ export default function OperationDetailsPage() {
       setError('Missing operation id.');
       return;
     }
-    loadOperationData(id)
-      .then((operation) => {
+
+    const fetchOperation = async () => {
+      try {
+        setError(null);
+        const operation = await loadOperationData(id);
         setOp(operation);
-      })
-      .catch((err) => {
+      } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load operation.');
-      });
+      }
+    };
+
+    fetchOperation();
   }, [id]);
 
   if (isLoading) {

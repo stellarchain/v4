@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { getBaseUrl } from '@/lib/stellar';
+import { getLiquidityPools } from '@/lib/stellar';
 import type { LiquidityPool, PaginatedResponse } from '@/lib/stellar';
 import MobileLiquidityPools from '@/components/mobile/MobileLiquidityPools';
 import LiquidityPoolsDesktopView from '@/components/desktop/LiquidityPoolsDesktopView';
 import LiquidityPoolDetailsClientPage from '@/app/liquidity-pool/[id]/client-page';
-import { getDetailRouteValue } from '@/lib/routeDetail';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
 export default function LiquidityPoolsPage() {
     const pathname = usePathname();
@@ -31,9 +31,7 @@ export default function LiquidityPoolsPage() {
             setIsLoading(true);
             setError(null);
             try {
-                const response = await fetch(`${getBaseUrl()}/liquidity_pools?limit=20&order=desc`);
-                if (!response.ok) throw new Error('Failed to fetch liquidity pools');
-                const data: PaginatedResponse<LiquidityPool> = await response.json();
+                const data = await getLiquidityPools(20, 'desc');
                 setPools(data);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load liquidity pools.');
@@ -59,7 +57,7 @@ export default function LiquidityPoolsPage() {
     }
 
     const emptyPools: PaginatedResponse<LiquidityPool> = {
-        _embedded: { records: [] },
+        records: [],
         _links: {
             self: { href: '' },
             next: { href: '' },

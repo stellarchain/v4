@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { shortenAddress, timeAgo, getOperationTypeLabel, formatDate, formatXLM, extractContractAddress, detectContractFunctionType } from '@/lib/stellar';
 import type { AccountLabel } from '@/lib/stellar';
-import type { ContractFunctionType } from '@/lib/types/token';
+import type { ContractFunctionType } from '@/lib/shared/interfaces';
 import AccountBadges from '@/components/AccountBadges';
-import { containers, spacing } from '@/lib/design-system';
+import { containers, spacing } from '@/lib/shared/designSystem';
 import GliderTabs, { type GliderTab } from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
-import { decodeTransactionMeta, decodeTransactionResources, type DecodedTransactionMeta, type SorobanMetrics } from '@/lib/xdrDecoder';
+import { decodeTransactionMeta, decodeTransactionResources, type DecodedTransactionMeta, type SorobanMetrics } from '@/lib/shared/xdr';
 
 interface Operation {
   id: string;
@@ -78,8 +78,6 @@ export default function TransactionMobileView({ transaction, operations, effects
   const [isTraceExpanded, setIsTraceExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
   const [operationFilter, setOperationFilter] = useState<string>('all');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -159,20 +157,24 @@ export default function TransactionMobileView({ transaction, operations, effects
     setXdrFetchAttempted(true);
     setIsDecodingXdr(true);
 
-    fetch(`/api/transaction-meta?hash=${transaction.hash}`)
-      .then(res => res.json())
-      .then(data => {
+    const fetchRpcXdr = async () => {
+      try {
+        const res = await fetch(`/api/transaction-meta?hash=${transaction.hash}`);
+        const data = await res.json();
         if (data.resultMetaXdr) {
           setFetchedXdr(data.resultMetaXdr);
           if (Array.isArray(data.diagnosticEventsXdr) && data.diagnosticEventsXdr.length > 0) {
             setFetchedDiagnosticEventsXdr(data.diagnosticEventsXdr);
           }
         }
+      } catch {
+        // Ignore RPC metadata fetch failures
+      } finally {
         setIsDecodingXdr(false);
-      })
-      .catch(() => {
-        setIsDecodingXdr(false);
-      });
+      }
+    };
+
+    void fetchRpcXdr();
   }, [
     isContractCall,
     activeTab,
@@ -706,26 +708,6 @@ export default function TransactionMobileView({ transaction, operations, effects
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const query = searchQuery.trim();
-    if (!query) return;
-
-    const upperQuery = query.toUpperCase();
-    if (query.length === 56 && upperQuery.startsWith('C')) {
-      window.location.href = `/contract/${upperQuery}`;
-    } else if (query.length === 56 && upperQuery.startsWith('G')) {
-      window.location.href = `/account/${upperQuery}`;
-    } else if (query.length === 64) {
-      window.location.href = `/transaction/${query.toLowerCase()}`;
-    } else if (/^\d+$/.test(query)) {
-      window.location.href = `/ledger/${query}`;
-    } else {
-      window.location.href = `/account/${query}`;
-    }
-    setSearchQuery('');
-    setShowSearch(false);
-  };
 
   const feeXLM = (parseInt(transaction.fee_charged) / 10000000).toFixed(7);
 
@@ -748,20 +730,6 @@ export default function TransactionMobileView({ transaction, operations, effects
           <h1 className="text-xl font-bold tracking-tight capitalize" style={{ color: primaryColor }}>
             {isContractCall ? (contractFunctionName || 'Contract') : typeLabel}
           </h1>
-        </div>
-        <div className="flex-1 max-w-[180px] ml-auto">
-          <form onSubmit={handleSearch} className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search..."
-              className="w-full pl-10 pr-3 py-2 bg-[var(--bg-tertiary)] border-none rounded-full text-sm text-[var(--text-secondary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-[var(--accent)] focus:bg-[var(--bg-secondary)] transition-colors"
-            />
-          </form>
         </div>
       </header>
 

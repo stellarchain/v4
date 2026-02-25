@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { Transaction, shortenAddress, timeAgo } from '@/lib/stellar';
 import { forwardRef } from 'react';
-import { interactive, spacing, getPrimaryColor } from '@/lib/design-system';
-import { txRoute } from '@/lib/routes';
+import { interactive, spacing, getPrimaryColor } from '@/lib/shared/designSystem';
+import { txRoute } from '@/lib/shared/routes';
 
 interface CompactTransactionRowProps {
   transaction: Transaction;

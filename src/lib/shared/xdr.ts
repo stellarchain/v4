@@ -83,7 +83,7 @@ export interface DecodedTransactionMeta {
 /**
  * Decode an ScVal to a displayable format
  */
-function decodeScVal(scVal: xdr.ScVal): DecodedScVal {
+export function decodeScVal(scVal: xdr.ScVal): DecodedScVal {
   try {
     const type = scVal.switch().name;
     let value: unknown;

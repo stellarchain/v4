@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { AssetDetails } from '@/lib/stellar';
+import { apiEndpoints, getApiData } from '@/services/api';
 
 interface AssetChartProps {
   asset: AssetDetails;
@@ -29,41 +30,59 @@ export default function AssetChart({ asset }: AssetChartProps) {
   const [hoveredPoint, setHoveredPoint] = useState<PricePoint | null>(null);
 
   const fetchPriceData = useCallback(async () => {
+    const now = Date.now();
+    const ranges: Record<TimeRange, number> = {
+      '24h': 24 * 60 * 60 * 1000,
+      '7d': 7 * 24 * 60 * 60 * 1000,
+      '30d': 30 * 24 * 60 * 60 * 1000,
+      '1y': 365 * 24 * 60 * 60 * 1000,
+      'all': Infinity,
+    };
+
+    if (asset.price_history.length > 0) {
+      const fallbackPoints = asset.price_history.map(p => ({ timestamp: p[0], price: p[1] }));
+      const filteredFallbackPoints = fallbackPoints.filter(p => p.timestamp > now - ranges[timeRange]);
+      setPriceData(filteredFallbackPoints.length > 0 ? filteredFallbackPoints : fallbackPoints);
+      setLoading(false);
+      return;
+    }
+
+    if (asset.sparkline.length > 0) {
+      const step = (7 * 24 * 60 * 60 * 1000) / asset.sparkline.length;
+      const sparklinePoints = asset.sparkline.map((price, index) => ({
+        timestamp: now - ((asset.sparkline.length - 1 - index) * step),
+        price: Number(price) || 0,
+      }));
+      const filteredSparklinePoints = sparklinePoints.filter(p => p.timestamp > now - ranges[timeRange]);
+      setPriceData(filteredSparklinePoints.length > 0 ? filteredSparklinePoints : sparklinePoints);
+      setLoading(false);
+      return;
+    }
+
+    // As a last client-side source for XLM only, read from our coins endpoint.
+    if (asset.code !== 'XLM') {
+      setPriceData([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const assetId = asset.code === 'XLM' ? 'XLM' : `${asset.code}-${asset.issuer}`;
-      const url = asset.code === 'XLM'
-        ? 'https://api.stellar.expert/explorer/public/xlm-price'
-        : `https://api.stellar.expert/explorer/public/asset/${assetId}/price`;
-
-      const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
-
-      if (response.ok) {
-        const data = await response.json();
-        let points: PricePoint[] = [];
-
-        if (Array.isArray(data)) {
-          points = data.map((item: [number, number]) => ({ timestamp: item[0], price: item[1] }));
-        } else if (data.price7d) {
-          points = data.price7d.map((item: [number, number]) => ({ timestamp: item[0], price: item[1] }));
-        }
-
-        const now = Date.now();
-        const ranges: Record<TimeRange, number> = {
-          '24h': 24 * 60 * 60 * 1000,
-          '7d': 7 * 24 * 60 * 60 * 1000,
-          '30d': 30 * 24 * 60 * 60 * 1000,
-          '1y': 365 * 24 * 60 * 60 * 1000,
-          'all': Infinity,
-        };
-
-        const filteredPoints = points.filter(p => p.timestamp > now - ranges[timeRange]);
+      const data = await getApiData(apiEndpoints.coins.stellar());
+      const sparkline = data?.coingecko_stellar?.market_data?.sparkline_7d?.price;
+      if (Array.isArray(sparkline) && sparkline.length > 0) {
+        const step = (7 * 24 * 60 * 60 * 1000) / sparkline.length;
+        const points = sparkline.map((price: number, index: number) => ({
+          timestamp: now - ((sparkline.length - 1 - index) * step),
+          price: Number(price) || 0,
+        }));
+        const filteredPoints = points.filter((p: PricePoint) => p.timestamp > now - ranges[timeRange]);
         setPriceData(filteredPoints.length > 0 ? filteredPoints : points);
       } else {
-        setPriceData(asset.price_history.map(p => ({ timestamp: p[0], price: p[1] })));
+        setPriceData([]);
       }
     } catch {
-      setPriceData(asset.price_history.map(p => ({ timestamp: p[0], price: p[1] })));
+      setPriceData([]);
     }
     setLoading(false);
   }, [asset, timeRange]);

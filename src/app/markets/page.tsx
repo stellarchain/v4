@@ -1,35 +1,107 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getMarketAssets, getXLMUSDPriceFromHorizon } from '@/lib/stellar';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { getMarketAssetsFromMarketV1 } from '@/lib/stellar';
+import type { MarketAsset } from '@/lib/shared/interfaces';
 import MarketsMobileView from '@/components/mobile/MarketsMobileView';
 import MarketsDesktopView from '@/components/desktop/MarketsDesktopView';
 
+const PAGE_SIZE = 30;
+
 export default function MarketsPage() {
-  const [assets, setAssets] = useState<any[]>([]);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlQuery = (searchParams.get('q') || '').trim();
+  const urlPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+
+  const [pageAssets, setPageAssets] = useState<MarketAsset[]>([]);
   const [xlmPrice, setXlmPrice] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(urlPage);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(urlQuery);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(urlQuery);
 
   useEffect(() => {
+    if (urlQuery !== searchQuery) {
+      setSearchQuery(urlQuery);
+      setDebouncedSearchQuery(urlQuery);
+    }
+    if (urlPage !== currentPage) {
+      setCurrentPage(urlPage);
+    }
+  }, [urlQuery, urlPage]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Sync search + page to URL
+  useEffect(() => {
+    const currentQ = (searchParams.get('q') || '').trim();
+    const currentP = parseInt(searchParams.get('page') || '1', 10) || 1;
+    if (currentQ === debouncedSearchQuery && currentP === currentPage) return;
+
+    const params = new URLSearchParams();
+    if (debouncedSearchQuery) {
+      params.set('q', debouncedSearchQuery);
+    }
+    if (currentPage > 1) {
+      params.set('page', String(currentPage));
+    }
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [debouncedSearchQuery, currentPage, router, pathname, searchParams]);
+
+  const searchFilters = useMemo(() => {
+    const query = debouncedSearchQuery.trim();
+    if (!query) return {};
+    return { search: query };
+  }, [debouncedSearchQuery]);
+
+  useEffect(() => {
+    let cancelled = false;
+
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [assetsData, priceData] = await Promise.all([
-          getMarketAssets(),
-          getXLMUSDPriceFromHorizon(),
-        ]);
-        setAssets(assetsData);
-        setXlmPrice(priceData);
+        const result = await getMarketAssetsFromMarketV1(currentPage, PAGE_SIZE, searchFilters);
+        if (cancelled) return;
+        setPageAssets(result.assets);
+        setTotalPages(result.totalPages);
+        setTotalItems(result.totalItems);
+        setHasNextPage(result.hasNext);
+        setXlmPrice(result.xlmPrice);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load market data.');
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load market data.');
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchData();
-  }, []);
+    return () => { cancelled = true; };
+  }, [currentPage, searchFilters]);
+
+  const searchMountedRef = useRef(false);
+  useEffect(() => {
+    if (!searchMountedRef.current) {
+      searchMountedRef.current = true;
+      return;
+    }
+    setCurrentPage(1);
+  }, [debouncedSearchQuery]);
 
   if (!isLoading && error) {
     return (
@@ -42,16 +114,44 @@ export default function MarketsPage() {
     );
   }
 
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <>
       {/* Mobile View */}
       <div className="block md:hidden">
-        <MarketsMobileView initialAssets={assets} xlmPrice={xlmPrice} loading={isLoading} />
+        <MarketsMobileView
+          initialAssets={pageAssets}
+          xlmPrice={xlmPrice}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          loading={isLoading}
+          currentPage={currentPage}
+          hasNextPage={hasNextPage}
+          onPageChange={handlePageChange}
+          totalPages={totalPages}
+          totalItems={totalItems}
+        />
       </div>
 
       {/* Desktop View */}
       <div className="hidden md:block">
-        <MarketsDesktopView initialAssets={assets} xlmPrice={xlmPrice} loading={isLoading} />
+        <MarketsDesktopView
+          initialAssets={pageAssets}
+          xlmPrice={xlmPrice}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          loading={isLoading}
+          currentPage={currentPage}
+          hasNextPage={hasNextPage}
+          onPageChange={handlePageChange}
+          totalPages={totalPages}
+          totalItems={totalItems}
+        />
       </div>
     </>
   );

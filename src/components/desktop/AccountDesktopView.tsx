@@ -4,12 +4,25 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Transaction, Operation, Effect, shortenAddress, timeAgo, formatXLM, getBaseUrl, getXLMStats } from '@/lib/stellar';
+import {
+  Transaction,
+  Operation,
+  Effect,
+  shortenAddress,
+  timeAgo,
+  formatXLM,
+  getXLMStats,
+  getOrderBook,
+  getTradeAggregations,
+  getAccountOperations,
+  getAccountTransactions,
+  getAccountEffects,
+} from '@/lib/stellar';
 import type { AccountLabel } from '@/lib/stellar';
 import AccountBadges from '@/components/AccountBadges';
 import { QRCodeSVG } from 'qrcode.react';
 import { useFavorites } from '@/contexts/FavoritesContext';
-import { addressRoute, assetRoute, txRoute } from '@/lib/routes';
+import { addressRoute, assetRoute, txRoute } from '@/lib/shared/routes';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
@@ -49,7 +62,60 @@ interface AccountDesktopViewProps {
   xlmPrice: number;
   accountLabels?: Record<string, AccountLabel>;
   currentAccountLabel?: AccountLabel | null;
+  firstTransactionAt?: string;
+  lastTransactionAt?: string;
+  accountMeta?: {
+    label?: string;
+    verified?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+    network?: number;
+    accountMetric?: {
+      nativeBalance?: string | number;
+      totalTransactions?: string | number;
+      transactionsPerHour?: string | number;
+      paymentsCount?: string | number;
+      tradesCount?: string | number;
+      rankPosition?: string | number;
+      metricUpdatedAt?: string;
+      firstTransactionAt?: string;
+      lastTransactionAt?: string;
+    };
+    stellarData?: {
+      activity24h?: {
+        totalTransactions?: number;
+        paymentOperations?: number;
+        tradeOperations?: number;
+        operationCount?: number;
+        successRatePercent?: number | null;
+        nativeBalanceChange24h?: string | number | {
+          currentXlm?: string | number;
+          referenceXlm?: string | number;
+          changeXlm?: string | number;
+          changePercent?: number | null;
+          referenceRecordedHour?: string;
+        } | null;
+      };
+    };
+    activity24h?: {
+      totalTransactions?: number;
+      paymentOperations?: number;
+      tradeOperations?: number;
+      operationCount?: number;
+      successRatePercent?: number | null;
+      nativeBalanceChange24h?: string | number | {
+        currentXlm?: string | number;
+        referenceXlm?: string | number;
+        changeXlm?: string | number;
+        changePercent?: number | null;
+        referenceRecordedHour?: string;
+      } | null;
+    };
+  } | null;
   loading?: boolean;
+  onTabChange?: (tab: string) => void;
+  loadingTransactions?: boolean;
+  loadingOperations?: boolean;
 }
 
 function getAssetUrl(code: string | undefined, issuer: string | undefined): string {
@@ -72,6 +138,77 @@ function formatExactNumber(value: number): string {
   return value.toLocaleString(undefined, { maximumFractionDigits: 7 });
 }
 
+function parseNativeBalanceDeltaXlm(
+  value:
+    | string
+    | number
+    | {
+        changeXlm?: string | number;
+      }
+    | null
+    | undefined
+): number {
+  if (value && typeof value === 'object') {
+    return Number(value.changeXlm ?? 0) || 0;
+  }
+  return Number(value ?? 0) || 0;
+}
+
+function parseNativeBalanceDeltaPercent(
+  value:
+    | string
+    | number
+    | {
+        changePercent?: string | number | null;
+      }
+    | null
+    | undefined
+): number | null {
+  if (value && typeof value === 'object') {
+    const parsed = Number(value.changePercent);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function AccountStatusIcons({ labelText, verified, size = 'sm' }: { labelText?: string; verified?: boolean; size?: 'sm' | 'lg' }) {
+  const normalized = (labelText || '').toLowerCase();
+  const isSpam = normalized.includes('spam');
+  const isRisk = normalized.includes('scam') || normalized.includes('hack') || normalized.includes('malicious') || isSpam;
+  const hasLabel = Boolean(labelText);
+  const isVerified = Boolean(verified) && !isRisk;
+  const iconSize = size === 'lg' ? 'w-8 h-8' : 'w-4 h-4';
+
+  return (
+    <>
+      {isRisk && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" fill={isSpam ? '#F97316' : '#EF4444'}>
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+          <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      )}
+      {hasLabel && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="4.25" fill="#F59E0B" />
+          <circle cx="12" cy="8" r="2.1" fill="#FEF3C7" />
+          <path d="M9.2 11.2L7.6 20l4.4-2.5 4.4 2.5-1.6-8.8z" fill="#D97706" />
+        </svg>
+      )}
+      {isVerified && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" fill="#1D9BF0">
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
+        </svg>
+      )}
+      {!isRisk && !isVerified && !hasLabel && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" fill="#6B7280">
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+          <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
+        </svg>
+      )}
+    </>
+  );
+}
+
 const getOperationCategory = (type: string): { label: string; color: string; bgColor: string } => {
   if (type === 'payment' || type === 'create_account') return { label: 'Payment', color: 'text-emerald-700 dark:text-emerald-400', bgColor: 'bg-emerald-50 dark:bg-emerald-900/40 border-emerald-100 dark:border-emerald-800' };
   if (type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') return { label: 'Swap', color: 'text-violet-700 dark:text-violet-400', bgColor: 'bg-violet-50 dark:bg-violet-900/40 border-violet-100 dark:border-violet-800' };
@@ -82,7 +219,7 @@ const getOperationCategory = (type: string): { label: string; color: string; bgC
   return { label: 'Action', color: 'text-[var(--text-secondary)]', bgColor: 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]' };
 };
 
-export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, loading = false }: AccountDesktopViewProps) {
+export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false }: AccountDesktopViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -95,6 +232,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
   const isCurrentFavorite = isFavorite(accountId);
   const currentFavorite = getFavorite(accountId);
   const accountLabelText = currentFavorite?.label || currentAccountLabel?.name || currentAccountLabel?.org_name;
+  const labelActionText = accountLabelText ? 'Update label' : 'Add label';
 
   // Read initial tab from URL params
   const initialTab = (searchParams.get('tab') as 'assets' | 'transactions' | 'operations' | 'details') || 'assets';
@@ -129,18 +267,27 @@ export default function AccountDesktopView({ account, accountId, transactions, o
   const txLoadMoreRef = useRef<HTMLDivElement | null>(null);
   const opsLoadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  // Update URL when tab changes
+  // Update URL when tab changes (use history.replaceState to avoid Next.js re-render)
   const handleTabChange = (tab: 'assets' | 'transactions' | 'operations' | 'details') => {
     setActiveTab(tab);
+    onTabChange?.(tab);
     const params = new URLSearchParams(searchParams.toString());
     if (tab === 'assets') {
       params.delete('tab');
     } else {
       params.set('tab', tab);
     }
-    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-    router.replace(newUrl, { scroll: false });
+    const newUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+    window.history.replaceState(null, '', newUrl);
   };
+
+  // Trigger lazy load if initial tab is not 'assets'
+  useEffect(() => {
+    if (initialTab !== 'assets') {
+      onTabChange?.(initialTab);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync operations state when initialOperations prop changes
   useEffect(() => {
@@ -166,6 +313,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
   useEffect(() => {
     fetchedBalancePriceKeys.current.clear();
     fetchedActivityPriceKeys.current.clear();
+    effectsFetched.current = false;
   }, [accountId]);
 
   // Close dropdowns when clicking outside
@@ -212,6 +360,19 @@ export default function AccountDesktopView({ account, accountId, transactions, o
 
   // Calculate total USD value
   const totalValueUSD = totalBalanceXLM * xlmPrice;
+  const nativeBalanceChange24hXlm = parseNativeBalanceDeltaXlm(
+    accountMeta?.activity24h?.nativeBalanceChange24h
+    ?? accountMeta?.stellarData?.activity24h?.nativeBalanceChange24h
+    ?? 0
+  );
+  const nativeBalanceChange24hPercentRaw = parseNativeBalanceDeltaPercent(
+    accountMeta?.activity24h?.nativeBalanceChange24h
+    ?? accountMeta?.stellarData?.activity24h?.nativeBalanceChange24h
+    ?? 0
+  );
+  const balanceChange24hUsd = nativeBalanceChange24hXlm * xlmPrice;
+  const previousBalanceUsd = totalValueUSD - balanceChange24hUsd;
+  const balanceChange24hPercent = nativeBalanceChange24hPercentRaw ?? (previousBalanceUsd > 0 ? (balanceChange24hUsd / previousBalanceUsd) * 100 : 0);
 
   // Calculate tokens total value
   const tokensValueUSD = useMemo(() => {
@@ -269,10 +430,11 @@ export default function AccountDesktopView({ account, accountId, transactions, o
         }
 
         try {
-          const res = await fetch(
-            `${getBaseUrl()}/order_book?selling_asset_type=${b.asset_type}&selling_asset_code=${b.asset_code}&selling_asset_issuer=${b.asset_issuer}&buying_asset_type=native&limit=1`
+          const data = await getOrderBook(
+            { code: b.asset_code, issuer: b.asset_issuer },
+            { code: 'XLM' },
+            1
           );
-          const data = await res.json();
 
           if (data.bids && data.bids.length > 0) {
             const priceInXlm = parseFloat(data.bids[0].price);
@@ -280,13 +442,16 @@ export default function AccountDesktopView({ account, accountId, transactions, o
 
             const endTime = Date.now();
             const startTime = endTime - 86400000;
-            const aggRes = await fetch(
-              `${getBaseUrl()}/trade_aggregations?base_asset_type=${b.asset_type}&base_asset_code=${b.asset_code}&base_asset_issuer=${b.asset_issuer}&counter_asset_type=native&resolution=3600000&start_time=${startTime}&end_time=${endTime}&limit=24&order=asc`
+            const records = await getTradeAggregations(
+              { code: b.asset_code, issuer: b.asset_issuer },
+              { code: 'XLM' },
+              3600000,
+              24,
+              startTime,
+              endTime
             );
-            const aggData = await aggRes.json();
 
             let change24h = 0;
-            const records = aggData._embedded?.records || [];
             if (records.length > 0) {
               const oldestRecord = records[0];
               const openPriceXlm = parseFloat(oldestRecord.open);
@@ -319,11 +484,8 @@ export default function AccountDesktopView({ account, accountId, transactions, o
 
     setLoadingMore(true);
     try {
-      const res = await fetch(
-        `${getBaseUrl()}/accounts/${accountId}/operations?limit=100&order=desc&cursor=${lastCursor}`
-      );
-      const data = await res.json();
-      const newOps = data._embedded?.records || [];
+      const data = await getAccountOperations(accountId, 100, 'desc', lastCursor);
+      const newOps = data.records || [];
 
       if (newOps.length > 0) {
         setAllOperations(prev => {
@@ -348,11 +510,8 @@ export default function AccountDesktopView({ account, accountId, transactions, o
 
     setLoadingMoreTx(true);
     try {
-      const res = await fetch(
-        `${getBaseUrl()}/accounts/${accountId}/transactions?limit=${TX_PAGE_SIZE}&order=desc&cursor=${lastTxCursor}`
-      );
-      const data = await res.json();
-      const newTxs: Transaction[] = data?._embedded?.records || [];
+      const data = await getAccountTransactions(accountId, TX_PAGE_SIZE, 'desc', lastTxCursor);
+      const newTxs: Transaction[] = data?.records || [];
 
       if (newTxs.length > 0) {
         setAllTransactions(prev => {
@@ -416,9 +575,8 @@ export default function AccountDesktopView({ account, accountId, transactions, o
 
     const fetchEffects = async () => {
       try {
-        const res = await fetch(`${getBaseUrl()}/accounts/${accountId}/effects?limit=200&order=desc`);
-        const data = await res.json();
-        const records = data._embedded?.records || [];
+        const data = await getAccountEffects(accountId, 200, 'desc');
+        const records = data.records || [];
 
         // Group effects by operation_id
         const grouped: Record<string, Effect[]> = {};
@@ -488,10 +646,11 @@ export default function AccountDesktopView({ account, accountId, transactions, o
         }
 
         try {
-          const res = await fetch(
-            `${getBaseUrl()}/order_book?selling_asset_type=${asset.type}&selling_asset_code=${asset.code}&selling_asset_issuer=${asset.issuer}&buying_asset_type=native&limit=1`
+          const data = await getOrderBook(
+            { code: asset.code, issuer: asset.issuer },
+            { code: 'XLM' },
+            1
           );
-          const data = await res.json();
 
           if (data.bids && data.bids.length > 0) {
             const priceInXlm = parseFloat(data.bids[0].price);
@@ -529,6 +688,47 @@ export default function AccountDesktopView({ account, accountId, transactions, o
     } catch {
       return 'Contract Call';
     }
+  };
+
+  // Extract amount directly from the operation object (fallback when effects are not available)
+  const getAmountFromOperation = (op: Operation) => {
+    const o = op as any;
+    // payment / create_account
+    if (o.amount) {
+      const isIncoming = o.to === accountId || o.funder === accountId;
+      const assetCode = o.asset_code || (o.asset_type === 'native' || !o.asset_type ? 'XLM' : 'Unknown');
+      return {
+        type: (isIncoming ? 'received' : 'sent') as 'received' | 'sent',
+        amount: o.amount,
+        asset: assetCode,
+        asset_issuer: o.asset_issuer || null,
+        asset_type: o.asset_type || 'native',
+      };
+    }
+    // path_payment (swap) — show the destination amount received
+    if (o.source_amount) {
+      const destAsset = o.asset_code || (o.asset_type === 'native' ? 'XLM' : 'Unknown');
+      const sourceAsset = o.source_asset_code || (o.source_asset_type === 'native' ? 'XLM' : 'Unknown');
+      // If account is the destination, show received amount; otherwise show sent amount
+      if (o.to === accountId || o.from === accountId) {
+        return {
+          type: (o.to === accountId ? 'received' : 'sent') as 'received' | 'sent',
+          amount: o.to === accountId ? (o.amount || o.source_amount) : o.source_amount,
+          asset: o.to === accountId ? destAsset : sourceAsset,
+          asset_issuer: o.to === accountId ? (o.asset_issuer || null) : (o.source_asset_issuer || null),
+          asset_type: o.to === accountId ? (o.asset_type || 'native') : (o.source_asset_type || 'native'),
+        };
+      }
+      // Self-swap: show destination amount
+      return {
+        type: 'received' as const,
+        amount: o.amount || o.source_amount,
+        asset: destAsset,
+        asset_issuer: o.asset_issuer || null,
+        asset_type: o.asset_type || 'native',
+      };
+    }
+    return null;
   };
 
   const getAmountFromEffects = (effects: Effect[] | undefined) => {
@@ -595,6 +795,8 @@ export default function AccountDesktopView({ account, accountId, transactions, o
   // Get first and last operation times
   const firstOpTime = allOperations.length > 0 ? allOperations[allOperations.length - 1]?.created_at : null;
   const latestOpTime = allOperations.length > 0 ? allOperations[0]?.created_at : null;
+  const firstActivityTime = firstTransactionAt || firstOpTime;
+  const latestActivityTime = lastTransactionAt || latestOpTime;
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
@@ -672,6 +874,22 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                 </div>
               </div>
 
+              <div>
+                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">24H Balance Change</div>
+                <div className={`text-sm font-semibold ${balanceChange24hUsd >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {loading ? (
+                    <InlineSkeleton width="w-24" />
+                  ) : (
+                    <>
+                      {balanceChange24hUsd >= 0 ? '+' : '-'}${Math.abs(balanceChange24hUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <span className="text-xs text-[var(--text-muted)] ml-1">
+                        ({balanceChange24hPercent >= 0 ? '+' : ''}{balanceChange24hPercent.toFixed(2)}%)
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
               <div ref={tokensDropdownRef} className="relative">
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Token Holdings</div>
                 <button
@@ -720,22 +938,28 @@ export default function AccountDesktopView({ account, accountId, transactions, o
               <div>
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Account Label</div>
                 {accountLabelText ? (
-                  <div className="flex items-center gap-2">
-                    {currentAccountLabel?.verified && (
-                      <svg className="w-4 h-4 text-sky-500" aria-hidden="true" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                    <span className="text-sm font-medium text-[var(--text-primary)]">{accountLabelText}</span>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <AccountStatusIcons labelText={accountLabelText} verified={currentAccountLabel?.verified} size="sm" />
+                      <span className="text-sm font-medium text-[var(--text-primary)]">{accountLabelText}</span>
+                    </div>
+                    <Link
+                      href={`/accounts/directory/update?account=${encodeURIComponent(accountId)}`}
+                      prefetch={false}
+                      className="text-xs text-sky-600 hover:text-sky-700 hover:underline"
+                    >
+                      {labelActionText}
+                    </Link>
                   </div>
                 ) : loading ? (
                   <InlineSkeleton width="w-20" />
                 ) : (
                   <Link
-                    href={`/accounts/directory/update?account=${accountId}`}
+                    href={`/accounts/directory/update?account=${encodeURIComponent(accountId)}`}
+                    prefetch={false}
                     className="text-sm text-sky-600 hover:text-sky-700 hover:underline"
                   >
-                    + Add Label
+                    + {labelActionText}
                   </Link>
                 )}
               </div>
@@ -744,9 +968,9 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Transactions</div>
                 <div className="text-sm text-[var(--text-secondary)]">
                   {loading ? <InlineSkeleton width="w-32" /> : <>
-                    {latestOpTime && <span>Latest: <span className="text-[var(--text-tertiary)]">{timeAgo(latestOpTime)}</span></span>}
-                    {firstOpTime && latestOpTime !== firstOpTime && (
-                      <span className="ml-3">First: <span className="text-[var(--text-tertiary)]">{timeAgo(firstOpTime)}</span></span>
+                    {latestActivityTime && <span>Latest: <span className="text-[var(--text-tertiary)]">{timeAgo(latestActivityTime)}</span></span>}
+                    {firstActivityTime && latestActivityTime !== firstActivityTime && (
+                      <span className="ml-3">First: <span className="text-[var(--text-tertiary)]">{timeAgo(firstActivityTime)}</span></span>
                     )}
                   </>}
                 </div>
@@ -900,7 +1124,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                   <tbody className="divide-y divide-[var(--border-subtle)]">
                     {allOperations.map((op) => {
                       const effects = opEffects[op.id];
-                      const effectInfo = getAmountFromEffects(effects);
+                      const effectInfo = getAmountFromEffects(effects) || getAmountFromOperation(op);
                       const category = getOperationCategory(op.type);
                       const isContract = op.type === 'invoke_host_function';
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { AssetDetails, getOrderBook, OrderBook as OrderBookType, getXLMUSDPriceFromHorizon, USDC_ISSUER } from '@/lib/stellar';
+import { useState, useEffect, useRef } from 'react';
+import { AssetDetails, getOrderBook, OrderBook as OrderBookType, getXLMUSDPriceFromHorizon, USDC_ISSUER, startOrderBookStream } from '@/lib/stellar';
 
 interface OrderBookProps {
     asset: AssetDetails;
@@ -23,81 +23,100 @@ export default function AssetOrderBook({ asset }: OrderBookProps) {
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<ViewMode>('both');
 
+    const xlmPriceRef = useRef(xlmUsdPrice);
+
     useEffect(() => {
+        xlmPriceRef.current = xlmUsdPrice;
+    }, [xlmUsdPrice]);
+
+    useEffect(() => {
+        const isXLM = asset.code === 'XLM';
+        const base = { code: asset.code, issuer: asset.issuer };
+        const counter = isXLM
+            ? { code: 'USDC', issuer: USDC_ISSUER }
+            : { code: 'XLM' };
+
+        let active = true;
+        let closeStream: () => void = () => {};
+
+        const processOrders = (orders: OrderBookType['bids'], price: number): ProcessedOrder[] => {
+            return orders.map(order => {
+                let orderPrice = parseFloat(order.price);
+                const amount = parseFloat(order.amount);
+
+                if (!isXLM && price > 0) {
+                    orderPrice = price / orderPrice;
+                }
+
+                return {
+                    price: orderPrice,
+                    amount,
+                    total: orderPrice * amount
+                };
+            });
+        };
+
+        const applyOrderBook = (data: OrderBookType, price: number) => {
+            if (!active) return;
+            setOrderBook(data);
+            setProcessedBids(processOrders(data.bids, price));
+            setProcessedAsks(processOrders(data.asks, price));
+        };
+
         const fetchOrderBook = async () => {
             setLoading(true);
             try {
                 const xlmPrice = await getXLMUSDPriceFromHorizon();
+                if (!active) return;
                 setXlmUsdPrice(xlmPrice);
-                const isXLM = asset.code === 'XLM';
-
-                const base = { code: asset.code, issuer: asset.issuer };
-                const counter = isXLM
-                    ? { code: 'USDC', issuer: USDC_ISSUER }
-                    : { code: 'XLM' };
 
                 const data = await getOrderBook(counter, base, 15);
 
                 let finalData = data;
                 const samplePrice = data.bids.length > 0 ? parseFloat(data.bids[0].price) : (data.asks.length > 0 ? parseFloat(data.asks[0].price) : 0);
-
                 if (isXLM && samplePrice > 1.0) {
                     finalData = {
                         base: data.base,
                         counter: data.counter,
-                        bids: data.asks.map(o => {
-                            const p = parseFloat(o.price);
-                            const a = parseFloat(o.amount);
-                            return {
-                                price: (1 / p).toFixed(7),
-                                amount: (a * p).toFixed(7),
-                                price_r: o.price_r
-                            };
-                        }),
-                        asks: data.bids.map(o => {
-                            const p = parseFloat(o.price);
-                            const a = parseFloat(o.amount);
-                            return {
-                                price: (1 / p).toFixed(7),
-                                amount: (a * p).toFixed(7),
-                                price_r: o.price_r
-                            };
-                        })
+                        bids: data.asks.map(o => ({
+                            ...o,
+                            price: (1 / parseFloat(o.price)).toFixed(7),
+                            amount: (parseFloat(o.amount) * parseFloat(o.price)).toFixed(7),
+                        })) as typeof data.bids,
+                        asks: data.bids.map(o => ({
+                            ...o,
+                            price: (1 / parseFloat(o.price)).toFixed(7),
+                            amount: (parseFloat(o.amount) * parseFloat(o.price)).toFixed(7),
+                        })) as typeof data.asks,
                     };
                 }
 
-                setOrderBook(finalData);
-
-                const processOrders = (orders: typeof data.bids): ProcessedOrder[] => {
-                    return orders.map(order => {
-                        let price = parseFloat(order.price);
-                        const amount = parseFloat(order.amount);
-
-                        if (!isXLM) {
-                            price = xlmPrice / price;
-                        }
-
-                        return {
-                            price,
-                            amount,
-                            total: price * amount
-                        };
-                    });
-                };
-
-                setProcessedBids(processOrders(finalData.bids));
-                setProcessedAsks(processOrders(finalData.asks));
-
+                applyOrderBook(finalData, xlmPrice);
             } catch (e) {
                 console.error(e);
+            } finally {
+                if (active) setLoading(false);
             }
-            setLoading(false);
         };
-        fetchOrderBook();
 
-        const interval = setInterval(fetchOrderBook, 15000);
-        return () => clearInterval(interval);
-    }, [asset]);
+        void fetchOrderBook();
+
+        closeStream = startOrderBookStream({
+            sellingAsset: counter,
+            buyingAsset: base,
+            onmessage: (data) => {
+                applyOrderBook(data, xlmPriceRef.current);
+            },
+            onerror: (err) => {
+                console.error('Order book stream error:', err);
+            },
+        });
+
+        return () => {
+            active = false;
+            closeStream();
+        };
+  }, [asset]);
 
     if (loading && !orderBook) return (
         <div className="h-[500px] flex items-center justify-center bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)]">
