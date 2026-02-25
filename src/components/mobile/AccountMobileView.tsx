@@ -46,6 +46,39 @@ function formatBalanceDisplay(value: number): string {
   return value.toLocaleString(undefined, { maximumFractionDigits: 6 });
 }
 
+function parseNativeBalanceDeltaXlm(
+  value:
+    | string
+    | number
+    | {
+        changeXlm?: string | number;
+      }
+    | null
+    | undefined
+): number {
+  if (value && typeof value === 'object') {
+    return Number(value.changeXlm ?? 0) || 0;
+  }
+  return Number(value ?? 0) || 0;
+}
+
+function parseNativeBalanceDeltaPercent(
+  value:
+    | string
+    | number
+    | {
+        changePercent?: string | number | null;
+      }
+    | null
+    | undefined
+): number | null {
+  if (value && typeof value === 'object') {
+    const parsed = Number(value.changePercent);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
 interface Balance {
   asset_type: string;
   asset_code?: string;
@@ -108,7 +141,13 @@ interface AccountMobileViewProps {
         tradeOperations?: number;
         operationCount?: number;
         successRatePercent?: number | null;
-        nativeBalanceChange24h?: string | number | null;
+        nativeBalanceChange24h?: string | number | {
+          currentXlm?: string | number;
+          referenceXlm?: string | number;
+          changeXlm?: string | number;
+          changePercent?: number | null;
+          referenceRecordedHour?: string;
+        } | null;
       };
     };
     activity24h?: {
@@ -117,7 +156,13 @@ interface AccountMobileViewProps {
       tradeOperations?: number;
       operationCount?: number;
       successRatePercent?: number | null;
-      nativeBalanceChange24h?: string | number | null;
+      nativeBalanceChange24h?: string | number | {
+        currentXlm?: string | number;
+        referenceXlm?: string | number;
+        changeXlm?: string | number;
+        changePercent?: number | null;
+        referenceRecordedHour?: string;
+      } | null;
     };
   } | null;
   loading?: boolean;
@@ -390,14 +435,17 @@ export default function AccountMobileView({ account, accountId, transactions, op
 
   // Calculate 24h balance delta from directory metric (nativeBalanceChange24h)
   const pnlData = useMemo(() => {
-    const nativeDeltaXlm = Number(
+    const nativeDeltaRaw =
       accountMeta?.activity24h?.nativeBalanceChange24h
       ?? accountMeta?.stellarData?.activity24h?.nativeBalanceChange24h
-      ?? 0
-    ) || 0;
+      ?? 0;
+    const nativeDeltaXlm = parseNativeBalanceDeltaXlm(
+      nativeDeltaRaw
+    );
+    const nativeDeltaPercent = parseNativeBalanceDeltaPercent(nativeDeltaRaw);
     const amountUsd = nativeDeltaXlm * xlmPrice;
     const previousBalanceUsd = totalValueUSD - amountUsd;
-    const percent = previousBalanceUsd > 0 ? (amountUsd / previousBalanceUsd) * 100 : 0;
+    const percent = nativeDeltaPercent ?? (previousBalanceUsd > 0 ? (amountUsd / previousBalanceUsd) * 100 : 0);
     return { amount: amountUsd, percent };
   }, [accountMeta?.activity24h?.nativeBalanceChange24h, accountMeta?.stellarData?.activity24h?.nativeBalanceChange24h, totalValueUSD, xlmPrice]);
 
