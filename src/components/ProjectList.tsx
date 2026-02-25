@@ -92,7 +92,7 @@ export default function ProjectList({
           >
             <div className="relative h-44 w-full overflow-hidden bg-[var(--bg-tertiary)]">
               <img
-                src={project.imagePublicUrl || 'https://stellarchain.dev/stellarchain-logo.svg'}
+                src={project.imagePublicUrl || 'https://stellarchain.io/stellarchain-logo.svg'}
                 alt={project.imageAlt || project.name}
                 className={`h-full w-full transition-transform duration-300 group-hover:scale-105 ${
                   project.imagePublicUrl ? 'object-cover' : 'object-contain p-10'
