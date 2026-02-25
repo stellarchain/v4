@@ -9,10 +9,10 @@ const resolveApiBaseUrl = () => {
     return 'https://localhost';
   }
   if (appEnv === 'staging') {
-    return 'https://stellarchain.dev';
+    return 'https://api.stellarchain.dev';
   }
   if (appEnv === 'prod' || appEnv === 'production') {
-    return 'http://stellarchain.io';
+    return 'http://api.stellarchain.io';
   }
   return 'https://api.stellarchain.dev';
 };
