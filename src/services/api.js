@@ -12,7 +12,7 @@ const resolveApiBaseUrl = () => {
     return 'https://api.stellarchain.dev';
   }
   if (appEnv === 'prod' || appEnv === 'production') {
-    return 'http://api.stellarchain.io';
+    return 'https://api.stellarchain.io';
   }
   return 'https://api.stellarchain.dev';
 };
