@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { HORIZON_URLS, NETWORK_PASSPHRASES, SOROBAN_RPC_URLS, type NetworkType } from '@/lib/network/config';
+import { DEFAULT_NETWORK, HORIZON_URLS, NETWORK_PASSPHRASES, SOROBAN_RPC_URLS, getForcedNetworkFromHostname, type NetworkType } from '@/lib/network/config';
 import { getStoredNetwork, persistNetwork } from '@/lib/network/state';
 export type { NetworkType } from '@/lib/network/config';
 
@@ -53,15 +53,35 @@ interface NetworkContextType {
 
 const NetworkContext = createContext<NetworkContextType | undefined>(undefined);
 
+function resolveInitialNetwork(): NetworkType {
+  if (typeof window === 'undefined') return DEFAULT_NETWORK;
+  return getForcedNetworkFromHostname(window.location.hostname) || getStoredNetwork() || DEFAULT_NETWORK;
+}
+
 export function NetworkProvider({ children }: { children: ReactNode }) {
-  const [network, setNetworkState] = useState<NetworkType>(() => getStoredNetwork() || 'mainnet');
+  const [network, setNetworkState] = useState<NetworkType>(resolveInitialNetwork);
   const [isChangingNetwork, setIsChangingNetwork] = useState(false);
+
+  useEffect(() => {
+    const forced = typeof window !== 'undefined' ? getForcedNetworkFromHostname(window.location.hostname) : null;
+    if (forced && forced !== network) {
+      setNetworkState(forced);
+    }
+  }, [network]);
 
   useEffect(() => {
     persistNetwork(network);
   }, [network]);
 
   const setNetwork = useCallback((newNetwork: NetworkType) => {
+    const forced = typeof window !== 'undefined' ? getForcedNetworkFromHostname(window.location.hostname) : null;
+    if (forced) {
+      if (forced !== network) {
+        setNetworkState(forced);
+      }
+      return;
+    }
+
     if (newNetwork === network) return;
 
     setIsChangingNetwork(true);

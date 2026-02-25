@@ -1492,7 +1492,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
   } catch (e) {
     v1NotFound = Number((e as any)?.response?.status) === 404;
     if (!isExpectedAssetV1LookupError(e)) {
-      console.error('Error fetching from Stellarchain.dev v1:', e);
+      console.error('Error fetching from Stellarchain.io v1:', e);
     }
   }
 
