@@ -20,7 +20,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'StellarChain - Blockchain Explorer',
+  metadataBase: new URL('https://stellarchain.dev'),
+  title: {
+    default: 'Explore Stellar Lumens (XLM) - Real-time Price, Assets, Charts & More',
+    template: '%s | StellarChain Explorer',
+  },
+  alternates: {
+    canonical: './',
+  },
   description: 'Explore the Stellar blockchain - transactions, accounts, ledgers, and operations',
   keywords: ['Stellar', 'blockchain', 'explorer', 'XLM', 'crypto', 'Lumens'],
   manifest: '/manifest.webmanifest',
@@ -49,11 +56,36 @@ export default function RootLayout({
       } catch (e) {}
     })();
   `;
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        name: 'StellarChain Explorer',
+        url: 'https://stellarchain.dev',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: 'https://stellarchain.dev/search?q={search_term_string}',
+          'query-input': 'required name=search_term_string',
+        },
+      },
+      {
+        '@type': 'Organization',
+        name: 'StellarChain',
+        url: 'https://stellarchain.dev',
+        logo: 'https://stellarchain.dev/stellarchain-logo.svg',
+      },
+    ],
+  };
 
   return (
     <html lang='en' suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
         <style dangerouslySetInnerHTML={{ __html: `
           html[data-theme="dark"] { background-color: #0a0f1a; }
           html[data-theme="light"] { background-color: #f8fafc; }

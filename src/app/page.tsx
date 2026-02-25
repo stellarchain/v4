@@ -1,14 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl, normalizeTransactions } from '@/lib/stellar';
+import { normalizeTransactions } from '@/lib/stellar';
 import type { Ledger, Transaction, Operation, NetworkStats } from '@/lib/stellar';
 import DesktopHomePage from '@/components/desktop/DesktopHomePage';
 import StatsSection from '@/components/mobile/sections/StatsSection';
 import TransactionsSection from '@/components/mobile/sections/TransactionsSection';
-import Loading from '@/components/ui/Loading';
-import { fetchStellarCoinData } from '@/services/api';
+import { fetchMarketOverviewData, fetchStellarCoinData } from '@/services/api';
+import { createHorizonServer } from '@/services/horizon';
 
 interface MarketAsset {
   rank: number;
@@ -32,20 +33,125 @@ interface XLMMarketData {
   upgradeReserve: number;
 }
 
+interface MarketOverviewSnapshot {
+  id: number;
+  network: number;
+  xlmPriceUsd: string;
+  xlmVolume24h: string;
+  totalTrades24h: string;
+  activeAssets24h: number;
+  trackedAssets: number;
+  totalAccounts: number;
+  totalContracts: number;
+  recordedAt: string;
+}
+
+interface MarketOverviewResponse {
+  member?: MarketOverviewSnapshot[];
+}
+
+const TRANSACTION_STREAM_LIMIT = 8;
+const HOME_INTERNAL_LINKS = [
+  { href: '/markets', label: 'Markets' },
+  { href: '/transactions', label: 'Transactions' },
+  { href: '/ledgers', label: 'Ledgers' },
+  { href: '/accounts', label: 'Accounts' },
+  { href: '/contracts', label: 'Smart Contracts' },
+  { href: '/liquidity-pools', label: 'Liquidity Pools' },
+  { href: '/assets', label: 'Assets' },
+  { href: '/projects', label: 'Projects' },
+  { href: '/news', label: 'News' },
+] as const;
+const HOME_CHANGELOGS = [
+  {
+    version: 'v4.6.0',
+    date: '2026-02-24',
+    summary: 'Cross-network checks now include all supported networks for asset and transaction detail routes.',
+  },
+  {
+    version: 'v4.5.3',
+    date: '2026-02-23',
+    summary: 'Improved homepage SEO with canonical tags, robots/sitemap metadata, and richer internal links.',
+  },
+  {
+    version: 'v4.5.0',
+    date: '2026-02-22',
+    summary: 'Stabilized projects detail pages for static export and ID-based routing.',
+  },
+] as const;
+
 export default function HomePage() {
+  const emptyLedger: Ledger = {
+    id: '',
+    paging_token: '',
+    hash: '',
+    prev_hash: '',
+    sequence: 0,
+    successful_transaction_count: 0,
+    failed_transaction_count: 0,
+    operation_count: 0,
+    tx_set_operation_count: 0,
+    closed_at: new Date(0).toISOString(),
+    total_coins: '0',
+    fee_pool: '0',
+    base_fee_in_stroops: 100,
+    base_reserve_in_stroops: 5000000,
+    max_tx_set_size: 1000,
+    protocol_version: 0,
+    header_xdr: '',
+  };
+
+  const emptyStats: NetworkStats = {
+    ledger_count: 0,
+    latest_ledger: emptyLedger,
+    total_coins: '0',
+    fee_pool: '0',
+    base_fee: 100,
+    base_reserve: 5000000,
+    protocol_version: 0,
+    ledger_capacity_usage: 0,
+  };
+
+  const emptyXlmMarketData: XLMMarketData = {
+    price: 0,
+    priceChange24h: 0,
+    marketCap: 0,
+    marketCapChange24h: 0,
+    volume24h: 0,
+    circulatingSupply: 0,
+    totalSupply: 0,
+    dominance: 0,
+    rank: 0,
+    sparkline: [],
+    burnedLumens: 0,
+    sdfMandate: 0,
+    feePool: 0,
+    upgradeReserve: 0,
+  };
+
   const [stats, setStats] = useState<NetworkStats | null>(null);
   const [ledgers, setLedgers] = useState<Ledger[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [operations, setOperations] = useState<Operation[]>([]);
   const [xlmVolume, setXlmVolume] = useState<number>(0);
   const [xlmMarketData, setXlmMarketData] = useState<XLMMarketData | null>(null);
+  const [marketOverview, setMarketOverview] = useState<MarketOverviewSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeChangelog, setActiveChangelog] = useState(0);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const server = new Horizon.Server(getBaseUrl());
+        const server = createHorizonServer();
+        const stellarCoinDataPromise = fetchStellarCoinData().catch((coinError) => {
+          console.warn('Homepage coin data fetch failed, continuing with core network data:', coinError);
+          return null;
+        });
+        const marketOverviewPromise = fetchMarketOverviewData({ network: 'mainnet' }).catch((overviewError) => {
+          console.warn('Homepage market overview fetch failed, continuing without compare cards:', overviewError);
+          return null;
+        });
 
         // Fetch all data in parallel
         const [
@@ -53,19 +159,22 @@ export default function HomePage() {
           transactionsResponse,
           operationsResponse,
           paymentsResponse,
-          stellarChainData
+          stellarChainData,
+          marketOverviewData
         ] = await Promise.all([
           server.ledgers().order('desc').limit(8).call(),
           server.transactions().order('desc').limit(8).call(),
           server.operations().order('desc').limit(30).call(),
           server.payments().order('desc').limit(20).call(),
-          fetchStellarCoinData()
+          stellarCoinDataPromise,
+          marketOverviewPromise
         ]);
 
-        const marketAssets = stellarChainData.stellar_expert;
-        const xlmMarketData = stellarChainData.coingecko_stellar;
-        const globalMarketData = stellarChainData.coingecko_global;
-        const networkSupply = stellarChainData.stellar_dashboard;
+        const marketAssets = stellarChainData?.stellar_expert;
+        const xlmMarketData = stellarChainData?.coingecko_stellar;
+        const globalMarketData = stellarChainData?.coingecko_global;
+        const networkSupply = stellarChainData?.stellar_dashboard;
+        const overviewSnapshot = (marketOverviewData as MarketOverviewResponse | null)?.member?.[0] || null;
 
         const ledgersData = (ledgersResponse.records || []) as unknown as Ledger[];
         const transactionsData = normalizeTransactions(transactionsResponse.records || []);
@@ -79,7 +188,7 @@ export default function HomePage() {
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
         // Extract market data
-        const xlmAsset = (marketAssets._embedded?.records || []).find((a: MarketAsset) => a.rank === 1) || (marketAssets._embedded?.records || [])[0];
+        const xlmAsset = (marketAssets?._embedded?.records || []).find((a: MarketAsset) => a.rank === 1) || (marketAssets?._embedded?.records || [])[0];
         const xlmVol = xlmAsset ? xlmAsset.volume_24h : 0;
 
         // Get network stats from latest ledger
@@ -87,7 +196,7 @@ export default function HomePage() {
 
         // Calculate dominance from global market data
         const totalCryptoMarketCap = globalMarketData?.data?.total_market_cap?.usd || 0;
-        const xlmMarketCap = xlmMarketData.market_data?.market_cap?.usd || 0;
+        const xlmMarketCap = xlmMarketData?.market_data?.market_cap?.usd || 0;
         const dominance = totalCryptoMarketCap > 0 ? (xlmMarketCap / totalCryptoMarketCap) * 100 : 0;
 
         // Extract supply data
@@ -102,12 +211,12 @@ export default function HomePage() {
         const ledgerCapacity = latestLedger.max_tx_set_size || 1000;
         const capacityUsage = ledgerCapacity > 0 ? avgTxPerLedger / ledgerCapacity : 0;
 
-        const xlmData = xlmMarketData.market_data ? {
-          price: xlmMarketData.market_data.current_price.usd,
-          priceChange24h: xlmMarketData.market_data.price_change_percentage_24h,
-          marketCap: xlmMarketData.market_data.market_cap.usd,
+        const xlmData = xlmMarketData?.market_data ? {
+          price: xlmMarketData.market_data.current_price?.usd || 0,
+          priceChange24h: xlmMarketData.market_data.price_change_percentage_24h || 0,
+          marketCap: xlmMarketData.market_data.market_cap?.usd || 0,
           marketCapChange24h: xlmMarketData.market_data.market_cap_change_percentage_24h || 0,
-          volume24h: xlmMarketData.market_data.total_volume.usd,
+          volume24h: xlmMarketData.market_data.total_volume?.usd || 0,
           circulatingSupply: xlmMarketData.market_data.circulating_supply || 0,
           totalSupply: xlmMarketData.market_data.total_supply || 0,
           dominance,
@@ -135,6 +244,7 @@ export default function HomePage() {
         setOperations(operationsData);
         setXlmVolume(xlmVol);
         setXlmMarketData(xlmData);
+        setMarketOverview(overviewSnapshot);
         setIsLoading(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -145,9 +255,42 @@ export default function HomePage() {
     loadData();
   }, []);
 
-  if (isLoading) {
-    return <Loading title="Loading homepage" description="Fetching network data and activity." />;
-  }
+  useEffect(() => {
+    const server = createHorizonServer();
+    const closeStream = server
+      .transactions()
+      .order('desc')
+      .cursor('now')
+      .stream({
+        onmessage: (tx: Horizon.ServerApi.TransactionRecord) => {
+          setTransactions((prev) => {
+            if (prev.some((item) => item.id === tx.id)) {
+              return prev;
+            }
+            const normalized = normalizeTransactions([tx])[0];
+            const updated = [normalized, ...prev];
+            return updated.slice(0, TRANSACTION_STREAM_LIMIT);
+          });
+        },
+        onerror: (err) => {
+          console.error('Transaction stream error:', err);
+        },
+      });
+
+    return () => {
+      closeStream();
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveChangelog((prev) => (prev + 1) % HOME_CHANGELOGS.length);
+    }, 4500);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
 
   if (error) {
     return (
@@ -161,33 +304,120 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Mobile Homepage */}
-      <div className="md:hidden min-h-screen bg-[var(--bg-primary)] pb-20">
-        {stats && xlmMarketData && (
-          <>
-            <StatsSection
-              stats={stats}
-              xlmVolume={xlmVolume}
-              xlmPrice={xlmMarketData.price}
-            />
-            <TransactionsSection transactions={transactions} />
-          </>
-        )}
-      </div>
+      {/*
+        Keep the full interface visible while data loads.
+        Values are skeletonized in child components.
+      */}
+      {(() => {
+        const resolvedStats = stats ?? emptyStats;
+        const resolvedXlm = xlmMarketData ?? emptyXlmMarketData;
 
-      {/* Desktop Homepage */}
-      <div className="hidden md:block w-full">
-        {stats && xlmMarketData && (
+        return (
+          <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col">
+      <h1 className="sr-only">StellarChain Explorer</h1>
+      <div className="flex-1">
+        {/* Mobile Homepage */}
+        <div className="md:hidden pb-20">
+          <StatsSection
+            stats={resolvedStats}
+            xlmVolume={resolvedXlm.volume24h || xlmVolume}
+            xlmPrice={resolvedXlm.price}
+            marketOverview={marketOverview}
+            loading={isLoading}
+          />
+          <TransactionsSection transactions={transactions} />
+        </div>
+
+        {/* Desktop Homepage */}
+        <div className="hidden md:block w-full">
           <DesktopHomePage
-            stats={stats}
+            stats={resolvedStats}
             initialTransactions={transactions}
             initialLedgers={ledgers}
             initialOperations={operations}
             xlmVolume={xlmVolume}
-            xlmMarketData={xlmMarketData}
+            xlmMarketData={resolvedXlm}
+            marketOverview={marketOverview}
+            loading={isLoading}
           />
-        )}
+        </div>
       </div>
+
+      <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-primary)] pb-24 pt-5 md:pb-8">
+        <div className="mx-auto grid w-full max-w-[1400px] gap-4 px-4 md:grid-cols-[1fr_320px] md:items-start">
+          <div>
+            <h2 className="mt-5 text-sm font-semibold text-[var(--text-primary)]">
+              Stellar Blockchain Explorer for XLM Transactions, Ledgers, Accounts, Markets, and Assets
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-tertiary)]">
+              StellarChain Explorer helps you track live Stellar blockchain activity in one place. You can inspect
+              transactions, follow latest ledgers, analyze account balances, review smart contract activity, and monitor
+              XLM market data with real-time updates. Use this explorer to search transaction hashes, account addresses,
+              asset issuers, and network events across key sections like markets, contracts, liquidity pools, and
+              projects. If you need a fast Stellar explorer focused on transparent on-chain data, this page is your
+              starting point for research, monitoring, and discovery.
+            </p>
+            <h2 className="mt-4 text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Explore</h2>
+            <h3 className="mt-1 text-[11px] font-medium text-[var(--text-tertiary)]">
+              Browse key sections: markets, transactions, ledgers, accounts, and ecosystem pages.
+            </h3>
+            <nav aria-label="Homepage quick links" className="mt-4 flex flex-wrap gap-2">
+              {HOME_INTERNAL_LINKS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <aside className="mt-5 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 md:mt-0">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Changelog</h2>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveChangelog((prev) => (prev - 1 + HOME_CHANGELOGS.length) % HOME_CHANGELOGS.length)}
+                  className="rounded-md border border-[var(--border-default)] px-2 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors"
+                  aria-label="Previous changelog"
+                >
+                  Prev
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveChangelog((prev) => (prev + 1) % HOME_CHANGELOGS.length)}
+                  className="rounded-md border border-[var(--border-default)] px-2 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors"
+                  aria-label="Next changelog"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+            <div className="mt-3 min-h-[132px] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3">
+              <p className="text-xs font-semibold text-[var(--info)]">{HOME_CHANGELOGS[activeChangelog].version}</p>
+              <p className="mt-1 text-[11px] text-[var(--text-muted)]">{HOME_CHANGELOGS[activeChangelog].date}</p>
+              <p className="mt-2 text-xs leading-5 text-[var(--text-tertiary)]">{HOME_CHANGELOGS[activeChangelog].summary}</p>
+            </div>
+            <div className="mt-3 flex items-center justify-center gap-1">
+              {HOME_CHANGELOGS.map((item, idx) => (
+                <button
+                  key={item.version}
+                  type="button"
+                  onClick={() => setActiveChangelog(idx)}
+                  aria-label={`Open ${item.version}`}
+                  className={`h-1.5 rounded-full transition-all ${idx === activeChangelog ? 'w-5 bg-[var(--info)]' : 'w-2 bg-[var(--border-default)]'}`}
+                />
+              ))}
+            </div>
+          </aside>
+        </div>
+      </footer>
+          </div>
+        );
+      })()}
     </>
   );
 }

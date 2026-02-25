@@ -3,8 +3,8 @@
 // https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0055.md
 
 import { xdr, Address } from '@stellar/stellar-sdk';
-import { getSorobanServer } from './soroban';
-import type { ContractVerification } from './types/token';
+import { getSorobanServer } from './client';
+import type { ContractVerification } from '../shared/interfaces';
 
 // ============================================================================
 // Types

@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import ContractMobileView from '@/components/mobile/ContractMobileView';
 import ContractDesktopView from '@/components/desktop/ContractDesktopView';
-import type { TokenRegistryEntry, ContractVerification } from '@/lib/types/token';
-import type { ContractMetadataResult, ContractAccessControlResult, ContractSpecResult } from '@/lib/contractMetadata';
-import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
-import type { ParsedEvent, EventSummary } from '@/lib/eventParser';
-import type { ContractStorageResult } from '@/lib/contractStorage';
+import type { TokenRegistryEntry, ContractVerification } from '@/lib/shared/interfaces';
+import type { ContractMetadataResult, ContractAccessControlResult, ContractSpecResult } from '@/lib/soroban/contractMetadata';
+import type { NFTInfo, VaultInfo } from '@/lib/soroban/contractExtensions';
+import type { ParsedEvent, EventSummary } from '@/lib/soroban/events';
+import type { ContractStorageResult } from '@/lib/soroban/storage';
 import type { ContractInvocation } from '@/lib/stellar';
 
 interface VerifiedContract {

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl } from '@/lib/stellar';
 import type { Operation } from '@/lib/stellar';
 import LiveOperationFeed from '@/components/LiveOperationFeed';
 import Loading from '@/components/ui/Loading';
+import { createHorizonServer } from '@/services/horizon';
 
 export default function OperationsPage() {
   const [operations, setOperations] = useState<Operation[]>([]);
@@ -15,7 +15,7 @@ export default function OperationsPage() {
   useEffect(() => {
     const loadOperations = async () => {
       try {
-        const server = new Horizon.Server(getBaseUrl());
+        const server = createHorizonServer();
         const operationsResponse = await server.operations().order('desc').limit(25).call();
         const operationsData = (operationsResponse.records || []) as unknown as Operation[];
 

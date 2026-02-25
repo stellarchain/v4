@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { cn } from '@/lib/design-system';
+import { cn } from '@/lib/shared/designSystem';
 import CountBubble from '@/components/ui/CountBubble';
 
 export type GliderTab<TId extends string> = {
@@ -18,6 +18,7 @@ interface GliderTabsProps<TId extends string> {
   onChange: (id: TId) => void;
   className?: string;
   size?: 'sm' | 'md';
+  scrollable?: boolean;
 }
 
 export default function GliderTabs<TId extends string>({
@@ -26,12 +27,14 @@ export default function GliderTabs<TId extends string>({
   onChange,
   className,
   size = 'sm',
+  scrollable = false,
 }: GliderTabsProps<TId>) {
   const activeTabIndex = tabs.findIndex(tab => tab.id === activeId);
   const tabCount = tabs.length;
 
   const buttonBase = cn(
-    'relative z-10 flex-1 rounded-lg transition-colors duration-200 text-center flex items-center justify-center',
+    'relative z-10 rounded-lg transition-colors duration-200 text-center flex items-center justify-center whitespace-nowrap',
+    scrollable ? 'flex-shrink-0 px-3' : 'flex-1',
     size === 'sm' ? 'py-1.5 text-[11px] gap-1' : 'py-2 text-sm gap-2'
   );
 
@@ -40,19 +43,22 @@ export default function GliderTabs<TId extends string>({
       role="tablist"
       className={cn(
         'relative flex items-center bg-[var(--bg-secondary)] p-1 rounded-xl shadow-sm border border-[var(--border-subtle)]',
+        scrollable && 'overflow-x-auto no-scrollbar',
         className
       )}
     >
-      <div
-        aria-hidden="true"
-        className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-transform duration-300 ease-out z-0"
-        style={{
-          left: '4px',
-          width: `calc((100% - 8px) / ${tabCount})`,
-          transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
-          opacity: activeTabIndex >= 0 ? 1 : 0,
-        }}
-      />
+      {!scrollable && (
+        <div
+          aria-hidden="true"
+          className="absolute top-1 bottom-1 bg-[var(--primary-blue)]/10 rounded-lg transition-transform duration-300 ease-out z-0"
+          style={{
+            left: '4px',
+            width: `calc((100% - 8px) / ${tabCount})`,
+            transform: `translateX(${activeTabIndex >= 0 ? activeTabIndex * 100 : 0}%)`,
+            opacity: activeTabIndex >= 0 ? 1 : 0,
+          }}
+        />
+      )}
 
       {tabs.map((tab) => {
         const isActive = activeId === tab.id;
@@ -71,7 +77,9 @@ export default function GliderTabs<TId extends string>({
             className={cn(
               buttonBase,
               isActive
-                ? 'text-[var(--primary-blue)] font-bold'
+                ? scrollable
+                  ? 'text-[var(--primary-blue)] font-bold bg-[var(--primary-blue)]/10'
+                  : 'text-[var(--primary-blue)] font-bold'
                 : 'text-[var(--text-secondary)] font-semibold hover:text-[var(--text-primary)]',
               disabled && 'opacity-50 cursor-not-allowed hover:text-[var(--text-secondary)]'
             )}

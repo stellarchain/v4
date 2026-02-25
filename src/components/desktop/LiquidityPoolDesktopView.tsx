@@ -40,7 +40,7 @@ export default function LiquidityPoolDesktopView({ pool, operations, transaction
             .finally(() => {
                 setLoadingTxHashes(false);
             });
-    }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [activeTab]);  
 
     useEffect(() => {
         setTrades(initialTrades);

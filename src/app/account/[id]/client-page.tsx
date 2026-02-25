@@ -1,18 +1,90 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl, normalizeTransactions, getXLMUSDPriceFromHorizon, getAccountLabels } from '@/lib/stellar';
+import { normalizeTransactions, getXLMUSDPriceFromHorizon, getAccountLabels } from '@/lib/stellar';
 import type { AccountLabel, Transaction, Operation } from '@/lib/stellar';
 import Link from 'next/link';
 import AccountMobileView from '@/components/mobile/AccountMobileView';
 import AccountDesktopView from '@/components/desktop/AccountDesktopView';
+import { createHorizonServer } from '@/services/horizon';
+import { apiEndpoints, getApiV1Data } from '@/services/api';
+import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
+import { persistNetwork } from '@/lib/network/state';
 
-import { getDetailRouteValue } from '@/lib/routeDetail';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
 
 type Account = Horizon.ServerApi.AccountRecord;
+type AccountMeta = {
+  label?: string;
+  verified?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  network?: number;
+  accountMetric?: {
+    nativeBalance?: string | number;
+    totalTransactions?: string | number;
+    transactionsPerHour?: string | number;
+    paymentsCount?: string | number;
+    tradesCount?: string | number;
+    rankPosition?: string | number;
+    metricUpdatedAt?: string;
+    firstTransactionAt?: string;
+    lastTransactionAt?: string;
+  };
+  stellarData?: {
+    activity24h?: {
+      totalTransactions?: number;
+      paymentOperations?: number;
+      tradeOperations?: number;
+      operationCount?: number;
+      successRatePercent?: number | null;
+      nativeBalanceChange24h?: string | number | {
+        currentXlm?: string | number;
+        referenceXlm?: string | number;
+        changeXlm?: string | number;
+        changePercent?: number | null;
+        referenceRecordedHour?: string;
+      } | null;
+    };
+  };
+  activity24h?: {
+    totalTransactions?: number;
+    paymentOperations?: number;
+    tradeOperations?: number;
+    operationCount?: number;
+    successRatePercent?: number | null;
+    nativeBalanceChange24h?: string | number | {
+      currentXlm?: string | number;
+      referenceXlm?: string | number;
+      changeXlm?: string | number;
+      changePercent?: number | null;
+      referenceRecordedHour?: string;
+    } | null;
+  };
+};
+
+function isExpectedAccountLookupError(error: unknown): boolean {
+  const status = Number((error as any)?.response?.status);
+  const title = String((error as any)?.response?.title || '').toLowerCase();
+  const message = String((error as any)?.message || '').toLowerCase();
+  const extras = String((error as any)?.response?.data?.detail || '').toLowerCase();
+
+  return (
+    status === 400 ||
+    status === 404 ||
+    title.includes('not found') ||
+    title.includes('bad request') ||
+    message.includes('not found') ||
+    message.includes('bad request') ||
+    message.includes('invalid') ||
+    extras.includes('not found') ||
+    extras.includes('bad request') ||
+    extras.includes('invalid')
+  );
+}
 
 // Extract counterparty addresses from operations
 function extractCounterpartyAddresses(operations: Operation[], accountId: string): string[] {
@@ -44,6 +116,7 @@ function extractCounterpartyAddresses(operations: Operation[], accountId: string
 }
 
 export default function AccountPage() {
+  const { network: activeNetwork } = useNetwork();
   const params = useParams<{ id?: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -60,9 +133,54 @@ export default function AccountPage() {
   const [xlmPrice, setXlmPrice] = useState(0.10);
   const [accountLabels, setAccountLabels] = useState<Record<string, AccountLabel>>({});
   const [currentAccountLabel, setCurrentAccountLabel] = useState<AccountLabel | null>(null);
+  const [accountMetricDates, setAccountMetricDates] = useState<{ firstTransactionAt?: string; lastTransactionAt?: string }>({});
+  const [accountMeta, setAccountMeta] = useState<AccountMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
+
+  // Track which tab data has been fetched
+  const [transactionsFetched, setTransactionsFetched] = useState(false);
+  const [operationsFetched, setOperationsFetched] = useState(false);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [loadingOperations, setLoadingOperations] = useState(false);
+  const [checkingOtherNetworks, setCheckingOtherNetworks] = useState(false);
+  const [availableNetworks, setAvailableNetworks] = useState<NetworkType[]>([]);
+
+  const isLikelyStellarAccount = useCallback((value: string) => {
+    const normalized = String(value || '').trim();
+    return normalized.length === 56 && normalized.startsWith('G');
+  }, []);
+
+  const checkOtherNetworksForAccount = useCallback(async (accountId: string, currentNetwork: NetworkType) => {
+    const otherNetworks: NetworkType[] = ['mainnet', 'testnet'].filter(
+      (network): network is NetworkType => network !== currentNetwork
+    );
+
+    if (otherNetworks.length === 0) {
+      return [];
+    }
+
+    const checks = await Promise.all(
+      otherNetworks.map(async (network) => {
+        try {
+          await createHorizonServer(network).accounts().accountId(accountId).call();
+          return network;
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    return checks.filter((network): network is NetworkType => network !== null);
+  }, []);
+
+  const switchNetworkAndReload = useCallback((targetNetwork: NetworkType) => {
+    persistNetwork(targetNetwork);
+    const query = searchParams.toString();
+    const targetUrl = query ? `${pathname}?${query}` : pathname;
+    window.location.href = targetUrl;
+  }, [pathname, searchParams]);
 
   // Detect mobile/desktop to conditionally render only one component
   useEffect(() => {
@@ -73,114 +191,222 @@ export default function AccountPage() {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
+  // Initial load: only account data + XLM price
   useEffect(() => {
     const fetchAccountData = async () => {
       try {
         setLoading(true);
-        const server = new Horizon.Server(getBaseUrl());
+        setError(null);
+        setAvailableNetworks([]);
+        setCheckingOtherNetworks(false);
+        if (!isLikelyStellarAccount(id)) {
+          setError('Account not found or invalid account ID');
+          return;
+        }
+        const server = createHorizonServer();
 
-        // Fetch account, transactions, and operations
-        const [accountResponse, transactionsResponse, operationsResponse] = await Promise.all([
+        const [accountResponse, priceData, accountMetaResponse] = await Promise.all([
           server.accounts().accountId(id).call(),
-          server.transactions().forAccount(id).order('desc').limit(50).call(),
-          server.operations().forAccount(id).order('desc').limit(100).call(),
+          getXLMUSDPriceFromHorizon(),
+          getApiV1Data(apiEndpoints.v1.accountById(id)).catch(() => null),
         ]);
 
         const accountData = accountResponse as unknown as Account;
-        const transactionsData = normalizeTransactions(transactionsResponse.records || []);
-        let operationsData = (operationsResponse.records || []) as unknown as Operation[];
-
-        // For Soroban contract calls, the operation's source can be different from the transaction's source
-        // This means contract calls made by this account might not appear in /accounts/{id}/operations
-        // We need to fetch operations from transactions where this account is the source
-        const existingOpTxHashes = new Set(operationsData.map(op => op.transaction_hash));
-
-        // Find transactions that don't have operations in our list (likely contract calls with different op source)
-        const missingTxs = transactionsData.filter(tx => !existingOpTxHashes.has(tx.hash));
-
-        if (missingTxs.length > 0) {
-          // Fetch operations for missing transactions (limit to first 20 to avoid too many requests)
-          const additionalOpsPromises = missingTxs.slice(0, 20).map(async tx => {
-            try {
-              const txOps = await server.operations().forTransaction(tx.hash).limit(5).call();
-              return (txOps.records || []) as unknown as Operation[];
-            } catch {
-              return [];
-            }
-          });
-
-          const additionalOpsArrays = await Promise.all(additionalOpsPromises);
-          const additionalOps = additionalOpsArrays.flat();
-
-          // Merge additional operations into the main list
-          if (additionalOps.length > 0) {
-            operationsData = [...operationsData, ...additionalOps];
-            // Sort by created_at descending to ensure proper order
-            operationsData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          }
-        }
-
-        // Fetch XLM price from Horizon (XLM/USDC trade aggregation)
-        const priceData = await getXLMUSDPriceFromHorizon();
-
-        // Fetch labels for counterparty addresses AND the current account
-        const counterpartyAddresses = operationsData.length > 0 ? extractCounterpartyAddresses(operationsData, id) : [];
-        const allAddresses = [id, ...counterpartyAddresses];
-
-        const labels: Record<string, AccountLabel> = {};
-        let currentLabel: AccountLabel | null = null;
-
-        try {
-          const labelsMap = await getAccountLabels(allAddresses);
-          labelsMap.forEach((label, address) => {
-            if (address.toUpperCase() === id.toUpperCase()) {
-              currentLabel = label;
-            } else {
-              labels[address] = label;
-            }
-          });
-        } catch (e) {
-          console.error('Failed to fetch account labels:', e);
-        }
 
         setAccount(accountData);
-        setTransactions(transactionsData);
-        setOperations(operationsData);
         setXlmPrice(priceData);
-        setAccountLabels(labels);
-        setCurrentAccountLabel(currentLabel);
+
+        const accountMetaRecord = accountMetaResponse as AccountMeta | null;
+        setAccountMeta(accountMetaRecord);
+
+        setCurrentAccountLabel(
+          accountMetaRecord?.label
+            ? {
+                name: accountMetaRecord.label,
+                verified: accountMetaRecord.verified === true,
+                org_name: null,
+                description: null,
+              }
+            : null
+        );
+
+        setAccountMetricDates({
+          firstTransactionAt: accountMetaRecord?.accountMetric?.firstTransactionAt || undefined,
+          lastTransactionAt: accountMetaRecord?.accountMetric?.lastTransactionAt || undefined,
+        });
       } catch (e) {
         setError('Account not found or invalid account ID');
-        console.error('Error fetching account data:', e);
+        if (isLikelyStellarAccount(id)) {
+          setCheckingOtherNetworks(true);
+          const networksWithAccount = await checkOtherNetworksForAccount(id, activeNetwork);
+          setAvailableNetworks(networksWithAccount);
+          setCheckingOtherNetworks(false);
+        }
+        if (!isExpectedAccountLookupError(e)) {
+          console.error('Error fetching account data:', e);
+        }
       } finally {
         setLoading(false);
       }
     };
 
     if (id) {
+      // Reset state for new account
+      setTransactionsFetched(false);
+      setOperationsFetched(false);
+      setTransactions([]);
+      setOperations([]);
+      setAccountLabels({});
+      setCurrentAccountLabel(null);
+      setAccountMetricDates({});
+      setAccountMeta(null);
+      setAvailableNetworks([]);
+      setCheckingOtherNetworks(false);
       fetchAccountData();
     }
-  }, [id]);
+  }, [id, activeNetwork, isLikelyStellarAccount, checkOtherNetworksForAccount]);
 
+  // Fetch transactions lazily when tab is activated
+  const fetchTransactions = useCallback(async () => {
+    if (transactionsFetched || loadingTransactions) return;
+    setLoadingTransactions(true);
+    try {
+      const server = createHorizonServer();
+      const transactionsResponse = await server.transactions().forAccount(id).order('desc').limit(50).call();
+      const transactionsData = normalizeTransactions(transactionsResponse.records || []);
+      setTransactions(transactionsData);
+      setTransactionsFetched(true);
+    } catch (e) {
+      console.error('Error fetching transactions:', e);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  }, [id, transactionsFetched, loadingTransactions]);
 
+  // Fetch operations lazily when tab is activated
+  const fetchOperations = useCallback(async () => {
+    if (operationsFetched || loadingOperations) return;
+    setLoadingOperations(true);
+    try {
+      const server = createHorizonServer();
+
+      const [operationsResponse, transactionsResponse] = await Promise.all([
+        server.operations().forAccount(id).order('desc').limit(100).call(),
+        // We need transactions to find missing Soroban ops
+        transactionsFetched
+          ? Promise.resolve({ records: [] })
+          : server.transactions().forAccount(id).order('desc').limit(50).call(),
+      ]);
+
+      let operationsData = (operationsResponse.records || []) as unknown as Operation[];
+
+      // Also set transactions if we fetched them alongside
+      let txData = transactions;
+      if (!transactionsFetched && transactionsResponse.records?.length > 0) {
+        txData = normalizeTransactions(transactionsResponse.records);
+        setTransactions(txData);
+        setTransactionsFetched(true);
+      }
+
+      // For Soroban contract calls, fetch operations from missing transactions
+      const existingOpTxHashes = new Set(operationsData.map(op => op.transaction_hash));
+      const missingTxs = txData.filter(tx => !existingOpTxHashes.has(tx.hash));
+
+      if (missingTxs.length > 0) {
+        const additionalOpsPromises = missingTxs.slice(0, 20).map(async tx => {
+          try {
+            const txOps = await server.operations().forTransaction(tx.hash).limit(5).call();
+            return (txOps.records || []) as unknown as Operation[];
+          } catch {
+            return [];
+          }
+        });
+
+        const additionalOpsArrays = await Promise.all(additionalOpsPromises);
+        const additionalOps = additionalOpsArrays.flat();
+
+        if (additionalOps.length > 0) {
+          operationsData = [...operationsData, ...additionalOps];
+          operationsData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        }
+      }
+
+      setOperations(operationsData);
+      setOperationsFetched(true);
+
+      // Fetch counterparty labels in background
+      const counterpartyAddresses = operationsData.length > 0 ? extractCounterpartyAddresses(operationsData, id) : [];
+      if (counterpartyAddresses.length > 0) {
+        try {
+          const labelsMap = await getAccountLabels(counterpartyAddresses);
+          const labels: Record<string, AccountLabel> = {};
+          labelsMap.forEach((label, address) => {
+            labels[address] = label;
+          });
+          setAccountLabels(labels);
+        } catch (e) {
+          console.error('Failed to fetch counterparty labels:', e);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching operations:', e);
+    } finally {
+      setLoadingOperations(false);
+    }
+  }, [id, operationsFetched, loadingOperations, transactionsFetched, transactions]);
 
   if (!loading && (error || !account)) {
+    const hasNetworkMatch = availableNetworks.length > 0;
+    const title = hasNetworkMatch ? 'Account Found On Another Network' : 'Account Not Found';
+    const description = hasNetworkMatch
+      ? 'This address is valid, but not on the currently selected network.'
+      : 'We could not find this account on Mainnet or Testnet.';
+
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <div className="w-20 h-20 bg-[var(--bg-tertiary)] rounded-2xl flex items-center justify-center mb-4">
-          <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
+      <div className="min-h-[70vh] bg-[var(--bg-primary)] flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className={`w-24 h-24 mx-auto rounded-2xl flex items-center justify-center mb-4 ${hasNetworkMatch ? 'bg-cyan-500/12' : 'bg-emerald-500/12'}`}>
+            <svg className={`w-12 h-12 ${hasNetworkMatch ? 'text-cyan-500' : 'text-emerald-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1118.88 17.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">{title}</h1>
+          <p className="text-[var(--text-tertiary)] mb-4">{description}</p>
+          <p className="text-[var(--text-muted)] text-sm mb-2">
+            Current network: <span className="font-semibold text-[var(--text-secondary)]">{NETWORK_CONFIGS[activeNetwork].displayName}</span>
+          </p>
+          <p className="text-[var(--text-muted)] font-mono text-sm mb-4 break-all">{id}</p>
+          {checkingOtherNetworks && (
+            <p className="text-[var(--text-muted)] text-sm mb-4">Checking other networks...</p>
+          )}
+          {!checkingOtherNetworks && (
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+              {availableNetworks.map((network) => (
+                <button
+                  key={network}
+                  onClick={() => switchNetworkAndReload(network)}
+                  className="px-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+                >
+                  Switch to {NETWORK_CONFIGS[network].displayName}
+                </button>
+              ))}
+              <Link
+                href="/accounts"
+                className="px-4 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+              >
+                Go to Accounts
+              </Link>
+            </div>
+          )}
         </div>
-        <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Account Not Found</h1>
-        <p className="text-[var(--text-tertiary)] mb-4">The account ID may be invalid or the account doesn&apos;t exist.</p>
-        <p className="text-[var(--text-muted)] font-mono text-sm mb-4 break-all max-w-lg text-center px-4">{id}</p>
-        <Link
-          href="/"
-          className="px-4 py-3 bg-[var(--primary)] text-black font-semibold rounded-xl hover:opacity-90 transition-opacity"
-        >
-          Back to Home
-        </Link>
+      </div>
+    );
+  }
+
+  if (isMobile === null) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="text-sm text-[var(--text-muted)]">Loading account view...</div>
       </div>
     );
   }
@@ -211,7 +437,16 @@ export default function AccountPage() {
           xlmPrice={xlmPrice}
           accountLabels={accountLabels}
           currentAccountLabel={currentAccountLabel}
+          firstTransactionAt={accountMetricDates.firstTransactionAt}
+          lastTransactionAt={accountMetricDates.lastTransactionAt}
+          accountMeta={accountMeta}
           loading={loading}
+          onTabChange={(tab: string) => {
+            if (tab === 'transactions' && !transactionsFetched) fetchTransactions();
+            if (tab === 'operations' && !operationsFetched) fetchOperations();
+          }}
+          loadingTransactions={loadingTransactions}
+          loadingOperations={loadingOperations}
         />
       ) : (
         <AccountDesktopView
@@ -222,7 +457,16 @@ export default function AccountPage() {
           xlmPrice={xlmPrice}
           accountLabels={accountLabels}
           currentAccountLabel={currentAccountLabel}
+          firstTransactionAt={accountMetricDates.firstTransactionAt}
+          lastTransactionAt={accountMetricDates.lastTransactionAt}
+          accountMeta={accountMeta}
           loading={loading}
+          onTabChange={(tab: string) => {
+            if (tab === 'transactions' && !transactionsFetched) fetchTransactions();
+            if (tab === 'operations' && !operationsFetched) fetchOperations();
+          }}
+          loadingTransactions={loadingTransactions}
+          loadingOperations={loadingOperations}
         />
       )}
     </>

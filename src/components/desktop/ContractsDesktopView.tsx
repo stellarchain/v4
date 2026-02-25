@@ -1,25 +1,14 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { shortenAddress, timeAgo } from '@/lib/stellar';
-import { StrKey } from '@stellar/stellar-sdk';
 import GliderTabs from '@/components/ui/GliderTabs';
-import InlineSkeleton from '@/components/ui/InlineSkeleton';
+import { useNetwork } from '@/contexts/NetworkContext';
 
-// Convert hex contract ID to StrKey format (C...)
-function hexToContractStrKey(hexId: string): string {
-  try {
-    if (hexId.startsWith('C') && hexId.length === 56) {
-      return hexId;
-    }
-    const buffer = Buffer.from(hexId, 'hex');
-    return StrKey.encodeContract(buffer);
-  } catch (e) {
-    console.error('Failed to convert contract ID:', e);
-    return hexId;
-  }
-}
+type ContractFilter = 'all' | 'verified' | 'token' | 'contract';
+type ContractsSort = 'activity' | 'activity_asc' | 'transactions' | 'asset_code';
 
 interface EnhancedContract {
   id: string;
@@ -31,6 +20,7 @@ interface EnhancedContract {
   sep41?: boolean;
   website?: string;
   operationCount: number;
+  totalTransactions?: number;
   lastActivity?: string;
   functions?: string[];
   wasmId?: string;
@@ -54,212 +44,78 @@ interface ContractsDesktopViewProps {
   contracts: EnhancedContract[];
   stats: {
     total: number;
-    active: number;
+    contracts: number;
     tokens: number;
-    dex: number;
     verified: number;
   };
   categories: Category[];
   pagination: PaginationInfo;
   loading?: boolean;
+  filter: ContractFilter;
+  searchInput: string;
+  onSearchInputChange: (value: string) => void;
+  sortBy: ContractsSort;
+  onSortChange: (value: ContractsSort) => void;
+  onFilterChange: (filter: ContractFilter) => void;
+  onPageChange: (page: number) => void;
 }
 
-import verifiedContracts from '@/data/verified-contracts.json';
-
-const PAGE_SIZE = 30;
-
-// Pagination component
-const PaginationControls = ({ currentPage, totalPages, onPageChange, loading }: {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-  loading: boolean;
-}) => {
-  if (totalPages <= 1) return null;
-
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      if (currentPage > 3) pages.push('...');
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
-      for (let i = start; i <= end; i++) pages.push(i);
-      if (currentPage < totalPages - 2) pages.push('...');
-      pages.push(totalPages);
-    }
-    return pages;
-  };
-
-  return (
-    <div className="flex items-center justify-center gap-1.5 px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1 || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-
-      {getPageNumbers().map((page, idx) => (
-        page === '...' ? (
-          <span key={`ellipsis-${idx}`} className="text-[var(--text-muted)] text-xs px-1">...</span>
-        ) : (
-          <button
-            key={page}
-            onClick={() => onPageChange(page as number)}
-            disabled={loading}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${currentPage === page
-                ? 'bg-sky-600 text-white shadow-sm'
-                : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
-              }`}
-          >
-            {page}
-          </button>
-        )
-      ))}
-
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage >= totalPages || loading}
-        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-
-      {loading && (
-        <svg className="w-4 h-4 animate-spin ml-2 text-sky-500" aria-hidden="true" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      )}
-
-      <span className="ml-3 text-[10px] font-medium text-[var(--text-muted)]">
-        Page {currentPage} of {totalPages}
-      </span>
-    </div>
-  );
-};
-
 export default function ContractsDesktopView({
-  contracts: initialContracts,
+  contracts,
   stats,
   categories,
-  pagination: initialPagination,
+  pagination,
   loading = false,
+  filter,
+  searchInput,
+  onSearchInputChange,
+  sortBy,
+  onSortChange,
+  onFilterChange,
+  onPageChange,
 }: ContractsDesktopViewProps) {
-  const [contracts, setContracts] = useState<EnhancedContract[]>(initialContracts);
-  const [pagination, setPagination] = useState(initialPagination);
-  const [filter, setFilter] = useState<string>('all');
-  const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<'activity' | 'name' | 'recent'>('recent');
-  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const { networkConfig } = useNetwork();
+  const [isPaginationHovered, setIsPaginationHovered] = useState(false);
+  const [isScrollActive, setIsScrollActive] = useState(false);
 
   useEffect(() => {
-    setContracts(initialContracts);
-  }, [initialContracts]);
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+    const handleScroll = () => {
+      setIsScrollActive(true);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => setIsScrollActive(false), 900);
+    };
 
-  useEffect(() => {
-    setPagination(initialPagination);
-  }, [initialPagination]);
-
-  // Fetch contracts for a specific page
-  const fetchPage = useCallback(async (page: number) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `https://api.stellarchain.io/v1/contracts/env/public?page=${page}&paginate=${pagination.perPage}`
-      );
-      const data = await response.json();
-
-      const newContracts: EnhancedContract[] = (data.data || []).map((apiContract: any) => {
-        const verifiedContract = verifiedContracts.contracts.find(
-          c => c.id.toLowerCase() === apiContract.contract_id.toLowerCase()
-        );
-
-        let type = 'contract';
-        if (apiContract.contract_type === 1 || apiContract.asset_code) {
-          type = 'token';
-        } else if (verifiedContract?.type) {
-          type = verifiedContract.type;
-        }
-
-        let name = 'Unknown Contract';
-        if (verifiedContract?.name) {
-          name = verifiedContract.name;
-        } else if (apiContract.asset_code) {
-          name = apiContract.asset_code;
-        }
-
-        const contractId = hexToContractStrKey(apiContract.contract_id);
-
-        return {
-          id: contractId,
-          name,
-          type,
-          symbol: apiContract.asset_code || verifiedContract?.symbol,
-          description: verifiedContract?.description,
-          verified: apiContract.source_code_verified || verifiedContract?.verified || false,
-          sep41: apiContract.contract_type === 1 || !!apiContract.asset_code || verifiedContract?.sep41,
-          website: verifiedContract?.website,
-          operationCount: apiContract.transactions_count || 0,
-          lastActivity: apiContract.created_at,
-          wasmId: apiContract.wasm_id || undefined,
-          createdAt: apiContract.created_at,
-          createTxHash: apiContract.create_transaction?.hash,
-        };
-      });
-
-      setContracts(newContracts);
-      setPagination({
-        currentPage: data.current_page || page,
-        totalPages: data.last_page || 1,
-        total: data.total || 0,
-        perPage: data.per_page || pagination.perPage,
-      });
-    } catch (error) {
-      console.error('Error fetching contracts:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [pagination.perPage]);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
+  }, []);
 
   const filteredContracts = useMemo(() => {
-    let result = [...contracts];
+    const seen = new Set<string>();
+    let result = contracts.filter((contract) => {
+      const key = String(contract.id || '').trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
-    if (filter === 'active') {
-      result = result.filter(c => c.operationCount > 0);
-    } else if (filter === 'verified') {
-      result = result.filter(c => c.verified);
-    } else if (filter !== 'all') {
-      result = result.filter(c => c.type === filter);
-    }
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(c =>
-        c.name.toLowerCase().includes(q) ||
-        c.symbol?.toLowerCase().includes(q) ||
-        c.id.toLowerCase().includes(q)
-      );
-    }
-
-    if (sortBy === 'name') {
-      result.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortBy === 'activity') {
+    if (sortBy === 'activity') {
       result.sort((a, b) => b.operationCount - a.operationCount);
+    } else if (sortBy === 'activity_asc') {
+      result.sort((a, b) => a.operationCount - b.operationCount);
+    } else if (sortBy === 'transactions') {
+      result.sort((a, b) => (b.totalTransactions ?? 0) - (a.totalTransactions ?? 0));
+    } else if (sortBy === 'asset_code') {
+      result.sort((a, b) => (a.symbol || a.name || '').localeCompare((b.symbol || b.name || '')));
     }
 
     return result;
-  }, [contracts, filter, search, sortBy]);
+  }, [contracts, sortBy]);
 
-  // Get type badge style
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'token':
@@ -277,30 +133,11 @@ export default function ContractsDesktopView({
     }
   };
 
-  // Count stats from current filtered view
-  const currentStats = useMemo(() => ({
-    total: pagination.total,
-    tokens: contracts.filter(c => c.type === 'token').length,
-    dex: contracts.filter(c => c.type === 'dex').length,
-    verified: contracts.filter(c => c.verified).length,
-    active: contracts.filter(c => c.operationCount > 0).length,
-  }), [contracts, pagination.total]);
-
-  const typeCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const c of contracts) {
-      counts[c.type] = (counts[c.type] ?? 0) + 1;
-    }
-    return counts;
-  }, [contracts]);
-
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
-        {/* Header Card */}
         <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            {/* Left: Title & Meta */}
             <div className="flex items-start gap-4 min-w-0">
               <Link
                 href="/"
@@ -314,39 +151,29 @@ export default function ContractsDesktopView({
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Soroban</span>
                   <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
-                    Mainnet
+                    {networkConfig.displayName}
                   </span>
                 </div>
                 <div className="text-xl font-bold text-[var(--text-primary)]">Smart Contracts</div>
                 <div className="mt-1 text-xs text-[var(--text-tertiary)]">
-                  {loading ? <InlineSkeleton width="w-48" height="h-3" /> : `${pagination.total.toLocaleString()} smart contracts deployed on Stellar`}
+                  {pagination.total.toLocaleString()} smart contracts deployed on Stellar
                 </div>
               </div>
             </div>
 
-            {/* Right: Quick Stats */}
             <div className="flex gap-3">
               <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total</div>
-                <div className="text-lg font-bold text-[var(--text-primary)]">{loading ? <InlineSkeleton width="w-16" /> : pagination.total.toLocaleString()}</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{pagination.total.toLocaleString()}</div>
               </div>
-              <div className="p-3 rounded-xl bg-indigo-100/70 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800/50 min-w-[90px]">
-                <div className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1">Tokens</div>
-                <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{loading ? <InlineSkeleton width="w-12" /> : currentStats.tokens}</div>
-              </div>
-              <div className="p-3 rounded-xl bg-violet-100/70 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800/50 min-w-[90px]">
-                <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">DEXs</div>
-                <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{loading ? <InlineSkeleton width="w-10" /> : currentStats.dex}</div>
-              </div>
-              <div className="p-3 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 min-w-[90px]">
-                <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Verified</div>
-                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{loading ? <InlineSkeleton width="w-10" /> : currentStats.verified}</div>
+              <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Tokens</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{stats.tokens.toLocaleString()}</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Search and Sort Row */}
         <div className="flex items-center gap-4 mb-4">
           <div className="relative flex-1 max-w-md">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-4 h-4 text-[var(--text-muted)] pointer-events-none" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -355,58 +182,42 @@ export default function ContractsDesktopView({
             <input
               type="text"
               placeholder="Search by name, symbol, or contract ID..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-sky-500 focus:border-transparent shadow-sm"
+              value={searchInput}
+              onChange={(e) => onSearchInputChange(e.target.value)}
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:ring-2 focus:ring-sky-500 focus:border-transparent shadow-sm"
             />
+            {loading && (
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-sky-500" aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            )}
           </div>
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'activity' | 'name' | 'recent')}
+            onChange={(e) => onSortChange(e.target.value as ContractsSort)}
             className="px-4 py-2.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-sm font-medium text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm cursor-pointer"
           >
-            <option value="recent">Most Recent</option>
             <option value="activity">Most Active</option>
-            <option value="name">By Name</option>
+            <option value="activity_asc">Least Active</option>
+            <option value="transactions">By Transactions</option>
+            <option value="asset_code">By Asset Code</option>
           </select>
         </div>
 
-        {/* Filter Tabs */}
         <div className="mb-4 max-w-full">
           <GliderTabs
             size="sm"
             className="border-[var(--border-default)]"
-            tabs={[
-              { id: 'all', label: 'All', count: pagination.total },
-              { id: 'verified', label: 'Verified', count: currentStats.verified },
-              ...categories.map((cat) => ({
-                id: cat.id,
-                label: cat.name,
-                count: (typeCounts[cat.id] ?? 0) > 0 ? (typeCounts[cat.id] ?? 0) : undefined,
-              })),
-            ]}
+            tabs={categories.map((category) => ({ id: category.id, label: category.name }))}
             activeId={filter}
-            onChange={setFilter}
+            onChange={(id) => onFilterChange(id as ContractFilter)}
           />
         </div>
 
-        {/* Loading overlay */}
-        {isLoading && (
-          <div className="fixed inset-0 bg-[var(--text-primary)]/20 z-50 flex items-center justify-center backdrop-blur-sm">
-            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-xl p-4 flex items-center gap-3">
-              <svg className="animate-spin h-5 w-5 text-sky-600" aria-hidden="true" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              <span className="font-medium text-[var(--text-secondary)]">Loading contracts...</span>
-            </div>
-          </div>
-        )}
-
-        {/* Contracts Table */}
-        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full sc-table">
+        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden relative min-h-[520px] pb-20">
+            <div className="overflow-x-auto">
+              <table className="w-full sc-table">
               <thead>
                 <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
                   <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left whitespace-nowrap">Contract ID</th>
@@ -422,31 +233,25 @@ export default function ContractsDesktopView({
                 {loading ? (
                   Array.from({ length: 8 }).map((_, idx) => (
                     <tr key={`contracts-skeleton-row-${idx}`}>
-                      <td className="py-3 px-4"><InlineSkeleton width="w-20" /></td>
-                      <td className="py-3 px-3">
-                        <div className="flex items-center gap-2">
-                          <InlineSkeleton width="w-28" />
-                          <InlineSkeleton width="w-10" height="h-3" />
-                        </div>
-                      </td>
-                      <td className="py-3 px-3"><InlineSkeleton width="w-16" /></td>
-                      <td className="py-3 px-3"><InlineSkeleton width="w-14" /></td>
-                      <td className="py-3 px-3 text-right"><InlineSkeleton width="w-12" /></td>
-                      <td className="py-3 px-3"><InlineSkeleton width="w-12" /></td>
-                      <td className="py-3 px-4 text-center"><InlineSkeleton width="w-6" height="h-6" /></td>
+                      <td className="py-3 px-4"><div className="h-4 w-20 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-3 px-3"><div className="h-4 w-40 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-3 px-3"><div className="h-4 w-16 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-3 px-3"><div className="h-4 w-14 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-3 px-3 text-right"><div className="h-4 w-12 bg-[var(--bg-tertiary)] rounded animate-pulse ml-auto" /></td>
+                      <td className="py-3 px-3"><div className="h-4 w-12 bg-[var(--bg-tertiary)] rounded animate-pulse" /></td>
+                      <td className="py-3 px-4"><div className="h-4 w-6 bg-[var(--bg-tertiary)] rounded animate-pulse mx-auto" /></td>
                     </tr>
                   ))
                 ) : filteredContracts.length > 0 ? (
-                  filteredContracts.map((contract) => {
+                  filteredContracts.map((contract, idx) => {
                     const typeBadge = getTypeBadge(contract.type);
 
                     return (
                       <tr
-                        key={contract.id}
+                        key={`${contract.id}-${contract.createdAt || idx}`}
                         className="hover:bg-sky-50/30 transition-colors group cursor-pointer"
-                        onClick={() => window.location.href = `/contracts/${contract.id}`}
+                        onClick={() => router.push(`/contracts/${contract.id}`)}
                       >
-                        {/* Contract ID */}
                         <td className="py-3 px-4">
                           <Link
                             href={`/contracts/${contract.id}`}
@@ -457,12 +262,15 @@ export default function ContractsDesktopView({
                           </Link>
                         </td>
 
-                        {/* Name */}
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-sky-600 transition-colors truncate max-w-[180px]">
+                            <Link
+                              href={`/contracts/${contract.id}`}
+                              className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-sky-600 transition-colors truncate max-w-[180px] hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               {contract.name}
-                            </span>
+                            </Link>
                             {contract.verified && (
                               <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -476,7 +284,6 @@ export default function ContractsDesktopView({
                           </div>
                         </td>
 
-                        {/* Type */}
                         <td className="py-3 px-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${typeBadge.bg} ${typeBadge.color}`}>
                             {typeBadge.label}
@@ -488,12 +295,10 @@ export default function ContractsDesktopView({
                           )}
                         </td>
 
-                        {/* Created */}
                         <td className="py-3 px-3 text-[12px] text-[var(--text-tertiary)] whitespace-nowrap">
                           {contract.createdAt ? timeAgo(contract.createdAt) : '-'}
                         </td>
 
-                        {/* Invocations */}
                         <td className="py-3 px-3 text-right">
                           {contract.operationCount > 0 ? (
                             <span className="text-[12px] font-semibold text-[var(--text-primary)]">
@@ -504,7 +309,6 @@ export default function ContractsDesktopView({
                           )}
                         </td>
 
-                        {/* Status */}
                         <td className="py-3 px-3">
                           {contract.operationCount > 0 ? (
                             <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600">
@@ -519,7 +323,6 @@ export default function ContractsDesktopView({
                           )}
                         </td>
 
-                        {/* Arrow */}
                         <td className="py-3 px-4 text-center">
                           <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-muted)] group-hover:bg-sky-100 group-hover:text-sky-600 transition-colors">
                             <svg className="w-3.5 h-3.5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -548,14 +351,71 @@ export default function ContractsDesktopView({
               </tbody>
             </table>
           </div>
-
-          <PaginationControls
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            onPageChange={fetchPage}
-            loading={isLoading || loading}
-          />
         </div>
+
+        {/* Floating Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="fixed bottom-4 left-1/2 z-30 pointer-events-none w-full max-w-[1400px] -translate-x-1/2 px-4">
+            <div className="mx-auto px-4 flex justify-center">
+              <div
+                onMouseEnter={() => setIsPaginationHovered(true)}
+                onMouseLeave={() => setIsPaginationHovered(false)}
+                className={`pointer-events-auto bg-[var(--bg-secondary)]/90 backdrop-blur-xl rounded-xl px-3 py-2 flex items-center gap-1.5 shadow-xl border border-[var(--border-default)] transition-opacity duration-300 ${isScrollActive || isPaginationHovered ? 'opacity-100' : 'opacity-20'}`}
+              >
+                <button
+                  onClick={() => onPageChange(pagination.currentPage - 1)}
+                  disabled={pagination.currentPage === 1 || loading}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+              {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => {
+                let pageNum: number;
+                if (pagination.totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (pagination.currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                  pageNum = pagination.totalPages - 4 + i;
+                } else {
+                  pageNum = pagination.currentPage - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => onPageChange(pageNum)}
+                    disabled={loading}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
+                      pagination.currentPage === pageNum
+                        ? 'bg-sky-600 text-white shadow-sm'
+                        : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              {pagination.totalPages > 5 && pagination.currentPage < pagination.totalPages - 2 && (
+                <span className="text-[var(--text-muted)] text-xs px-1">...</span>
+              )}
+
+              <button
+                onClick={() => onPageChange(pagination.currentPage + 1)}
+                disabled={pagination.currentPage === pagination.totalPages || loading}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

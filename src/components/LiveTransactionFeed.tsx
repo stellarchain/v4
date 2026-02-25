@@ -3,7 +3,16 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
 import CompactTransactionRow from './CompactTransactionRow';
-import { Transaction, getTransactionDisplayInfo, getTransactionOperations, TransactionDisplayInfo, Operation, getBaseUrl, getNetwork } from '@/lib/stellar';
+import {
+  Transaction,
+  getTransactionDisplayInfo,
+  Operation,
+  getTransactions,
+  getPayments,
+  getNetwork,
+  normalizeTransactions,
+  getTransactionOperations,
+} from '@/lib/stellar';
 
 interface LiveTransactionFeedProps {
   initialTransactions: Transaction[];
@@ -21,7 +30,6 @@ const loadCachedTransactions = (): Transaction[] => {
     const cached = sessionStorage.getItem(getCacheKey());
     if (cached) {
       const parsed = JSON.parse(cached);
-      // Only use cache if it's less than 2 minutes old
       if (parsed.timestamp && Date.now() - parsed.timestamp < 120000) {
         return parsed.transactions || [];
       }
@@ -45,8 +53,45 @@ const saveCachedTransactions = (transactions: Transaction[]) => {
   }
 };
 
+// Helper to convert an Operation to a Transaction with displayInfo
+function operationToTransaction(op: Operation): Transaction {
+  const opAny = op as any;
+  return {
+    id: op.id,
+    paging_token: op.paging_token,
+    successful: opAny.transaction_successful ?? true,
+    hash: opAny.transaction_hash || op.id,
+    ledger: 0,
+    ledger_attr: 0,
+    created_at: op.created_at,
+    source_account: op.source_account,
+    source_account_sequence: '',
+    fee_account: op.source_account,
+    fee_charged: '0',
+    max_fee: '0',
+    operation_count: 1,
+    envelope_xdr: '',
+    result_xdr: '',
+    result_meta_xdr: '',
+    fee_meta_xdr: '',
+    memo_type: 'none',
+    signatures: [],
+    displayInfo: getTransactionDisplayInfo([op]),
+  };
+}
+
+// Helper to fetch operations for a transaction
+async function fetchTransactionWithOps(tx: Transaction): Promise<Transaction> {
+  try {
+    const opsResponse = await getTransactionOperations(tx.hash, 20);
+    const operations = opsResponse.records || [];
+    return { ...tx, displayInfo: getTransactionDisplayInfo(operations) };
+  } catch {
+    return { ...tx, displayInfo: { type: 'other' as const } };
+  }
+}
+
 export default function LiveTransactionFeed({ initialTransactions, limit = 10, filter = 'all' }: LiveTransactionFeedProps) {
-  // Initialize with cached data, initial props, or empty array
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const cached = loadCachedTransactions();
     if (cached.length > 0) return cached;
@@ -55,233 +100,214 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
   });
   const [isInitialLoading, setIsInitialLoading] = useState(() => {
     const cached = loadCachedTransactions();
-    // Skip loading state if we have cached data
     return cached.length === 0 && (!initialTransactions || initialTransactions.length === 0);
   });
   const containerRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
   const previousIdsRef = useRef<Set<string>>(new Set());
-  const displayInfoCache = useRef<Map<string, TransactionDisplayInfo>>(new Map());
-  const isInitialLoadRef = useRef(true);
+  const enrichedIdsRef = useRef<Set<string>>(new Set());
+  // Merge helper: merge new transactions, animate new ones, save to cache
+  const mergeAndAnimate = useCallback((newTxs: Transaction[], isInitial: boolean) => {
+    setTransactions(prev => {
+      const existingMap = new Map(prev.map(t => [t.hash, t]));
 
-  // Convert payment operations to Transaction format with displayInfo (same as TransactionPageClient)
-  const convertPaymentsToTransactions = useCallback((operations: Operation[]): Transaction[] => {
-    const txMap = new Map<string, Transaction>();
-
-    for (const op of operations) {
-      if (txMap.has(op.transaction_hash)) continue;
-
-      const displayInfo = getTransactionDisplayInfo([op]);
-
-      txMap.set(op.transaction_hash, {
-        id: op.id,
-        paging_token: op.paging_token,
-        successful: op.transaction_successful,
-        hash: op.transaction_hash,
-        ledger: 0,
-        ledger_attr: 0,
-        created_at: op.created_at,
-        source_account: op.source_account,
-        source_account_sequence: '',
-        fee_account: op.source_account,
-        fee_charged: '0',
-        max_fee: '0',
-        operation_count: 1,
-        envelope_xdr: '',
-        result_xdr: '',
-        result_meta_xdr: '',
-        fee_meta_xdr: '',
-        memo_type: 'none',
-        signatures: [],
-        displayInfo,
-      });
-    }
-
-    return Array.from(txMap.values());
-  }, []);
-
-  // Helper to fetch details for transactions that don't have them yet
-  const enrichTransactions = useCallback(async (txs: Transaction[]) => {
-    const toFetch = txs.filter(t => !displayInfoCache.current.has(t.hash));
-    const batch = toFetch.slice(0, 10);
-
-    if (batch.length > 0) {
-      await Promise.allSettled(batch.map(async (tx) => {
-        try {
-          const opsData = await getTransactionOperations(tx.hash, 10);
-          if (opsData?._embedded?.records && opsData._embedded.records.length > 0) {
-            const info = getTransactionDisplayInfo(opsData._embedded.records);
-            displayInfoCache.current.set(tx.hash, info);
-          }
-        } catch (e) {
-          console.error(`Failed to fetch ops for ${tx.hash}`, e);
+      newTxs.forEach(tx => {
+        const existing = existingMap.get(tx.hash);
+        // Prefer transactions with meaningful displayInfo
+        if (!existing || (tx.displayInfo && tx.displayInfo.type !== 'other' && (!existing.displayInfo || existing.displayInfo.type === 'other'))) {
+          existingMap.set(tx.hash, tx);
         }
-      }));
-    }
+      });
 
-    return txs.map(t => {
-      if (displayInfoCache.current.has(t.hash)) {
-        return { ...t, displayInfo: displayInfoCache.current.get(t.hash) };
+      const merged = Array.from(existingMap.values())
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 50);
+
+      // Animate new items (not on initial load)
+      if (!isInitial) {
+        const addedIds = newTxs
+          .filter(t => !previousIdsRef.current.has(t.id))
+          .map(t => t.id);
+
+        if (addedIds.length > 0) {
+          setTimeout(() => {
+            addedIds.forEach((id, index) => {
+              const el = rowRefs.current.get(id);
+              if (el) {
+                gsap.fromTo(el,
+                  { opacity: 0, y: -4 },
+                  { opacity: 1, y: 0, duration: 0.25, delay: index * 0.03, ease: 'power2.out' }
+                );
+              }
+            });
+          }, 10);
+        }
       }
-      return t;
+
+      previousIdsRef.current = new Set(merged.map(t => t.id));
+      saveCachedTransactions(merged);
+      return merged;
     });
   }, []);
 
-  // Fetch payments directly from /payments endpoint
-  const fetchPayments = useCallback(async (isInitial = false) => {
+  useEffect(() => {
+    if (initialTransactions.length === 0) return;
+    if (transactions.length > 0) return;
+
+    mergeAndAnimate(initialTransactions, true);
+    if (isInitialLoading) {
+      setIsInitialLoading(false);
+    }
+  }, [initialTransactions, transactions.length, mergeAndAnimate, isInitialLoading]);
+
+  useEffect(() => {
+    if (initialTransactions.length === 0) return;
+    if (transactions.length > 0) return;
+
+    mergeAndAnimate(initialTransactions, true);
+    if (isInitialLoading) {
+      setIsInitialLoading(false);
+    }
+  }, [initialTransactions, transactions.length, mergeAndAnimate, isInitialLoading]);
+
+  // Fetch payments from /payments endpoint (same as desktop for Payments tab)
+  const fetchPayments = useCallback(async (isInitial: boolean) => {
     try {
-      const res = await fetch(`${getBaseUrl()}/payments?limit=${limit}&order=desc`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const paymentOps: Operation[] = data._embedded?.records || [];
+      const data = await getPayments(limit, 'desc');
+      const paymentOps: Operation[] = data.records || [];
 
-      // Convert to transactions and filter to only show actual payments (not contract calls)
-      const allTransactions = convertPaymentsToTransactions(paymentOps);
-      const newPaymentTxs = allTransactions.filter(tx => tx.displayInfo?.type === 'payment');
-
-      if (isInitial) {
-        // Initial load - merge with any existing cached data
-        setTransactions(prev => {
-          const existingMap = new Map(prev.map(t => [t.hash, t]));
-          newPaymentTxs.forEach(tx => existingMap.set(tx.hash, tx));
-          const merged = Array.from(existingMap.values())
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 50);
-          previousIdsRef.current = new Set(merged.map(t => t.id));
-          saveCachedTransactions(merged);
-          return merged;
-        });
-        isInitialLoadRef.current = false;
-        setIsInitialLoading(false);
-        return;
-      }
-
-      setTransactions(prevTransactions => {
-        // Merge new transactions with existing ones, keeping history
-        const existingMap = new Map(prevTransactions.map(t => [t.hash, t]));
-
-        // Add new transactions (they take priority if same hash exists)
-        newPaymentTxs.forEach(tx => {
-          existingMap.set(tx.hash, tx);
-        });
-
-        // Convert back to array, sort by created_at (newest first), and cap at 50
-        const merged = Array.from(existingMap.values())
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-          .slice(0, 50);
-
-        // Find truly new transactions for animation
-        const addedIds = newPaymentTxs
-          .filter(t => !previousIdsRef.current.has(t.id))
-          .map(t => t.id);
-
-        if (addedIds.length > 0) {
-          setTimeout(() => {
-            addedIds.forEach((id, index) => {
-              const el = rowRefs.current.get(id);
-              if (el) {
-                gsap.fromTo(el,
-                  { opacity: 0, y: -4 },
-                  { opacity: 1, y: 0, duration: 0.25, delay: index * 0.03, ease: 'power2.out' }
-                );
-              }
-            });
-          }, 10);
+      // Convert operations to transactions with displayInfo (already typed correctly)
+      const txMap = new Map<string, Transaction>();
+      for (const op of paymentOps) {
+        const opAny = op as any;
+        if (txMap.has(opAny.transaction_hash)) continue;
+        const tx = operationToTransaction(op);
+        if (tx.displayInfo?.type === 'payment') {
+          txMap.set(tx.hash, tx);
         }
+      }
+      const newPaymentTxs = Array.from(txMap.values());
 
-        // Update seen IDs and cache
-        previousIdsRef.current = new Set(merged.map(t => t.id));
-        saveCachedTransactions(merged);
-        return merged;
-      });
+      mergeAndAnimate(newPaymentTxs, isInitial);
+      if (isInitial) setIsInitialLoading(false);
     } catch (error) {
       console.error('Failed to fetch payments:', error);
-      if (isInitial) {
-        setIsInitialLoading(false);
-      }
+      if (isInitial) setIsInitialLoading(false);
     }
-  }, [limit, convertPaymentsToTransactions]);
+  }, [limit, mergeAndAnimate]);
 
-  // Fetch all transactions
-  const fetchAllTransactions = useCallback(async (isInitial = false) => {
+  // Fetch all transactions with enrichment (same approach as desktop TransactionsDesktopView)
+  const fetchAllTransactions = useCallback(async (isInitial: boolean) => {
     try {
-      const res = await fetch(`${getBaseUrl()}/transactions?limit=${limit}&order=desc`);
-      const data = await res.json();
-      const rawTransactions: Transaction[] = data._embedded.records;
-      const newTransactions = await enrichTransactions(rawTransactions);
+      // Fetch both transactions and payments in parallel (same as desktop)
+      const [txData, paymentsData] = await Promise.all([
+        getTransactions(limit, 'desc'),
+        getPayments(Math.min(limit, 20), 'desc').catch(() => null),
+      ]);
 
-      if (isInitial) {
-        // Initial load - merge with any existing cached data
-        setTransactions(prev => {
-          const existingMap = new Map(prev.map(t => [t.hash, t]));
-          newTransactions.forEach(tx => existingMap.set(tx.hash, tx));
-          const merged = Array.from(existingMap.values())
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 50);
-          previousIdsRef.current = new Set(merged.map(t => t.id));
-          saveCachedTransactions(merged);
-          return merged;
-        });
-        isInitialLoadRef.current = false;
-        setIsInitialLoading(false);
-        return;
+      const rawTransactions: Transaction[] = normalizeTransactions(txData.records || []);
+
+      // Convert payment ops to transactions with displayInfo (immediate type info)
+      const paymentTxs: Transaction[] = [];
+      if (paymentsData?.records) {
+        const seenHashes = new Set<string>();
+        for (const op of paymentsData.records as Operation[]) {
+          const opAny = op as any;
+          if (seenHashes.has(opAny.transaction_hash)) continue;
+          seenHashes.add(opAny.transaction_hash);
+          paymentTxs.push(operationToTransaction(op));
+        }
       }
 
-      setTransactions(prevTransactions => {
-        // Merge new transactions with existing ones, keeping history
-        const existingMap = new Map(prevTransactions.map(t => [t.hash, t]));
-
-        newTransactions.forEach(tx => {
-          existingMap.set(tx.hash, tx);
-        });
-
-        // Convert back to array, sort by created_at (newest first), and cap at 50
-        const merged = Array.from(existingMap.values())
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-          .slice(0, 50);
-
-        // Find truly new transactions for animation
-        const addedIds = newTransactions
-          .filter(t => !previousIdsRef.current.has(t.id))
-          .map(t => t.id);
-
-        if (addedIds.length > 0) {
-          setTimeout(() => {
-            addedIds.forEach((id, index) => {
-              const el = rowRefs.current.get(id);
-              if (el) {
-                gsap.fromTo(el,
-                  { opacity: 0, y: -4 },
-                  { opacity: 1, y: 0, duration: 0.25, delay: index * 0.03, ease: 'power2.out' }
-                );
-              }
-            });
-          }, 10);
-        }
-
-        // Update seen IDs and cache
-        previousIdsRef.current = new Set(merged.map(t => t.id));
-        saveCachedTransactions(merged);
-        return merged;
+      // Merge: raw transactions start as 'other', payment txs already have correct type
+      const txMap = new Map<string, Transaction>();
+      rawTransactions.forEach(tx => {
+        txMap.set(tx.hash, { ...tx, displayInfo: tx.displayInfo || { type: 'other' as const } });
       });
+      // Payment transactions overwrite with correct displayInfo
+      paymentTxs.forEach(tx => {
+        txMap.set(tx.hash, tx);
+      });
+
+      const allTxs = Array.from(txMap.values())
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      mergeAndAnimate(allTxs, isInitial);
+      if (isInitial) setIsInitialLoading(false);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
-      if (isInitial) {
-        setIsInitialLoading(false);
-      }
+      if (isInitial) setIsInitialLoading(false);
     }
-  }, [limit, enrichTransactions]);
+  }, [limit, mergeAndAnimate]);
 
   // Initial load and polling
   useEffect(() => {
-    // Always fetch on mount
     const fetchFn = filter === 'payments' ? fetchPayments : fetchAllTransactions;
     fetchFn(true);
 
-    // Start polling immediately (shorter interval for better UX)
     const interval = setInterval(() => fetchFn(false), 5000);
     return () => clearInterval(interval);
-  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filter, fetchPayments, fetchAllTransactions]);
+
+  // Enrichment: single controlled loop, prevents concurrent runs.
+  // Processes batches of 3 with 1s delay between to avoid flooding the API.
+  const isEnrichingRef = useRef(false);
+  const enrichTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (isEnrichingRef.current) return;
+
+    const candidates = transactions.filter(tx =>
+      (!tx.displayInfo || tx.displayInfo.type === 'other') &&
+      !enrichedIdsRef.current.has(tx.hash)
+    );
+
+    if (candidates.length === 0) return;
+
+    isEnrichingRef.current = true;
+    let mounted = true;
+
+    const runEnrichment = async () => {
+      const BATCH_SIZE = 3;
+      const allCandidates = [...candidates];
+
+      for (let i = 0; i < allCandidates.length; i += BATCH_SIZE) {
+        if (!mounted) break;
+
+        const batch = allCandidates.slice(i, i + BATCH_SIZE);
+        batch.forEach(tx => enrichedIdsRef.current.add(tx.hash));
+
+        const batchResults = await Promise.all(batch.map(fetchTransactionWithOps));
+        if (!mounted) break;
+
+        setTransactions(prev => {
+          const updated = prev.map(t => {
+            const enriched = batchResults.find(r => r.hash === t.hash);
+            return enriched ? enriched : t;
+          });
+          saveCachedTransactions(updated);
+          return updated;
+        });
+
+        // Wait 1s between batches to let the frontend breathe
+        if (i + BATCH_SIZE < allCandidates.length) {
+          await new Promise(resolve => {
+            enrichTimerRef.current = setTimeout(resolve, 1000);
+          });
+        }
+      }
+
+      isEnrichingRef.current = false;
+    };
+
+    runEnrichment();
+
+    return () => {
+      mounted = false;
+      isEnrichingRef.current = false;
+      if (enrichTimerRef.current) clearTimeout(enrichTimerRef.current);
+    };
+  }, [transactions]);
 
   const setRowRef = useCallback((id: string) => (el: HTMLAnchorElement | null) => {
     if (el) {
@@ -291,7 +317,7 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
     }
   }, []);
 
-  // For 'contracts' filter, we still need to filter after enrichment
+  // Filter for display
   const filteredTransactions = filter === 'contracts'
     ? transactions.filter(tx => tx.displayInfo?.type === 'contract')
     : transactions;
@@ -315,7 +341,6 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
   return (
     <div ref={containerRef} className="w-full space-y-2">
       {isInitialLoading ? (
-        // Skeleton loader
         Array.from({ length: limit }).map((_, i) => (
           <SkeletonRow key={i} />
         ))
@@ -335,4 +360,3 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
     </div>
   );
 }
-

@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl, timeAgo } from '@/lib/stellar';
+import { timeAgo } from '@/lib/stellar';
+import { createHorizonServer } from '@/services/horizon';
 
 type Effect = Horizon.ServerApi.EffectRecord;
 
@@ -13,19 +14,19 @@ export default function EffectsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const server = new Horizon.Server(getBaseUrl());
-    server.effects()
-      .order('desc')
-      .limit(30)
-      .call()
-      .then((response) => {
+    const loadEffects = async () => {
+      try {
+        const server = createHorizonServer();
+        const response = await server.effects().order('desc').limit(30).call();
         setEffects(response.records as Effect[]);
-        setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load effects');
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    loadEffects();
   }, []);
 
   if (loading) {
@@ -77,4 +78,3 @@ export default function EffectsPage() {
     </div>
   );
 }
-

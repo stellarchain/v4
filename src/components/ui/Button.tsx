@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { cn } from '@/lib/design-system';
+import { cn } from '@/lib/shared/designSystem';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'pill';
 

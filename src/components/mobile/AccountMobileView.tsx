@@ -3,13 +3,24 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Transaction, Operation, Effect, shortenAddress, formatXLM, AccountLabel, getBaseUrl, getXLMStats } from '@/lib/stellar';
-import { containers, colors, coreColors, tabs, badges } from '@/lib/design-system';
+import {
+  Transaction,
+  Operation,
+  Effect,
+  shortenAddress,
+  formatXLM,
+  AccountLabel,
+  getOrderBook,
+  getTradeAggregations,
+  getAccountOperations,
+  getAccountEffects,
+} from '@/lib/stellar';
+import { containers, colors, coreColors, tabs, badges } from '@/lib/shared/designSystem';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 import { QRCodeSVG } from 'qrcode.react';
 import { useFavorites } from '@/contexts/FavoritesContext';
-import { assetRoute } from '@/lib/routes';
+import { assetRoute } from '@/lib/shared/routes';
 
 function formatCompactNumber(value: number): string {
   if (value === 0) return '0';
@@ -33,6 +44,39 @@ function formatBalanceDisplay(value: number): string {
     return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
   }
   return value.toLocaleString(undefined, { maximumFractionDigits: 6 });
+}
+
+function parseNativeBalanceDeltaXlm(
+  value:
+    | string
+    | number
+    | {
+        changeXlm?: string | number;
+      }
+    | null
+    | undefined
+): number {
+  if (value && typeof value === 'object') {
+    return Number(value.changeXlm ?? 0) || 0;
+  }
+  return Number(value ?? 0) || 0;
+}
+
+function parseNativeBalanceDeltaPercent(
+  value:
+    | string
+    | number
+    | {
+        changePercent?: string | number | null;
+      }
+    | null
+    | undefined
+): number | null {
+  if (value && typeof value === 'object') {
+    const parsed = Number(value.changePercent);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 }
 
 interface Balance {
@@ -71,7 +115,60 @@ interface AccountMobileViewProps {
   xlmPrice: number;
   accountLabels?: Record<string, AccountLabel>;
   currentAccountLabel?: AccountLabel | null;
+  firstTransactionAt?: string;
+  lastTransactionAt?: string;
+  accountMeta?: {
+    label?: string;
+    verified?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+    network?: number;
+    accountMetric?: {
+      nativeBalance?: string | number;
+      totalTransactions?: string | number;
+      transactionsPerHour?: string | number;
+      paymentsCount?: string | number;
+      tradesCount?: string | number;
+      rankPosition?: string | number;
+      metricUpdatedAt?: string;
+      firstTransactionAt?: string;
+      lastTransactionAt?: string;
+    };
+    stellarData?: {
+      activity24h?: {
+        totalTransactions?: number;
+        paymentOperations?: number;
+        tradeOperations?: number;
+        operationCount?: number;
+        successRatePercent?: number | null;
+        nativeBalanceChange24h?: string | number | {
+          currentXlm?: string | number;
+          referenceXlm?: string | number;
+          changeXlm?: string | number;
+          changePercent?: number | null;
+          referenceRecordedHour?: string;
+        } | null;
+      };
+    };
+    activity24h?: {
+      totalTransactions?: number;
+      paymentOperations?: number;
+      tradeOperations?: number;
+      operationCount?: number;
+      successRatePercent?: number | null;
+      nativeBalanceChange24h?: string | number | {
+        currentXlm?: string | number;
+        referenceXlm?: string | number;
+        changeXlm?: string | number;
+        changePercent?: number | null;
+        referenceRecordedHour?: string;
+      } | null;
+    };
+  } | null;
   loading?: boolean;
+  onTabChange?: (tab: string) => void;
+  loadingTransactions?: boolean;
+  loadingOperations?: boolean;
 }
 
 function getAssetUrl(code: string | undefined, issuer: string | undefined): string {
@@ -80,7 +177,45 @@ function getAssetUrl(code: string | undefined, issuer: string | undefined): stri
   return assetRoute(code, issuer);
 }
 
-export default function AccountMobileView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, loading = false }: AccountMobileViewProps) {
+function AccountStatusIcons({ labelText, verified, size = 'sm' }: { labelText?: string; verified?: boolean; size?: 'sm' | 'lg' }) {
+  const normalized = (labelText || '').toLowerCase();
+  const isSpam = normalized.includes('spam');
+  const isRisk = normalized.includes('scam') || normalized.includes('hack') || normalized.includes('malicious') || isSpam;
+  const hasLabel = Boolean(labelText);
+  const isVerified = Boolean(verified) && !isRisk;
+  const iconSize = size === 'lg' ? 'w-8 h-8' : 'w-4 h-4';
+
+  return (
+    <>
+      {isRisk && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" fill={isSpam ? '#F97316' : '#EF4444'}>
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+          <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      )}
+      {hasLabel && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="4.25" fill="#F59E0B" />
+          <circle cx="12" cy="8" r="2.1" fill="#FEF3C7" />
+          <path d="M9.2 11.2L7.6 20l4.4-2.5 4.4 2.5-1.6-8.8z" fill="#D97706" />
+        </svg>
+      )}
+      {isVerified && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" fill="#1D9BF0">
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
+        </svg>
+      )}
+      {!isRisk && !isVerified && !hasLabel && (
+        <svg className={`${iconSize} flex-shrink-0`} viewBox="0 0 24 24" fill="#6B7280">
+          <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+          <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
+        </svg>
+      )}
+    </>
+  );
+}
+
+export default function AccountMobileView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false }: AccountMobileViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -110,25 +245,48 @@ export default function AccountMobileView({ account, accountId, transactions, op
   const isCurrentFavorite = isFavorite(accountId);
   const currentFavorite = getFavorite(accountId);
   const accountLabelText = currentFavorite?.label || currentAccountLabel?.name || currentAccountLabel?.org_name;
+  const labelActionText = accountLabelText ? 'Update label' : 'Add label';
+  const rankPosition = Number(accountMeta?.accountMetric?.rankPosition || 0) || null;
+  const totalTransactions24h = Number(
+    accountMeta?.activity24h?.totalTransactions
+    ?? accountMeta?.stellarData?.activity24h?.totalTransactions
+    ?? accountMeta?.accountMetric?.transactionsPerHour
+    ?? 0
+  ) || 0;
+  const totalTransactionsAllTime = Number(accountMeta?.accountMetric?.totalTransactions ?? 0) || 0;
+  const xlmChange24h = 0;
 
   // Update URL when tab changes
   const handleTabChange = (tab: 'assets' | 'activity' | 'details') => {
     setActiveTab(tab);
+    // 'activity' tab uses operations data
+    if (tab === 'activity') {
+      onTabChange?.('operations');
+    } else {
+      onTabChange?.(tab);
+    }
     const params = new URLSearchParams(searchParams.toString());
     if (tab === 'assets') {
       params.delete('tab');
     } else {
       params.set('tab', tab);
     }
-    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-    router.replace(newUrl, { scroll: false });
+    const newUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+    window.history.replaceState(null, '', newUrl);
   };
+
+  // Trigger lazy load if initial tab is not 'assets'
+  useEffect(() => {
+    if (initialTab === 'activity') {
+      onTabChange?.('operations');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [assetPrices, setAssetPrices] = useState<Record<string, AssetPriceData>>({});
   const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
   const fetchedEffectIds = useRef<Set<string>>(new Set());
   const fetchedBalancePriceKeys = useRef<Set<string>>(new Set());
   const fetchedActivityPriceKeys = useRef<Set<string>>(new Set());
-  const [xlmChange24h, setXlmChange24h] = useState(0);
   const [activityAssets, setActivityAssets] = useState<Array<{ code: string; issuer: string; type: string }>>([]);
 
   // Operations state for infinite scroll
@@ -155,6 +313,7 @@ export default function AccountMobileView({ account, accountId, transactions, op
   useEffect(() => {
     fetchedBalancePriceKeys.current.clear();
     fetchedActivityPriceKeys.current.clear();
+    effectsFetched.current = false;
   }, [accountId]);
 
   // Close activity filter dropdown when clicking outside
@@ -274,44 +433,21 @@ export default function AccountMobileView({ account, accountId, transactions, op
   // Calculate total USD value
   const totalValueUSD = totalBalanceXLM * xlmPrice;
 
-  // Calculate 24h PNL
+  // Calculate 24h balance delta from directory metric (nativeBalanceChange24h)
   const pnlData = useMemo(() => {
-    let totalPnlUSD = 0;
-
-    // XLM PNL
-    const xlmValue = xlmAmount * xlmPrice;
-    const xlmPnl = xlmValue * (xlmChange24h / 100);
-    totalPnlUSD += xlmPnl;
-
-    // Other assets PNL
-    otherBalances.forEach(b => {
-      const key = `${b.asset_code}:${b.asset_issuer}`;
-      const priceData = assetPrices[key];
-      if (priceData && priceData.price > 0) {
-        const value = parseFloat(b.balance) * priceData.price;
-        const pnl = value * (priceData.change24h / 100);
-        totalPnlUSD += pnl;
-      }
-    });
-
-    const pnlPercent = totalValueUSD > 0 ? (totalPnlUSD / (totalValueUSD - totalPnlUSD)) * 100 : 0;
-    return { amount: totalPnlUSD, percent: pnlPercent };
-  }, [xlmAmount, xlmPrice, xlmChange24h, otherBalances, assetPrices, totalValueUSD]);
-
-  // Fetch XLM 24h change
-  useEffect(() => {
-    const fetchXlmChange = async () => {
-      try {
-        const data = await getXLMStats();
-        if (data && typeof data.usd_24h_change === 'number') {
-          setXlmChange24h(data.usd_24h_change);
-        }
-      } catch {
-        // Ignore
-      }
-    };
-    fetchXlmChange();
-  }, []);
+    const nativeDeltaRaw =
+      accountMeta?.activity24h?.nativeBalanceChange24h
+      ?? accountMeta?.stellarData?.activity24h?.nativeBalanceChange24h
+      ?? 0;
+    const nativeDeltaXlm = parseNativeBalanceDeltaXlm(
+      nativeDeltaRaw
+    );
+    const nativeDeltaPercent = parseNativeBalanceDeltaPercent(nativeDeltaRaw);
+    const amountUsd = nativeDeltaXlm * xlmPrice;
+    const previousBalanceUsd = totalValueUSD - amountUsd;
+    const percent = nativeDeltaPercent ?? (previousBalanceUsd > 0 ? (amountUsd / previousBalanceUsd) * 100 : 0);
+    return { amount: amountUsd, percent };
+  }, [accountMeta?.activity24h?.nativeBalanceChange24h, accountMeta?.stellarData?.activity24h?.nativeBalanceChange24h, totalValueUSD, xlmPrice]);
 
   // Fetch asset prices with 24h change
   useEffect(() => {
@@ -342,10 +478,11 @@ export default function AccountMobileView({ account, accountId, transactions, op
 
         try {
           // Get current price in XLM
-          const res = await fetch(
-            `${getBaseUrl()}/order_book?selling_asset_type=${b.asset_type}&selling_asset_code=${b.asset_code}&selling_asset_issuer=${b.asset_issuer}&buying_asset_type=native&limit=1`
+          const data = await getOrderBook(
+            { code: b.asset_code, issuer: b.asset_issuer },
+            { code: 'XLM' },
+            1
           );
-          const data = await res.json();
 
           if (data.bids && data.bids.length > 0) {
             const priceInXlm = parseFloat(data.bids[0].price);
@@ -354,13 +491,16 @@ export default function AccountMobileView({ account, accountId, transactions, op
             // Get 24h ago price from trade aggregations (use 1h resolution for better data availability)
             const endTime = Date.now();
             const startTime = endTime - 86400000;
-            const aggRes = await fetch(
-              `${getBaseUrl()}/trade_aggregations?base_asset_type=${b.asset_type}&base_asset_code=${b.asset_code}&base_asset_issuer=${b.asset_issuer}&counter_asset_type=native&resolution=3600000&start_time=${startTime}&end_time=${endTime}&limit=24&order=asc`
+            const records = await getTradeAggregations(
+              { code: b.asset_code, issuer: b.asset_issuer },
+              { code: 'XLM' },
+              3600000,
+              24,
+              startTime,
+              endTime
             );
-            const aggData = await aggRes.json();
 
             let change24h = 0;
-            const records = aggData._embedded?.records || [];
             if (records.length > 0) {
               // Get the oldest record's open price as our 24h ago reference
               const oldestRecord = records[0];
@@ -397,14 +537,15 @@ export default function AccountMobileView({ account, accountId, transactions, op
 
     setLoadingMore(true);
     try {
-      const res = await fetch(
-        `${getBaseUrl()}/accounts/${accountId}/operations?limit=100&order=desc&cursor=${lastCursor}`
-      );
-      const data = await res.json();
-      const newOps = data._embedded?.records || [];
+      const data = await getAccountOperations(accountId, 100, 'desc', lastCursor);
+      const newOps = data.records || [];
 
       if (newOps.length > 0) {
-        setAllOperations(prev => [...prev, ...newOps]);
+        setAllOperations(prev => {
+          const existing = new Set(prev.map(op => op.id));
+          const uniqueNew = newOps.filter((op: Operation) => !existing.has(op.id));
+          return [...prev, ...uniqueNew];
+        });
         setLastCursor(newOps[newOps.length - 1].paging_token);
         setHasMoreToFetch(newOps.length >= 100);
       } else {
@@ -460,9 +601,8 @@ export default function AccountMobileView({ account, accountId, transactions, op
 
     const fetchEffects = async () => {
       try {
-        const res = await fetch(`${getBaseUrl()}/accounts/${accountId}/effects?limit=200&order=desc`);
-        const data = await res.json();
-        const records = data._embedded?.records || [];
+        const data = await getAccountEffects(accountId, 200, 'desc');
+        const records = data.records || [];
 
         // Group effects by operation_id
         const grouped: Record<string, Effect[]> = {};
@@ -533,10 +673,11 @@ export default function AccountMobileView({ account, accountId, transactions, op
         }
 
         try {
-          const res = await fetch(
-            `${getBaseUrl()}/order_book?selling_asset_type=${asset.type}&selling_asset_code=${asset.code}&selling_asset_issuer=${asset.issuer}&buying_asset_type=native&limit=1`
+          const data = await getOrderBook(
+            { code: asset.code, issuer: asset.issuer },
+            { code: 'XLM' },
+            1
           );
-          const data = await res.json();
 
           if (data.bids && data.bids.length > 0) {
             const priceInXlm = parseFloat(data.bids[0].price);
@@ -574,6 +715,46 @@ export default function AccountMobileView({ account, accountId, transactions, op
     } catch {
       return 'Contract Call';
     }
+  };
+
+  // Extract amount directly from the operation object (fallback when effects are not available)
+  const getAmountFromOperation = (op: Operation) => {
+    const o = op as any;
+    // payment / create_account
+    if (o.amount) {
+      const isIncoming = o.to === accountId || o.funder === accountId;
+      const assetCode = o.asset_code || (o.asset_type === 'native' || !o.asset_type ? 'XLM' : 'Unknown');
+      return {
+        type: (isIncoming ? 'received' : 'sent') as 'received' | 'sent',
+        amount: o.amount,
+        asset: assetCode,
+        asset_issuer: o.asset_issuer || null,
+        asset_type: o.asset_type || 'native',
+      };
+    }
+    // path_payment (swap) — show the destination amount received
+    if (o.source_amount) {
+      const destAsset = o.asset_code || (o.asset_type === 'native' ? 'XLM' : 'Unknown');
+      const sourceAsset = o.source_asset_code || (o.source_asset_type === 'native' ? 'XLM' : 'Unknown');
+      if (o.to === accountId || o.from === accountId) {
+        return {
+          type: (o.to === accountId ? 'received' : 'sent') as 'received' | 'sent',
+          amount: o.to === accountId ? (o.amount || o.source_amount) : o.source_amount,
+          asset: o.to === accountId ? destAsset : sourceAsset,
+          asset_issuer: o.to === accountId ? (o.asset_issuer || null) : (o.source_asset_issuer || null),
+          asset_type: o.to === accountId ? (o.asset_type || 'native') : (o.source_asset_type || 'native'),
+        };
+      }
+      // Self-swap: show destination amount
+      return {
+        type: 'received' as const,
+        amount: o.amount || o.source_amount,
+        asset: destAsset,
+        asset_issuer: o.asset_issuer || null,
+        asset_type: o.asset_type || 'native',
+      };
+    }
+    return null;
   };
 
   const getAmountFromEffects = (effects: Effect[] | undefined) => {
@@ -670,7 +851,6 @@ export default function AccountMobileView({ account, accountId, transactions, op
   };
 
   const currentDataSource = getCurrentDataSource();
-
   const isPositivePnl = pnlData.amount >= 0;
 
   return (
@@ -746,55 +926,18 @@ export default function AccountMobileView({ account, accountId, transactions, op
             )}
           </div>
           {/* Account Badge - clickable */}
-          {(() => {
-            // Determine badge type - check dangerous labels FIRST before verified
-            const labelName = currentAccountLabel?.name?.toLowerCase() || '';
-            const isHack = labelName.includes('hack') || labelName.includes('malicious');
-            const isScam = labelName.includes('scam');
-            const isSpam = labelName.includes('spam');
-
-            return (
-              <button onClick={() => setShowBadgeModal(true)} className="flex-shrink-0">
-                {isHack ? (
-                  // Hack/Malicious badge - red
-                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#EF4444">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                    <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                ) : isScam ? (
-                  // Scam badge - red
-                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#EF4444">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                    <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                ) : isSpam ? (
-                  // Spam badge - orange
-                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#F97316">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                    <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                ) : currentAccountLabel?.verified ? (
-                  // Verified badge - blue (only if NOT dangerous)
-                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#1D9BF0">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
-                  </svg>
-                ) : (currentAccountLabel?.name || currentAccountLabel?.org_name) ? (
-                  // User labeled (has name but not verified, not dangerous) - gray
-                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#6B7280">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                    <circle cx="12" cy="10" r="3" fill="white" />
-                    <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                  </svg>
-                ) : (
-                  // Unknown - gray
-                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#6B7280">
-                    <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                    <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
-                  </svg>
-                )}
-              </button>
-            );
-          })()}
+          <button onClick={() => setShowBadgeModal(true)} className="flex items-center gap-1 flex-shrink-0">
+            <AccountStatusIcons labelText={accountLabelText || undefined} verified={currentAccountLabel?.verified} size="lg" />
+          </button>
+        </div>
+        <div className="flex justify-center mb-3">
+          <Link
+            href={`/accounts/directory/update?account=${encodeURIComponent(accountId)}`}
+            prefetch={false}
+            className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-xs font-semibold text-sky-600 hover:text-sky-700 hover:border-sky-300 transition-colors"
+          >
+            {labelActionText}
+          </Link>
         </div>
 
         {/* Total Balance Section - Centered */}
@@ -1056,8 +1199,8 @@ export default function AccountMobileView({ account, accountId, transactions, op
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                {showCurrencyDropdown && (
-                  <div className="absolute right-0 top-full mt-1 min-w-[100px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
+                  {showCurrencyDropdown && (
+                    <div className="absolute right-0 top-full mt-1 min-w-[100px] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-lg shadow-lg overflow-hidden z-50">
                     <button
                       onClick={() => { setShowUsdValue(!showUsdValue); setShowCurrencyDropdown(false); }}
                       className={`w-full text-left px-3 py-2.5 text-[11px] font-medium flex items-center justify-between ${showUsdValue ? 'bg-[var(--primary-blue)]/10 text-[var(--primary-blue)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
@@ -1087,14 +1230,21 @@ export default function AccountMobileView({ account, accountId, transactions, op
                         </button>
                       ))}
                     </div>
-                  </div>
-                )}
+                    </div>
+                  )}
               </div>
             </div>
 
             {currentDataSource.length === 0 ? (
-              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] text-center py-4 text-[var(--text-muted)]">
-                <p className="text-xs font-medium">No activity found</p>
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] text-center py-6 text-[var(--text-muted)]">
+                {loadingOperations ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-xs font-medium">Loading activity...</p>
+                  </div>
+                ) : (
+                  <p className="text-xs font-medium">No activity found</p>
+                )}
               </div>
             ) : (
               <div className="space-y-2">
@@ -1138,7 +1288,7 @@ export default function AccountMobileView({ account, accountId, transactions, op
                     const isContract = op.type === 'invoke_host_function' || op.type === 'extend_footprint_ttl' || op.type === 'restore_footprint';
 
                     const effects = opEffects[op.id];
-                    const effectInfo = getAmountFromEffects(effects);
+                    const effectInfo = getAmountFromEffects(effects) || getAmountFromOperation(op);
 
                     let typeDisplay = op.type.replace(/_/g, ' ');
                     let amount = '';
@@ -1391,6 +1541,45 @@ export default function AccountMobileView({ account, accountId, transactions, op
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-4">
+              <div className="text-[11px] uppercase tracking-widest text-[var(--text-muted)] font-bold pb-2 border-b border-[var(--border-subtle)] mb-3">
+                Directory
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                  <div className="text-[10px] text-[var(--text-muted)]">Network</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{accountMeta?.network === 2 ? 'testnet' : 'mainnet'}</div>
+                </div>
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                  <div className="text-[10px] text-[var(--text-muted)]">Rank</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{rankPosition || '-'}</div>
+                </div>
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                  <div className="text-[10px] text-[var(--text-muted)]">Tx 24h</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{totalTransactions24h.toLocaleString()}</div>
+                </div>
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                  <div className="text-[10px] text-[var(--text-muted)]">Tx Total</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{totalTransactionsAllTime.toLocaleString()}</div>
+                </div>
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                  <div className="text-[10px] text-[var(--text-muted)]">Payments</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{Number(accountMeta?.accountMetric?.paymentsCount || 0).toLocaleString()}</div>
+                </div>
+                <div className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 border border-[var(--border-subtle)]">
+                  <div className="text-[10px] text-[var(--text-muted)]">Trades</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{Number(accountMeta?.accountMetric?.tradesCount || 0).toLocaleString()}</div>
+                </div>
+              </div>
+              <div className="mt-3 space-y-1 text-[11px] text-[var(--text-muted)]">
+                <div>Created: {accountMeta?.createdAt ? new Date(accountMeta.createdAt).toLocaleString() : '-'}</div>
+                <div>Updated: {accountMeta?.updatedAt ? new Date(accountMeta.updatedAt).toLocaleString() : '-'}</div>
+                <div>Metric updated: {accountMeta?.accountMetric?.metricUpdatedAt ? new Date(accountMeta.accountMetric.metricUpdatedAt).toLocaleString() : '-'}</div>
+                <div>First tx: {firstTransactionAt ? new Date(firstTransactionAt).toLocaleString() : '-'}</div>
+                <div>Last tx: {lastTransactionAt ? new Date(lastTransactionAt).toLocaleString() : '-'}</div>
               </div>
             </div>
 
@@ -1689,10 +1878,10 @@ export default function AccountMobileView({ account, accountId, transactions, op
 
               {/* User Labeled */}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-                <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
-                  <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                  <circle cx="12" cy="10" r="3" fill="white" />
-                  <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="8" r="4.25" fill="#F59E0B" />
+                  <circle cx="12" cy="8" r="2.1" fill="#FEF3C7" />
+                  <path d="M9.2 11.2L7.6 20l4.4-2.5 4.4 2.5-1.6-8.8z" fill="#D97706" />
                 </svg>
                 <div>
                   <div className="font-semibold text-sm text-[var(--text-primary)]">User Labeled</div>

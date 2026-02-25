@@ -97,8 +97,10 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
     ? (asset.circulating_supply / asset.total_supply) * 100
     : 100;
 
-  // Pre-fetch trading pairs on mount
+  // Fetch markets only when Markets tab is active
   useEffect(() => {
+    if (activeTab !== 'markets' || tradingPairs.length > 0) return;
+
     const fetchTradingPairs = async () => {
       setLoadingMarkets(true);
       try {
@@ -110,7 +112,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
       setLoadingMarkets(false);
     };
     fetchTradingPairs();
-  }, [asset.code, asset.issuer]);
+  }, [activeTab, asset.code, asset.issuer, tradingPairs.length]);
 
   // Fetch trades when trades tab is active
   useEffect(() => {
@@ -121,7 +123,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
       try {
         const PAGE_SIZE = 20;
         const data = await getAssetTrades(asset.code, asset.issuer || undefined, PAGE_SIZE, 'desc');
-        const records = data._embedded?.records || [];
+        const records = data.records || [];
         setTrades(records);
         if (records.length === PAGE_SIZE) {
           setTradesCursor(records[records.length - 1].paging_token);
@@ -145,14 +147,25 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
     const newIds = opIds.filter(id => !tradeTxMap[id]);
     if (newIds.length === 0) return;
 
-    Promise.all(newIds.map(id => getOperation(id).then(op => ({ id, hash: op.transaction_hash })).catch(() => null)))
-      .then(results => {
-        const map: Record<string, string> = {};
-        for (const r of results) {
-          if (r) map[r.id] = r.hash;
-        }
-        setTradeTxMap(prev => ({ ...prev, ...map }));
-      });
+    const loadTradeTxMap = async () => {
+      const results = await Promise.all(
+        newIds.map(async (id) => {
+          try {
+            const op = await getOperation(id);
+            return { id, hash: op.transaction_hash };
+          } catch {
+            return null;
+          }
+        })
+      );
+      const map: Record<string, string> = {};
+      for (const r of results) {
+        if (r) map[r.id] = r.hash;
+      }
+      setTradeTxMap(prev => ({ ...prev, ...map }));
+    };
+
+    void loadTradeTxMap();
   }, [trades]);
 
   const loadMoreTrades = async () => {
@@ -161,7 +174,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
     try {
       const PAGE_SIZE = 20;
       const data = await getAssetTrades(asset.code, asset.issuer || undefined, PAGE_SIZE, 'desc', tradesCursor);
-      const records = data._embedded?.records || [];
+      const records = data.records || [];
       setTrades(prev => [...prev, ...records]);
       if (records.length === PAGE_SIZE) {
         setTradesCursor(records[records.length - 1].paging_token);
@@ -922,26 +935,111 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                     {asset.issuer && (
                       <div>
                         <span className="text-[var(--text-tertiary)]">Issuer</span>
-                        <p className="font-mono text-sky-600 text-xs">{shortenAddress(asset.issuer)}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-mono text-sky-600 text-xs">{shortenAddress(asset.issuer)}</p>
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(asset.issuer!); }}
+                            className="text-[var(--text-muted)] hover:text-sky-500 transition-colors"
+                            title="Copy issuer"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                              <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     )}
                     {asset.domain && (
                       <div>
                         <span className="text-[var(--text-tertiary)]">Home Domain</span>
                         <p className="font-medium text-[var(--text-primary)]">{asset.domain}</p>
+                        {asset.homeUrl && (
+                          <a href={asset.homeUrl} target="_blank" rel="noopener noreferrer" className="text-sky-600 text-xs hover:underline break-all">
+                            {asset.homeUrl}
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    {!asset.domain && asset.homeUrl && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Home URL</span>
+                        <a href={asset.homeUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-sky-600 text-xs hover:underline break-all">
+                          {asset.homeUrl}
+                        </a>
+                      </div>
+                    )}
+                    {asset.assetKey && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Asset Key</span>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-mono text-[11px] text-[var(--text-primary)] break-all">{asset.assetKey}</p>
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(asset.assetKey!); }}
+                            className="text-[var(--text-muted)] hover:text-sky-500 transition-colors flex-shrink-0"
+                            title="Copy asset key"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                              <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {asset.network !== undefined && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Network</span>
+                        <p className="font-medium text-[var(--text-primary)]">{asset.network}</p>
                       </div>
                     )}
                     <div>
                       <span className="text-[var(--text-tertiary)]">Rating</span>
-                      <p className="font-medium text-[var(--text-primary)]">{asset.rating}/5</p>
+                      <p className="font-medium text-[var(--text-primary)]">{typeof asset.rating === 'number' ? asset.rating.toFixed(2) : asset.rating}/5</p>
                     </div>
-                    {asset.all_time_high && (
+                    {asset.ratingAverage !== undefined && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Rating Average</span>
+                        <p className="font-medium text-[var(--text-primary)]">{asset.ratingAverage.toFixed(2)}</p>
+                      </div>
+                    )}
+                    {asset.createdAt && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Created</span>
+                        <p className="font-medium text-[var(--text-primary)]">{timeAgo(asset.createdAt)}</p>
+                      </div>
+                    )}
+                    {asset.updatedAt && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Updated</span>
+                        <p className="font-medium text-[var(--text-primary)]">{timeAgo(asset.updatedAt)}</p>
+                      </div>
+                    )}
+                    {asset.marketUpdatedAt && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Market Updated</span>
+                        <p className="font-medium text-[var(--text-primary)]">{timeAgo(asset.marketUpdatedAt)}</p>
+                      </div>
+                    )}
+                    {asset.latestStatistic && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Snapshot Trades</span>
+                        <p className="font-medium text-[var(--text-primary)]">{formatNumber(asset.latestStatistic.trades)}</p>
+                      </div>
+                    )}
+                    {asset.latestStatistic && (
+                      <div>
+                        <span className="text-[var(--text-tertiary)]">Snapshot Trustlines</span>
+                        <p className="font-medium text-[var(--text-primary)]">{formatNumber(asset.latestStatistic.trustlinesTotal)}</p>
+                      </div>
+                    )}
+                    {asset.all_time_high != null && asset.all_time_high > 0 && (
                       <div>
                         <span className="text-[var(--text-tertiary)]">All-Time High</span>
                         <p className="font-medium text-emerald-600">{formatPrice(asset.all_time_high)}</p>
                       </div>
                     )}
-                    {asset.all_time_low && (
+                    {asset.all_time_low != null && asset.all_time_low > 0 && (
                       <div>
                         <span className="text-[var(--text-tertiary)]">All-Time Low</span>
                         <p className="font-medium text-rose-600">{formatPrice(asset.all_time_low)}</p>

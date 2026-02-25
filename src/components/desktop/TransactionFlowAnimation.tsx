@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Ledger, Operation, timeAgo, getBaseUrl } from '@/lib/stellar';
+import { Ledger, Operation, timeAgo, getLedgerOperations } from '@/lib/stellar';
 import { useTheme } from '@/contexts/ThemeContext';
 import Link from 'next/link';
 
@@ -32,14 +32,12 @@ function getOpColor(type: string): string {
 
 async function fetchAllLedgerOps(sequence: number): Promise<string[]> {
     const colors: string[] = [];
-    let cursor = '';
+    let cursor: string | undefined;
 
     try {
         while (true) {
-            const url = `${getBaseUrl()}/ledgers/${sequence}/operations?limit=200&order=asc${cursor ? `&cursor=${cursor}` : ''}`;
-            const res = await fetch(url);
-            const data = await res.json();
-            const ops: Operation[] = data._embedded?.records || [];
+            const data = await getLedgerOperations(sequence, 200, 'asc', cursor);
+            const ops: Operation[] = data.records || [];
 
             if (ops.length === 0) break;
 
@@ -48,7 +46,7 @@ async function fetchAllLedgerOps(sequence: number): Promise<string[]> {
             }
 
             if (ops.length < 200) break;
-            cursor = ops[ops.length - 1].paging_token;
+            cursor = ops[ops.length - 1]?.paging_token;
         }
     } catch {
         // Return what we have so far
@@ -189,7 +187,7 @@ export default function TransactionFlowAnimation({
     ledgerProgress = 0
 }: TransactionFlowAnimationProps) {
     const { theme } = useTheme();
-    const [now, setNow] = useState(Date.now());
+    const [now, setNow] = useState(() => Date.now());
 
     const opsCache = useRef<Map<number, string[]>>(new Map());
     const [ledgerOpsMap, setLedgerOpsMap] = useState<Map<number, string[]>>(new Map());

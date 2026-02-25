@@ -1,8 +1,8 @@
 // Token Registry with Caching for SEP-0041 Tokens
 // Provides fast lookup of token metadata with multi-layer caching
 
-import type { TokenRegistryEntry, SEP41TokenMetadata } from './types/token';
-import { queryTokenMetadata, detectSAC, isContractAddress } from './soroban';
+import type { TokenRegistryEntry, SEP41TokenMetadata } from '../shared/interfaces';
+import { queryTokenMetadata, detectSAC, isContractAddress } from './client';
 
 // Cache configuration
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;  // 24 hours for valid entries

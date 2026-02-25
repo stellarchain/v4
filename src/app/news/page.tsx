@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import NewsMobileView from '@/components/mobile/NewsMobileView';
 import NewsDesktopView from '@/components/desktop/NewsDesktopView';
 
@@ -13,129 +14,119 @@ interface NewsItem {
   description?: string;
 }
 
-const mockNews: NewsItem[] = [
+const news: NewsItem[] = [
   {
     id: '1',
-    title: 'Stellar Foundation Announces Major Protocol Upgrade for 2026',
-    date: '2026-01-29',
-    source: 'Stellar Blog',
-    url: 'https://stellar.org/blog',
-    category: 'stellar',
-    description: 'The Stellar Development Foundation has announced a comprehensive protocol upgrade scheduled for Q2 2026, featuring enhanced smart contract capabilities and improved cross-chain interoperability.',
+    title: 'Stellar (XLM) Self Reported Market Cap Hits $4.98 Billion',
+    date: '2026-02-13',
+    source: 'Daily Political',
+    url: 'https://www.dailypolitical.com/2026/02/13/stellar-xlm-self-reported-market-cap-hits-4-98-billion.html',
+    category: 'crypto',
+    description: 'Stellar reaches $4.98 billion market capitalization with $114.83 million in 24-hour trading volume.',
   },
   {
     id: '2',
-    title: 'Bitcoin Surges Past $150K as Institutional Adoption Accelerates',
-    date: '2026-01-29',
-    source: 'CoinDesk',
-    url: 'https://coindesk.com',
-    category: 'crypto',
-    description: 'Bitcoin has reached a new all-time high as major financial institutions continue to allocate significant portions of their portfolios to digital assets.',
+    title: 'Chainalysis Upgrades Support for Stellar with Automatic Token Support',
+    date: '2026-02-11',
+    source: 'Chainalysis',
+    url: 'https://www.chainalysis.com/blog/stellar-automatic-token-support-february-2026/',
+    category: 'stellar',
+    description: 'Chainalysis extends support beyond the native XLM token to include automatic coverage for new fungible and non-fungible tokens deployed to the Stellar chain.',
   },
   {
     id: '3',
-    title: 'MoneyGram Expands Stellar-Based Remittance Services to 50 New Countries',
-    date: '2026-01-28',
-    source: 'The Block',
-    url: 'https://theblock.co',
-    category: 'stellar',
-    description: 'MoneyGram has announced a significant expansion of its Stellar-powered remittance services, bringing fast and affordable cross-border payments to 50 additional countries.',
+    title: 'CME Group Launches Stellar (XLM) Futures Contracts',
+    date: '2026-02-10',
+    source: 'CME Group',
+    url: 'https://www.cmegroup.com/',
+    category: 'regulation',
+    description: 'CME Group launches futures contracts for Stellar (XLM) in both standard and micro sizes, expanding institutional-grade crypto offerings.',
   },
   {
     id: '4',
-    title: 'SEC Approves First Spot Ethereum ETF Options Trading',
-    date: '2026-01-28',
-    source: 'Bloomberg',
-    url: 'https://bloomberg.com',
-    category: 'regulation',
-    description: 'The U.S. Securities and Exchange Commission has approved options trading on spot Ethereum ETFs, marking another milestone in cryptocurrency market maturation.',
+    title: 'Rails Launches Institutional-Grade Vault on Stellar Network',
+    date: '2026-02-05',
+    source: 'Rails',
+    url: 'https://stellar.org/press',
+    category: 'stellar',
+    description: 'Rails launches an institutional-grade vault on the Stellar network, strengthening enterprise infrastructure for digital asset custody.',
   },
   {
     id: '5',
-    title: 'Soroban Smart Contracts See 500% Growth in Developer Activity',
-    date: '2026-01-27',
-    source: 'Stellar Blog',
-    url: 'https://stellar.org/blog',
+    title: 'Stellar Ranks 4th in Real-World Asset Development Activity',
+    date: '2026-02-03',
+    source: 'Santiment',
+    url: 'https://coinmarketcap.com/cmc-ai/stellar/latest-updates/',
     category: 'stellar',
-    description: 'Developer activity on Stellar\'s Soroban smart contract platform has exploded, with the number of deployed contracts and active developers reaching record highs.',
+    description: 'Analytics firm Santiment ranks Stellar 4th in real-world asset (RWA) sector development activity over the past 30 days, signaling consistent high-quality GitHub activity.',
   },
   {
     id: '6',
-    title: 'DeFi Total Value Locked Reaches New All-Time High of $500B',
-    date: '2026-01-27',
-    source: 'DeFi Pulse',
-    url: 'https://defipulse.com',
+    title: 'Sushi V3 AMM Goes Live on Stellar Mainnet',
+    date: '2026-02-01',
+    source: 'Stellar Blog',
+    url: 'https://stellar.org/blog',
     category: 'defi',
-    description: 'The total value locked in decentralized finance protocols has reached an unprecedented $500 billion, driven by institutional adoption and new yield opportunities.',
+    description: 'Sushi\'s V3 Automated Market Maker is now live on the Stellar Mainnet, integrating Sushi\'s decentralized finance expertise allowing users to trade and provide liquidity directly on Stellar.',
   },
   {
     id: '7',
-    title: 'Circle Launches USDC on Stellar with Native Support',
-    date: '2026-01-26',
-    source: 'Circle Blog',
-    url: 'https://circle.com/blog',
+    title: 'Stellar Launches Protocol X-Ray: Zero-Knowledge Cryptography for Privacy',
+    date: '2026-01-22',
+    source: 'DailyCoin',
+    url: 'https://dailycoin.com/stellar-launches-x-ray-xlms-bounce-to-0-50-on-cards',
     category: 'stellar',
-    description: 'Circle has announced native USDC support on the Stellar network, enabling faster and cheaper stablecoin transactions for global payments.',
+    description: 'Protocol X-Ray introduces native zero-knowledge cryptography for privacy-enabled, compliance-ready applications. Developers can integrate ZK proofs within Stellar smart contracts for private transactions.',
   },
   {
     id: '8',
-    title: 'EU Finalizes MiCA Implementation Guidelines for 2026',
-    date: '2026-01-26',
-    source: 'Reuters',
-    url: 'https://reuters.com',
-    category: 'regulation',
-    description: 'The European Union has released final implementation guidelines for the Markets in Crypto-Assets (MiCA) regulation, providing clarity for crypto businesses operating in Europe.',
+    title: 'JavaScript SDK v12.0.0 Released with New Watcher API',
+    date: '2026-01-15',
+    source: 'Stellar Blog',
+    url: 'https://stellar.org/blog',
+    category: 'stellar',
+    description: 'JavaScript SDK v12.0.0 streamlines contract interactions with a new watcher API and improved transaction lifecycle handling for Soroban smart contracts.',
   },
   {
     id: '9',
-    title: 'Stellar Anchor Directory Adds 20 New Licensed Partners',
-    date: '2026-01-25',
-    source: 'Stellar Blog',
-    url: 'https://stellar.org/blog',
-    category: 'stellar',
-    description: 'The Stellar network continues to expand its anchor ecosystem with 20 new licensed partners across Africa, Asia, and Latin America.',
+    title: 'U.S. Bancorp Selects Stellar for Institutional Stablecoin Testing',
+    date: '2025-11-26',
+    source: 'CoinDesk',
+    url: 'https://www.coindesk.com/markets/2025/11/26/xlm-edges-higher-2-6-to-usd0-25-as-u-s-bank-tests-stablecoin-pilot',
+    category: 'regulation',
+    description: 'U.S. Bancorp, the fifth-largest U.S. bank by assets, selects Stellar\'s blockchain for institutional stablecoin testing, pushing XLM higher.',
   },
   {
     id: '10',
-    title: 'Cross-Border Payments Market to Reach $250T by 2030',
-    date: '2026-01-25',
-    source: 'Forbes',
-    url: 'https://forbes.com',
-    category: 'crypto',
-    description: 'A new report projects the global cross-border payments market will reach $250 trillion by 2030, with blockchain-based solutions capturing an increasing share.',
-  },
-  {
-    id: '11',
-    title: 'Ethereum Layer 2 Networks Process More Transactions Than Mainnet',
-    date: '2026-01-24',
-    source: 'The Block',
-    url: 'https://theblock.co',
-    category: 'defi',
-    description: 'Layer 2 scaling solutions on Ethereum now process more daily transactions than the Ethereum mainnet, highlighting the success of the scaling roadmap.',
-  },
-  {
-    id: '12',
-    title: 'SDF Grants Program Awards $10M to Ecosystem Projects',
-    date: '2026-01-24',
-    source: 'Stellar Blog',
-    url: 'https://stellar.org/blog',
+    title: 'Stellar Network Reports 40% YoY Increase in Non-XLM Asset Transactions',
+    date: '2025-10-15',
+    source: 'Stellar Development Foundation',
+    url: 'https://stellar.org/press',
     category: 'stellar',
-    description: 'The Stellar Development Foundation has distributed $10 million in grants to innovative projects building on the Stellar network in Q4 2025.',
+    description: 'Q4 report from the Stellar Development Foundation highlights a 40% year-over-year increase in transaction volume related to non-XLM assets, suggesting expanding use as a settlement layer.',
   },
 ];
 
 export default function NewsPage() {
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  if (isMobile === null) return null;
+
   return (
     <>
-      {/* Mobile View */}
-      <div className="block md:hidden">
-        <NewsMobileView news={mockNews} />
-      </div>
-
-      {/* Desktop View */}
-      <div className="hidden md:block">
-        <NewsDesktopView news={mockNews} />
-      </div>
+      {isMobile ? (
+        <NewsMobileView news={news} />
+      ) : (
+        <NewsDesktopView news={news} />
+      )}
     </>
   );
 }

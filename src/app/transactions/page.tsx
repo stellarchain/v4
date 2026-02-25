@@ -5,7 +5,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import TransactionPageClient from '@/components/TransactionPageClient';
 import TransactionsDesktopView from '@/components/desktop/TransactionsDesktopView';
 import TransactionDetailsClientPage from '@/app/transaction/[hash]/client-page';
-import { getDetailRouteValue } from '@/lib/routeDetail';
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
 function useIsMobile(breakpoint: number = 768) {
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
