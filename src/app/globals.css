@@ -610,3 +610,9 @@ input:focus-visible {
 .overscroll-contain {
   overscroll-behavior: contain;
 }
+
+@media (max-width: 768px) {
+  #sentry-feedback {
+    --inset: auto 0 50px auto;
+  }
+}
