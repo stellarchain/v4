@@ -74,6 +74,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   const [loading, setLoading] = useState(true);
   const [initialChartLoad, setInitialChartLoad] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [noTradesForRange, setNoTradesForRange] = useState(false);
 
   // Refs for infinite chart scroll
   const allCandleDataRef = useRef<any[]>([]);
@@ -157,6 +158,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
     const fetchChartData = async () => {
       setLoading(true);
+      setNoTradesForRange(false);
       try {
         const timeframe = timeframes.find(t => t.label === selectedTimeframe) || timeframes[1];
         const xlmUsdPrice = await getXLMUSDPriceFromHorizon(controller.signal);
@@ -180,6 +182,13 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
           rangeEnd,
           controller.signal
         );
+
+        if (data.length === 0) {
+          setChartData([]);
+          setTooltipData(null);
+          setNoTradesForRange(true);
+          return;
+        }
 
         // First pass: get all close prices to calculate median
         // Data is already in chronological order (asc) from API
@@ -244,12 +253,14 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
         });
 
         setChartData(processedData);
+        setNoTradesForRange(false);
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return;
         console.error('Failed to fetch chart data', error);
+      } finally {
+        setLoading(false);
+        setInitialChartLoad(false);
       }
-      setLoading(false);
-      setInitialChartLoad(false);
     };
 
     fetchChartData();
@@ -1018,8 +1029,8 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
               </>
             ) : (
               /* No data state */
-              <div className="w-full h-[240px] flex items-center justify-center text-[var(--text-muted)] text-xs">
-                No chart data available
+              <div className="w-full h-[240px] flex items-center justify-center text-[var(--text-muted)] text-xs text-center px-4">
+                {noTradesForRange ? 'No trades in this period' : 'No chart data available'}
               </div>
             )}
           </div>
