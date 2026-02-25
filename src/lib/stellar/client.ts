@@ -1422,6 +1422,46 @@ function isExpectedAssetV1LookupError(error: unknown): boolean {
   );
 }
 
+async function getHorizonAssetFallbackSummary(
+  code: string,
+  issuer?: string
+): Promise<{ supply: number; holders: number } | null> {
+  if (!issuer) {
+    return null;
+  }
+
+  try {
+    const response = await getHorizonServer().assets().forCode(code).forIssuer(issuer).call();
+    const records = Array.isArray((response as any)?.records)
+      ? (response as any).records
+      : (Array.isArray((response as any)?._embedded?.records) ? (response as any)._embedded.records : []);
+    const record = records[0];
+    if (!record) {
+      return null;
+    }
+
+    const balances = (record.balances as Record<string, unknown> | undefined) || {};
+    const accounts = (record.accounts as Record<string, unknown> | undefined) || {};
+
+    const authorizedBalance = Number(balances.authorized || 0);
+    const maintainBalance = Number(balances.authorized_to_maintain_liabilities || 0);
+    const unauthorizedBalance = Number(balances.unauthorized || 0);
+    const totalSupply = authorizedBalance + maintainBalance + unauthorizedBalance;
+
+    const authorizedAccounts = Number(accounts.authorized || 0);
+    const maintainAccounts = Number(accounts.authorized_to_maintain_liabilities || 0);
+    const unauthorizedAccounts = Number(accounts.unauthorized || 0);
+    const totalHolders = authorizedAccounts + maintainAccounts + unauthorizedAccounts;
+
+    return {
+      supply: totalSupply,
+      holders: totalHolders,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Fetch detailed asset information
 export async function getAssetDetails(code: string, issuer?: string): Promise<AssetDetails | null> {
   // Parse issuer from code if provided in "CODE-ISSUER" format (e.g., "AQUA-GBNZILSTVQZ...")
@@ -1439,6 +1479,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
   const assetId = parsedIssuer ? `${parsedCode}-${parsedIssuer}` : parsedCode;
   let stellarChainData: NormalizedStellarchainAsset | null = null;
   let v1AssetPayload: Record<string, unknown> | null = null;
+  let v1NotFound = false;
 
   // 1. Try fetching from Stellarchain v1 API first
   // It provides asset-level stats and metadata for most issued assets.
@@ -1449,6 +1490,7 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
     }
     stellarChainData = parseStellarchainV1AssetData(json);
   } catch (e) {
+    v1NotFound = Number((e as any)?.response?.status) === 404;
     if (!isExpectedAssetV1LookupError(e)) {
       console.error('Error fetching from Stellarchain.dev v1:', e);
     }
@@ -1576,6 +1618,43 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
           ...metaFromV1,
         }
       }
+
+      if (v1NotFound) {
+        const horizonSummary = await getHorizonAssetFallbackSummary(parsedCode, parsedIssuer);
+        if (horizonSummary) {
+          return {
+            rank: 0,
+            code: parsedCode,
+            issuer: parsedIssuer || '',
+            name: parsedCode,
+            description: '',
+            domain: '',
+            image: undefined,
+            price_usd: 0,
+            price_xlm: 0,
+            change_1h: 0,
+            change_24h: 0,
+            change_7d: 0,
+            volume_24h: 0,
+            market_cap: 0,
+            circulating_supply: horizonSummary.supply,
+            total_supply: horizonSummary.supply,
+            holders: horizonSummary.holders,
+            payments_24h: 0,
+            trades_24h: 0,
+            price_high_24h: 0,
+            price_low_24h: 0,
+            all_time_high: undefined,
+            all_time_low: undefined,
+            rating: 0,
+            sparkline: [],
+            price_history: [],
+            volume_history: [],
+            ...metaFromV1,
+          };
+        }
+      }
+
       return null;
     }
 
@@ -2344,13 +2423,29 @@ export async function getTradeAggregations(
   const order: 'asc' | 'desc' = startTime ? 'asc' : 'desc';
 
   const server = createHorizonServer(network);
-  const response = await server
-    .tradeAggregation(base, counter, effectiveStart, effectiveEnd, resolution, 0)
-    .limit(limit)
-    .order(order)
-    .call();
+  try {
+    const response = await server
+      .tradeAggregation(base, counter, effectiveStart, effectiveEnd, resolution, 0)
+      .limit(limit)
+      .order(order)
+      .call();
 
-  return response.records as unknown as TradeAggregation[];
+    return response.records as unknown as TradeAggregation[];
+  } catch (error) {
+    const status = Number((error as any)?.response?.status || (error as any)?.status);
+    const message = String((error as any)?.message || '').toLowerCase();
+    const aborted = signal?.aborted || (error as any)?.name === 'AbortError';
+
+    // No trades in selected window/pair often returns 404 from Horizon.
+    if (aborted || status === 404 || message.includes('not found')) {
+      return [];
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Failed to fetch trade aggregations:', error);
+    }
+    return [];
+  }
 }
 
 // USDC issuer on Stellar mainnet (Centre/Circle)

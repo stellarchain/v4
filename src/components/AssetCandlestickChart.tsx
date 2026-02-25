@@ -45,6 +45,7 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
     const volumeChartContainerRef = useRef<HTMLDivElement>(null);
     const chartInstanceRef = useRef<ReturnType<typeof createChart> | null>(null);
     const [loading, setLoading] = useState(true);
+    const [noTrades, setNoTrades] = useState(false);
     const [resolution, setResolution] = useState(900000); // 15 min default
     const [viewMode, setViewMode] = useState<'price' | 'volume'>('price');
     const [volumeData, setVolumeData] = useState<VolumeDataPoint[]>([]);
@@ -187,6 +188,7 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
 
         const fetchData = async () => {
             setLoading(true);
+            setNoTrades(false);
             try {
                 const xlmUsdPrice = await getXLMUSDPriceFromHorizon();
                 xlmUsdPriceRef.current = xlmUsdPrice;
@@ -199,6 +201,26 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
                     200
                 );
                 if (cancelled) return;
+
+                if (data.length === 0) {
+                    noMoreDataRef.current = true;
+                    allCandleDataRef.current = [];
+                    allVolumeDataRef.current = [];
+                    earliestTimestampRef.current = 0;
+                    candlestickSeries.setData([]);
+                    volumeSeries.setData([]);
+                    setTooltipData(null);
+                    setVolumeData([]);
+                    setVolumeStats({
+                        total: 0,
+                        average: 0,
+                        high: 0,
+                        low: 0,
+                        totalTrades: 0,
+                    });
+                    setNoTrades(true);
+                    return;
+                }
 
                 const processedData = processRawData(data.reverse(), xlmUsdPrice);
 
@@ -257,11 +279,13 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
                         to: candleData[candleData.length - 1].time,
                     });
                 }
+                setNoTrades(false);
 
             } catch (error) {
                 console.error("Failed to fetch candlestick data", error);
+            } finally {
+                if (!cancelled) setLoading(false);
             }
-            if (!cancelled) setLoading(false);
         };
 
         // Fetch older data when scrolling to the left edge
@@ -532,9 +556,17 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
                                 <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
                             </div>
                         )}
+                        {!loading && noTrades && (
+                            <div className="absolute inset-0 z-30 border border-dashed border-[var(--border-default)] bg-[var(--bg-secondary)] flex items-center justify-center px-4 text-center">
+                                <div>
+                                    <div className="text-sm font-semibold text-[var(--text-secondary)]">No trades in this period</div>
+                                    <div className="text-xs text-[var(--text-muted)] mt-1">Trade aggregations returned no records.</div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     {/* OHLC Tooltip */}
-                    {tooltipData && !loading && (
+                    {tooltipData && !loading && !noTrades && (
                         <div className="absolute top-2 left-2 z-30 bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-primary)] text-[11px] rounded-lg px-3 py-2 shadow-lg pointer-events-none">
                             <div className="text-[var(--text-muted)] mb-1.5 font-medium">{tooltipData.time}</div>
                             <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
@@ -561,6 +593,15 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
 
             {/* Volume View */}
             <div className={`space-y-4 ${viewMode !== 'volume' ? 'hidden' : ''}`}>
+                    {noTrades ? (
+                        <div className="w-full h-[200px] rounded-lg border border-dashed border-[var(--border-default)] bg-[var(--bg-tertiary)]/40 flex items-center justify-center px-4 text-center">
+                            <div>
+                                <div className="text-sm font-semibold text-[var(--text-secondary)]">No volume data</div>
+                                <div className="text-xs text-[var(--text-muted)] mt-1">There are no trades for the selected range.</div>
+                            </div>
+                        </div>
+                    ) : (
+                    <>
                     {/* Volume Stats Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                         <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)]">
@@ -636,9 +677,11 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
                                             {item.priceChange >= 0 ? '+' : ''}{item.priceChange.toFixed(2)}%
                                         </div>
                                     </div>
-                                ))}
+                            ))}
                         </div>
                     </div>
+                    </>
+                    )}
                 </div>
         </div>
     );
