@@ -41,7 +41,13 @@ type AccountMeta = {
       tradeOperations?: number;
       operationCount?: number;
       successRatePercent?: number | null;
-      nativeBalanceChange24h?: string | number | null;
+      nativeBalanceChange24h?: string | number | {
+        currentXlm?: string | number;
+        referenceXlm?: string | number;
+        changeXlm?: string | number;
+        changePercent?: number | null;
+        referenceRecordedHour?: string;
+      } | null;
     };
   };
   activity24h?: {
@@ -50,7 +56,13 @@ type AccountMeta = {
     tradeOperations?: number;
     operationCount?: number;
     successRatePercent?: number | null;
-    nativeBalanceChange24h?: string | number | null;
+    nativeBalanceChange24h?: string | number | {
+      currentXlm?: string | number;
+      referenceXlm?: string | number;
+      changeXlm?: string | number;
+      changePercent?: number | null;
+      referenceRecordedHour?: string;
+    } | null;
   };
 };
 

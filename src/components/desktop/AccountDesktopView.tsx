@@ -88,7 +88,13 @@ interface AccountDesktopViewProps {
         tradeOperations?: number;
         operationCount?: number;
         successRatePercent?: number | null;
-        nativeBalanceChange24h?: string | number | null;
+        nativeBalanceChange24h?: string | number | {
+          currentXlm?: string | number;
+          referenceXlm?: string | number;
+          changeXlm?: string | number;
+          changePercent?: number | null;
+          referenceRecordedHour?: string;
+        } | null;
       };
     };
     activity24h?: {
@@ -97,7 +103,13 @@ interface AccountDesktopViewProps {
       tradeOperations?: number;
       operationCount?: number;
       successRatePercent?: number | null;
-      nativeBalanceChange24h?: string | number | null;
+      nativeBalanceChange24h?: string | number | {
+        currentXlm?: string | number;
+        referenceXlm?: string | number;
+        changeXlm?: string | number;
+        changePercent?: number | null;
+        referenceRecordedHour?: string;
+      } | null;
     };
   } | null;
   loading?: boolean;
@@ -124,6 +136,39 @@ function formatCompactNumber(value: number): string {
 
 function formatExactNumber(value: number): string {
   return value.toLocaleString(undefined, { maximumFractionDigits: 7 });
+}
+
+function parseNativeBalanceDeltaXlm(
+  value:
+    | string
+    | number
+    | {
+        changeXlm?: string | number;
+      }
+    | null
+    | undefined
+): number {
+  if (value && typeof value === 'object') {
+    return Number(value.changeXlm ?? 0) || 0;
+  }
+  return Number(value ?? 0) || 0;
+}
+
+function parseNativeBalanceDeltaPercent(
+  value:
+    | string
+    | number
+    | {
+        changePercent?: string | number | null;
+      }
+    | null
+    | undefined
+): number | null {
+  if (value && typeof value === 'object') {
+    const parsed = Number(value.changePercent);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 }
 
 function AccountStatusIcons({ labelText, verified, size = 'sm' }: { labelText?: string; verified?: boolean; size?: 'sm' | 'lg' }) {
@@ -315,14 +360,19 @@ export default function AccountDesktopView({ account, accountId, transactions, o
 
   // Calculate total USD value
   const totalValueUSD = totalBalanceXLM * xlmPrice;
-  const nativeBalanceChange24hXlm = Number(
+  const nativeBalanceChange24hXlm = parseNativeBalanceDeltaXlm(
     accountMeta?.activity24h?.nativeBalanceChange24h
     ?? accountMeta?.stellarData?.activity24h?.nativeBalanceChange24h
     ?? 0
-  ) || 0;
+  );
+  const nativeBalanceChange24hPercentRaw = parseNativeBalanceDeltaPercent(
+    accountMeta?.activity24h?.nativeBalanceChange24h
+    ?? accountMeta?.stellarData?.activity24h?.nativeBalanceChange24h
+    ?? 0
+  );
   const balanceChange24hUsd = nativeBalanceChange24hXlm * xlmPrice;
   const previousBalanceUsd = totalValueUSD - balanceChange24hUsd;
-  const balanceChange24hPercent = previousBalanceUsd > 0 ? (balanceChange24hUsd / previousBalanceUsd) * 100 : 0;
+  const balanceChange24hPercent = nativeBalanceChange24hPercentRaw ?? (previousBalanceUsd > 0 ? (balanceChange24hUsd / previousBalanceUsd) * 100 : 0);
 
   // Calculate tokens total value
   const tokensValueUSD = useMemo(() => {
