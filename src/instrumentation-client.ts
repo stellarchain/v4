@@ -28,6 +28,9 @@ if (!isDevelopment) {
       Sentry.replayIntegration(),
       Sentry.feedbackIntegration({
         colorScheme: getFeedbackColorScheme(),
+        themeDark: {
+          background: 'var(--bg-secondary)',
+        },
         showBranding: false,
         triggerLabel: "",
         formTitle: "Feedback",
