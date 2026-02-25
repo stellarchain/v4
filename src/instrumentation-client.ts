@@ -1,6 +1,25 @@
 import * as Sentry from '@sentry/nextjs';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
+const isBrowser = typeof window !== 'undefined';
+
+const getFeedbackColorScheme = (): 'light' | 'dark' | 'system' => {
+  if (!isBrowser) {
+    return 'system';
+  }
+
+  const storedTheme = window.localStorage.getItem('stellarchain-theme');
+  if (storedTheme === 'light' || storedTheme === 'dark') {
+    return storedTheme;
+  }
+
+  const dataTheme = document.documentElement.getAttribute('data-theme');
+  if (dataTheme === 'light' || dataTheme === 'dark') {
+    return dataTheme;
+  }
+
+  return 'system';
+};
 
 if (!isDevelopment) {
   Sentry.init({
@@ -8,7 +27,7 @@ if (!isDevelopment) {
     integrations: [
       Sentry.replayIntegration(),
       Sentry.feedbackIntegration({
-        colorScheme: 'system',
+        colorScheme: getFeedbackColorScheme(),
         showBranding: false,
         triggerLabel: "",
         formTitle: "Feedback",
