@@ -20,7 +20,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://stellarchain.dev'),
+  metadataBase: new URL('https://stellarchain.io'),
   title: {
     default: 'Explore Stellar Lumens (XLM) - Real-time Price, Assets, Charts & More',
     template: '%s | StellarChain Explorer',
@@ -62,18 +62,18 @@ export default function RootLayout({
       {
         '@type': 'WebSite',
         name: 'StellarChain Explorer',
-        url: 'https://stellarchain.dev',
+        url: 'https://stellarchain.io',
         potentialAction: {
           '@type': 'SearchAction',
-          target: 'https://stellarchain.dev/search?q={search_term_string}',
+          target: 'https://stellarchain.io/search?q={search_term_string}',
           'query-input': 'required name=search_term_string',
         },
       },
       {
         '@type': 'Organization',
         name: 'StellarChain',
-        url: 'https://stellarchain.dev',
-        logo: 'https://stellarchain.dev/stellarchain-logo.svg',
+        url: 'https://stellarchain.io',
+        logo: 'https://stellarchain.io/stellarchain-logo.svg',
       },
     ],
   };
@@ -82,6 +82,25 @@ export default function RootLayout({
     <html lang='en' suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script
+          data-host='https://stats.co'
+          data-dnt='false'
+          src='https://stats.co/js/script.js'
+          id='ZwSg9rf6GA'
+          async
+          defer
+        />
+        <script async src='https://www.googletagmanager.com/gtag/js?id=G-B75TPW6R2T' />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-B75TPW6R2T');
+            `,
+          }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
