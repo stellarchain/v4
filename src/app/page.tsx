@@ -142,6 +142,20 @@ export default function HomePage() {
 
   useEffect(() => {
     const loadData = async () => {
+      const safeRequest = async <T,>(promise: Promise<T>, fallback: T, label: string): Promise<T> => {
+        try {
+          return await promise;
+        } catch (requestError) {
+          console.warn(`Homepage ${label} request failed, using fallback:`, requestError);
+          return fallback;
+        }
+      };
+      const emptyCollectionPage = <T extends Horizon.HorizonApi.BaseResponse,>(): Horizon.ServerApi.CollectionPage<T> => ({
+        records: [],
+        next: async () => emptyCollectionPage<T>(),
+        prev: async () => emptyCollectionPage<T>(),
+      });
+
       try {
         const server = createHorizonServer();
         const stellarCoinDataPromise = fetchStellarCoinData().catch((coinError) => {
@@ -162,10 +176,10 @@ export default function HomePage() {
           stellarChainData,
           marketOverviewData
         ] = await Promise.all([
-          server.ledgers().order('desc').limit(8).call(),
-          server.transactions().order('desc').limit(8).call(),
-          server.operations().order('desc').limit(30).call(),
-          server.payments().order('desc').limit(20).call(),
+          safeRequest(server.ledgers().order('desc').limit(8).call(), emptyCollectionPage<Horizon.ServerApi.LedgerRecord>(), 'ledgers'),
+          safeRequest(server.transactions().order('desc').limit(8).call(), emptyCollectionPage<Horizon.ServerApi.TransactionRecord>(), 'transactions'),
+          safeRequest(server.operations().order('desc').limit(30).call(), emptyCollectionPage<Horizon.ServerApi.OperationRecord>(), 'operations'),
+          safeRequest(server.payments().order('desc').limit(20).call(), emptyCollectionPage<Horizon.ServerApi.PaymentOperationRecord>(), 'payments'),
           stellarCoinDataPromise,
           marketOverviewPromise
         ]);
@@ -192,7 +206,7 @@ export default function HomePage() {
         const xlmVol = xlmAsset ? xlmAsset.volume_24h : 0;
 
         // Get network stats from latest ledger
-        const latestLedger = ledgersData[0];
+        const latestLedger = ledgersData[0] || emptyLedger;
 
         // Calculate dominance from global market data
         const totalCryptoMarketCap = globalMarketData?.data?.total_market_cap?.usd || 0;
@@ -245,9 +259,18 @@ export default function HomePage() {
         setXlmVolume(xlmVol);
         setXlmMarketData(xlmData);
         setMarketOverview(overviewSnapshot);
+        setError(null);
         setIsLoading(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load data');
+        console.error('Homepage load failed; rendering with safe defaults:', err);
+        setError(null);
+        setStats(emptyStats);
+        setLedgers([]);
+        setTransactions([]);
+        setOperations([]);
+        setXlmVolume(0);
+        setXlmMarketData(emptyXlmMarketData);
+        setMarketOverview(null);
         setIsLoading(false);
       }
     };
