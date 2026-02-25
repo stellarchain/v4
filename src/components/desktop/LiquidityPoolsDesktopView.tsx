@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { LiquidityPool, PaginatedResponse, shortenAddress, getBaseUrl } from '@/lib/stellar';
+import { LiquidityPool, PaginatedResponse, shortenAddress, getLiquidityPools } from '@/lib/stellar';
 import { useNetwork } from '@/contexts/NetworkContext';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
@@ -118,20 +118,21 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange, loading, ha
 export default function LiquidityPoolsDesktopView({ initialPools, loading = false }: LiquidityPoolsDesktopViewProps) {
     const { network } = useNetwork();
 
-    const [pools, setPools] = useState<LiquidityPool[]>(initialPools._embedded.records);
+    const [pools, setPools] = useState<LiquidityPool[]>(initialPools.records);
     const isInitialLoading = loading;
     const [currentPage, setCurrentPage] = useState(1);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [oldestCursor, setOldestCursor] = useState<string | null>(initialPools._links.next?.href || null);
-    const [hasMore, setHasMore] = useState(!!initialPools._links.next?.href);
+    const initialHasMore = !!initialPools._links?.next?.href || initialPools.records.length >= PAGE_SIZE;
+    const [oldestCursor, setOldestCursor] = useState<string | null>(initialPools._links?.next?.href || null);
+    const [hasMore, setHasMore] = useState(initialHasMore);
     const [searchQuery, setSearchQuery] = useState('');
-    const seenIdsRef = useRef<Set<string>>(new Set(initialPools._embedded.records.map(p => p.id)));
+    const seenIdsRef = useRef<Set<string>>(new Set(initialPools.records.map(p => p.id)));
 
     useEffect(() => {
-        const incomingPools = initialPools._embedded.records;
+        const incomingPools = initialPools.records;
         setPools(incomingPools);
-        setOldestCursor(initialPools._links.next?.href || null);
-        setHasMore(!!initialPools._links.next?.href);
+        setOldestCursor(initialPools._links?.next?.href || null);
+        setHasMore(!!initialPools._links?.next?.href || incomingPools.length >= PAGE_SIZE);
         setCurrentPage(1);
         seenIdsRef.current = new Set(incomingPools.map(p => p.id));
     }, [initialPools]);
@@ -151,11 +152,8 @@ export default function LiquidityPoolsDesktopView({ initialPools, loading = fals
                 return;
             }
 
-            const res = await fetch(
-                `${getBaseUrl()}/liquidity_pools?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
-            );
-            const data: PaginatedResponse<LiquidityPool> = await res.json();
-            const olderPools = data._embedded.records;
+            const data = await getLiquidityPools(PAGE_SIZE, 'desc', cursor);
+            const olderPools = data.records;
 
             if (olderPools.length === 0) {
                 setIsLoadingMore(false);
@@ -163,8 +161,8 @@ export default function LiquidityPoolsDesktopView({ initialPools, loading = fals
                 return;
             }
 
-            setOldestCursor(data._links.next?.href || null);
-            setHasMore(olderPools.length >= PAGE_SIZE);
+            setOldestCursor(data._links?.next?.href || null);
+            setHasMore(!!data._links?.next?.href || olderPools.length >= PAGE_SIZE);
 
             // Filter out already seen pools
             const unseenPools = olderPools.filter(p => !seenIdsRef.current.has(p.id));

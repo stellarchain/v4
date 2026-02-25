@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { gsap } from 'gsap';
-import { Ledger, getBaseUrl } from '@/lib/stellar';
+import { Ledger, getLedgers } from '@/lib/stellar';
 import { useNetwork } from '@/contexts/NetworkContext';
 import LiveTransactionFeed from '../LiveTransactionFeed';
 interface MobileHomePageProps {
@@ -34,9 +34,8 @@ export default function MobileHomePage({ stats, initialTransactions, xlmVolume, 
   useEffect(() => {
     const fetchLatestStats = async () => {
       try {
-        const res = await fetch(`${getBaseUrl()}/ledgers?limit=1&order=desc`);
-        const data = await res.json();
-        const latest: Ledger = data._embedded.records[0];
+        const data = await getLedgers(1, 'desc');
+        const latest: Ledger = data.records[0];
 
         if (latest.sequence > liveStats.ledger_count) {
           setLiveStats(prev => ({

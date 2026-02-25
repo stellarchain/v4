@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
-import { getBaseUrl } from '@/lib/stellar';
+import { getEffectById } from '@/lib/stellar';
 import { notFound } from 'next/navigation';
 
 
@@ -28,13 +28,8 @@ export default function EffectDetailsPage() {
 
     const fetchEffect = async () => {
       try {
-        // Horizon doesn't have a direct effect(id) method, use raw fetch
-        const response = await fetch(`${getBaseUrl()}/effects/${id}`);
-        if (!response.ok) {
-          throw new Error('Effect not found');
-        }
-        const data = await response.json();
-        setEffect(data as Effect);
+        const data = await getEffectById(id);
+        setEffect(data as unknown as Effect);
         setLoading(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load effect');

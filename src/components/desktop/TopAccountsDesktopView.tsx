@@ -1,11 +1,19 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { RichListAccount, shortenAddress } from '@/lib/stellar';
 
 interface TopAccountsDesktopViewProps {
   initialAccounts: RichListAccount[];
+  totalAccounts: number;
+  xlmPriceUsd?: number | null;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+  loading?: boolean;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
 type SortField = 'rank' | 'balance' | 'percent';
@@ -22,6 +30,12 @@ function formatFullBalance(balance: number): string {
   return balance.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
+function formatUsdBalance(balanceXlm: number, xlmPriceUsd?: number | null): string {
+  if (!xlmPriceUsd || !Number.isFinite(xlmPriceUsd)) return '$-';
+  const usd = balanceXlm * xlmPriceUsd;
+  return usd.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+}
+
 function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
   return (
     <svg className={`w-3 h-3 ml-1 inline-block ${active ? 'text-sky-600' : 'text-[var(--text-muted)]'}`} fill="currentColor" viewBox="0 0 24 24">
@@ -34,30 +48,51 @@ function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
   );
 }
 
-export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsDesktopViewProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortField, setSortField] = useState<SortField>('rank');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+export default function TopAccountsDesktopView({
+  initialAccounts,
+  totalAccounts,
+  xlmPriceUsd,
+  searchQuery,
+  onSearchQueryChange,
+  loading = false,
+  currentPage,
+  totalPages,
+  onPageChange,
+}: TopAccountsDesktopViewProps) {
+  const [sortField, setSortField] = useState<SortField>('balance');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [isPaginationHovered, setIsPaginationHovered] = useState(false);
+  const [isScrollActive, setIsScrollActive] = useState(false);
+
+  useEffect(() => {
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+    const handleScroll = () => {
+      setIsScrollActive(true);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => setIsScrollActive(false), 900);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
+  }, []);
 
   // Calculate totals
   const totals = useMemo(() => {
     const totalBalance = initialAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
     const totalPercent = initialAccounts.reduce((sum, acc) => sum + parseFloat(acc.percent_of_coins || '0'), 0);
-    const verifiedCount = initialAccounts.filter(acc => acc.label?.verified).length;
-    return { totalBalance, totalPercent, verifiedCount, totalAccounts: initialAccounts.length };
-  }, [initialAccounts]);
+    const verifiedCount = initialAccounts.filter((acc) => {
+      const labelText = (acc.label?.name || '').toLowerCase();
+      const isRisk = labelText.includes('scam') || labelText.includes('hack') || labelText.includes('malicious') || labelText.includes('spam');
+      return acc.label?.verified && !isRisk;
+    }).length;
+    return { totalBalance, totalPercent, verifiedCount, totalAccounts, displayedAccounts: initialAccounts.length };
+  }, [initialAccounts, totalAccounts]);
 
   const filteredAndSortedAccounts = useMemo(() => {
-    let accounts = [...initialAccounts];
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      accounts = accounts.filter(
-        (account) =>
-          account.account.toLowerCase().includes(query) ||
-          (account.label?.name && account.label.name.toLowerCase().includes(query))
-      );
-    }
+    const accounts = [...initialAccounts];
 
     accounts.sort((a, b) => {
       let comparison = 0;
@@ -66,17 +101,17 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
           comparison = a.rank - b.rank;
           break;
         case 'balance':
-          comparison = (b.balance || 0) - (a.balance || 0);
+          comparison = (a.balance || 0) - (b.balance || 0);
           break;
         case 'percent':
-          comparison = parseFloat(b.percent_of_coins || '0') - parseFloat(a.percent_of_coins || '0');
+          comparison = parseFloat(a.percent_of_coins || '0') - parseFloat(b.percent_of_coins || '0');
           break;
       }
       return sortOrder === 'desc' ? -comparison : comparison;
     });
 
     return accounts;
-  }, [initialAccounts, searchQuery, sortField, sortOrder]);
+  }, [initialAccounts, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -169,7 +204,7 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => onSearchQueryChange(e.target.value)}
               placeholder="Search by name or address..."
               className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] pl-12 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm shadow-sm"
             />
@@ -186,13 +221,13 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
               Known Accounts
             </Link>
             <span className="text-sm text-[var(--text-muted)]">
-              Showing {filteredAndSortedAccounts.length} accounts
+              {loading ? 'Searching...' : `Page ${currentPage} of ${totalPages}`}
             </span>
           </div>
         </div>
 
         {/* Table */}
-        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden relative pb-20">
           <table className="w-full sc-table">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
@@ -206,8 +241,12 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]">
-              {filteredAndSortedAccounts.map((account) => {
-                const isVerified = account.label?.verified;
+              {filteredAndSortedAccounts.map((account, index) => {
+                const displayRank = (currentPage - 1) * 30 + index + 1;
+                const labelText = (account.label?.name || '').toLowerCase();
+                const isSpam = labelText.includes('spam');
+                const isRisk = labelText.includes('scam') || labelText.includes('hack') || labelText.includes('malicious') || isSpam;
+                const isVerified = account.label?.verified && !isRisk;
                 const hasLabel = !!account.label?.name;
 
                 return (
@@ -218,12 +257,12 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
                   >
                     {/* Rank */}
                     <td className="py-4 px-4">
-                      <span className={`text-sm font-bold ${account.rank === 1 ? 'text-amber-500' :
-                          account.rank === 2 ? 'text-[var(--text-muted)]' :
-                            account.rank === 3 ? 'text-amber-700' :
+                      <span className={`text-sm font-bold ${displayRank === 1 ? 'text-amber-500' :
+                          displayRank === 2 ? 'text-[var(--text-muted)]' :
+                            displayRank === 3 ? 'text-amber-700' :
                               'text-[var(--text-tertiary)]'
                         }`}>
-                        #{account.rank}
+                        #{displayRank}
                       </span>
                     </td>
 
@@ -233,17 +272,25 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
                         <span className="text-[var(--text-primary)] font-semibold text-[13px] group-hover:text-sky-600 transition-colors">
                           {account.label?.name || 'Unknown'}
                         </span>
-                        {isVerified ? (
+                        {isRisk && (
+                          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill={isSpam ? '#F97316' : '#EF4444'}>
+                            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+                            <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                        )}
+                        {hasLabel && (
+                          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="12" cy="8" r="4.25" fill="#F59E0B" />
+                            <circle cx="12" cy="8" r="2.1" fill="#FEF3C7" />
+                            <path d="M9.2 11.2L7.6 20l4.4-2.5 4.4 2.5-1.6-8.8z" fill="#D97706" />
+                          </svg>
+                        )}
+                        {isVerified && (
                           <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#1D9BF0">
                             <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
                           </svg>
-                        ) : hasLabel ? (
-                          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
-                            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                            <circle cx="12" cy="10" r="3" fill="white" />
-                            <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                          </svg>
-                        ) : (
+                        )}
+                        {!isRisk && !isVerified && !hasLabel && (
                           <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
                             <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
                             <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
@@ -267,9 +314,11 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
                     {/* Balance */}
                     <td className="py-4 px-4 text-right">
                       <div className="text-[var(--text-primary)] font-semibold text-[13px]">
-                        {formatFullBalance(account.balance || 0)}
+                        {formatFullBalance(account.balance || 0)} <span className="text-[var(--text-muted)] ml-1">XLM</span>
                       </div>
-                      <div className="text-[10px] text-[var(--text-muted)]">XLM</div>
+                      <div className="text-[10px] text-[var(--text-tertiary)]">
+                        {formatUsdBalance(account.balance || 0, xlmPriceUsd)}
+                      </div>
                     </td>
 
                     {/* Percent */}
@@ -281,22 +330,32 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
 
                     {/* Status */}
                     <td className="py-4 px-4 text-center">
-                      {isVerified ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 text-[9px] font-bold uppercase tracking-wider">
-                          <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
-                          Verified
-                        </span>
-                      ) : hasLabel ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] text-[9px] font-bold uppercase tracking-wider">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
-                          Labeled
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-primary)] text-[var(--text-muted)] text-[9px] font-bold uppercase tracking-wider">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
-                          Unknown
-                        </span>
-                      )}
+                      <div className="inline-flex items-center gap-1 flex-wrap justify-center">
+                        {isRisk && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${isSpam ? 'bg-orange-50 text-orange-700' : 'bg-red-50 text-red-700'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isSpam ? 'bg-orange-500' : 'bg-red-500'}`}></span>
+                            {isSpam ? 'Spam' : 'Risk'}
+                          </span>
+                        )}
+                        {isVerified && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 text-[9px] font-bold uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                            Verified
+                          </span>
+                        )}
+                        {hasLabel && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] text-[9px] font-bold uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
+                            Labeled
+                          </span>
+                        )}
+                        {!isRisk && !isVerified && !hasLabel && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-primary)] text-[var(--text-muted)] text-[9px] font-bold uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
+                            Unknown
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Arrow */}
@@ -324,7 +383,72 @@ export default function TopAccountsDesktopView({ initialAccounts }: TopAccountsD
               <p className="text-[var(--text-muted)] text-sm">No accounts matching &quot;{searchQuery}&quot;</p>
             </div>
           )}
+
         </div>
+
+        {/* Floating Pagination */}
+        {totalPages > 1 && (
+          <div className="fixed bottom-4 left-1/2 z-30 pointer-events-none w-full max-w-[1400px] -translate-x-1/2 px-4">
+            <div className="mx-auto px-4 flex justify-center">
+              <div
+                onMouseEnter={() => setIsPaginationHovered(true)}
+                onMouseLeave={() => setIsPaginationHovered(false)}
+                className={`pointer-events-auto bg-[var(--bg-secondary)]/90 backdrop-blur-xl rounded-xl px-3 py-2 flex items-center gap-1.5 shadow-xl border border-[var(--border-default)] transition-opacity duration-300 ${isScrollActive || isPaginationHovered ? 'opacity-100' : 'opacity-20'}`}
+              >
+                <button
+                  onClick={() => onPageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || loading}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                let pageNum: number;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => onPageChange(pageNum)}
+                    disabled={loading}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
+                      currentPage === pageNum
+                        ? 'bg-sky-600 text-white shadow-sm'
+                        : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              {totalPages > 5 && currentPage < totalPages - 2 && (
+                <span className="text-[var(--text-muted)] text-xs px-1">...</span>
+              )}
+
+              <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || loading}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

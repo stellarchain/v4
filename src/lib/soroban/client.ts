@@ -1,58 +1,34 @@
 // Soroban RPC Client for SEP-0041 Token Queries
 // https://developers.stellar.org/docs/data/rpc
 
-import { rpc, xdr, Address, Networks, Asset, Contract, nativeToScVal, scValToNative, Account, TransactionBuilder, BASE_FEE } from '@stellar/stellar-sdk';
-import type { SEP41TokenMetadata, SACDetectionResult } from './types/token';
-
-// RPC Configuration
-const SOROBAN_RPC_URLS = {
-  mainnet: 'https://soroban-rpc.mainnet.stellar.gateway.fm',
-  testnet: 'https://soroban-testnet.stellar.org',
-  futurenet: 'https://rpc-futurenet.stellar.org',
-};
-
-const NETWORK_PASSPHRASES = {
-  mainnet: 'Public Global Stellar Network ; September 2015',
-  testnet: 'Test SDF Network ; September 2015',
-  futurenet: 'Test SDF Future Network ; October 2022',
-};
-
-const RPC_TIMEOUT_MS = 10000;
-
-export type NetworkType = 'mainnet' | 'testnet' | 'futurenet';
-
-let currentNetwork: NetworkType = 'mainnet';
-
-// Initialize from localStorage if available (client-side)
-if (typeof window !== 'undefined') {
-  const stored = localStorage.getItem('stellarchain-network') as NetworkType | null;
-  if (stored && SOROBAN_RPC_URLS[stored]) {
-    currentNetwork = stored;
-  }
-}
+import { rpc, xdr, Address, Asset, Contract, scValToNative, Account, TransactionBuilder, BASE_FEE } from '@stellar/stellar-sdk';
+import type { SEP41TokenMetadata, SACDetectionResult } from '../shared/interfaces';
+import {
+  SOROBAN_SIMULATION_SOURCE,
+  SOROBAN_SIMULATION_TIMEOUT,
+  type NetworkType,
+} from '../network/config';
+import { getCurrentNetwork, setCurrentNetwork } from '../network/state';
+import { createSorobanServer, getSorobanPassphrase } from '@/services/soroban';
 
 // Get the current network
 export function getNetwork(): NetworkType {
-  return currentNetwork;
+  return getCurrentNetwork();
 }
 
 // Set the network
 export function setNetwork(network: NetworkType): void {
-  currentNetwork = network;
+  setCurrentNetwork(network);
 }
 
 // Get RPC server instance
 export function getSorobanServer(network?: NetworkType): rpc.Server {
-  const net = network || currentNetwork;
-  return new rpc.Server(SOROBAN_RPC_URLS[net], {
-    allowHttp: false,
-  });
+  return createSorobanServer(network);
 }
 
 // Get network passphrase
-function getNetworkPassphrase(network?: NetworkType): string {
-  const net = network || currentNetwork;
-  return NETWORK_PASSPHRASES[net];
+export function getNetworkPassphrase(network?: NetworkType): string {
+  return getSorobanPassphrase(network);
 }
 
 // Check if RPC is healthy
@@ -68,13 +44,15 @@ export async function checkRpcHealth(): Promise<boolean> {
 }
 
 // Simulate a contract call to read state
-async function simulateContractRead(
+export async function simulateContractRead(
   contractId: string,
   method: string,
-  args: xdr.ScVal[] = []
+  args: xdr.ScVal[] = [],
+  network?: NetworkType
 ): Promise<xdr.ScVal | null> {
   try {
-    const server = getSorobanServer();
+    const activeNetwork = network || getCurrentNetwork();
+    const server = getSorobanServer(activeNetwork);
     const contract = new Contract(contractId);
 
     // Build the operation
@@ -83,16 +61,16 @@ async function simulateContractRead(
     // Create a minimal transaction for simulation
     // We use a dummy source account since we're just reading
     const sourceAccount = new Account(
-      'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF', // Dummy account
+      SOROBAN_SIMULATION_SOURCE,
       '0'
     );
 
     const transaction = new TransactionBuilder(sourceAccount, {
       fee: BASE_FEE,
-      networkPassphrase: getNetworkPassphrase(),
+      networkPassphrase: getNetworkPassphrase(activeNetwork),
     })
       .addOperation(operation)
-      .setTimeout(30)
+      .setTimeout(SOROBAN_SIMULATION_TIMEOUT)
       .build();
 
     // Simulate the transaction
@@ -331,4 +309,3 @@ export async function getTransactionResultMetaXdr(
     return null;
   }
 }
-

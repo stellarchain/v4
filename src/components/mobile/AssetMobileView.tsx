@@ -4,9 +4,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
-import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, getAssetTrades, getAssetTradeTransactionHash, getAssetHolders, getAssetTradingPairs, getLiquidityPoolByAssets, USDC_ISSUER, shortenAddress, OrderBook as OrderBookType, AssetTrade, AssetHolder, TradingPair, getAccountLabels, AccountLabel } from '@/lib/stellar';
+import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrderBook, getAssetTrades, getAssetTradeTransactionHash, getAssetHolders, getAssetTradingPairs, getLiquidityPoolByAssets, USDC_ISSUER, shortenAddress, timeAgo, OrderBook as OrderBookType, AssetTrade, AssetHolder, TradingPair, getAccountLabels, AccountLabel } from '@/lib/stellar';
 import { getXLMHoldersAction } from '@/lib/helpers';
-import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/design-system';
+import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/shared/designSystem';
 import GliderTabs from '@/components/ui/GliderTabs';
 
 interface AssetMobileViewProps {
@@ -74,6 +74,15 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   const [loading, setLoading] = useState(true);
   const [initialChartLoad, setInitialChartLoad] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [noTradesForRange, setNoTradesForRange] = useState(false);
+
+  // Refs for infinite chart scroll
+  const allCandleDataRef = useRef<any[]>([]);
+  const allVolumeDataRef = useRef<any[]>([]);
+  const earliestTimestampRef = useRef<number>(0);
+  const isFetchingMoreRef = useRef(false);
+  const noMoreDataRef = useRef(false);
+  const xlmUsdPriceRef = useRef<number>(0);
   const [tooltipData, setTooltipData] = useState<{
     open: number;
     high: number;
@@ -149,9 +158,11 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
     const fetchChartData = async () => {
       setLoading(true);
+      setNoTradesForRange(false);
       try {
         const timeframe = timeframes.find(t => t.label === selectedTimeframe) || timeframes[1];
         const xlmUsdPrice = await getXLMUSDPriceFromHorizon(controller.signal);
+        xlmUsdPriceRef.current = xlmUsdPrice;
 
         const isXLM = asset.code === 'XLM';
         const counterAsset = isXLM
@@ -171,6 +182,13 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
           rangeEnd,
           controller.signal
         );
+
+        if (data.length === 0) {
+          setChartData([]);
+          setTooltipData(null);
+          setNoTradesForRange(true);
+          return;
+        }
 
         // First pass: get all close prices to calculate median
         // Data is already in chronological order (asc) from API
@@ -235,12 +253,14 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
         });
 
         setChartData(processedData);
+        setNoTradesForRange(false);
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return;
         console.error('Failed to fetch chart data', error);
+      } finally {
+        setLoading(false);
+        setInitialChartLoad(false);
       }
-      setLoading(false);
-      setInitialChartLoad(false);
     };
 
     fetchChartData();
@@ -309,8 +329,10 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     return () => clearInterval(interval);
   }, [asset]);
 
-  // Fetch trade history
+  // Fetch trade history only when Trades tab is active
   useEffect(() => {
+    if (activeTab !== 'trades' || trades.length > 0) return;
+
     const fetchTrades = async () => {
       setTradesLoading(true);
       setTrades([]);
@@ -318,9 +340,9 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
       setHasMoreTrades(true);
       try {
         const data = await getAssetTrades(asset.code, asset.issuer, 20);
-        setTrades(data._embedded.records);
+        setTrades(data.records);
         // Set cursor for next page from last record's paging_token
-        const records = data._embedded.records;
+        const records = data.records;
         if (records.length > 0) {
           setTradesCursor(records[records.length - 1].paging_token);
         }
@@ -333,7 +355,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     };
 
     fetchTrades();
-  }, [asset]);
+  }, [activeTab, asset.code, asset.issuer, trades.length]);
 
   // Load more trades function
   const loadMoreTrades = async () => {
@@ -342,7 +364,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     setLoadingMoreTrades(true);
     try {
       const data = await getAssetTrades(asset.code, asset.issuer, 20, 'desc', tradesCursor);
-      const newRecords = data._embedded.records;
+      const newRecords = data.records;
       setTrades(prev => [...prev, ...newRecords]);
       if (newRecords.length > 0) {
         setTradesCursor(newRecords[newRecords.length - 1].paging_token);
@@ -488,8 +510,10 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     return () => observer.disconnect();
   }, [displayedHoldersCount, allHolders.length, activeTab, showMoreHolders, hasMoreHolders, loadingMoreHolders, loadMoreHolders]);
 
-  // Pre-fetch trading pairs/markets on page load
+  // Fetch markets only when Markets tab is active
   useEffect(() => {
+    if (activeTab !== 'markets' || tradingPairs.length > 0) return;
+
     const fetchTradingPairs = async () => {
       setMarketsLoading(true);
       try {
@@ -502,7 +526,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     };
 
     fetchTradingPairs();
-  }, [asset.code, asset.issuer]);
+  }, [activeTab, asset.code, asset.issuer, tradingPairs.length]);
 
   // Render chart
   useEffect(() => {
@@ -510,6 +534,10 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     let cancelled = false;
 
     const currentTimeframe = timeframes.find(t => t.label === selectedTimeframe) || timeframes[1];
+
+    // Reset infinite scroll state
+    noMoreDataRef.current = false;
+    isFetchingMoreRef.current = false;
 
     // Format time axis based on timeframe
     const formatTimeLabel = (time: number) => {
@@ -554,8 +582,16 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
         vertLine: { labelBackgroundColor: '#1E293B', color: 'rgba(148, 163, 184, 0.2)' },
         horzLine: { labelBackgroundColor: '#1E293B', color: 'rgba(148, 163, 184, 0.2)' },
       },
-      handleScale: false,
-      handleScroll: false,
+      handleScale: {
+        pinch: true,
+        mouseWheel: false,
+        axisPressedMouseMove: true,
+      },
+      handleScroll: {
+        pressedMouseMove: true,
+        horzTouchDrag: true,
+        vertTouchDrag: false,
+      },
     });
 
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
@@ -576,21 +612,138 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
       scaleMargins: { top: 0.85, bottom: 0 },
     });
 
-    candlestickSeries.setData(chartData.map(d => ({
+    const candleData = chartData.map(d => ({
       time: d.time,
       open: d.open,
       high: d.high,
       low: d.low,
       close: d.close,
-    })));
+    }));
 
-    volumeSeries.setData(chartData.map(d => ({
+    const volData = chartData.map(d => ({
       time: d.time,
       value: d.volume,
       color: d.color,
-    })));
+    }));
 
-    chart.timeScale().fitContent();
+    allCandleDataRef.current = candleData;
+    allVolumeDataRef.current = volData;
+    if (candleData.length > 0) {
+      earliestTimestampRef.current = (candleData[0].time as number) * 1000;
+    }
+
+    candlestickSeries.setData(candleData);
+    volumeSeries.setData(volData);
+
+    // Set visible range to data bounds (no empty left space)
+    if (candleData.length > 1) {
+      chart.timeScale().setVisibleRange({
+        from: candleData[0].time,
+        to: candleData[candleData.length - 1].time,
+      });
+    } else {
+      chart.timeScale().fitContent();
+    }
+
+    // Fetch older data when user scrolls to the left edge
+    const isXLM = asset.code === 'XLM';
+    const counterAsset = isXLM
+      ? { code: 'USDC', issuer: USDC_ISSUER }
+      : { code: 'XLM' };
+
+    const fetchOlderData = async () => {
+      if (isFetchingMoreRef.current || noMoreDataRef.current || cancelled) return;
+      isFetchingMoreRef.current = true;
+
+      try {
+        const endTime = earliestTimestampRef.current;
+        if (!endTime) {
+          isFetchingMoreRef.current = false;
+          return;
+        }
+
+        const rawData = await getTradeAggregations(
+          { code: asset.code, issuer: asset.issuer },
+          counterAsset,
+          currentTimeframe.resolution,
+          200,
+          undefined,
+          endTime
+        );
+        if (cancelled) return;
+
+        // API returns desc order when no startTime — reverse to chronological
+        const data = [...rawData].reverse();
+
+        if (data.length === 0) {
+          noMoreDataRef.current = true;
+          return;
+        }
+
+        const xlmUsdPrice = xlmUsdPriceRef.current;
+        const processedData = data.map(item => {
+          let close = parseFloat(item.close);
+          let open = parseFloat(item.open);
+          let high = parseFloat(item.high);
+          let low = parseFloat(item.low);
+
+          if (!isXLM) {
+            close *= xlmUsdPrice;
+            open *= xlmUsdPrice;
+            high *= xlmUsdPrice;
+            low *= xlmUsdPrice;
+          }
+
+          const bodyMax = Math.max(open, close);
+          const bodyMin = Math.min(open, close);
+          const saneHigh = high > bodyMax * 5 ? bodyMax * 1.5 : high;
+          const saneLow = low < bodyMin * 0.2 ? bodyMin * 0.5 : low;
+
+          return {
+            time: item.timestamp / 1000 as any,
+            open,
+            high: saneHigh,
+            low: saneLow,
+            close,
+            volume: parseFloat(item.base_volume),
+            color: close >= open ? 'rgba(16, 185, 129, 0.5)' : 'rgba(244, 63, 94, 0.5)',
+          };
+        });
+
+        const existingTimes = new Set(allCandleDataRef.current.map(d => d.time));
+        const newCandles = processedData
+          .filter(d => !existingTimes.has(d.time))
+          .map(d => ({ time: d.time, open: d.open, high: d.high, low: d.low, close: d.close }));
+        const newVolumes = processedData
+          .filter(d => !existingTimes.has(d.time))
+          .map(d => ({ time: d.time, value: d.volume, color: d.color }));
+
+        if (newCandles.length === 0) {
+          noMoreDataRef.current = true;
+          return;
+        }
+
+        allCandleDataRef.current = [...newCandles, ...allCandleDataRef.current];
+        allVolumeDataRef.current = [...newVolumes, ...allVolumeDataRef.current];
+        earliestTimestampRef.current = (newCandles[0].time as number) * 1000;
+
+        candlestickSeries.setData(allCandleDataRef.current);
+        volumeSeries.setData(allVolumeDataRef.current);
+      } catch (error) {
+        console.error('Failed to fetch older chart data', error);
+      } finally {
+        isFetchingMoreRef.current = false;
+      }
+    };
+
+    // Subscribe to visible range changes for infinite scroll
+    const onVisibleRangeChange = (newRange: any) => {
+      if (cancelled || !newRange) return;
+      if (newRange.from < 10) {
+        fetchOlderData();
+      }
+    };
+    chart.timeScale().subscribeVisibleLogicalRangeChange(onVisibleRangeChange);
 
     // Subscribe to crosshair move for tooltip
     const crosshairHandler = (param: any) => {
@@ -631,10 +784,23 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     return () => {
       cancelled = true;
       window.removeEventListener('resize', handleResize);
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(onVisibleRangeChange);
       chart.unsubscribeCrosshairMove(crosshairHandler);
       chart.remove();
     };
   }, [chartData, selectedTimeframe]);
+
+  const [copiedIssuer, setCopiedIssuer] = useState(false);
+
+  const handleCopyIssuer = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (asset.issuer) {
+      navigator.clipboard.writeText(asset.issuer);
+      setCopiedIssuer(true);
+      setTimeout(() => setCopiedIssuer(false), 2000);
+    }
+  };
 
   const change24h = asset.change_24h || 0;
   const isPositive = change24h >= 0;
@@ -723,6 +889,20 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 <Link href={`/account/${asset.issuer}`} className="text-xs font-mono text-white/70 hover:text-white">
                   {shortenAddress(asset.issuer)}
                 </Link>
+                <button
+                  onClick={handleCopyIssuer}
+                  className="p-1 rounded-md hover:bg-white/10 active:bg-white/20 transition-colors"
+                >
+                  {copiedIssuer ? (
+                    <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                </button>
               </div>
             )}
             {asset.domain && (
@@ -849,8 +1029,8 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
               </>
             ) : (
               /* No data state */
-              <div className="w-full h-[240px] flex items-center justify-center text-[var(--text-muted)] text-xs">
-                No chart data available
+              <div className="w-full h-[240px] flex items-center justify-center text-[var(--text-muted)] text-xs text-center px-4">
+                {noTradesForRange ? 'No trades in this period' : 'No chart data available'}
               </div>
             )}
           </div>
@@ -1117,14 +1297,89 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
               {asset.issuer && (
                 <div className="mb-3">
                   <span className="text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Issuer:</span>
-                  <Link
-                    href={`/account/${asset.issuer}`}
-                    className="block text-xs font-mono mt-1 break-all hover:underline" style={{ color: 'var(--primary-blue)' }}
-                  >
-                    {asset.issuer}
-                  </Link>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Link
+                      href={`/account/${asset.issuer}`}
+                      className="text-xs font-mono break-all hover:underline" style={{ color: 'var(--primary-blue)' }}
+                    >
+                      {asset.issuer}
+                    </Link>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(asset.issuer!); }}
+                      className="text-[var(--text-muted)] hover:text-sky-500 transition-colors flex-shrink-0"
+                      title="Copy issuer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               )}
+
+              <div className="grid grid-cols-2 gap-3 text-[11px]">
+                {asset.assetKey && (
+                  <div className="col-span-2">
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Asset Key</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className="font-mono text-[var(--text-secondary)] break-all">{asset.assetKey}</div>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(asset.assetKey!); }}
+                        className="text-[var(--text-muted)] hover:text-sky-500 transition-colors flex-shrink-0"
+                        title="Copy asset key"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                          <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {asset.network !== undefined && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Network</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{asset.network}</div>
+                  </div>
+                )}
+                {asset.ratingAverage !== undefined && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Rating Avg</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{asset.ratingAverage.toFixed(2)}</div>
+                  </div>
+                )}
+                {asset.createdAt && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Created</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{timeAgo(asset.createdAt)}</div>
+                  </div>
+                )}
+                {asset.updatedAt && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Updated</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{timeAgo(asset.updatedAt)}</div>
+                  </div>
+                )}
+                {asset.marketUpdatedAt && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Market Updated</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{timeAgo(asset.marketUpdatedAt)}</div>
+                  </div>
+                )}
+                {asset.latestStatistic && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Snapshot Trades</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{formatNumber(asset.latestStatistic.trades)}</div>
+                  </div>
+                )}
+                {asset.latestStatistic && (
+                  <div>
+                    <span className="text-[var(--text-muted)] uppercase tracking-wider">Snapshot Trustlines</span>
+                    <div className="font-medium text-[var(--text-secondary)] mt-0.5">{formatNumber(asset.latestStatistic.trustlinesTotal)}</div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

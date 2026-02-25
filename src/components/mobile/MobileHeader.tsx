@@ -5,10 +5,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { NetworkBadge } from '@/components/NetworkSwitcher';
-import { getBaseUrl, getXLMStats } from '@/lib/stellar';
+import { getXLMStats, getTradeAggregations, USDC_ISSUER } from '@/lib/stellar';
 import { getRouteFromSearchQuery } from '@/lib/searchRouting';
 
-export default function MobileHeader() {
+interface MobileHeaderProps {
+  forceShow?: boolean;
+}
+
+export default function MobileHeader({ forceShow = false }: MobileHeaderProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [xlmPrice, setXlmPrice] = useState(0);
   const [xlmChange24h, setXlmChange24h] = useState<number | null>(null);
@@ -28,10 +32,14 @@ export default function MobileHeader() {
         console.error('Failed to fetch header stats', e);
         // Fallback to Horizon for price only
         try {
-          const priceRes = await fetch(`${getBaseUrl()}/trade_aggregations?base_asset_type=native&counter_asset_type=credit_alphanum4&counter_asset_code=USDC&counter_asset_issuer=GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN&resolution=900000&limit=1&order=desc`);
-          const priceData = await priceRes.json();
-          if (priceData._embedded.records.length > 0) {
-            setXlmPrice(parseFloat(priceData._embedded.records[0].close));
+          const priceData = await getTradeAggregations(
+            { code: 'XLM' },
+            { code: 'USDC', issuer: USDC_ISSUER },
+            900000,
+            1
+          );
+          if (priceData.length > 0) {
+            setXlmPrice(parseFloat(priceData[0].close));
           }
         } catch (e2) {
           console.error('Fallback price fetch failed', e2);
@@ -50,12 +58,15 @@ export default function MobileHeader() {
   };
 
   // Hide header on pages that have their own custom header
-  if (pathname?.startsWith('/address/')) return null;
-  if (pathname?.startsWith('/markets')) return null;
-  if (pathname?.startsWith('/assets/')) return null;
-  if (pathname?.startsWith('/tx/')) return null;
-  if (pathname?.startsWith('/contracts/')) return null;
-  if (pathname?.startsWith('/liquidity-pool/')) return null;
+  if (!forceShow) {
+    if (pathname?.startsWith('/address/')) return null;
+    if (pathname?.startsWith('/markets')) return null;
+    // Asset pages have their own dedicated mobile header (with price/stats)
+    if (pathname?.startsWith('/assets/')) return null;
+    if (pathname?.startsWith('/asset/')) return null;
+    // Keep the global header visible on contract detail pages (including fallback states)
+    if (pathname?.startsWith('/liquidity-pool/')) return null;
+  }
 
   // Same header for all pages (with stats)
   return (
@@ -68,6 +79,7 @@ export default function MobileHeader() {
             alt="StellarChain Explorer"
             width={200}
             height={56}
+            priority
             className="h-9 w-auto"
           />
         </Link>

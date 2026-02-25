@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cn, containers } from '@/lib/design-system';
+import { cn, containers } from '@/lib/shared/designSystem';
 
 type CardVariant = 'default' | 'bordered' | 'list' | 'compact';
 

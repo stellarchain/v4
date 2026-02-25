@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/design-system';
+import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/shared/designSystem';
 import GliderTabs from '@/components/ui/GliderTabs';
 import {
     Ledger,
@@ -112,7 +112,7 @@ export default function LedgerMobileView({ ledger, transactions: initialTransact
         const lastCursor = operations[operations.length - 1].paging_token;
         try {
             const response = await getLedgerOperations(ledger.sequence, ITEMS_PER_PAGE, 'desc', lastCursor);
-            const nextBatch = response._embedded.records;
+            const nextBatch = response.records;
             if (nextBatch.length > 0) {
                 setOperations(prev => [...prev, ...nextBatch]);
                 setHasMoreOps(nextBatch.length >= ITEMS_PER_PAGE);

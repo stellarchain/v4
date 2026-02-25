@@ -1,20 +1,27 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, useId } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { MarketAsset } from '@/lib/stellar';
-import { containers } from '@/lib/design-system';
-import { assetRoute } from '@/lib/routes';
+import { containers } from '@/lib/shared/designSystem';
+import { assetRoute } from '@/lib/shared/routes';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface MarketsMobileViewProps {
   initialAssets: MarketAsset[];
   xlmPrice: number;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
   loading?: boolean;
+  currentPage: number;
+  hasNextPage: boolean;
+  onPageChange: (page: number) => void;
+  totalPages?: number;
+  totalItems?: number;
 }
 
-type SortField = 'market_cap' | 'price_usd' | 'change_24h' | 'change_7d' | 'volume_24h';
+type SortField = 'rank' | 'market_cap' | 'price_usd' | 'change_1h' | 'change_24h' | 'volume_24h';
 
 function formatNumber(num: number): string {
   if (num === 0 || isNaN(num)) return '$--.--';
@@ -61,39 +68,78 @@ function formatXLMPrice(priceInXlm: number): string {
 }
 
 function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
-  if (!data || data.length === 0) {
-    return (
-      <svg className="overflow-visible" height="18" viewBox="0 0 48 18" width="48">
-        <path d="M0 9 L24 9 L48 9" fill="none" stroke="var(--text-muted)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-      </svg>
-    );
-  }
+  const gradientId = useId();
+  const width = 64;
+  const height = 28;
+  const padding = 3;
 
-  const width = 48;
-  const height = 18;
-  const padding = 2;
+  if (!data || data.length === 0) {
+    return <div style={{ width, height }} />;
+  }
 
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
 
+  const denominator = Math.max(data.length - 1, 1);
   const points = data.map((value, index) => {
-    const x = (index / (data.length - 1)) * width;
+    const x = padding + (index / denominator) * (width - padding * 2);
     const y = height - padding - ((value - min) / range) * (height - padding * 2);
-    return `${x.toFixed(1)} ${y.toFixed(1)}`;
-  }).join(' L ');
+    return { x, y, value };
+  });
+
+  const makeSmoothLinePath = () => {
+    if (points.length === 1) {
+      const p = points[0];
+      return `M ${p.x} ${p.y} L ${p.x + 0.1} ${p.y}`;
+    }
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i += 1) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const cx = (prev.x + curr.x) / 2;
+      d += ` Q ${prev.x} ${prev.y} ${cx} ${(prev.y + curr.y) / 2}`;
+    }
+    const last = points[points.length - 1];
+    d += ` T ${last.x} ${last.y}`;
+    return d;
+  };
+
+  const linePath = makeSmoothLinePath();
+  const firstPoint = `${padding},${height - padding}`;
+  const lastPoint = `${width - padding},${height - padding}`;
+  const areaPath = `${linePath} L ${lastPoint} L ${firstPoint} Z`;
 
   const color = positive ? '#10b981' : '#ef4444';
+  const fillColor = positive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)';
+  const lastVisiblePoint = points[points.length - 1];
 
   return (
-    <svg className="overflow-visible" height="18" viewBox="0 0 48 18" width="48">
+    <svg width={width} height={height} className="overflow-visible">
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={fillColor} />
+          <stop offset="100%" stopColor="transparent" />
+        </linearGradient>
+      </defs>
+
+      <path d={areaPath} fill={`url(#${gradientId})`} />
       <path
-        d={`M ${points}`}
+        d={linePath}
         fill="none"
         stroke={color}
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="1.5"
+      />
+
+      <circle
+        cx={lastVisiblePoint.x}
+        cy={lastVisiblePoint.y}
+        r="2"
+        fill={color}
+        stroke="var(--bg-secondary)"
+        strokeWidth="1"
       />
     </svg>
   );
@@ -119,14 +165,25 @@ function getAssetUrl(asset: MarketAsset): string {
 
 const ASSETS_PER_PAGE = 50;
 
-export default function MarketsMobileView({ initialAssets, xlmPrice, loading = false }: MarketsMobileViewProps) {
+export default function MarketsMobileView({
+  initialAssets,
+  xlmPrice,
+  searchQuery,
+  onSearchQueryChange,
+  loading = false,
+  currentPage,
+  hasNextPage,
+  onPageChange,
+  totalPages = 1,
+  totalItems = 0,
+}: MarketsMobileViewProps) {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortField, setSortField] = useState<SortField>('market_cap');
+  const [sortField, setSortField] = useState<SortField>('rank');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [visibleCount, setVisibleCount] = useState(ASSETS_PER_PAGE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const paginationTotalPages = Math.max(totalPages, hasNextPage ? currentPage + 1 : currentPage, 1);
 
   // Calculate market totals
   const marketTotals = useMemo(() => {
@@ -139,20 +196,26 @@ export default function MarketsMobileView({ initialAssets, xlmPrice, loading = f
   const filteredAndSortedAssets = useMemo(() => {
     let assets = [...initialAssets];
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
       assets = assets.filter(
-        (asset) => asset.code.toLowerCase().includes(query) || asset.name.toLowerCase().includes(query)
+        (asset) => {
+          const code = String(asset.code || '').toLowerCase();
+          const issuer = String(asset.issuer || '').toLowerCase();
+          const label = String((asset as any).label ?? asset.name ?? '').toLowerCase();
+          return code.includes(query) || issuer.includes(query) || label.includes(query);
+        }
       );
     }
 
     assets.sort((a, b) => {
       let comparison = 0;
       switch (sortField) {
+        case 'rank': comparison = (a.rank || 0) - (b.rank || 0); break;
         case 'market_cap': comparison = (b.market_cap || 0) - (a.market_cap || 0); break;
         case 'price_usd': comparison = (b.price_usd || 0) - (a.price_usd || 0); break;
         case 'change_24h': comparison = (b.change_24h || 0) - (a.change_24h || 0); break;
-        case 'change_7d': comparison = (b.change_7d || 0) - (a.change_7d || 0); break;
+        case 'change_1h': comparison = (b.change_1h || 0) - (a.change_1h || 0); break;
         case 'volume_24h': comparison = (b.volume_24h || 0) - (a.volume_24h || 0); break;
       }
       return comparison;
@@ -167,7 +230,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice, loading = f
   }, [filteredAndSortedAssets, visibleCount]);
 
   const hasMoreItems = visibleCount < filteredAndSortedAssets.length;
-  const totalItems = filteredAndSortedAssets.length;
+  const filteredCount = filteredAndSortedAssets.length;
 
   // Load more items function
   const loadMore = useCallback(() => {
@@ -213,7 +276,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice, loading = f
 
   // Reset visible count when filters change
   const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
+    onSearchQueryChange(value);
   };
 
   const handleSortChange = (field: SortField) => {
@@ -226,10 +289,11 @@ export default function MarketsMobileView({ initialAssets, xlmPrice, loading = f
   };
 
   const sortLabels: Record<SortField, string> = {
+    rank: 'Rank',
     market_cap: 'Market Cap',
     volume_24h: 'Volume',
+    change_1h: '1h Change',
     change_24h: '24h Change',
-    change_7d: '7d Change',
     price_usd: 'Price',
   };
 
@@ -274,7 +338,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice, loading = f
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 16v-4m0-4h.01" />
                 </svg>
               </div>
-              <p className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{loading ? <InlineSkeleton width="w-10" /> : marketTotals.totalAssets}</p>
+              <p className="text-sm font-bold" style={{ color: 'var(--primary-blue)' }}>{loading ? <InlineSkeleton width="w-10" /> : (totalItems > 0 ? totalItems.toLocaleString() : marketTotals.totalAssets)}</p>
               <div className="absolute top-full right-0 mt-2 px-2 py-1 bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30 border border-[var(--border-default)]">
                 Total tracked Stellar assets
               </div>
@@ -294,7 +358,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice, loading = f
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Search assets..."
+              placeholder="Search by code, issuer, label..."
               className="w-full h-10 pl-10 pr-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl text-sm font-medium placeholder-[var(--text-muted)] text-[var(--text-primary)]"
             />
           </div>
@@ -331,7 +395,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice, loading = f
         {/* Stats Row */}
         <div className="flex justify-between items-center mt-3 px-4">
           <span className="text-xs font-medium text-[var(--text-tertiary)]">
-            {loading ? <InlineSkeleton width="w-36" /> : <>{totalItems} assets {totalItems > ASSETS_PER_PAGE && `• Showing ${Math.min(visibleCount, totalItems)}`}</>}
+            {loading ? <InlineSkeleton width="w-36" /> : <>{filteredCount} assets {filteredCount > ASSETS_PER_PAGE && `• Showing ${Math.min(visibleCount, filteredCount)}`}</>}
           </span>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
@@ -359,7 +423,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice, loading = f
                 className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-3 py-3 flex items-center"
               >
                 <div className="w-6 flex-shrink-0"><InlineSkeleton width="w-4" /></div>
-                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2 bg-[var(--bg-tertiary)]" />
+                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2 bg-slate-700" />
                 <div className="flex-1 min-w-0">
                   <InlineSkeleton width="w-14" />
                   <div className="mt-1"><InlineSkeleton width="w-20" /></div>
@@ -377,9 +441,10 @@ export default function MarketsMobileView({ initialAssets, xlmPrice, loading = f
           ) : visibleAssets.map((asset, index) => {
             const hasData = asset.price_usd > 0 && asset.market_cap > 0;
             const priceInXlm = xlmPrice > 0 ? (asset.price_usd || 0) / xlmPrice : 0;
-            const change = asset.change_24h || 0;
+            const change = asset.change_1h || 0;
             const isPositive = change > 0;
             const isNeutral = change === 0;
+            const displayRank = asset.rank > 0 ? asset.rank : ((currentPage - 1) * 50 + index + 1);
 
             return (
               <div
@@ -389,13 +454,13 @@ export default function MarketsMobileView({ initialAssets, xlmPrice, loading = f
               >
                 {/* Rank */}
                 <div className="w-6 flex-shrink-0">
-                  <span className="text-xs font-medium text-[var(--text-muted)]">
-                    {index + 1}
+                    <span className="text-xs font-medium text-[var(--text-muted)]">
+                    {displayRank}
                   </span>
                 </div>
 
                 {/* Logo */}
-                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2 bg-[var(--bg-tertiary)] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-2 bg-slate-700 flex items-center justify-center">
                   {asset.code === 'XLM' && !asset.issuer ? (
                     <div className="w-full h-full bg-[var(--text-primary)] flex items-center justify-center">
                       <svg className="w-5 h-5 text-[var(--bg-primary)]" viewBox="0 0 24 24" fill="currentColor">
@@ -412,7 +477,7 @@ export default function MarketsMobileView({ initialAssets, xlmPrice, loading = f
                       unoptimized
                     />
                   ) : (
-                    <span className="text-xs font-bold text-[var(--text-muted)]">
+                    <span className="text-xs font-bold text-slate-100">
                       {asset.code.slice(0, 2)}
                     </span>
                   )}
@@ -471,16 +536,78 @@ export default function MarketsMobileView({ initialAssets, xlmPrice, loading = f
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              Load more ({totalItems - visibleCount} remaining)
+              Load more ({filteredCount - visibleCount} remaining)
             </button>
           </div>
         )}
 
         {/* No More Items Message */}
-        {!hasMoreItems && totalItems > ASSETS_PER_PAGE && (
+        {!hasMoreItems && filteredCount > ASSETS_PER_PAGE && (
           <div className="flex items-center justify-center py-4 pb-4">
             <span className="text-xs font-medium text-[var(--text-muted)]">
-              All {totalItems} assets displayed
+              All {filteredCount} assets displayed
+            </span>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && filteredAndSortedAssets.length > 0 && (paginationTotalPages > 1 || hasNextPage || currentPage > 1) && (
+          <div className="flex flex-col items-center gap-3 py-4 pb-20">
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] active:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              {(() => {
+                const pages: (number | string)[] = [];
+                if (paginationTotalPages <= 5) {
+                  for (let i = 1; i <= paginationTotalPages; i++) pages.push(i);
+                } else {
+                  pages.push(1);
+                  if (currentPage > 3) pages.push('...');
+                  const start = Math.max(2, currentPage - 1);
+                  const end = Math.min(paginationTotalPages - 1, currentPage + 1);
+                  for (let i = start; i <= end; i++) pages.push(i);
+                  if (currentPage < paginationTotalPages - 2) pages.push('...');
+                  pages.push(paginationTotalPages);
+                }
+                return pages.map((page, idx) =>
+                  page === '...' ? (
+                    <span key={`ellipsis-${idx}`} className="text-[var(--text-muted)] text-xs px-1">...</span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => onPageChange(page as number)}
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
+                        currentPage === page
+                          ? 'bg-sky-600 text-white shadow-sm'
+                          : 'text-[var(--text-muted)] active:bg-sky-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                );
+              })()}
+
+              <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={!hasNextPage}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] active:bg-[var(--bg-tertiary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            <span className="text-[10px] font-medium text-[var(--text-muted)]">
+              Page {currentPage} of {paginationTotalPages} ({totalItems.toLocaleString()} assets)
             </span>
           </div>
         )}

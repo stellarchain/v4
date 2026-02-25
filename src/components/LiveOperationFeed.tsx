@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
 import CompactOperationRow from './CompactOperationRow';
-import { Operation, getBaseUrl } from '@/lib/stellar';
+import { Operation, getOperations } from '@/lib/stellar';
 
 interface LiveOperationFeedProps {
   initialOperations: Operation[];
@@ -18,9 +18,8 @@ export default function LiveOperationFeed({ initialOperations, limit = 10 }: Liv
 
   const fetchOperations = useCallback(async () => {
     try {
-      const res = await fetch(`${getBaseUrl()}/operations?limit=${limit}&order=desc`);
-      const data = await res.json();
-      const newOperations: Operation[] = data._embedded.records;
+      const data = await getOperations(limit, 'desc');
+      const newOperations: Operation[] = data.records;
 
       setOperations(prevOperations => {
         const newIds = new Set(newOperations.map(o => o.id));

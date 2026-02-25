@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { Transaction, getTransactionDisplayInfo, Operation, getBaseUrl, normalizeTransactions, shortenAddress, getTransactionOperations } from '@/lib/stellar';
+import {
+  Transaction,
+  getTransactionDisplayInfo,
+  Operation,
+  normalizeTransactions,
+  shortenAddress,
+  getTransactionOperations,
+  getTransactions,
+  getPayments
+} from '@/lib/stellar';
 import { useNetwork } from '@/contexts/NetworkContext';
 import GliderTabs from '@/components/ui/GliderTabs';
 
@@ -18,7 +27,7 @@ const PAGE_SIZE = 25;
 async function fetchTransactionWithOps(tx: Transaction): Promise<Transaction> {
   try {
     const opsResponse = await getTransactionOperations(tx.hash, 20);
-    const operations = opsResponse._embedded.records;
+    const operations = opsResponse.records || [];
     return {
       ...tx,
       displayInfo: getTransactionDisplayInfo(operations),
@@ -155,16 +164,29 @@ export default function TransactionsDesktopView({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [oldestCursor, setOldestCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [isPageVisible, setIsPageVisible] = useState(true);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const animatedIdsRef = useRef<Set<string>>(new Set());
   const enrichedIdsRef = useRef<Set<string>>(new Set());
+  const latestCursorRef = useRef<string | null>(null);
 
 
   const fetchTransactions = useCallback(async () => {
     try {
-      const txRes = await fetch(`${getBaseUrl()}/transactions?limit=15&order=desc`);
-      const txData = await txRes.json();
-      const newTransactions: Transaction[] = normalizeTransactions(txData._embedded.records || []);
+      const txData = latestCursorRef.current
+        ? await getTransactions(50, 'asc', latestCursorRef.current)
+        : await getTransactions(15, 'desc');
+      const newTransactions: Transaction[] = normalizeTransactions(txData.records || []);
+
+      if (newTransactions.length > 0) {
+        const newest =
+          latestCursorRef.current
+            ? newTransactions[newTransactions.length - 1]
+            : newTransactions[0];
+        if (newest?.paging_token) {
+          latestCursorRef.current = newest.paging_token;
+        }
+      }
 
       // Filter to only new transactions we haven't seen
       const unseenTxs = newTransactions.filter(tx => !seenIdsRef.current.has(tx.hash));
@@ -217,11 +239,8 @@ export default function TransactionsDesktopView({
         return;
       }
 
-      const res = await fetch(
-        `${getBaseUrl()}/transactions?limit=${PAGE_SIZE}&order=desc&cursor=${cursor}`
-      );
-      const data = await res.json();
-      const olderTransactions: Transaction[] = normalizeTransactions(data._embedded.records || []);
+      const data = await getTransactions(PAGE_SIZE, 'desc', cursor);
+      const olderTransactions: Transaction[] = normalizeTransactions(data.records || []);
 
       if (olderTransactions.length === 0) {
         setIsLoadingMore(false);
@@ -282,20 +301,17 @@ export default function TransactionsDesktopView({
       setIsEnrichingData(true);
       try {
         // Fetch transactions and payments in parallel
-        const [txRes, paymentsRes] = await Promise.all([
-          fetch(`${getBaseUrl()}/transactions?limit=${limit}&order=desc`),
-          fetch(`${getBaseUrl()}/payments?limit=30&order=desc`).catch(() => null),
+        const [txData, paymentsData] = await Promise.all([
+          getTransactions(limit, 'desc'),
+          getPayments(30, 'desc').catch(() => null),
         ]);
-
-        const txData = await txRes.json();
-        const rawTransactions: Transaction[] = normalizeTransactions(txData._embedded.records || []);
+        const rawTransactions: Transaction[] = normalizeTransactions(txData.records || []);
 
         // Process payment operations if available
         let paymentOps: Operation[] = [];
-        if (paymentsRes && paymentsRes.ok) {
+        if (paymentsData) {
           try {
-            const paymentsData = await paymentsRes.json();
-            paymentOps = paymentsData._embedded?.records || [];
+            paymentOps = paymentsData.records || [];
           } catch {
             // Ignore payment parse errors
           }
@@ -336,6 +352,14 @@ export default function TransactionsDesktopView({
           Array.from(paymentTxMap.values())
         );
 
+        if (rawTransactions.length > 0) {
+          latestCursorRef.current = rawTransactions[0]?.paging_token || null;
+          setOldestCursor(rawTransactions[rawTransactions.length - 1]?.paging_token || null);
+        } else {
+          latestCursorRef.current = null;
+          setOldestCursor(null);
+        }
+
         setTransactions(allTxs);
         seenIdsRef.current = new Set(allTxs.map(t => t.hash));
         animatedIdsRef.current = new Set(allTxs.map(t => t.hash));
@@ -353,11 +377,20 @@ export default function TransactionsDesktopView({
   }, [network, limit]);
 
   useEffect(() => {
+    const onVisibilityChange = () => {
+      setIsPageVisible(!document.hidden);
+    };
+    onVisibilityChange();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
+
+  useEffect(() => {
     // Don't start polling until initial enrichment is complete
-    if (isEnrichingData) return;
+    if (isEnrichingData || !isPageVisible) return;
     const interval = setInterval(fetchTransactions, 3000);
     return () => clearInterval(interval);
-  }, [fetchTransactions, isEnrichingData]);
+  }, [fetchTransactions, isEnrichingData, isPageVisible]);
 
   // Filter transactions based on selected filter
   const filteredTransactions = transactions.filter(tx => {
@@ -383,11 +416,14 @@ export default function TransactionsDesktopView({
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const visibleTransactions = filteredTransactions.slice(startIndex, startIndex + PAGE_SIZE);
 
-  // Lazily enrich visible transactions that haven't been enriched yet
-  // This effect re-runs when visibleTransactions changes (e.g. after setTransactions).
-  // We mark candidates per-batch so that when the effect re-triggers after state updates,
-  // remaining unenriched transactions are still picked up.
+  // Lazily enrich visible transactions that haven't been enriched yet.
+  // Single controlled loop with delay between batches to avoid flooding the API.
+  const isEnrichingVisibleRef = useRef(false);
+  const enrichVisibleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
+    if (isEnrichingVisibleRef.current) return;
+
     const candidates = visibleTransactions.filter(tx =>
       (!tx.displayInfo || tx.displayInfo.type === 'other') &&
       !enrichedIdsRef.current.has(tx.hash)
@@ -395,23 +431,44 @@ export default function TransactionsDesktopView({
 
     if (candidates.length === 0) return;
 
-    // Only take the first batch — after setTransactions, the effect will re-run
-    // and pick up the next batch automatically
-    const batch = candidates.slice(0, 5);
-    batch.forEach(tx => enrichedIdsRef.current.add(tx.hash));
-
+    isEnrichingVisibleRef.current = true;
     let mounted = true;
-    const enrichBatch = async () => {
-      const batchResults = await Promise.all(batch.map(fetchTransactionWithOps));
-      if (!mounted) return;
-      setTransactions(prev => prev.map(t => {
-        const enriched = batchResults.find(r => r.hash === t.hash);
-        return enriched ? enriched : t;
-      }));
+
+    const runEnrichment = async () => {
+      const BATCH_SIZE = 3;
+      const allCandidates = [...candidates];
+
+      for (let i = 0; i < allCandidates.length; i += BATCH_SIZE) {
+        if (!mounted) break;
+
+        const batch = allCandidates.slice(i, i + BATCH_SIZE);
+        batch.forEach(tx => enrichedIdsRef.current.add(tx.hash));
+
+        const batchResults = await Promise.all(batch.map(fetchTransactionWithOps));
+        if (!mounted) break;
+
+        setTransactions(prev => prev.map(t => {
+          const enriched = batchResults.find(r => r.hash === t.hash);
+          return enriched ? enriched : t;
+        }));
+
+        if (i + BATCH_SIZE < allCandidates.length) {
+          await new Promise(resolve => {
+            enrichVisibleTimerRef.current = setTimeout(resolve, 1000);
+          });
+        }
+      }
+
+      isEnrichingVisibleRef.current = false;
     };
 
-    enrichBatch();
-    return () => { mounted = false; };
+    runEnrichment();
+
+    return () => {
+      mounted = false;
+      isEnrichingVisibleRef.current = false;
+      if (enrichVisibleTimerRef.current) clearTimeout(enrichVisibleTimerRef.current);
+    };
   }, [visibleTransactions]);
 
   // Get transaction type info
@@ -540,20 +597,38 @@ export default function TransactionsDesktopView({
             <div className="flex gap-3">
               <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total</div>
-                <div className="text-lg font-bold text-[var(--text-primary)]">{stats.total}</div>
+                <div className="text-lg font-bold text-[var(--text-primary)] inline-flex items-center gap-1.5">
+                  {stats.total}
+                  <svg className="w-3 h-3 text-emerald-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                  </svg>
+                </div>
               </div>
               <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 min-w-[90px]">
                 <div className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-1">Payments</div>
-                <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{stats.payments}</div>
+                <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1.5">
+                  {stats.payments}
+                  <svg className="w-3 h-3 text-emerald-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                  </svg>
+                </div>
               </div>
               <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 min-w-[90px]">
                 <div className="text-[9px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-1">Contracts</div>
-                <div className="text-lg font-bold text-amber-700 dark:text-amber-400">{stats.contracts}</div>
+                <div className="text-lg font-bold text-amber-700 dark:text-amber-400 inline-flex items-center gap-1.5">
+                  {stats.contracts}
+                  <svg className="w-3 h-3 text-emerald-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                  </svg>
+                </div>
               </div>
               <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[90px]">
                 <div className="text-[9px] font-bold text-sky-700 dark:text-sky-400 uppercase tracking-widest mb-1">Success</div>
-                <div className="text-lg font-bold text-sky-700 dark:text-sky-400">
+                <div className="text-lg font-bold text-sky-700 dark:text-sky-400 inline-flex items-center gap-1.5">
                   {stats.total > 0 ? ((stats.successful / stats.total) * 100).toFixed(1) : 0}%
+                  <svg className="w-3 h-3 text-emerald-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                  </svg>
                 </div>
               </div>
             </div>

@@ -45,6 +45,7 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
     const volumeChartContainerRef = useRef<HTMLDivElement>(null);
     const chartInstanceRef = useRef<ReturnType<typeof createChart> | null>(null);
     const [loading, setLoading] = useState(true);
+    const [noTrades, setNoTrades] = useState(false);
     const [resolution, setResolution] = useState(900000); // 15 min default
     const [viewMode, setViewMode] = useState<'price' | 'volume'>('price');
     const [volumeData, setVolumeData] = useState<VolumeDataPoint[]>([]);
@@ -64,9 +65,24 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
         time: string;
     } | null>(null);
 
+    // Refs for infinite scroll state
+    const allCandleDataRef = useRef<{ time: any; open: number; high: number; low: number; close: number }[]>([]);
+    const allVolumeDataRef = useRef<{ time: any; value: number; color: string }[]>([]);
+    const earliestTimestampRef = useRef<number>(0);
+    const isFetchingMoreRef = useRef(false);
+    const xlmUsdPriceRef = useRef<number>(0);
+    const noMoreDataRef = useRef(false);
+
     useEffect(() => {
         if (!chartContainerRef.current) return;
         let cancelled = false;
+
+        // Reset infinite scroll state on resolution/asset change
+        allCandleDataRef.current = [];
+        allVolumeDataRef.current = [];
+        earliestTimestampRef.current = 0;
+        isFetchingMoreRef.current = false;
+        noMoreDataRef.current = false;
 
         // Initialize Chart
         const chart = createChart(chartContainerRef.current, {
@@ -134,16 +150,49 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
             },
         });
 
+        const isXLM = asset.code === 'XLM';
+        const counterAsset = isXLM
+            ? { code: 'USDC', issuer: USDC_ISSUER }
+            : { code: 'XLM' };
+
+        const processRawData = (data: any[], xlmUsdPrice: number) => {
+            return data.map(item => {
+                let close = parseFloat(item.close);
+                let open = parseFloat(item.open);
+                let high = parseFloat(item.high);
+                let low = parseFloat(item.low);
+
+                if (!isXLM) {
+                    close *= xlmUsdPrice;
+                    open *= xlmUsdPrice;
+                    high *= xlmUsdPrice;
+                    low *= xlmUsdPrice;
+                }
+
+                const bodyMax = Math.max(open, close);
+                const bodyMin = Math.min(open, close);
+                const saneHigh = high > bodyMax * 5 ? bodyMax * 1.5 : high;
+                const saneLow = low < bodyMin * 0.2 ? bodyMin * 0.5 : low;
+
+                return {
+                    time: item.timestamp / 1000 as any,
+                    open,
+                    high: saneHigh,
+                    low: saneLow,
+                    close,
+                    color: close >= open ? 'rgba(16, 185, 129, 0.5)' : 'rgba(244, 63, 94, 0.5)',
+                    volume: parseFloat(item.base_volume),
+                };
+            });
+        };
+
         const fetchData = async () => {
             setLoading(true);
+            setNoTrades(false);
             try {
                 const xlmUsdPrice = await getXLMUSDPriceFromHorizon();
+                xlmUsdPriceRef.current = xlmUsdPrice;
                 if (cancelled) return;
-
-                const isXLM = asset.code === 'XLM';
-                const counterAsset = isXLM
-                    ? { code: 'USDC', issuer: USDC_ISSUER }
-                    : { code: 'XLM' };
 
                 const data = await getTradeAggregations(
                     { code: asset.code, issuer: asset.issuer },
@@ -153,49 +202,52 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
                 );
                 if (cancelled) return;
 
-                const processedData = data.reverse().map(item => {
-                    let close = parseFloat(item.close);
-                    let open = parseFloat(item.open);
-                    let high = parseFloat(item.high);
-                    let low = parseFloat(item.low);
+                if (data.length === 0) {
+                    noMoreDataRef.current = true;
+                    allCandleDataRef.current = [];
+                    allVolumeDataRef.current = [];
+                    earliestTimestampRef.current = 0;
+                    candlestickSeries.setData([]);
+                    volumeSeries.setData([]);
+                    setTooltipData(null);
+                    setVolumeData([]);
+                    setVolumeStats({
+                        total: 0,
+                        average: 0,
+                        high: 0,
+                        low: 0,
+                        totalTrades: 0,
+                    });
+                    setNoTrades(true);
+                    return;
+                }
 
-                    if (!isXLM) {
-                        close *= xlmUsdPrice;
-                        open *= xlmUsdPrice;
-                        high *= xlmUsdPrice;
-                        low *= xlmUsdPrice;
-                    }
+                const processedData = processRawData(data.reverse(), xlmUsdPrice);
 
-                    const bodyMax = Math.max(open, close);
-                    const bodyMin = Math.min(open, close);
-                    const saneHigh = high > bodyMax * 5 ? bodyMax * 1.5 : high;
-                    const saneLow = low < bodyMin * 0.2 ? bodyMin * 0.5 : low;
+                if (processedData.length > 0) {
+                    earliestTimestampRef.current = processedData[0].time * 1000;
+                }
 
-                    return {
-                        time: item.timestamp / 1000 as any,
-                        open,
-                        high: saneHigh,
-                        low: saneLow,
-                        close,
-                        color: close >= open ? 'rgba(16, 185, 129, 0.5)' : 'rgba(244, 63, 94, 0.5)',
-                        volume: parseFloat(item.base_volume),
-                    };
-                });
-
-                if (cancelled) return;
-                candlestickSeries.setData(processedData.map(d => ({
+                const candleData = processedData.map(d => ({
                     time: d.time,
                     open: d.open,
                     high: d.high,
                     low: d.low,
                     close: d.close
-                })));
+                }));
 
-                volumeSeries.setData(processedData.map(d => ({
+                const volData = processedData.map(d => ({
                     time: d.time,
                     value: d.volume,
                     color: d.color
-                })));
+                }));
+
+                allCandleDataRef.current = candleData;
+                allVolumeDataRef.current = volData;
+
+                if (cancelled) return;
+                candlestickSeries.setData(candleData);
+                volumeSeries.setData(volData);
 
                 const volumePoints: VolumeDataPoint[] = processedData.map((d, i) => ({
                     time: d.time * 1000,
@@ -218,15 +270,101 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
                     totalTrades: trades.reduce((a, b) => a + b, 0),
                 });
 
-                chart.timeScale().fitContent();
+                chart.timeScale().scrollToRealTime();
+
+                // Set visible range to show only the data range (no empty left space)
+                if (candleData.length > 1) {
+                    chart.timeScale().setVisibleRange({
+                        from: candleData[0].time,
+                        to: candleData[candleData.length - 1].time,
+                    });
+                }
+                setNoTrades(false);
 
             } catch (error) {
                 console.error("Failed to fetch candlestick data", error);
+            } finally {
+                if (!cancelled) setLoading(false);
             }
-            if (!cancelled) setLoading(false);
+        };
+
+        // Fetch older data when scrolling to the left edge
+        const fetchOlderData = async () => {
+            if (isFetchingMoreRef.current || noMoreDataRef.current || cancelled) return;
+            isFetchingMoreRef.current = true;
+
+            try {
+                const endTime = earliestTimestampRef.current;
+                if (!endTime) return;
+
+                const data = await getTradeAggregations(
+                    { code: asset.code, issuer: asset.issuer },
+                    counterAsset,
+                    resolution,
+                    200,
+                    undefined,
+                    endTime
+                );
+                if (cancelled) return;
+
+                if (data.length === 0) {
+                    noMoreDataRef.current = true;
+                    return;
+                }
+
+                const processedData = processRawData(data.reverse(), xlmUsdPriceRef.current);
+
+                // Filter out any duplicates
+                const existingTimes = new Set(allCandleDataRef.current.map(d => d.time));
+                const newCandles = processedData
+                    .filter(d => !existingTimes.has(d.time))
+                    .map(d => ({
+                        time: d.time,
+                        open: d.open,
+                        high: d.high,
+                        low: d.low,
+                        close: d.close
+                    }));
+
+                const newVolumes = processedData
+                    .filter(d => !existingTimes.has(d.time))
+                    .map(d => ({
+                        time: d.time,
+                        value: d.volume,
+                        color: d.color
+                    }));
+
+                if (newCandles.length === 0) {
+                    noMoreDataRef.current = true;
+                    return;
+                }
+
+                // Prepend older data
+                allCandleDataRef.current = [...newCandles, ...allCandleDataRef.current];
+                allVolumeDataRef.current = [...newVolumes, ...allVolumeDataRef.current];
+                earliestTimestampRef.current = newCandles[0].time * 1000;
+
+                candlestickSeries.setData(allCandleDataRef.current);
+                volumeSeries.setData(allVolumeDataRef.current);
+
+            } catch (error) {
+                console.error("Failed to fetch older chart data", error);
+            } finally {
+                isFetchingMoreRef.current = false;
+            }
         };
 
         fetchData();
+
+        // Subscribe to visible range changes for infinite scroll
+        const onVisibleRangeChange = (newRange: any) => {
+            if (cancelled || !newRange) return;
+            // When the user scrolls so that the left edge of visible data is near the beginning
+            if (newRange.from < 10) {
+                fetchOlderData();
+            }
+        };
+        chart.timeScale().subscribeVisibleLogicalRangeChange(onVisibleRangeChange);
 
         // Subscribe to crosshair for OHLC tooltip
         const crosshairHandler = (param: any) => {
@@ -276,6 +414,7 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
             chartInstanceRef.current = null;
             ro.disconnect();
             window.removeEventListener('resize', handleResize);
+            chart.timeScale().unsubscribeVisibleLogicalRangeChange(onVisibleRangeChange);
             chart.unsubscribeCrosshairMove(crosshairHandler);
             chart.remove();
         };
@@ -417,9 +556,17 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
                                 <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
                             </div>
                         )}
+                        {!loading && noTrades && (
+                            <div className="absolute inset-0 z-30 border border-dashed border-[var(--border-default)] bg-[var(--bg-secondary)] flex items-center justify-center px-4 text-center">
+                                <div>
+                                    <div className="text-sm font-semibold text-[var(--text-secondary)]">No trades in this period</div>
+                                    <div className="text-xs text-[var(--text-muted)] mt-1">Trade aggregations returned no records.</div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     {/* OHLC Tooltip */}
-                    {tooltipData && !loading && (
+                    {tooltipData && !loading && !noTrades && (
                         <div className="absolute top-2 left-2 z-30 bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-primary)] text-[11px] rounded-lg px-3 py-2 shadow-lg pointer-events-none">
                             <div className="text-[var(--text-muted)] mb-1.5 font-medium">{tooltipData.time}</div>
                             <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
@@ -446,6 +593,15 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
 
             {/* Volume View */}
             <div className={`space-y-4 ${viewMode !== 'volume' ? 'hidden' : ''}`}>
+                    {noTrades ? (
+                        <div className="w-full h-[200px] rounded-lg border border-dashed border-[var(--border-default)] bg-[var(--bg-tertiary)]/40 flex items-center justify-center px-4 text-center">
+                            <div>
+                                <div className="text-sm font-semibold text-[var(--text-secondary)]">No volume data</div>
+                                <div className="text-xs text-[var(--text-muted)] mt-1">There are no trades for the selected range.</div>
+                            </div>
+                        </div>
+                    ) : (
+                    <>
                     {/* Volume Stats Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                         <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 border border-[var(--border-subtle)]">
@@ -521,9 +677,11 @@ export default function AssetCandlestickChart({ asset, className }: ChartProps) 
                                             {item.priceChange >= 0 ? '+' : ''}{item.priceChange.toFixed(2)}%
                                         </div>
                                     </div>
-                                ))}
+                            ))}
                         </div>
                     </div>
+                    </>
+                    )}
                 </div>
         </div>
     );

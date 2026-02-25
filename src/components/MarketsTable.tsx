@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import { assetRoute } from '@/lib/routes';
+import { assetRoute } from '@/lib/shared/routes';
 
 interface MarketsTableProps {
   initialAssets: MarketAsset[];

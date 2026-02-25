@@ -3,7 +3,7 @@
 // https://developers.stellar.org/docs/data/rpc
 
 import { rpc, xdr, Address, scValToNative } from '@stellar/stellar-sdk';
-import { getSorobanServer, isContractAddress } from './soroban';
+import { getSorobanServer, isContractAddress } from './client';
 
 // ============================================================================
 // Types

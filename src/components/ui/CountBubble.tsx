@@ -1,4 +1,4 @@
-import { cn } from '@/lib/design-system';
+import { cn } from '@/lib/shared/designSystem';
 
 interface CountBubbleProps {
   value: number | string;

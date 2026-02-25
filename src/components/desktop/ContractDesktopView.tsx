@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { shortenAddress, timeAgo, getOperationTypeLabel, ContractInvocation } from '@/lib/stellar';
-import type { TokenRegistryEntry, ContractVerification } from '@/lib/types/token';
-import type { ContractMetadataResult, ContractAccessControlResult } from '@/lib/contractMetadata';
-import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
-import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isMintEventData, isBurnEventData, isApproveEventData, isCustomEventData, CustomEventData } from '@/lib/eventParser';
-import { ContractStorageResult } from '@/lib/contractStorage';
+import type { TokenRegistryEntry, ContractVerification } from '@/lib/shared/interfaces';
+import type { ContractMetadataResult, ContractAccessControlResult } from '@/lib/soroban/contractMetadata';
+import type { NFTInfo, VaultInfo } from '@/lib/soroban/contractExtensions';
+import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isMintEventData, isBurnEventData, isApproveEventData, isCustomEventData, CustomEventData } from '@/lib/soroban/events';
+import { ContractStorageResult } from '@/lib/soroban/storage';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
@@ -52,10 +54,36 @@ interface ContractData {
   nftInfo?: NFTInfo | null;
   vaultInfo?: VaultInfo | null;
   events?: ParsedEvent[];
+  eventsPagination?: {
+    currentPage: number;
+    totalItems: number;
+    itemsPerPage: number;
+    hasMore?: boolean;
+    nextBeforeId?: number | null;
+    beforeId?: number | null;
+  };
   eventSummary?: EventSummary | null;
   storage?: ContractStorageResult | null;
   invocations?: ContractInvocation[];
+  historyInvocations?: ContractInvocation[];
+  historyPagination?: {
+    currentPage: number;
+    totalItems: number;
+    itemsPerPage: number;
+    hasMore?: boolean;
+    nextBeforeId?: number | null;
+    beforeId?: number | null;
+  };
   spec?: unknown;
+  // API data fields
+  totalTransactions?: number;
+  totalInvokes?: number;
+  createdAt?: string;
+  wasmId?: string;
+  contractCode?: string;
+  sourceCodeVerified?: boolean;
+  assetIssuer?: string;
+  isSAC?: boolean;
   _loading?: {
     events?: boolean;
     invocations?: boolean;
@@ -68,13 +96,16 @@ interface ContractDesktopViewProps {
   contract: ContractData;
   operations: Operation[];
   onTabChange?: (tabId: 'overview' | 'history' | 'events' | 'storage') => void;
+  onHistoryPageChange?: (page: number) => void;
+  onEventsPageChange?: (page: number) => void;
 }
 
-export default function ContractDesktopView({ contract, operations, onTabChange }: ContractDesktopViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'events' | 'storage' | 'history'>('overview');
+export default function ContractDesktopView({ contract, operations, onTabChange, onHistoryPageChange, onEventsPageChange }: ContractDesktopViewProps) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'events' | 'storage' | 'history' | 'code'>('overview');
   const [expandedStorageRows, setExpandedStorageRows] = useState<Set<number>>(new Set());
   const [copied, setCopied] = useState(false);
   const [copiedWasm, setCopiedWasm] = useState(false);
+  const sourceCode = contract.contractCode || null;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(contract.id);
@@ -89,14 +120,21 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
   };
 
   const tokenInfo = contract.tokenMetadata || contract.verifiedContract;
+  const eventsPagination = contract.eventsPagination;
+  const eventsList = contract.events ?? [];
+  const historyInvocations = contract.historyInvocations ?? contract.invocations ?? [];
+  const historyPagination = contract.historyPagination;
   const isToken = contract.type === 'token' || contract.type === 'lending';
   const isNFT = contract.type === 'nft';
   const isVault = contract.type === 'vault';
   const sectionLoading = contract._loading || {};
 
-  const handleTabChange = (tabId: 'overview' | 'history' | 'events' | 'storage') => {
+  const handleTabChange = (tabId: 'overview' | 'history' | 'events' | 'storage' | 'code') => {
     setActiveTab(tabId);
-    onTabChange?.(tabId);
+
+    if (tabId !== 'code') {
+      onTabChange?.(tabId as 'overview' | 'history' | 'events' | 'storage');
+    }
   };
 
   // Get a meaningful display name for the contract
@@ -124,6 +162,11 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
     const num = Number(value);
     if (Number.isNaN(num)) return value;
     return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: digits });
+  };
+
+  const formatEventDisplayName = (value: string) => {
+    if (!value) return '';
+    return value.charAt(0).toUpperCase() + value.slice(1);
   };
 
   // Helper to extract GitHub commit URL from source repo
@@ -204,7 +247,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
           <div className="flex items-center gap-4">
             {/* Back Button */}
             <Link
-              href="/"
+              href="/contracts"
               className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border-default)] text-[var(--text-muted)] transition hover:text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -317,7 +360,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
 
         {/* Main Content */}
         <div className="flex flex-col lg:flex-row gap-4 items-start">
-          <div className="flex-1 space-y-4">
+          <div className="flex-1 min-w-0 space-y-4">
             {/* Token Stats (if token) */}
             {isToken && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -397,16 +440,30 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
             )}
 
             {/* Tabs */}
-            <GliderTabs
-              size="md"
-              className="border-[var(--border-default)]"
-              tabs={[
-                { id: 'overview', label: 'Overview' },
-                { id: 'history', label: 'History', count: sectionLoading.invocations ? undefined : (contract.invocations?.length || 0) },
-                { id: 'events', label: 'Events', count: sectionLoading.events ? undefined : (contract.events?.length || 0) },
-                { id: 'storage', label: 'Storage', count: sectionLoading.storage ? undefined : (contract.storage?.totalEntries || 0) },
-              ] as const}
-              activeId={activeTab as 'overview' | 'history' | 'events' | 'storage'}
+              <GliderTabs
+                size="md"
+                className="border-[var(--border-default)]"
+                tabs={[
+                  { id: 'overview', label: 'Overview' },
+                  {
+                    id: 'history',
+                    label: 'History',
+                    count: contract.totalInvokes ?? contract.invocations?.length ?? 0,
+                  },
+                  {
+                    id: 'events',
+                    label: 'Events',
+                    count: contract.eventSummary?.totalEvents ?? 0,
+                  },
+                  {
+                    id: 'storage',
+                    label: 'Storage',
+                    count: sectionLoading.storage ? undefined : contract.storage?.totalEntries ?? 0,
+                  },
+                // Only show Code tab for actual contracts (not tokens)
+                ...(contract.type === 'contract' ? [{ id: 'code' as const, label: 'WASM' }] : []),
+              ]}
+              activeId={activeTab as 'overview' | 'history' | 'events' | 'storage' | 'code'}
               onChange={handleTabChange}
             />
 
@@ -421,106 +478,266 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                   </div>
                 )}
 
-                {/* Recent Activity - Events for Contracts */}
+                {/* Recent Transactions */}
                 <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                   <div className="flex items-center justify-between px-4 pt-4 pb-3">
-                    <h3 className="text-sm font-bold text-[var(--text-primary)]">Recent Activity</h3>
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">Recent Transactions</h3>
                     <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
-                      {sectionLoading.events ? <InlineSkeleton width="w-12" height="h-3" /> : `${contract.events?.length || 0} events`}
+                      {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${Math.min(contract.invocations?.length || 0, 5)} of ${contract.totalInvokes ?? contract.invocations?.length ?? 0}`}
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full sc-table">
+                      <thead>
+                        <tr className="border-b border-[var(--border-subtle)]">
+                          <th className="px-4 py-3 text-left text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Transaction</th>
+                          <th className="px-4 py-3 text-right text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border-subtle)]">
+                        {sectionLoading.invocations ? (
+                          Array.from({ length: 6 }).map((_, idx) => (
+                            <tr key={`overview-history-skeleton-${idx}`}>
+                              <td className="px-4 py-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-9 w-9 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+                                  <div className="min-w-0">
+                                    <InlineSkeleton width="w-44" />
+                                    <div className="mt-2">
+                                      <InlineSkeleton width="w-24" height="h-3" />
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-4 text-right">
+                                <InlineSkeleton width="w-28" />
+                              </td>
+                            </tr>
+                          ))
+                        ) : !contract.invocations || contract.invocations.length === 0 ? (
+                          <tr>
+                            <td colSpan={2} className="p-4 text-center text-sm text-[var(--text-muted)]">No transaction history found</td>
+                          </tr>
+                        ) : (
+                          contract.invocations.slice(0, 5).map((invocation, idx) => {
+                            const amountParam = invocation.parameters.find(p => p.type === 'I128' || p.type === 'U128');
+                            const displayAmount = amountParam?.decoded;
+                            const addressParams = invocation.parameters.filter(p =>
+                              p.type === 'Address' && p.decoded && p.decoded !== invocation.contractId
+                            );
+                            const resultAmt = invocation.resultAmount
+                              ? parseFloat(invocation.resultAmount).toLocaleString(undefined, { maximumFractionDigits: 7 })
+                              : null;
+                            const resultAsset = invocation.resultAsset || tokenInfo?.symbol || '';
+
+                            const getActionSummary = () => {
+                              const fn = invocation.functionName.toLowerCase();
+                              const symbol = tokenInfo?.symbol || '';
+                              const amount = displayAmount ? parseInt(displayAmount).toLocaleString() : '';
+                              const targetAddr = addressParams[0]?.decoded ? shortenAddress(addressParams[0].decoded) : '';
+
+                              switch (fn) {
+                                case 'harvest':
+                                  return resultAmt ? `Harvested ${resultAmt} ${resultAsset}` : 'Harvested rewards';
+                                case 'plant':
+                                  return amount ? `Planted ${amount}${symbol ? ` ${symbol}` : ''}` : 'Planted tokens';
+                                case 'transfer':
+                                  return resultAmt || amount ? `Sent ${resultAmt || amount}${symbol ? ` ${symbol}` : ''}${targetAddr ? ` to ${targetAddr}` : ''}` : 'Transferred tokens';
+                                case 'mint':
+                                  return resultAmt || amount ? `Minted ${resultAmt || amount}${symbol ? ` ${symbol}` : ''}` : 'Minted tokens';
+                                case 'burn':
+                                  return resultAmt || amount ? `Burned ${resultAmt || amount}${symbol ? ` ${symbol}` : ''}` : 'Burned tokens';
+                                case 'approve':
+                                  return `Approved spending${targetAddr ? ` for ${targetAddr}` : ''}`;
+                                case 'deposit':
+                                  return resultAmt || amount ? `Deposited ${resultAmt || amount}${symbol ? ` ${symbol}` : ''}` : 'Made a deposit';
+                                case 'withdraw':
+                                  return resultAmt || amount ? `Withdrew ${resultAmt || amount} ${resultAsset}` : 'Made a withdrawal';
+                                case 'stake':
+                                  return resultAmt || amount ? `Staked ${resultAmt || amount}${symbol ? ` ${symbol}` : ''}` : 'Staked tokens';
+                                case 'unstake':
+                                  return resultAmt || amount ? `Unstaked ${resultAmt || amount}${symbol ? ` ${symbol}` : ''}` : 'Unstaked tokens';
+                                case 'claim':
+                                  return resultAmt ? `Claimed ${resultAmt} ${resultAsset}` : 'Claimed rewards';
+                                case 'swap':
+                                  return 'Swapped tokens';
+                                case 'initialize':
+                                  return 'Initialized contract';
+                                default:
+                                  return `Invoked ${invocation.functionName}`;
+                              }
+                            };
+
+                            const summary = getActionSummary();
+
+                            return (
+                              <tr key={`overview-invocation-${idx}`} className="hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer" onClick={() => window.location.href = `/transaction/${invocation.txHash}`}>
+                                <td className="px-4 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="h-9 w-9 rounded-lg bg-sky-50 dark:bg-sky-900/40 flex items-center justify-center flex-shrink-0">
+                                      <svg className="w-4 h-4 text-sky-700 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                      </svg>
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <Link href={`/account/${invocation.sourceAccount}`} onClick={(e) => e.stopPropagation()} className="font-mono text-xs text-sky-600 hover:underline">
+                                          {shortenAddress(invocation.sourceAccount)}
+                                        </Link>
+                                        <span className="text-[var(--text-muted)] text-xs">invoked</span>
+                                        <Link href={`/transaction/${invocation.txHash}`} className="font-mono text-sm font-bold text-indigo-600 hover:underline">
+                                          {invocation.functionName}
+                                        </Link>
+                                      </div>
+                                      {summary && (
+                                        <div className="text-xs text-[var(--text-tertiary)] mt-0.5">
+                                          {summary}
+                                        </div>
+                                      )}
+                                      <Link href={`/transaction/${invocation.txHash}`} className="font-mono text-[10px] text-[var(--text-muted)] hover:text-sky-600 hover:underline">
+                                        {shortenAddress(invocation.txHash)}
+                                      </Link>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-4 text-right">
+                                  <span className="text-xs text-[var(--text-tertiary)]">
+                                    {new Date(invocation.createdAt).toLocaleString('en-US', {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      timeZoneName: 'short'
+                                    })}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  {contract.invocations && contract.invocations.length > 5 && (
+                    <button
+                      onClick={() => handleTabChange('history')}
+                      className="w-full rounded-b-xl border-t border-[var(--border-subtle)] py-3 text-center text-xs font-bold text-sky-600 transition-colors hover:bg-[var(--bg-tertiary)]"
+                    >
+                      View All {contract.totalInvokes ?? contract.invocations.length} Invocations
+                    </button>
+                  )}
+                </div>
+
+                {/* Recent Events */}
+                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
+                  <div className="flex items-center justify-between px-4 pt-4 pb-3">
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">Recent Events</h3>
+                    <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
+                      {sectionLoading.events ? <InlineSkeleton width="w-16" height="h-3" /> : `${Math.min(contract.events?.length || 0, 5)} of ${contract.eventSummary?.totalEvents ?? contract.events?.length ?? 0}`}
                     </span>
                   </div>
                   <div className="divide-y divide-[var(--border-subtle)]">
                     {sectionLoading.events ? (
                       Array.from({ length: 5 }).map((_, idx) => (
-                        <div key={`overview-events-skeleton-${idx}`} className="p-4">
-                          <div className="flex items-center gap-4">
-                            <div className="h-8 w-8 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
-                            <div className="flex-1 min-w-0">
-                              <InlineSkeleton width="w-28" />
-                              <div className="mt-2">
-                                <InlineSkeleton width="w-36" height="h-3" />
-                              </div>
+                        <div key={`overview-events-skeleton-${idx}`} className="px-4 py-4 flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-lg bg-[var(--bg-tertiary)] animate-pulse" />
+                          <div className="min-w-0">
+                            <InlineSkeleton width="w-28" />
+                            <div className="mt-2">
+                              <InlineSkeleton width="w-24" height="h-3" />
                             </div>
-                            <InlineSkeleton width="w-14" />
                           </div>
                         </div>
                       ))
                     ) : !contract.events || contract.events.length === 0 ? (
-                      <div className="p-4 text-center text-sm text-[var(--text-muted)]">No recent activity found</div>
+                      <div className="p-4 text-center text-sm text-[var(--text-muted)]">No recent events found</div>
                     ) : (
-                      contract.events.slice(0, 10).map((event, idx) => {
-                        // Get display name - use raw event name for custom events
+                      contract.events.slice(0, 5).map((event, idx) => {
                         const displayName = event.type !== 'unknown'
                           ? event.type
                           : (event.rawEventName || 'event');
                         const customData = isCustomEventData(event.data) ? event.data : null;
                         const subType = customData?.subType;
+                        const cleanedTopics = (customData?.decodedTopics || [])
+                          .map((topic) => String(topic || '').replace(/^"+|"+$/g, '').trim())
+                          .filter(Boolean);
+                        const eventBadgeLabel = String(displayName || 'Event').toLowerCase() === 'contract'
+                          ? 'Event'
+                          : String(displayName || 'Event');
+                        const topicLabel = cleanedTopics[0] && cleanedTopics[0].toLowerCase() !== eventBadgeLabel.toLowerCase()
+                          ? cleanedTopics[0]
+                          : null;
+                        const transferFlow = isTransferEventData(event.data)
+                          ? `${shortenAddress(event.data.from)} -> ${shortenAddress(event.data.to)}`
+                          : null;
+                        const customFlow = !transferFlow && cleanedTopics.length > 2
+                          ? `${shortenAddress(cleanedTopics[1])} -> ${shortenAddress(cleanedTopics[2])}`
+                          : null;
+                        const valueText = customData?.decodedValue
+                          ? String(customData.decodedValue).replace(/^"+|"+$/g, '').trim()
+                          : '';
 
                         const eventContent = (
-                          <div className="flex items-center gap-4">
-                            <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${event.type === 'transfer' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400' :
-                              event.type === 'mint' ? 'bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-400' :
-                                event.type === 'burn' ? 'bg-orange-50 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400' :
-                                  event.type === 'approve' ? 'bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400' :
-                                    'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
+                          <div className="px-4 py-4 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] transition-colors">
+                            <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${event.type === 'transfer' ? 'bg-blue-500/10 text-blue-400' :
+                              event.type === 'mint' ? 'bg-green-500/10 text-green-400' :
+                                event.type === 'burn' ? 'bg-orange-500/10 text-orange-400' :
+                                  event.type === 'approve' ? 'bg-purple-500/10 text-purple-400' :
+                                    event.type === 'clawback' ? 'bg-[var(--error)]/10 text-[var(--error)]' :
+                                      'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
                               }`}>
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                               </svg>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm font-bold text-[var(--text-primary)]">
-                                  {displayName}{subType && <span className="text-[var(--text-tertiary)] font-normal text-xs ml-1">· {subType}</span>}
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700">
+                                  {eventBadgeLabel}
                                 </span>
-                                {isTransferEventData(event.data) && (
-                                  <span className="text-sm font-mono font-bold text-[var(--text-primary)]">
-                                    {formatEventAmount(event.data.amount || '0', contract.tokenMetadata?.decimals || 7)}{' '}
-                                    <span className="text-[10px] text-[var(--text-tertiary)]">{tokenInfo?.symbol || ''}</span>
+                                {(topicLabel || subType) && (
+                                  <span className="inline-flex items-center rounded-full border border-[var(--border-default)] bg-[var(--bg-tertiary)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
+                                    {topicLabel || subType}
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
-                                {event.timestamp && <span>{timeAgo(event.timestamp)}</span>}
-                                {isTransferEventData(event.data) && (
-                                  <>
-                                    <span className="text-[var(--text-muted)]">|</span>
-                                    <span className="font-mono">{shortenAddress(event.data.from)} → {shortenAddress(event.data.to)}</span>
-                                  </>
-                                )}
-                                {customData?.account && (
-                                  <>
-                                    <span className="text-[var(--text-muted)]">|</span>
-                                    <span className="font-mono">{shortenAddress(customData.account)}</span>
-                                  </>
-                                )}
-                              </div>
+                              {(transferFlow || customFlow || valueText) && (
+                                <div className="text-[11px] text-[var(--text-secondary)] truncate">
+                                  {transferFlow || customFlow || valueText}
+                                </div>
+                              )}
+                              {event.timestamp && (
+                                <div className="text-[11px] text-[var(--text-tertiary)]">{timeAgo(event.timestamp)}</div>
+                              )}
                             </div>
+                            {isTransferEventData(event.data) && (
+                              <div className="text-right flex-shrink-0">
+                                <div className="text-xs font-bold text-[var(--text-primary)]">
+                                  {formatEventAmount(event.data.amount || '0', contract.tokenMetadata?.decimals || 7)}
+                                </div>
+                                <div className="text-[10px] text-[var(--text-tertiary)]">{tokenInfo?.symbol || ''}</div>
+                              </div>
+                            )}
                           </div>
                         );
 
                         return event.txHash ? (
-                          <Link
-                            key={idx}
-                            href={`/transaction/${event.txHash}`}
-                            className="block p-4 hover:bg-sky-50 transition-colors"
-                          >
+                          <Link key={`overview-event-${idx}`} href={`/transaction/${event.txHash}`} className="block">
                             {eventContent}
                           </Link>
                         ) : (
-                          <div key={idx} className="block p-4 hover:bg-[var(--bg-tertiary)] transition-colors">
-                            {eventContent}
-                          </div>
+                          <div key={`overview-event-${idx}`}>{eventContent}</div>
                         );
                       })
                     )}
                   </div>
-                  {contract.events && contract.events.length > 10 && (
+                  {contract.events && contract.events.length > 5 && (
                     <button
                       onClick={() => handleTabChange('events')}
-                      className="w-full border-t border-[var(--border-subtle)] py-3 text-center text-xs font-bold text-sky-600 hover:bg-[var(--bg-tertiary)] transition-colors rounded-b-xl"
+                      className="w-full rounded-b-xl border-t border-[var(--border-subtle)] py-3 text-center text-xs font-bold text-sky-600 transition-colors hover:bg-[var(--bg-tertiary)]"
                     >
-                      View All {contract.events.length} Events
+                      View All {contract.eventSummary?.totalEvents ?? contract.events.length} Events
                     </button>
                   )}
                 </div>
@@ -531,10 +748,33 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
             {activeTab === 'history' && (
               <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                 <div className="flex items-center justify-between px-4 pt-4 pb-3">
-                  <h3 className="text-sm font-bold text-[var(--text-primary)]">Transaction History</h3>
-                  <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
-                    {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${contract.invocations?.length || 0} transactions`}
-                  </span>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract functions Invocations History</h3>
+                  <div className="flex items-center gap-3">
+                    <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
+                      {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${historyPagination?.totalItems ?? contract.totalInvokes ?? historyInvocations.length} invocations`}
+                    </span>
+                    {historyPagination && (historyPagination.currentPage > 1 || historyPagination.hasMore) && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => onHistoryPageChange?.(Math.max(1, historyPagination.currentPage - 1))}
+                          disabled={sectionLoading.invocations || historyPagination.currentPage <= 1}
+                          className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                        >
+                          Previous
+                        </button>
+                        <span className="text-xs text-[var(--text-muted)] min-w-[52px] text-center">
+                          Page {historyPagination.currentPage}
+                        </span>
+                        <button
+                          onClick={() => onHistoryPageChange?.(historyPagination.currentPage + 1)}
+                          disabled={sectionLoading.invocations || !historyPagination.hasMore}
+                          className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full sc-table">
@@ -564,12 +804,12 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                             </td>
                           </tr>
                         ))
-                      ) : !contract.invocations || contract.invocations.length === 0 ? (
+                      ) : historyInvocations.length === 0 ? (
                         <tr>
                           <td colSpan={2} className="p-4 text-center text-sm text-[var(--text-muted)]">No transaction history found</td>
                         </tr>
                       ) : (
-                        contract.invocations.map((invocation, idx) => {
+                        historyInvocations.map((invocation, idx) => {
                           // Find the I128/U128 parameter for display (often the amount)
                           const amountParam = invocation.parameters.find(p => p.type === 'I128' || p.type === 'U128');
                           const displayAmount = amountParam?.decoded;
@@ -620,14 +860,14 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                               case 'initialize':
                                 return 'Initialized contract';
                               default:
-                                return null; // No summary for unknown functions
+                                return `Invoked ${invocation.functionName}`;
                             }
                           };
 
                           const summary = getActionSummary();
 
                           return (
-                            <tr key={idx} className="hover:bg-[var(--bg-tertiary)] transition-colors">
+                            <tr key={idx} className="hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer" onClick={() => window.location.href = `/transaction/${invocation.txHash}`}>
                               <td className="px-4 py-4">
                                 <div className="flex items-center gap-3">
                                   <div className="h-9 w-9 rounded-lg bg-sky-50 dark:bg-sky-900/40 flex items-center justify-center flex-shrink-0">
@@ -637,13 +877,13 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                                   </div>
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <Link href={`/account/${invocation.sourceAccount}`} className="font-mono text-xs text-sky-600 hover:underline">
+                                      <Link href={`/account/${invocation.sourceAccount}`} onClick={(e) => e.stopPropagation()} className="font-mono text-xs text-sky-600 hover:underline">
                                         {shortenAddress(invocation.sourceAccount)}
                                       </Link>
                                       <span className="text-[var(--text-muted)] text-xs">invoked</span>
-                                      <span className="font-mono text-sm font-bold text-indigo-600">
+                                      <Link href={`/transaction/${invocation.txHash}`} className="font-mono text-sm font-bold text-indigo-600 hover:underline">
                                         {invocation.functionName}
-                                      </span>
+                                      </Link>
                                     </div>
                                     {summary && (
                                       <div className="text-xs text-[var(--text-tertiary)] mt-0.5">
@@ -683,9 +923,32 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
               <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                 <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract Events</h3>
-                  <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
-                    {sectionLoading.events ? <InlineSkeleton width="w-10" height="h-3" /> : (contract.events?.length || 0)}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
+                      {sectionLoading.events ? <InlineSkeleton width="w-10" height="h-3" /> : (eventsPagination?.totalItems ?? eventsList.length)}
+                    </span>
+                    {eventsPagination && (eventsPagination.currentPage > 1 || eventsPagination.hasMore) && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => onEventsPageChange?.(Math.max(1, eventsPagination.currentPage - 1))}
+                          disabled={sectionLoading.events || eventsPagination.currentPage <= 1}
+                          className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                        >
+                          Previous
+                        </button>
+                        <span className="text-xs text-[var(--text-muted)] min-w-[52px] text-center">
+                          Page {eventsPagination.currentPage}
+                        </span>
+                        <button
+                          onClick={() => onEventsPageChange?.(eventsPagination.currentPage + 1)}
+                          disabled={sectionLoading.events || !eventsPagination.hasMore}
+                          className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="divide-y divide-[var(--border-subtle)]">
                   {sectionLoading.events ? (
@@ -705,10 +968,10 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                         </div>
                       </div>
                     ))
-                  ) : !contract.events || contract.events.length === 0 ? (
+                  ) : eventsList.length === 0 ? (
                     <div className="p-4 text-center text-sm text-[var(--text-muted)]">No events found</div>
                   ) : (
-                    contract.events.map((event, idx) => {
+                    eventsList.map((event, idx) => {
                       const getEventBadgeColor = (type: string) => {
                         switch (type) {
                           case 'transfer': return 'bg-blue-100 text-blue-700 border-blue-200';
@@ -721,12 +984,29 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                       };
 
                       const decimals = contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7;
+                      const customData = isCustomEventData(event.data) ? event.data : null;
+                      const decodedTopics = customData?.decodedTopics;
+                      const decodedFrom = decodedTopics?.[1];
+                      const decodedTo = decodedTopics?.[2];
+                      const decodedAsset = decodedTopics?.[3];
+                      const decodedValue = customData?.decodedValue;
+                      const parsedDecodedSymbol = typeof decodedAsset === 'string'
+                        ? decodedAsset.replace(/^"|"$/g, '').split(':')[0]
+                        : '';
+                      const displaySymbol = tokenInfo?.symbol || parsedDecodedSymbol;
+                      const formatAddr = (value?: string) => (value ? shortenAddress(value) : 'UNKNOWN');
 
                       // Get display name - use raw event name for custom events
-                      const displayName = event.type !== 'unknown'
-                        ? event.type
-                        : (event.rawEventName || 'event');
-                      const customData = isCustomEventData(event.data) ? event.data : null;
+                      const decodedEventType = decodedTopics?.[0];
+                      const normalizedDecodedType = typeof decodedEventType === 'string'
+                        ? decodedEventType.replace(/^"|"$/g, '').trim()
+                        : '';
+                      const badgeType = (normalizedDecodedType || event.type || 'unknown').toLowerCase();
+                      const displayName = normalizedDecodedType
+                        ? formatEventDisplayName(normalizedDecodedType)
+                        : formatEventDisplayName(event.type !== 'unknown'
+                          ? event.type
+                          : (event.rawEventName || 'event'));
                       const subType = customData?.subType;
 
                       const eventContent = (
@@ -736,7 +1016,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getEventBadgeColor(event.type)}`}>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getEventBadgeColor(badgeType)}`}>
                                 {displayName}
                               </span>
                               {subType && (
@@ -758,20 +1038,20 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">From:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.from)}
+                                    {formatAddr(event.data.from || decodedFrom)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">To:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.to)}
+                                    {formatAddr(event.data.to || decodedTo)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">Amount:</span>
                                   <span className="font-mono font-semibold text-[var(--text-primary)]">
-                                    {formatEventAmount(event.data.amount, decimals)}
-                                    {tokenInfo?.symbol && <span className="text-[var(--text-tertiary)] ml-1">{tokenInfo.symbol}</span>}
+                                    {event.data.amount ? formatEventAmount(event.data.amount, decimals) : (decodedValue || '0')}
+                                    {displaySymbol && <span className="text-[var(--text-tertiary)] ml-1">{displaySymbol}</span>}
                                   </span>
                                 </div>
                               </div>
@@ -782,14 +1062,14 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">To:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.to)}
+                                    {formatAddr(event.data.to || decodedTo)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">Amount:</span>
                                   <span className="font-mono font-semibold text-emerald-600">
-                                    +{formatEventAmount(event.data.amount, decimals)}
-                                    {tokenInfo?.symbol && <span className="text-[var(--text-tertiary)] ml-1">{tokenInfo.symbol}</span>}
+                                    +{event.data.amount ? formatEventAmount(event.data.amount, decimals) : (decodedValue || '0')}
+                                    {displaySymbol && <span className="text-[var(--text-tertiary)] ml-1">{displaySymbol}</span>}
                                   </span>
                                 </div>
                               </div>
@@ -800,14 +1080,14 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">From:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.from)}
+                                    {formatAddr(event.data.from || decodedFrom)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">Amount:</span>
                                   <span className="font-mono font-semibold text-rose-600">
-                                    -{formatEventAmount(event.data.amount, decimals)}
-                                    {tokenInfo?.symbol && <span className="text-[var(--text-tertiary)] ml-1">{tokenInfo.symbol}</span>}
+                                    -{event.data.amount ? formatEventAmount(event.data.amount, decimals) : (decodedValue || '0')}
+                                    {displaySymbol && <span className="text-[var(--text-tertiary)] ml-1">{displaySymbol}</span>}
                                   </span>
                                 </div>
                               </div>
@@ -818,20 +1098,20 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">Owner:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.from)}
+                                    {formatAddr(event.data.from || decodedFrom)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">Spender:</span>
                                   <span className="font-mono text-[var(--text-secondary)]">
-                                    {shortenAddress(event.data.spender)}
+                                    {formatAddr(event.data.spender || decodedTo)}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs">
                                   <span className="text-[var(--text-tertiary)]">Allowance:</span>
                                   <span className="font-mono font-semibold text-[var(--text-primary)]">
-                                    {formatEventAmount(event.data.amount, decimals)}
-                                    {tokenInfo?.symbol && <span className="text-[var(--text-tertiary)] ml-1">{tokenInfo.symbol}</span>}
+                                    {event.data.amount ? formatEventAmount(event.data.amount, decimals) : (decodedValue || '0')}
+                                    {displaySymbol && <span className="text-[var(--text-tertiary)] ml-1">{displaySymbol}</span>}
                                   </span>
                                 </div>
                                 {event.data.expirationLedger > 0 && (
@@ -845,7 +1125,32 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
 
                             {event.type === 'unknown' && customData && (
                               <div className="space-y-1">
-                                {customData.account && (
+                                {decodedFrom && (
+                                  <div className="flex items-center gap-2 text-xs">
+                                    <span className="text-[var(--text-tertiary)]">From:</span>
+                                    <span className="font-mono text-[var(--text-secondary)]">
+                                      {formatAddr(decodedFrom)}
+                                    </span>
+                                  </div>
+                                )}
+                                {decodedTo && (
+                                  <div className="flex items-center gap-2 text-xs">
+                                    <span className="text-[var(--text-tertiary)]">To:</span>
+                                    <span className="font-mono text-[var(--text-secondary)]">
+                                      {formatAddr(decodedTo)}
+                                    </span>
+                                  </div>
+                                )}
+                                {decodedValue && (
+                                  <div className="flex items-center gap-2 text-xs">
+                                    <span className="text-[var(--text-tertiary)]">Amount:</span>
+                                    <span className="font-mono font-semibold text-[var(--text-primary)]">
+                                      {decodedValue}
+                                      {displaySymbol && <span className="text-[var(--text-tertiary)] ml-1">{displaySymbol}</span>}
+                                    </span>
+                                  </div>
+                                )}
+                                {customData.account && !decodedFrom && (
                                   <div className="flex items-center gap-2 text-xs">
                                     <span className="text-[var(--text-tertiary)]">Account:</span>
                                     <span className="font-mono text-[var(--text-secondary)]">
@@ -853,27 +1158,39 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                                     </span>
                                   </div>
                                 )}
-                                {customData.value !== null && customData.value !== undefined && (
-                                  <div className="flex items-center gap-2 text-xs">
-                                    <span className="text-[var(--text-tertiary)]">Data:</span>
-                                    <span className="font-mono text-[var(--text-secondary)] truncate max-w-[300px]">
-                                      {typeof customData.value === 'object'
-                                        ? JSON.stringify(customData.value).slice(0, 80)
-                                        : String(customData.value).slice(0, 80)}
-                                      {(typeof customData.value === 'object'
-                                        ? JSON.stringify(customData.value).length
-                                        : String(customData.value).length) > 80 && '...'}
-                                    </span>
-                                  </div>
-                                )}
                               </div>
                             )}
 
                             {event.type === 'unknown' && !customData && (
-                              <div className="text-xs text-[var(--text-tertiary)] font-mono">
-                                {JSON.stringify(event.data, null, 2).slice(0, 100)}
-                                {JSON.stringify(event.data).length > 100 && '...'}
-                              </div>
+                              decodedFrom || decodedTo || decodedValue ? (
+                                <div className="space-y-1">
+                                  {decodedFrom && (
+                                    <div className="flex items-center gap-2 text-xs">
+                                      <span className="text-[var(--text-tertiary)]">From:</span>
+                                      <span className="font-mono text-[var(--text-secondary)]">{formatAddr(decodedFrom)}</span>
+                                    </div>
+                                  )}
+                                  {decodedTo && (
+                                    <div className="flex items-center gap-2 text-xs">
+                                      <span className="text-[var(--text-tertiary)]">To:</span>
+                                      <span className="font-mono text-[var(--text-secondary)]">{formatAddr(decodedTo)}</span>
+                                    </div>
+                                  )}
+                                  {decodedValue && (
+                                    <div className="flex items-center gap-2 text-xs">
+                                      <span className="text-[var(--text-tertiary)]">Amount:</span>
+                                      <span className="font-mono font-semibold text-[var(--text-primary)]">
+                                        {decodedValue}
+                                        {displaySymbol && <span className="text-[var(--text-tertiary)] ml-1">{displaySymbol}</span>}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="text-xs text-[var(--text-muted)]">
+                                  No decoded event details available
+                                </div>
+                              )
                             )}
                           </div>
                         </div>
@@ -981,6 +1298,45 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
               </div>
             )}
 
+            {/* Code Tab */}
+            {activeTab === 'code' && (
+              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
+                <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">Source Code</h3>
+                  <p className="text-xs text-[var(--text-tertiary)]">Contract source code</p>
+                </div>
+                <div className="p-4">
+                  {sourceCode ? (
+                    <div className="w-full overflow-hidden">
+                      <SyntaxHighlighter
+                        language="rust"
+                        style={vscDarkPlus}
+                        customStyle={{
+                          margin: 0,
+                          borderRadius: '0.5rem',
+                          fontSize: '0.75rem',
+                          maxHeight: '600px',
+                          maxWidth: '100%',
+                          width: '100%',
+                          border: '1px solid var(--border-subtle)',
+                          overflow: 'auto',
+                        }}
+                        showLineNumbers
+                        wrapLines={false}
+                        wrapLongLines={false}
+                      >
+                        {sourceCode}
+                      </SyntaxHighlighter>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-sm text-[var(--text-muted)]">
+                      No source code available
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* Sidebar */}
@@ -1025,7 +1381,9 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
                 )}
                 <div className="flex justify-between items-center py-1">
                   <span className="text-[11px] text-[var(--text-tertiary)]">Total Operations</span>
-                  <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{operations.length}</span>
+                  <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
+                    {contract.totalTransactions ?? contract.invocations?.length ?? 0}
+                  </span>
                 </div>
               </div>
             </section>
@@ -1292,17 +1650,6 @@ export default function ContractDesktopView({ contract, operations, onTabChange 
             <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
               <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">External Links</h3>
               <div className="space-y-2">
-                <a
-                  href={`https://stellar.expert/explorer/public/contract/${contract.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] transition-colors"
-                >
-                  <span className="text-xs font-semibold text-[var(--text-secondary)]">Stellar Expert</span>
-                  <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
                 <a
                   href={`https://stellarchain.io/accounts/${contract.id}`}
                   target="_blank"
