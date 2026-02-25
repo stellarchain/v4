@@ -3,9 +3,9 @@
 // https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0041.md
 
 import { xdr, Address, scValToNative } from '@stellar/stellar-sdk';
-import { getNetwork, getSorobanServer } from './soroban';
-import { isContractAddress, isAccountAddress } from './soroban';
-import type { Operation, PaginatedResponse } from './stellar';
+import { getSorobanServer, isContractAddress, isAccountAddress } from './client';
+import type { Operation } from '@/lib/stellar';
+import { createHorizonServer } from '@/services/horizon';
 
 // =============================================================================
 // Event Interfaces
@@ -26,7 +26,9 @@ export interface CustomEventData {
   subType?: string;
   account?: string;
   topics: unknown[];
+  decodedTopics?: string[];
   value?: unknown;
+  decodedValue?: string;
 }
 
 export interface TransferEventData {
@@ -568,17 +570,6 @@ function buildEventData(
 // Event Fetching
 // =============================================================================
 
-const HORIZON_URLS = {
-  mainnet: 'https://horizon.stellar.org',
-  testnet: 'https://horizon-testnet.stellar.org',
-  futurenet: 'https://horizon-futurenet.stellar.org',
-};
-
-function getHorizonBaseUrl(): string {
-  const network = getNetwork();
-  return HORIZON_URLS[network] || HORIZON_URLS.mainnet;
-}
-
 /**
  * Fetch and parse events for a contract using Soroban RPC
  * Uses the getEvents RPC method to fetch actual contract events
@@ -766,22 +757,13 @@ export async function getContractEventsByOperations(
   }
 
   try {
-    // Use the operations endpoint with a filter for the contract
-    const url = `${getHorizonBaseUrl()}/operations?limit=${limit}&order=desc&include_failed=false`;
-
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      console.warn(`Failed to fetch operations: ${response.status}`);
-      return [];
-    }
-
-    const data: PaginatedResponse<Operation> = await response.json();
-    const operations = data._embedded?.records || [];
+    const operationsResponse = await createHorizonServer()
+      .operations()
+      .limit(limit)
+      .order('desc')
+      .includeFailed(false)
+      .call();
+    const operations = (operationsResponse.records || []) as unknown as Operation[];
 
     const events: ParsedEvent[] = [];
 

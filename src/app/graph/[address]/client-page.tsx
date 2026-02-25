@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
-import { buildAddressGraph } from '@/lib/stellar_graph';
+import { buildAddressGraph } from '@/lib/stellar/graph';
 import AddressGraph from '@/components/AddressGraph';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -27,17 +27,31 @@ export default function GraphPage() {
       notFound();
       return;
     }
+    let isMounted = true;
 
-    buildAddressGraph(address, 2, 50)
-      .then((data) => {
+    const loadGraphData = async () => {
+      try {
+        setError(null);
+        setLoading(true);
+        const data = await buildAddressGraph(address, 2, 50);
+        if (!isMounted) return;
         setGraphData(data);
-        setLoading(false);
-      })
-      .catch((e) => {
+      } catch (e) {
         console.error('Failed to build graph:', e);
+        if (!isMounted) return;
         setError('Failed to load transaction graph. The address might not have enough transaction history.');
-        setLoading(false);
-      });
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadGraphData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [address]);
 
   if (!address || address.length !== 56 || !address.startsWith('G')) {

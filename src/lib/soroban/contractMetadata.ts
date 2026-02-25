@@ -2,8 +2,8 @@
 // Extracts metadata from Soroban contracts
 // https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0046.md
 
-import { rpc, xdr, Address, Contract, scValToNative, nativeToScVal, Account, TransactionBuilder, BASE_FEE, Networks } from '@stellar/stellar-sdk';
-import { getSorobanServer, getNetwork, isContractAddress } from './soroban';
+import { xdr, Address, scValToNative, nativeToScVal } from '@stellar/stellar-sdk';
+import { getSorobanServer, isContractAddress, simulateContractRead } from './client';
 
 // ============================================================================
 // Types
@@ -99,52 +99,6 @@ export function invalidateContractCache(contractId: string): void {
 // ============================================================================
 // RPC Helpers
 // ============================================================================
-
-function getNetworkPassphrase(): string {
-  return getNetwork() === 'mainnet' ? Networks.PUBLIC : Networks.TESTNET;
-}
-
-// Simulate a contract call to read state (reused pattern from soroban.ts)
-async function simulateContractRead(
-  contractId: string,
-  method: string,
-  args: xdr.ScVal[] = []
-): Promise<xdr.ScVal | null> {
-  try {
-    const server = getSorobanServer();
-    const contract = new Contract(contractId);
-
-    const operation = contract.call(method, ...args);
-
-    // Dummy source account for simulation
-    const sourceAccount = new Account(
-      'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
-      '0'
-    );
-
-    const transaction = new TransactionBuilder(sourceAccount, {
-      fee: BASE_FEE,
-      networkPassphrase: getNetworkPassphrase(),
-    })
-      .addOperation(operation)
-      .setTimeout(30)
-      .build();
-
-    const response = await server.simulateTransaction(transaction);
-
-    if (rpc.Api.isSimulationSuccess(response)) {
-      const result = response.result;
-      if (result?.retval) {
-        return result.retval;
-      }
-    }
-
-    return null;
-  } catch (error) {
-    // Silently fail for non-existent methods
-    return null;
-  }
-}
 
 // Get contract instance storage entry
 async function getContractInstanceData(contractId: string): Promise<xdr.ContractDataEntry | null> {
@@ -1161,4 +1115,3 @@ function formatTypeString(t: SpecType): string {
   }
   return t.type;
 }
-

@@ -24,6 +24,11 @@ export function getRouteFromSearchQuery(rawQuery: string): string | null {
     return `/ledger/${query}`;
   }
 
-  // Default to account search
+  // Asset code (e.g. USDC, AQUA, yXLM) -> open Markets search
+  if (/^[a-z0-9]{2,12}$/i.test(query)) {
+    return `/markets?q=${encodeURIComponent(query.toUpperCase())}`;
+  }
+
+  // Default to account route
   return `/address/${query}`;
 }

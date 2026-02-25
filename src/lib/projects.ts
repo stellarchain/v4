@@ -1,68 +1,80 @@
-import projectsData from '@/data/projects.json';
-
-export interface TeamMember {
-    name: string;
-    role: string;
-    github?: string;
-    linkedin?: string;
-    twitter?: string;
-    discord?: string;
-}
-
-export interface SCFAward {
-    amount: string;
-    round: string;
-    type: string;
-}
-
-export interface ProjectSocials {
-    twitter?: string;
-    linkedin?: string;
-    discord?: string;
-    telegram?: string;
-    instagram?: string;
-    medium?: string;
-    youtube?: string;
-}
-
-export interface ProjectResources {
-    video: string | null;
-    pitchDeck: string | null;
-    technicalDocs: string | null;
-}
+import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 export interface Project {
-    id: string;
-    slug: string;
-    name: string;
-    description: string;
-    category: string;
-    website: string | null;
-    github: string | null;
-    socials: ProjectSocials;
-    scfAward: SCFAward;
-    team: TeamMember[];
-    resources: ProjectResources;
+  id: number;
+  sourceUrl?: string;
+  name: string;
+  website?: string;
+  github?: string;
+  description?: string;
+  rounds: string[];
+  submissions: string[];
+  teamSize?: number;
+  category?: string;
+  totalAwarded?: string;
+  awardedSubmissions?: number;
+  imageAlt?: string;
+  imageSourceUrl?: string;
+  imagePublicUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export async function fetchProjects(): Promise<Project[]> {
-    return projectsData.projects as Project[];
+export interface ProjectCollectionView {
+  first?: string;
+  last?: string;
+  next?: string;
+  previous?: string;
 }
 
-export async function fetchProjectBySlug(slug: string): Promise<Project | null> {
-    const project = projectsData.projects.find(p => p.slug === slug);
-    return (project as Project) || null;
+export interface ProjectCollectionResponse {
+  member: Project[];
+  totalItems: number;
+  view?: ProjectCollectionView;
 }
 
-export async function fetchProjectById(id: string): Promise<Project | null> {
-    const project = projectsData.projects.find(p => p.id === id);
-    return (project as Project) || null;
+export interface ProjectCategory {
+  id: number;
+  name: string;
 }
 
-export function getCategories(): string[] {
-    return projectsData.categories;
+export interface FetchProjectsParams {
+  page?: number;
+  itemsPerPage?: number;
+  name?: string;
+  category?: string;
+  sort?: 'default' | 'awarded_asc' | 'awarded_desc' | 'rounds_desc';
 }
 
-export function getProjectsMeta() {
-    return projectsData.meta;
+export async function fetchProjects(params: FetchProjectsParams = {}): Promise<ProjectCollectionResponse> {
+  const sort = params.sort || 'default';
+  const query = {
+    page: params.page ?? 1,
+    itemsPerPage: params.itemsPerPage ?? 20,
+    name: params.name?.trim() || undefined,
+    category: params.category?.trim() || undefined,
+    'order[id]': sort === 'default' ? 'asc' : undefined,
+    'order[name]': sort === 'default' ? 'asc' : undefined,
+    'order[updatedAt]': sort === 'default' ? 'asc' : undefined,
+    'order[createdAt]': sort === 'default' ? 'asc' : undefined,
+    'order[totalAwardedAmount]': sort === 'awarded_asc' ? 'asc' : sort === 'awarded_desc' ? 'desc' : undefined,
+    'order[roundsCount]': sort === 'rounds_desc' ? 'desc' : undefined,
+  };
+  const data = await getApiV1Data(apiEndpoints.v1.projects(query));
+  return {
+    member: Array.isArray(data?.member) ? data.member : [],
+    totalItems: Number(data?.totalItems || 0),
+    view: data?.view || undefined,
+  };
+}
+
+export async function fetchProjectById(id: string | number): Promise<Project | null> {
+  if (!id) return null;
+  const data = await getApiV1Data(apiEndpoints.v1.projectById(id));
+  return data || null;
+}
+
+export async function fetchProjectCategories(): Promise<ProjectCategory[]> {
+  const data = await getApiV1Data(apiEndpoints.v1.projectCategories());
+  return Array.isArray(data?.member) ? data.member : [];
 }

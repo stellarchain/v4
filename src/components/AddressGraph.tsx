@@ -2,7 +2,7 @@
 
 import { useRef, useCallback, useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { GraphNode, GraphEdge, AddressGraph as AddressGraphType } from '@/lib/stellar_graph';
+import { GraphNode, GraphEdge, AddressGraph as AddressGraphType } from '@/lib/stellar/graph';
 import { useTheme } from '@/contexts/ThemeContext';
 
 // Dynamically import ForceGraph2D to avoid SSR issues

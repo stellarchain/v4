@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { shortenAddress, timeAgo, ContractInvocation } from '@/lib/stellar';
 import GliderTabs from '@/components/ui/GliderTabs';
-import type { TokenRegistryEntry, ContractVerification } from '@/lib/types/token';
-import type { ContractMetadataResult, ContractAccessControlResult, ContractSpecResult } from '@/lib/contractMetadata';
-import type { NFTInfo, VaultInfo } from '@/lib/contractExtensions';
-import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isCustomEventData, CustomEventData } from '@/lib/eventParser';
-import type { ContractStorageResult } from '@/lib/contractStorage';
+import type { TokenRegistryEntry, ContractVerification } from '@/lib/shared/interfaces';
+import type { ContractMetadataResult, ContractAccessControlResult, ContractSpecResult } from '@/lib/soroban/contractMetadata';
+import type { NFTInfo, VaultInfo } from '@/lib/soroban/contractExtensions';
+import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isCustomEventData, CustomEventData } from '@/lib/soroban/events';
+import type { ContractStorageResult } from '@/lib/soroban/storage';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
 
 interface Operation {
@@ -52,10 +54,36 @@ interface ContractData {
   nftInfo?: NFTInfo | null;
   vaultInfo?: VaultInfo | null;
   events?: ParsedEvent[];
+  eventsPagination?: {
+    currentPage: number;
+    totalItems: number;
+    itemsPerPage: number;
+    hasMore?: boolean;
+    nextBeforeId?: number | null;
+    beforeId?: number | null;
+  };
   eventSummary?: EventSummary | null;
   storage?: ContractStorageResult | null;
   invocations?: ContractInvocation[];
+  historyInvocations?: ContractInvocation[];
+  historyPagination?: {
+    currentPage: number;
+    totalItems: number;
+    itemsPerPage: number;
+    hasMore?: boolean;
+    nextBeforeId?: number | null;
+    beforeId?: number | null;
+  };
   spec?: ContractSpecResult | null;
+  // API data fields
+  totalTransactions?: number;
+  totalInvokes?: number;
+  createdAt?: string;
+  wasmId?: string;
+  contractCode?: string;
+  sourceCodeVerified?: boolean;
+  assetIssuer?: string;
+  isSAC?: boolean;
   _loading?: {
     events?: boolean;
     invocations?: boolean;
@@ -67,14 +95,17 @@ interface ContractData {
 interface ContractMobileViewProps {
   contract: ContractData;
   operations: Operation[];
-  onTabChange?: (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface') => void;
+  onTabChange?: (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface' | 'events') => void;
+  onHistoryPageChange?: (page: number) => void;
+  onEventsPageChange?: (page: number) => void;
 }
 
-export default function ContractMobileView({ contract, operations, onTabChange }: ContractMobileViewProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'details' | 'history' | 'interface'>('overview');
+export default function ContractMobileView({ contract, operations, onTabChange, onHistoryPageChange, onEventsPageChange }: ContractMobileViewProps) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'details' | 'history' | 'interface' | 'code'>('overview');
   const [copied, setCopied] = useState(false);
   const [copiedName, setCopiedName] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const sourceCode = contract.contractCode || null;
 
   // Primary color for consistency with other pages
   const primaryColor = '#0F4C81';
@@ -111,13 +142,24 @@ export default function ContractMobileView({ contract, operations, onTabChange }
   };
 
   const tokenInfo = contract.tokenMetadata || contract.verifiedContract;
+  const eventsPagination = contract.eventsPagination;
+  const eventsList = contract.events ?? [];
+  const historyInvocations = contract.historyInvocations ?? contract.invocations ?? [];
+  const historyPagination = contract.historyPagination;
   const isToken = contract.type === 'token' || contract.type === 'lending';
   const isNFT = contract.type === 'nft';
   const isVault = contract.type === 'vault';
   const sectionLoading = contract._loading || {};
-  const changeTab = (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface') => {
+  const changeTab = (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface' | 'code') => {
     setActiveTab(tabId);
-    onTabChange?.(tabId);
+
+    if (tabId !== 'code') {
+      if (tabId === 'operations') {
+        onTabChange?.('events');
+      } else {
+        onTabChange?.(tabId as 'overview' | 'operations' | 'details' | 'history' | 'interface');
+      }
+    }
   };
 
   const getContractDisplayName = (): string => {
@@ -191,13 +233,22 @@ export default function ContractMobileView({ contract, operations, onTabChange }
     return 'unknown';
   };
 
-  type ContractTabId = 'overview' | 'history' | 'operations' | 'interface' | 'details';
+  type ContractTabId = 'overview' | 'history' | 'operations' | 'interface' | 'details' | 'code';
   type ContractTab = { id: ContractTabId; label: string; count?: number; hide?: boolean };
 
   const tabs: ContractTab[] = [
     { id: 'overview', label: 'Overview' },
-    { id: 'history', label: 'History', count: sectionLoading.invocations ? undefined : (contract.invocations?.length || 0) },
-    { id: 'operations', label: 'Events', count: sectionLoading.events ? undefined : (contract.events?.length || 0) },
+    {
+      id: 'history',
+      label: 'History',
+      count: contract.totalInvokes ?? contract.invocations?.length ?? 0,
+    },
+    {
+      id: 'operations',
+      label: 'Events',
+      count: contract.eventSummary?.totalEvents ?? 0,
+    },
+    { id: 'code', label: 'WASM', hide: contract.type !== 'contract' },
     { id: 'interface', label: 'Interface' },
     { id: 'details', label: 'Details' },
   ];
@@ -438,6 +489,7 @@ export default function ContractMobileView({ contract, operations, onTabChange }
           tabs={visibleTabs}
           activeId={activeTab}
           onChange={changeTab}
+          scrollable
         />
 
         {/* Tab Content */}
@@ -445,6 +497,65 @@ export default function ContractMobileView({ contract, operations, onTabChange }
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
             <div className="space-y-4">
+              {/* Recent Invocations */}
+              <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[11px] uppercase font-semibold text-[var(--text-muted)] tracking-widest">Recent Invocations</div>
+                  <span className="text-[11px] font-semibold" style={{ color: primaryColor }}>
+                    {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${Math.min(contract.invocations?.length || 0, 5)} of ${contract.totalInvokes ?? contract.invocations?.length ?? 0}`}
+                  </span>
+                </div>
+                {sectionLoading.invocations ? (
+                  <div className="divide-y divide-[var(--border-subtle)]">
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                      <div key={`overview-invocations-skeleton-${idx}`} className="flex items-center gap-3 py-3">
+                        <div className="w-9 h-9 bg-[var(--bg-tertiary)] animate-pulse rounded-lg" />
+                        <div className="flex-1 min-w-0">
+                          <InlineSkeleton width="w-24" />
+                          <div className="mt-2">
+                            <InlineSkeleton width="w-32" height="h-3" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : !contract.invocations || contract.invocations.length === 0 ? (
+                  <div className="text-center py-4 text-[var(--text-muted)] text-sm">No recent invocations found</div>
+                ) : (
+                  <div className="divide-y divide-[var(--border-subtle)]">
+                    {contract.invocations.slice(0, 5).map((invocation, idx) => (
+                      <Link
+                        key={`overview-invocation-${idx}`}
+                        href={`/transaction/${invocation.txHash}`}
+                        className="flex items-center gap-3 py-3 hover:bg-[var(--bg-tertiary)] -mx-4 px-4 transition-colors"
+                      >
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-[var(--text-primary)]">{invocation.functionName}</div>
+                          <div className="text-[11px] text-[var(--text-tertiary)]">{timeAgo(invocation.createdAt)}</div>
+                        </div>
+                        <svg className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                {contract.invocations && contract.invocations.length > 5 && (
+                  <button
+                    onClick={() => changeTab('history')}
+                    className="w-full mt-3 py-2 text-center text-xs font-semibold"
+                    style={{ color: primaryColor }}
+                  >
+                    View all {contract.totalInvokes ?? contract.invocations.length} invocations
+                  </button>
+                )}
+              </div>
+
               {/* Recent Activity */}
               <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -476,6 +587,24 @@ export default function ContractMobileView({ contract, operations, onTabChange }
                         : (event.rawEventName || 'event');
                       const customData = isCustomEventData(event.data) ? event.data : null;
                       const subType = customData?.subType;
+                      const cleanedTopics = (customData?.decodedTopics || [])
+                        .map((topic) => String(topic || '').replace(/^"+|"+$/g, '').trim())
+                        .filter(Boolean);
+                      const eventBadgeLabel = String(displayName || 'Event').toLowerCase() === 'contract'
+                        ? 'Event'
+                        : String(displayName || 'Event');
+                      const topicLabel = cleanedTopics[0] && cleanedTopics[0].toLowerCase() !== eventBadgeLabel.toLowerCase()
+                        ? cleanedTopics[0]
+                        : null;
+                      const transferFlow = isTransferEventData(event.data)
+                        ? `${shortenAddress(event.data.from)} -> ${shortenAddress(event.data.to)}`
+                        : null;
+                      const customFlow = !transferFlow && cleanedTopics.length > 2
+                        ? `${shortenAddress(cleanedTopics[1])} -> ${shortenAddress(cleanedTopics[2])}`
+                        : null;
+                      const valueText = customData?.decodedValue
+                        ? String(customData.decodedValue).replace(/^"+|"+$/g, '').trim()
+                        : '';
 
                       const eventContent = (
                         <div className="flex items-center gap-3 py-3">
@@ -492,9 +621,21 @@ export default function ContractMobileView({ contract, operations, onTabChange }
                             </svg>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-semibold text-[var(--text-primary)]">
-                              {displayName}{subType && <span className="text-[var(--text-tertiary)] font-normal"> · {subType}</span>}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700">
+                                {eventBadgeLabel}
+                              </span>
+                              {(topicLabel || subType) && (
+                                <span className="inline-flex items-center rounded-full border border-[var(--border-default)] bg-[var(--bg-tertiary)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
+                                  {topicLabel || subType}
+                                </span>
+                              )}
                             </div>
+                            {(transferFlow || customFlow || valueText) && (
+                              <div className="text-[11px] text-[var(--text-secondary)] truncate">
+                                {transferFlow || customFlow || valueText}
+                              </div>
+                            )}
                             {event.timestamp && (
                               <div className="text-[11px] text-[var(--text-tertiary)]">{timeAgo(event.timestamp)}</div>
                             )}
@@ -595,6 +736,35 @@ export default function ContractMobileView({ contract, operations, onTabChange }
           {/* HISTORY TAB */}
           {activeTab === 'history' && (
             <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
+              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-[var(--border-subtle)]">
+                <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract functions Invocations History</h3>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
+                    {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${historyPagination?.totalItems ?? contract.totalInvokes ?? historyInvocations.length} invocations`}
+                  </span>
+                  {historyPagination && (historyPagination.currentPage > 1 || historyPagination.hasMore) && (
+                    <>
+                      <button
+                        onClick={() => onHistoryPageChange?.(Math.max(1, historyPagination.currentPage - 1))}
+                        disabled={sectionLoading.invocations || historyPagination.currentPage <= 1}
+                        className="px-2.5 py-1 rounded-lg border border-[var(--border-default)] text-[11px] font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                      >
+                        Prev
+                      </button>
+                      <span className="text-[11px] text-[var(--text-muted)]">
+                        {historyPagination.currentPage}
+                      </span>
+                      <button
+                        onClick={() => onHistoryPageChange?.(historyPagination.currentPage + 1)}
+                        disabled={sectionLoading.invocations || !historyPagination.hasMore}
+                        className="px-2.5 py-1 rounded-lg border border-[var(--border-default)] text-[11px] font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                      >
+                        Next
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
               {sectionLoading.invocations ? (
                 <div className="divide-y divide-[var(--border-subtle)]">
                   {Array.from({ length: 5 }).map((_, idx) => (
@@ -609,11 +779,11 @@ export default function ContractMobileView({ contract, operations, onTabChange }
                     </div>
                   ))}
                 </div>
-              ) : !contract.invocations || contract.invocations.length === 0 ? (
+              ) : historyInvocations.length === 0 ? (
                 <div className="text-center py-4 text-[var(--text-muted)] text-sm">No transaction history found</div>
               ) : (
                 <div className="divide-y divide-[var(--border-subtle)]">
-                  {contract.invocations.map((invocation, idx) => {
+                  {historyInvocations.map((invocation, idx) => {
                     const amountParam = invocation.parameters.find(p => p.type === 'I128' || p.type === 'U128');
                     const displayAmount = amountParam?.decoded;
                     const addressParams = invocation.parameters.filter(p =>
@@ -690,6 +860,27 @@ export default function ContractMobileView({ contract, operations, onTabChange }
           {/* EVENTS TAB */}
           {activeTab === 'operations' && (
             <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
+              {eventsPagination && (eventsPagination.currentPage > 1 || eventsPagination.hasMore) && (
+                <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
+                  <button
+                    onClick={() => onEventsPageChange?.(Math.max(1, eventsPagination.currentPage - 1))}
+                    disabled={sectionLoading.events || eventsPagination.currentPage <= 1}
+                    className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-xs text-[var(--text-muted)]">
+                    Page {eventsPagination.currentPage}
+                  </span>
+                  <button
+                    onClick={() => onEventsPageChange?.(eventsPagination.currentPage + 1)}
+                    disabled={sectionLoading.events || !eventsPagination.hasMore}
+                    className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-xs font-semibold text-[var(--text-secondary)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--bg-tertiary)] transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
               {sectionLoading.events ? (
                 <div className="divide-y divide-[var(--border-subtle)]">
                   {Array.from({ length: 6 }).map((_, idx) => (
@@ -705,15 +896,17 @@ export default function ContractMobileView({ contract, operations, onTabChange }
                     </div>
                   ))}
                 </div>
-              ) : !contract.events || contract.events.length === 0 ? (
+              ) : eventsList.length === 0 ? (
                 <div className="text-center py-4 text-[var(--text-muted)] text-sm">No events found</div>
               ) : (
                 <div className="divide-y divide-[var(--border-subtle)]">
-                  {contract.events.map((event, idx) => {
+                  {eventsList.map((event, idx) => {
                     const displayName = event.type !== 'unknown'
                       ? event.type
                       : (event.rawEventName || 'event');
                     const customData = isCustomEventData(event.data) ? event.data : null;
+                    const decodedTopics = customData?.decodedTopics;
+                    const decodedValue = customData?.decodedValue;
                     const subType = customData?.subType;
 
                     const eventContent = (
@@ -748,6 +941,22 @@ export default function ContractMobileView({ contract, operations, onTabChange }
                               </>
                             )}
                           </div>
+                          {decodedTopics && decodedTopics.length > 0 && (
+                            <dl className="mt-2 grid gap-1 sm:grid-cols-2 text-[10px] text-[var(--text-muted)] overflow-hidden">
+                              {decodedTopics.map((topic: string, idx: number) => (
+                                <div key={`decoded-topic-${idx}`} className="rounded-xl bg-[var(--bg-tertiary)] px-2 py-1 text-[var(--text-secondary)] overflow-hidden min-w-0">
+                                  <dt className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">Topic {idx + 1}</dt>
+                                  <dd className="font-mono truncate block leading-tight">{topic}</dd>
+                                </div>
+                              ))}
+                            </dl>
+                          )}
+                          {decodedValue && (
+                            <div className="mt-2 rounded-xl bg-[var(--bg-tertiary)] px-2 py-1 text-[10px] text-[var(--text-muted)] font-mono overflow-hidden min-w-0">
+                              <span className="text-[8px] uppercase tracking-wider text-[var(--text-secondary)] block">Value</span>
+                              <span className="truncate block">{decodedValue}</span>
+                            </div>
+                          )}
                         </div>
                         {isTransferEventData(event.data) && (
                           <div className="text-right flex-shrink-0">
@@ -959,6 +1168,45 @@ export default function ContractMobileView({ contract, operations, onTabChange }
                     )}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* CODE TAB */}
+          {activeTab === 'code' && (
+            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
+              <div className="p-4 border-b border-[var(--border-subtle)]">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Source Code</h3>
+                <p className="text-xs text-[var(--text-tertiary)] mt-1">Contract source code</p>
+              </div>
+              <div className="p-4">
+                {sourceCode ? (
+                  <div className="w-full overflow-hidden">
+                    <SyntaxHighlighter
+                      language="rust"
+                      style={vscDarkPlus}
+                      customStyle={{
+                        margin: 0,
+                        borderRadius: '0.5rem',
+                        fontSize: '10px',
+                        maxHeight: '500px',
+                        maxWidth: '100%',
+                        width: '100%',
+                        border: '1px solid var(--border-subtle)',
+                        overflow: 'auto',
+                      }}
+                      showLineNumbers
+                      wrapLines={false}
+                      wrapLongLines={false}
+                    >
+                      {sourceCode}
+                    </SyntaxHighlighter>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-sm text-[var(--text-muted)]">
+                    No source code available
+                  </div>
+                )}
               </div>
             </div>
           )}

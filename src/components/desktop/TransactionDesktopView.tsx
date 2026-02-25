@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { shortenAddress, timeAgo, getOperationTypeLabel, formatDate, formatStroopsToXLM, extractContractAddress, detectContractFunctionType } from '@/lib/stellar';
 import type { AccountLabel } from '@/lib/stellar';
-import type { ContractFunctionType } from '@/lib/types/token';
+import type { ContractFunctionType } from '@/lib/shared/interfaces';
 import AccountBadges from '@/components/AccountBadges';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
-import { decodeTransactionMeta, decodeTransactionResources, type DecodedTransactionMeta, type SorobanMetrics } from '@/lib/xdrDecoder';
+import { decodeTransactionMeta, decodeTransactionResources, type DecodedTransactionMeta, type SorobanMetrics } from '@/lib/shared/xdr';
 
 interface Operation {
   id: string;
@@ -260,10 +260,21 @@ export default function TransactionDesktopView({ transaction, operations, effect
     if (transaction.result_meta_xdr && hasTraceData) return;
     setXdrFetchAttempted(true);
     setIsDecodingXdr(true);
-    fetch(`/api/transaction-meta?hash=${transaction.hash}`)
-      .then(res => res.json())
-      .then(data => { if (data.resultMetaXdr) setFetchedXdr(data.resultMetaXdr); setIsDecodingXdr(false); })
-      .catch(() => setIsDecodingXdr(false));
+    const fetchRpcXdr = async () => {
+      try {
+        const res = await fetch(`/api/transaction-meta?hash=${transaction.hash}`);
+        const data = await res.json();
+        if (data.resultMetaXdr) {
+          setFetchedXdr(data.resultMetaXdr);
+        }
+      } catch {
+        // Ignore RPC metadata fetch failures
+      } finally {
+        setIsDecodingXdr(false);
+      }
+    };
+
+    void fetchRpcXdr();
   }, [isContractCall, isDecodingXdr, xdrFetchAttempted, fetchedXdr, decodedMeta, transaction.result_meta_xdr, transaction.hash]);
 
   const handleCopy = () => {

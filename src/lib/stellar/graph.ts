@@ -1,13 +1,6 @@
-import { getTransactions, getBaseUrl } from './stellar';
+import { getAccountTransactions, getTransactionOperations } from '@/lib/stellar';
 
 // Graph Visualization Types and Functions
-
-// Helper to fetch JSON
-async function fetchJSON<T>(url: string): Promise<T> {
-    const response = await fetch(url, { next: { revalidate: 60 } });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response.json();
-}
 
 export interface GraphNode {
     id: string; // address
@@ -68,16 +61,14 @@ export async function buildAddressGraph(
         if (currentDepth >= maxDepth) continue;
 
         try {
-            const txUrl = `${getBaseUrl()}/accounts/${currentAddress}/transactions?order=desc&limit=${fetchLimit}`;
-            const txData: any = await fetchJSON(txUrl);
-            const transactions = txData._embedded?.records || [];
+            const txData = await getAccountTransactions(currentAddress, fetchLimit, 'desc');
+            const transactions = txData.records || [];
 
             for (const tx of transactions) {
                 if (nodes.size >= MAX_TOTAL_NODES) break;
 
-                const opsUrl = `${getBaseUrl()}/transactions/${tx.hash}/operations`;
-                const opsData: any = await fetchJSON(opsUrl);
-                const operations = opsData._embedded?.records || [];
+                const opsData = await getTransactionOperations(tx.hash, 200, 'desc');
+                const operations = opsData.records || [];
 
                 for (const op of operations) {
                     if (nodes.size >= MAX_TOTAL_NODES) break;

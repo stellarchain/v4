@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useParams, usePathname, useSearchParams, useRouter } from 'next/navigation';
-import { assetRoute } from '@/lib/routes';
+import { assetRoute } from '@/lib/shared/routes';
 
 
 export default function MarketAssetRoute() {

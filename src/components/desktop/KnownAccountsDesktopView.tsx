@@ -1,26 +1,33 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/stellar';
-import type { LabeledAccountsAPIResponse, LabeledAccount } from '@/lib/stellar';
+import type { LabeledAccountsAPIResponse } from '@/lib/stellar';
 
 interface KnownAccountsDesktopViewProps {
-  initialData: LabeledAccountsAPIResponse;
+  initialData: LabeledAccountsAPIResponse | null;
+  xlmPriceUsd?: number | null;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+  loading?: boolean;
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
 }
 
 type SortField = 'rank' | 'balance' | 'transactions';
 type SortOrder = 'asc' | 'desc';
 
-function formatBalance(balance: number): string {
-  if (balance >= 1e9) return `${(balance / 1e9).toFixed(2)}B`;
-  if (balance >= 1e6) return `${(balance / 1e6).toFixed(2)}M`;
-  if (balance >= 1e3) return `${(balance / 1e3).toFixed(1)}K`;
+function formatFullBalance(balance: number): string {
   return balance.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
-function formatFullBalance(balance: number): string {
-  return balance.toLocaleString(undefined, { maximumFractionDigits: 0 });
+function formatUsdBalance(balanceXlm: number, xlmPriceUsd?: number | null): string {
+  if (!xlmPriceUsd || !Number.isFinite(xlmPriceUsd)) return '$-';
+  const usd = balanceXlm * xlmPriceUsd;
+  return usd.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 }
 
 function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
@@ -35,57 +42,70 @@ function SortIcon({ active, order }: { active: boolean; order: SortOrder }) {
   );
 }
 
-export default function KnownAccountsDesktopView({ initialData }: KnownAccountsDesktopViewProps) {
-  const [accounts, setAccounts] = useState<LabeledAccount[]>(initialData?.data || []);
-  const [currentPage, setCurrentPage] = useState(initialData?.current_page || 1);
-  const [totalPages, setTotalPages] = useState(initialData?.last_page || 1);
-  const [total, setTotal] = useState(initialData?.total || 0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+export default function KnownAccountsDesktopView({
+  initialData,
+  xlmPriceUsd,
+  searchQuery,
+  onSearchQueryChange,
+  loading: parentLoading,
+  currentPage,
+  totalPages,
+  totalItems,
+  onPageChange,
+}: KnownAccountsDesktopViewProps) {
+  const getTransactions = (acc: any) => String(acc.accountMetric?.totalTransactions ?? acc.accountMetric?.transactionsPerHour ?? '0');
+
+  const itemsPerPage = 30;
+  const [isPaginationHovered, setIsPaginationHovered] = useState(false);
+  const [isScrollActive, setIsScrollActive] = useState(false);
+
+  useEffect(() => {
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+    const handleScroll = () => {
+      setIsScrollActive(true);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => setIsScrollActive(false), 900);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
+  }, []);
+
+  const displayAccounts = useMemo(() =>
+    (initialData?.member || []).map((acc: any) => ({
+      account: acc.address,
+      org_name: null,
+      label: acc.label ? {
+        name: acc.label,
+        description: null,
+        verified: acc.verified ? 1 : 0
+      } : null,
+      balance: parseFloat(acc.accountMetric?.nativeBalance || '0'),
+      transactions: getTransactions(acc),
+      rank: acc.accountMetric?.rankPosition || 0
+    })),
+  [initialData]);
+
   const [sortField, setSortField] = useState<SortField>('balance');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
-  const fetchPage = useCallback(async (page: number) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `https://api.stellarchain.io/v1/accounts?page=${page}&labels[]=undefined&paginate=25`
-      );
-      const json = await response.json();
-
-      setAccounts(json.data || []);
-      setCurrentPage(json.meta?.current_page || 1);
-      setTotalPages(json.meta?.last_page || 1);
-      setTotal(json.meta?.total || 0);
-    } catch (error) {
-      console.error('Error fetching accounts:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   // Calculate totals
   const totals = useMemo(() => {
-    const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
-    const totalTxs = accounts.reduce((sum, acc) => sum + parseInt(acc.transactions || '0'), 0);
-    const verifiedCount = accounts.filter(acc => acc.label?.verified === 1).length;
-    return { totalBalance, totalTxs, verifiedCount };
-  }, [accounts]);
+    const verifiedCount = displayAccounts.filter((acc) => {
+      const labelText = (acc.label?.name || acc.org_name || '').toLowerCase();
+      const isRisk = labelText.includes('scam') || labelText.includes('hack') || labelText.includes('malicious') || labelText.includes('spam');
+      return acc.label?.verified === 1 && !isRisk;
+    }).length;
+    return { verifiedCount };
+  }, [displayAccounts]);
 
   const filteredAndSortedAccounts = useMemo(() => {
-    let filtered = [...accounts];
+    const sorted = [...displayAccounts];
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (account) =>
-          account.account.toLowerCase().includes(query) ||
-          (account.label?.name && account.label.name.toLowerCase().includes(query)) ||
-          (account.org_name && account.org_name.toLowerCase().includes(query))
-      );
-    }
-
-    filtered.sort((a, b) => {
+    sorted.sort((a, b) => {
       let comparison = 0;
       switch (sortField) {
         case 'rank':
@@ -101,8 +121,8 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
       return sortOrder === 'desc' ? comparison : -comparison;
     });
 
-    return filtered;
-  }, [accounts, searchQuery, sortField, sortOrder]);
+    return sorted;
+  }, [displayAccounts, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -133,19 +153,6 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
-        {/* Loading Overlay */}
-        {isLoading && (
-          <div className="fixed inset-0 bg-[var(--text-primary)]/20 z-50 flex items-center justify-center backdrop-blur-sm">
-            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-xl p-4 flex items-center gap-3">
-              <svg className="animate-spin h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              <span className="font-medium text-[var(--text-secondary)]">Loading accounts...</span>
-            </div>
-          </div>
-        )}
-
         {/* Header Card */}
         <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -163,7 +170,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Directory</span>
                   <span className="bg-sky-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
-                    {(total || 0).toLocaleString()} Accounts
+                    {totalItems.toLocaleString()} Accounts
                   </span>
                   <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -179,17 +186,6 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
 
             {/* Right: Quick Stats */}
             <div className="flex gap-3">
-              <div className="p-3 rounded-xl bg-sky-100/70 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-800/50 min-w-[120px]">
-                <div className="text-[9px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest mb-1">Total Balance</div>
-                <div className="text-lg font-bold text-sky-600 dark:text-sky-400">
-                  {formatBalance(totals.totalBalance)}
-                  <span className="text-[10px] font-medium text-[var(--text-muted)] ml-1">XLM</span>
-                </div>
-              </div>
-              <div className="p-3 rounded-xl bg-violet-100/70 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800/50 min-w-[110px]">
-                <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">Transactions</div>
-                <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{formatBalance(totals.totalTxs)}</div>
-              </div>
               <div className="p-3 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/50 min-w-[90px]">
                 <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Verified</div>
                 <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{totals.verifiedCount}</div>
@@ -208,7 +204,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => onSearchQueryChange(e.target.value)}
               placeholder="Search by name or address..."
               className="w-full bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-primary)] pl-12 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-sky-500/20 focus:border-sky-300 text-sm shadow-sm"
             />
@@ -231,7 +227,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
         </div>
 
         {/* Table */}
-        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden relative pb-20">
           <table className="w-full sc-table">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
@@ -246,7 +242,10 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]">
               {filteredAndSortedAccounts.map((account, index) => {
-                const isVerified = account.label?.verified === 1;
+                const labelText = (account.label?.name || account.org_name || '').toLowerCase();
+                const isSpam = labelText.includes('spam');
+                const isRisk = labelText.includes('scam') || labelText.includes('hack') || labelText.includes('malicious') || isSpam;
+                const isVerified = account.label?.verified === 1 && !isRisk;
                 const hasLabel = !!(account.label?.name || account.org_name);
                 const displayName = account.label?.name || account.org_name || 'Unknown';
 
@@ -259,7 +258,7 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
                     {/* Rank */}
                     <td className="py-4 px-4">
                       <span className="text-sm font-bold text-[var(--text-muted)]">
-                        {account.rank || ((currentPage - 1) * 25 + index + 1)}
+                        {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
 
@@ -269,17 +268,25 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
                         <span className="text-[var(--text-primary)] font-semibold text-[13px] group-hover:text-sky-600 transition-colors">
                           {displayName}
                         </span>
-                        {isVerified ? (
+                        {isRisk && (
+                          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill={isSpam ? '#F97316' : '#EF4444'}>
+                            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
+                            <path d="M12 7v6m0 2v2" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                        )}
+                        {hasLabel && (
+                          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="12" cy="8" r="4.25" fill="#F59E0B" />
+                            <circle cx="12" cy="8" r="2.1" fill="#FEF3C7" />
+                            <path d="M9.2 11.2L7.6 20l4.4-2.5 4.4 2.5-1.6-8.8z" fill="#D97706" />
+                          </svg>
+                        )}
+                        {isVerified && (
                           <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#1D9BF0">
                             <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
                           </svg>
-                        ) : hasLabel ? (
-                          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
-                            <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
-                            <circle cx="12" cy="10" r="3" fill="white" />
-                            <path d="M18 18.5c0-2.5-2.7-4.5-6-4.5s-6 2-6 4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                          </svg>
-                        ) : (
+                        )}
+                        {!isRisk && !isVerified && !hasLabel && (
                           <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="#6B7280">
                             <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484z" />
                             <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">?</text>
@@ -303,9 +310,11 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
                     {/* Balance */}
                     <td className="py-4 px-4 text-right">
                       <div className="text-[var(--text-primary)] font-semibold text-[13px]">
-                        {formatFullBalance(account.balance || 0)}
+                        {formatFullBalance(account.balance || 0)} <span className="text-[var(--text-muted)] ml-1">XLM</span>
                       </div>
-                      <div className="text-[10px] text-[var(--text-muted)]">XLM</div>
+                      <div className="text-[10px] text-[var(--text-tertiary)]">
+                        {formatUsdBalance(account.balance || 0, xlmPriceUsd)}
+                      </div>
                     </td>
 
                     {/* Transactions */}
@@ -317,22 +326,32 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
 
                     {/* Status */}
                     <td className="py-4 px-4 text-center">
-                      {isVerified ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 text-[9px] font-bold uppercase tracking-wider">
-                          <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
-                          Verified
-                        </span>
-                      ) : hasLabel ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] text-[9px] font-bold uppercase tracking-wider">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
-                          Labeled
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-primary)] text-[var(--text-muted)] text-[9px] font-bold uppercase tracking-wider">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
-                          Unknown
-                        </span>
-                      )}
+                      <div className="inline-flex items-center gap-1 flex-wrap justify-center">
+                        {isRisk && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${isSpam ? 'bg-orange-50 text-orange-700' : 'bg-red-50 text-red-700'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isSpam ? 'bg-orange-500' : 'bg-red-500'}`}></span>
+                            {isSpam ? 'Spam' : 'Risk'}
+                          </span>
+                        )}
+                        {isVerified && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 text-[9px] font-bold uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                            Verified
+                          </span>
+                        )}
+                        {hasLabel && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] text-[9px] font-bold uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
+                            Labeled
+                          </span>
+                        )}
+                        {!isRisk && !isVerified && !hasLabel && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-primary)] text-[var(--text-muted)] text-[9px] font-bold uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
+                            Unknown
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Arrow */}
@@ -362,19 +381,26 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
               </p>
             </div>
           )}
+        </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-1.5 px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/50">
-              <button
-                onClick={() => fetchPage(currentPage - 1)}
-                disabled={currentPage === 1 || isLoading}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        {/* Floating Pagination */}
+        {totalPages > 1 && (
+          <div className="fixed bottom-4 left-1/2 z-30 pointer-events-none w-full max-w-[1400px] -translate-x-1/2 px-4">
+            <div className="mx-auto px-4 flex justify-center">
+              <div
+                onMouseEnter={() => setIsPaginationHovered(true)}
+                onMouseLeave={() => setIsPaginationHovered(false)}
+                className={`pointer-events-auto bg-[var(--bg-secondary)]/90 backdrop-blur-xl rounded-xl px-3 py-2 flex items-center gap-1.5 shadow-xl border border-[var(--border-default)] transition-opacity duration-300 ${isScrollActive || isPaginationHovered ? 'opacity-100' : 'opacity-20'}`}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
+                <button
+                  onClick={() => onPageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || parentLoading}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
 
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                 let pageNum: number;
@@ -390,12 +416,13 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
                 return (
                   <button
                     key={pageNum}
-                    onClick={() => fetchPage(pageNum)}
-                    disabled={isLoading}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${currentPage === pageNum
+                    onClick={() => onPageChange(pageNum)}
+                    disabled={parentLoading}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
+                      currentPage === pageNum
                         ? 'bg-sky-600 text-white shadow-sm'
                         : 'text-[var(--text-muted)] hover:bg-sky-50 hover:text-sky-700'
-                      }`}
+                    }`}
                   >
                     {pageNum}
                   </button>
@@ -407,17 +434,18 @@ export default function KnownAccountsDesktopView({ initialData }: KnownAccountsD
               )}
 
               <button
-                onClick={() => fetchPage(currentPage + 1)}
-                disabled={currentPage === totalPages || isLoading}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-muted)] hover:bg-sky-50 hover:border-sky-200 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || parentLoading}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

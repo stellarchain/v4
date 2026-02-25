@@ -1,44 +1,40 @@
-import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import FloatingBottomNav from "@/components/mobile/FloatingBottomNav";
-import MobileHeader from "@/components/mobile/MobileHeader";
-import DesktopNavbar from "@/components/desktop/DesktopNavbar";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import { FavoritesProvider } from "@/contexts/FavoritesContext";
-import { NetworkProvider } from "@/contexts/NetworkContext";
-import ScrollToTop from "@/components/ScrollToTop";
-
-const geistSans = Geist({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-});
+import type { Metadata, Viewport } from 'next';
+import './globals.css';
+import FloatingBottomNav from '@/components/mobile/FloatingBottomNav';
+import MobileHeader from '@/components/mobile/MobileHeader';
+import DesktopNavbar from '@/components/desktop/DesktopNavbar';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { FavoritesProvider } from '@/contexts/FavoritesContext';
+import { NetworkProvider } from '@/contexts/NetworkContext';
+import ScrollToTop from '@/components/ScrollToTop';
 
 export const viewport: Viewport = {
-  width: "device-width",
-  height: "device-height",
+  width: 'device-width',
+  height: 'device-height',
   initialScale: 1,
-  viewportFit: "cover",
+  viewportFit: 'cover',
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f1f5f9" },
-    { media: "(prefers-color-scheme: dark)", color: "#0B1118" },
+    { media: '(prefers-color-scheme: light)', color: '#f1f5f9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0B1118' },
   ],
 };
 
 export const metadata: Metadata = {
-  title: "StellarChain - Blockchain Explorer",
-  description: "Explore the Stellar blockchain - transactions, accounts, ledgers, and operations",
-  keywords: ["Stellar", "blockchain", "explorer", "XLM", "crypto", "Lumens"],
-  manifest: "/manifest.webmanifest",
+  metadataBase: new URL('https://stellarchain.dev'),
+  title: {
+    default: 'Explore Stellar Lumens (XLM) - Real-time Price, Assets, Charts & More',
+    template: '%s | StellarChain Explorer',
+  },
+  alternates: {
+    canonical: './',
+  },
+  description: 'Explore the Stellar blockchain - transactions, accounts, ledgers, and operations',
+  keywords: ['Stellar', 'blockchain', 'explorer', 'XLM', 'crypto', 'Lumens'],
+  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Stellarchain",
+    statusBarStyle: 'black-translucent',
+    title: 'Stellarchain',
   },
 };
 
@@ -60,17 +56,42 @@ export default function RootLayout({
       } catch (e) {}
     })();
   `;
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        name: 'StellarChain Explorer',
+        url: 'https://stellarchain.dev',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: 'https://stellarchain.dev/search?q={search_term_string}',
+          'query-input': 'required name=search_term_string',
+        },
+      },
+      {
+        '@type': 'Organization',
+        name: 'StellarChain',
+        url: 'https://stellarchain.dev',
+        logo: 'https://stellarchain.dev/stellarchain-logo.svg',
+      },
+    ],
+  };
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang='en' suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
         <style dangerouslySetInnerHTML={{ __html: `
           html[data-theme="dark"] { background-color: #0a0f1a; }
           html[data-theme="light"] { background-color: #f8fafc; }
         ` }} />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen transition-colors duration-300 overflow-x-hidden`}>
+      <body className='font-sans antialiased bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen transition-colors duration-300 overflow-x-hidden'>
         <ThemeProvider>
           <NetworkProvider>
           <FavoritesProvider>
