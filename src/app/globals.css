@@ -613,6 +613,6 @@ input:focus-visible {
 
 @media (max-width: 768px) {
   #sentry-feedback {
-    --inset: auto 0 50px auto;
+    --inset: auto 0 60px auto;
   }
 }
