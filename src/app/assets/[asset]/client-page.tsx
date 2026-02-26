@@ -10,7 +10,7 @@ import MobileHeader from '@/components/mobile/MobileHeader';
 import AssetLoadingShell from '@/components/ui/AssetLoadingShell';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
-import { persistNetwork } from '@/lib/network/state';
+import { redirectToNetwork } from '@/lib/network/navigation';
 import { apiEndpoints, getApiV1Data } from '@/services/api';
 
 
@@ -56,10 +56,7 @@ export default function AssetDetailsRoute() {
   const [availableNetworks, setAvailableNetworks] = useState<NetworkType[]>([]);
 
   const switchNetworkAndReload = useCallback((targetNetwork: NetworkType) => {
-    persistNetwork(targetNetwork);
-    const query = searchParams.toString();
-    const targetUrl = query ? `${pathname}?${query}` : pathname;
-    window.location.href = targetUrl;
+    redirectToNetwork(targetNetwork, pathname, searchParams.toString(), window.location.hash);
   }, [pathname, searchParams]);
 
   const checkOtherNetworksForAsset = useCallback(async (assetId: string, currentNetwork: NetworkType) => {
