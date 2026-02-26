@@ -106,8 +106,52 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
   const rowRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
   const previousIdsRef = useRef<Set<string>>(new Set());
   const enrichedIdsRef = useRef<Set<string>>(new Set());
+  const pendingTransactionsRef = useRef<Map<string, Transaction>>(new Map());
+  const [pendingCount, setPendingCount] = useState(0);
   // Merge helper: merge new transactions, animate new ones, save to cache
   const mergeAndAnimate = useCallback((newTxs: Transaction[], isInitial: boolean) => {
+    if (!isInitial) {
+      setTransactions((prev) => {
+        const byHash = new Map(prev.map((t) => [t.hash, t]));
+        let hasVisibleUpdates = false;
+
+        // Update already visible rows only, keep their current order to avoid CLS.
+        const updatedVisible = prev.map((existing) => {
+          const incoming = newTxs.find((tx) => tx.hash === existing.hash);
+          if (!incoming) return existing;
+
+          const hasBetterDisplayInfo =
+            !!incoming.displayInfo &&
+            incoming.displayInfo.type !== 'other' &&
+            (!existing.displayInfo || existing.displayInfo.type === 'other');
+
+          if (hasBetterDisplayInfo) {
+            hasVisibleUpdates = true;
+            return incoming;
+          }
+
+          return existing;
+        });
+
+        // Queue brand-new rows until user explicitly applies them.
+        newTxs.forEach((tx) => {
+          if (!byHash.has(tx.hash) && !pendingTransactionsRef.current.has(tx.hash)) {
+            pendingTransactionsRef.current.set(tx.hash, tx);
+          }
+        });
+        setPendingCount(pendingTransactionsRef.current.size);
+
+        if (hasVisibleUpdates) {
+          saveCachedTransactions(updatedVisible);
+          return updatedVisible;
+        }
+
+        return prev;
+      });
+
+      return;
+    }
+
     setTransactions(prev => {
       const existingMap = new Map(prev.map(t => [t.hash, t]));
 
@@ -150,15 +194,26 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
     });
   }, []);
 
-  useEffect(() => {
-    if (initialTransactions.length === 0) return;
-    if (transactions.length > 0) return;
+  const applyPendingTransactions = useCallback(() => {
+    const pending = Array.from(pendingTransactionsRef.current.values());
+    if (pending.length === 0) return;
 
-    mergeAndAnimate(initialTransactions, true);
-    if (isInitialLoading) {
-      setIsInitialLoading(false);
-    }
-  }, [initialTransactions, transactions.length, mergeAndAnimate, isInitialLoading]);
+    setTransactions((prev) => {
+      const existingMap = new Map(prev.map((t) => [t.hash, t]));
+      pending.forEach((tx) => existingMap.set(tx.hash, tx));
+
+      const merged = Array.from(existingMap.values())
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 50);
+
+      previousIdsRef.current = new Set(merged.map((t) => t.id));
+      saveCachedTransactions(merged);
+      return merged;
+    });
+
+    pendingTransactionsRef.current.clear();
+    setPendingCount(0);
+  }, []);
 
   useEffect(() => {
     if (initialTransactions.length === 0) return;
@@ -340,6 +395,14 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
 
   return (
     <div ref={containerRef} className="w-full space-y-2">
+      {pendingCount > 0 && !isInitialLoading && (
+        <button
+          onClick={applyPendingTransactions}
+          className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)] px-3 py-2 text-xs font-bold uppercase tracking-wider text-[var(--primary-blue)] transition-colors hover:bg-[var(--bg-hover)]"
+        >
+          Show {pendingCount} new transaction{pendingCount > 1 ? 's' : ''}
+        </button>
+      )}
       {isInitialLoading ? (
         Array.from({ length: limit }).map((_, i) => (
           <SkeletonRow key={i} />
