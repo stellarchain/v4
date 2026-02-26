@@ -11,7 +11,7 @@ import AccountDesktopView from '@/components/desktop/AccountDesktopView';
 import { createHorizonServer } from '@/services/horizon';
 import { apiEndpoints, getApiV1Data } from '@/services/api';
 import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
-import { persistNetwork } from '@/lib/network/state';
+import { redirectToNetwork } from '@/lib/network/navigation';
 
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
@@ -176,10 +176,7 @@ export default function AccountPage() {
   }, []);
 
   const switchNetworkAndReload = useCallback((targetNetwork: NetworkType) => {
-    persistNetwork(targetNetwork);
-    const query = searchParams.toString();
-    const targetUrl = query ? `${pathname}?${query}` : pathname;
-    window.location.href = targetUrl;
+    redirectToNetwork(targetNetwork, pathname, searchParams.toString(), window.location.hash);
   }, [pathname, searchParams]);
 
   // Detect mobile/desktop to conditionally render only one component
