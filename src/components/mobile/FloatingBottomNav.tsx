@@ -9,6 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useNetwork, NETWORK_CONFIGS, NetworkType } from '@/contexts/NetworkContext';
 import { shortenAddress } from '@/lib/stellar';
+import { getForcedNetworkFromHostname } from '@/lib/network/config';
 import DonationModal from '@/components/DonationModal';
 
 const navItemsLeft = [
@@ -180,6 +181,8 @@ export default function FloatingBottomNav() {
   const [showFavoritesList, setShowFavoritesList] = useState(false);
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [showNetworkDropdown, setShowNetworkDropdown] = useState(false);
+  const forcedNetwork = typeof window !== 'undefined' ? getForcedNetworkFromHostname(window.location.hostname) : null;
+  const isNetworkDropdownHidden = forcedNetwork === 'testnet' || forcedNetwork === 'futurenet';
 
   // Only render after mounting to avoid SSR issues with Framer Motion
   useEffect(() => {
@@ -325,7 +328,10 @@ export default function FloatingBottomNav() {
                 {/* Network Switcher */}
                 <div className="relative">
                   <button
-                    onClick={() => setShowNetworkDropdown(!showNetworkDropdown)}
+                    onClick={() => {
+                      if (isNetworkDropdownHidden) return;
+                      setShowNetworkDropdown(!showNetworkDropdown);
+                    }}
                     disabled={isChangingNetwork}
                     aria-label="Switch network"
                     aria-expanded={showNetworkDropdown}
@@ -345,21 +351,23 @@ export default function FloatingBottomNav() {
                       <span className="text-sm font-medium text-[var(--text-primary)]">
                         {networkConfig.displayName}
                       </span>
-                      <svg
-                        className={`w-4 h-4 text-[var(--text-muted)] transition-transform ${showNetworkDropdown ? 'rotate-180' : ''}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      {!isNetworkDropdownHidden && (
+                        <svg
+                          className={`w-4 h-4 text-[var(--text-muted)] transition-transform ${showNetworkDropdown ? 'rotate-180' : ''}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      )}
                     </div>
                   </button>
 
                   {/* Network Dropdown */}
                   <AnimatePresence>
-                    {showNetworkDropdown && (
+                    {!isNetworkDropdownHidden && showNetworkDropdown && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
