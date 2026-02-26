@@ -8,6 +8,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useNetwork, NETWORK_CONFIGS, NetworkType } from '@/contexts/NetworkContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { shortenAddress } from '@/lib/stellar';
+import { getForcedNetworkFromHostname } from '@/lib/network/config';
 import { getRouteFromSearchQuery } from '@/lib/searchRouting';
 import DonationModal from '@/components/DonationModal';
 
@@ -28,6 +29,8 @@ export default function DesktopNavbar() {
     const { theme, toggleTheme } = useTheme();
     const { network, setNetwork, networkConfig, isChangingNetwork } = useNetwork();
     const { favorites } = useFavorites();
+    const forcedNetwork = typeof window !== 'undefined' ? getForcedNetworkFromHostname(window.location.hostname) : null;
+    const isNetworkDropdownHidden = forcedNetwork === 'testnet' || forcedNetwork === 'futurenet';
 
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [showNetworkDropdown, setShowNetworkDropdown] = useState(false);
@@ -316,7 +319,10 @@ export default function DesktopNavbar() {
                             {/* Network Selector */}
                             <div className="relative" ref={networkRef}>
                                 <button
-                                    onClick={() => setShowNetworkDropdown(!showNetworkDropdown)}
+                                    onClick={() => {
+                                        if (isNetworkDropdownHidden) return;
+                                        setShowNetworkDropdown(!showNetworkDropdown);
+                                    }}
                                     disabled={isChangingNetwork}
                                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors disabled:opacity-50"
                                 >
@@ -325,18 +331,20 @@ export default function DesktopNavbar() {
                                         style={{ backgroundColor: networkConfig.color }}
                                     />
                                     <span>{networkConfig.displayName}</span>
-                                    <svg
-                                        className={`w-4 h-4 transition-transform ${showNetworkDropdown ? 'rotate-180' : ''}`}
-                                        aria-hidden="true"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
+                                    {!isNetworkDropdownHidden && (
+                                        <svg
+                                            className={`w-4 h-4 transition-transform ${showNetworkDropdown ? 'rotate-180' : ''}`}
+                                            aria-hidden="true"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    )}
                                 </button>
 
-                                {showNetworkDropdown && (
+                                {!isNetworkDropdownHidden && showNetworkDropdown && (
                                     <div className="absolute top-full right-0 mt-1 w-48 bg-[var(--bg-secondary)] rounded-xl shadow-xl border border-[var(--border-default)] py-2 z-50">
                                         {(['mainnet', 'testnet', 'futurenet'] as NetworkType[]).map((net) => {
                                             const config = NETWORK_CONFIGS[net];
