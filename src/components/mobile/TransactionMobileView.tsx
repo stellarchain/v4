@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { shortenAddress, timeAgo, getOperationTypeLabel, formatDate, formatXLM, extractContractAddress, detectContractFunctionType } from '@/lib/stellar';
 import type { AccountLabel } from '@/lib/stellar';
 import type { ContractFunctionType } from '@/lib/shared/interfaces';
+import { addressRoute } from '@/lib/shared/routes';
 import AccountBadges from '@/components/AccountBadges';
 import { containers, spacing } from '@/lib/shared/designSystem';
 import GliderTabs, { type GliderTab } from '@/components/ui/GliderTabs';
@@ -1116,7 +1117,7 @@ export default function TransactionMobileView({ transaction, operations, effects
                       <span className="text-xs font-semibold" style={{ color: primaryColor }}>
                         {(operations[0] as any).asset_code || 'Unknown'}
                         {(operations[0] as any).asset_issuer && (
-                          <span className="text-[var(--text-muted)] ml-1">({shortenAddress((operations[0] as any).asset_issuer, 4)})</span>
+                          <Link href={addressRoute((operations[0] as any).asset_issuer)} className="text-sky-600 hover:text-sky-700 ml-1">({shortenAddress((operations[0] as any).asset_issuer, 4)})</Link>
                         )}
                       </span>
                     </div>
