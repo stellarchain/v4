@@ -2,11 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useNetwork, NetworkType, NETWORK_CONFIGS } from '@/contexts/NetworkContext';
+import { getForcedNetworkFromHostname } from '@/lib/network/config';
 
 export default function NetworkSwitcher() {
   const { network, setNetwork, isChangingNetwork } = useNetwork();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const forcedNetwork = typeof window !== 'undefined' ? getForcedNetworkFromHostname(window.location.hostname) : null;
+  const isNetworkDropdownHidden = forcedNetwork === 'testnet' || forcedNetwork === 'futurenet';
 
   const currentConfig = NETWORK_CONFIGS[network];
 
@@ -34,7 +37,10 @@ export default function NetworkSwitcher() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (isNetworkDropdownHidden) return;
+          setIsOpen(!isOpen);
+        }}
         disabled={isChangingNetwork}
         className="flex items-center justify-between w-full px-4 py-3 bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-colors disabled:opacity-50"
       >
@@ -52,18 +58,20 @@ export default function NetworkSwitcher() {
             </div>
           </div>
         </div>
-        <svg
-          className={`w-4 h-4 text-[var(--text-muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        {!isNetworkDropdownHidden && (
+          <svg
+            className={`w-4 h-4 text-[var(--text-muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        )}
       </button>
 
       {/* Dropdown */}
-      {isOpen && (
+      {!isNetworkDropdownHidden && isOpen && (
         <div className="absolute left-0 right-0 mt-2 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)] shadow-lg overflow-hidden z-50">
           {networks.map((net) => {
             const config = NETWORK_CONFIGS[net];

@@ -13,7 +13,7 @@ import { decodeScVal } from '@/lib/shared/xdr';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { apiEndpoints, getApiV1Data } from '@/services/api';
 import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
-import { persistNetwork } from '@/lib/network/state';
+import { redirectToNetwork } from '@/lib/network/navigation';
 
 type ParsedEventType = 'transfer' | 'approve' | 'mint' | 'burn' | 'clawback' | 'unknown';
 
@@ -748,10 +748,7 @@ export default function ContractPage() {
   const [availableNetworks, setAvailableNetworks] = useState<NetworkType[]>([]);
 
   const switchNetworkAndReload = useCallback((targetNetwork: NetworkType) => {
-    persistNetwork(targetNetwork);
-    const query = searchParams.toString();
-    const targetUrl = query ? `${pathname}?${query}` : pathname;
-    window.location.href = targetUrl;
+    redirectToNetwork(targetNetwork, pathname, searchParams.toString(), window.location.hash);
   }, [pathname, searchParams]);
 
   const checkOtherNetworksForContract = useCallback(async (contractId: string, currentNetwork: NetworkType) => {

@@ -11,7 +11,7 @@ import TransactionDesktopView from '@/components/desktop/TransactionDesktopView'
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { createHorizonServer } from '@/services/horizon';
 import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
-import { persistNetwork } from '@/lib/network/state';
+import { redirectToNetwork } from '@/lib/network/navigation';
 
 // Extract all unique account addresses from transaction data
 function extractAccountAddresses(
@@ -103,10 +103,7 @@ export default function TransactionPage() {
   };
 
   const switchNetworkAndReload = useCallback((targetNetwork: NetworkType) => {
-    persistNetwork(targetNetwork);
-    const query = searchParams.toString();
-    const targetUrl = query ? `${pathname}?${query}` : pathname;
-    window.location.href = targetUrl;
+    redirectToNetwork(targetNetwork, pathname, searchParams.toString(), window.location.hash);
   }, [pathname, searchParams]);
 
   const checkOtherNetworksForTransaction = useCallback(async (txHash: string, currentNetwork: NetworkType) => {
