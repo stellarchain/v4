@@ -160,16 +160,6 @@ export default function LiveTransactionFeed({ initialTransactions, limit = 10, f
     }
   }, [initialTransactions, transactions.length, mergeAndAnimate, isInitialLoading]);
 
-  useEffect(() => {
-    if (initialTransactions.length === 0) return;
-    if (transactions.length > 0) return;
-
-    mergeAndAnimate(initialTransactions, true);
-    if (isInitialLoading) {
-      setIsInitialLoading(false);
-    }
-  }, [initialTransactions, transactions.length, mergeAndAnimate, isInitialLoading]);
-
   // Fetch payments from /payments endpoint (same as desktop for Payments tab)
   const fetchPayments = useCallback(async (isInitial: boolean) => {
     try {
