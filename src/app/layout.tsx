@@ -30,6 +30,31 @@ export const metadata: Metadata = {
   },
   description: 'Explore the Stellar blockchain - transactions, accounts, ledgers, and operations',
   keywords: ['Stellar', 'blockchain', 'explorer', 'XLM', 'crypto', 'Lumens'],
+  openGraph: {
+    type: 'website',
+    url: 'https://stellarchain.io',
+    siteName: 'StellarChain Explorer',
+    title: 'Explore Stellar Lumens (XLM) - Real-time Price, Assets, Charts & More',
+    description: 'Explore the Stellar blockchain - transactions, accounts, ledgers, and operations',
+    images: [
+      {
+        url: '/stellar-xlm9125.jpg',
+        width: 866,
+        height: 650,
+        alt: 'StellarChain Explorer',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Explore Stellar Lumens (XLM) - Real-time Price, Assets, Charts & More',
+    description: 'Explore the Stellar blockchain - transactions, accounts, ledgers, and operations',
+    images: ['/stellar-xlm9125.jpg'],
+  },
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
