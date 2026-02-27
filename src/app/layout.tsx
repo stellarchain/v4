@@ -8,6 +8,7 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { NetworkProvider } from '@/contexts/NetworkContext';
 import ScrollToTop from '@/components/ScrollToTop';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
+import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -53,8 +54,12 @@ export const metadata: Metadata = {
     images: ['/stellar-xlm9125.jpg'],
   },
   icons: {
-    icon: '/favicon.ico',
-    apple: '/favicon.ico',
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/icons/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
   manifest: '/manifest.webmanifest',
   appleWebApp: {
@@ -161,6 +166,7 @@ export default function RootLayout({
           </main>
 
           <CookieConsentBanner />
+          <ServiceWorkerRegistration />
 
           {/* Mobile Bottom Navigation - iOS 26 Style */}
           <FloatingBottomNav />
