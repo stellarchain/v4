@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { NetworkProvider } from '@/contexts/NetworkContext';
 import ScrollToTop from '@/components/ScrollToTop';
+import CookieConsentBanner from '@/components/CookieConsentBanner';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -158,6 +159,8 @@ export default function RootLayout({
               {children}
             </div>
           </main>
+
+          <CookieConsentBanner />
 
           {/* Mobile Bottom Navigation - iOS 26 Style */}
           <FloatingBottomNav />
