@@ -25,7 +25,11 @@ if (!isDevelopment) {
   Sentry.init({
     dsn: 'REMOVED_SENTRY_DSN',
     integrations: [
-      Sentry.replayIntegration(),
+      Sentry.replayIntegration({
+        maskAllText: false,
+        blockAllMedia: true,
+        maskAllInputs: false,
+      }),
       Sentry.feedbackIntegration({
         colorScheme: getFeedbackColorScheme(),
         themeDark: {
@@ -40,7 +44,7 @@ if (!isDevelopment) {
     ],
     tracesSampleRate: 1,
     enableLogs: true,
-    replaysSessionSampleRate: 1.0,
+    replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
     sendDefaultPii: true,
   });
