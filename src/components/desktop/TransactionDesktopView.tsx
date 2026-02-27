@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { shortenAddress, timeAgo, getOperationTypeLabel, formatDate, formatStroopsToXLM, extractContractAddress, detectContractFunctionType } from '@/lib/stellar';
 import type { AccountLabel } from '@/lib/stellar';
 import type { ContractFunctionType } from '@/lib/shared/interfaces';
+import { addressRoute } from '@/lib/shared/routes';
 import AccountBadges from '@/components/AccountBadges';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
@@ -809,9 +810,9 @@ export default function TransactionDesktopView({ transaction, operations, effect
                       <div className="text-xl font-bold text-emerald-600">{formatTokenAmount(selectedOp.amount || (selectedOp as any).starting_balance)} <span className="text-sm">{selectedOp.asset_type === 'native' ? 'XLM' : (selectedOp.asset_code || 'XLM')}</span></div>
                     </div>
                     {selectedOp.asset_issuer && (
-                      <div className="bg-[var(--bg-secondary)] px-3 py-1.5 rounded-lg border border-emerald-100 text-[10px]">
-                        <span className="text-[var(--text-muted)]">Issuer:</span> <span className="font-mono text-[var(--text-secondary)]">{shortenAddress(selectedOp.asset_issuer)}</span>
-                      </div>
+                      <Link href={addressRoute(selectedOp.asset_issuer)} className="bg-[var(--bg-secondary)] px-3 py-1.5 rounded-lg border border-emerald-100 dark:border-[var(--border-subtle)] text-[10px] hover:border-sky-200 dark:hover:border-sky-800 transition-colors">
+                        <span className="text-[var(--text-muted)]">Issuer:</span> <span className="font-mono text-sky-600 hover:text-sky-700">{shortenAddress(selectedOp.asset_issuer)}</span>
+                      </Link>
                     )}
                   </div>
                 )}
@@ -908,9 +909,9 @@ export default function TransactionDesktopView({ transaction, operations, effect
                       </div>
                     </div>
                     {selectedEffect.asset_issuer && (
-                      <div className="bg-[var(--bg-secondary)] px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-[10px]">
-                        <span className="text-[var(--text-muted)]">Issuer:</span> <span className="font-mono text-[var(--text-secondary)]">{shortenAddress(selectedEffect.asset_issuer)}</span>
-                      </div>
+                      <Link href={addressRoute(selectedEffect.asset_issuer)} className="bg-[var(--bg-secondary)] px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-[10px] hover:border-sky-200 dark:hover:border-sky-800 transition-colors">
+                        <span className="text-[var(--text-muted)]">Issuer:</span> <span className="font-mono text-sky-600 hover:text-sky-700">{shortenAddress(selectedEffect.asset_issuer)}</span>
+                      </Link>
                     )}
                   </div>
                 )}
