@@ -185,6 +185,30 @@ export default function TransactionDesktopView({ transaction, operations, effect
     contractAddress = extractContractAddress(contractOp as any);
   }
 
+  const contractTransferDetails = useMemo(() => {
+    if (!isContractCall || !contractOp) return null;
+    const changes = (contractOp as any).asset_balance_changes as Array<Record<string, unknown>> | undefined;
+    if (!Array.isArray(changes)) return null;
+
+    const transfer = changes.find((change) => (
+      change?.type === 'transfer' &&
+      typeof change?.from === 'string' &&
+      typeof change?.to === 'string'
+    ));
+    if (!transfer) return null;
+
+    const parsedAmount = Number.parseFloat(String(transfer.amount ?? '0'));
+    const amount = Number.isFinite(parsedAmount) ? parsedAmount : 0;
+    const asset = transfer.asset_type === 'native' ? 'XLM' : String(transfer.asset_code || 'XLM');
+
+    return {
+      from: String(transfer.from),
+      to: String(transfer.to),
+      amount,
+      asset,
+    };
+  }, [isContractCall, contractOp]);
+
   const getDisplayAmount = () => {
     if (isMultiSend) return multiSendSum;
     const amt = parseFloat(primaryOp?.amount || (primaryOp as any)?.starting_balance || '0');
@@ -201,8 +225,14 @@ export default function TransactionDesktopView({ transaction, operations, effect
     return ef ? (ef.asset_type === 'native' ? 'XLM' : (ef.asset_code || 'XLM')) : 'XLM';
   };
 
-  const displayAmount = getDisplayAmount();
-  const displayAsset = getDisplayAsset();
+  const baseDisplayAmount = getDisplayAmount();
+  const baseDisplayAsset = getDisplayAsset();
+  const displayAmount = contractTransferDetails?.amount ?? baseDisplayAmount;
+  const displayAsset = contractTransferDetails?.asset ?? baseDisplayAsset;
+  const displaySourceAccount = contractTransferDetails?.from || transaction.source_account;
+  const displayDestinationAccount = contractTransferDetails?.to || destination;
+  const sourceIsContract = displaySourceAccount.startsWith('C');
+  const destinationIsContract = displayDestinationAccount.startsWith('C');
   const feeXLM = formatStroopsToXLM(parseInt(transaction.fee_charged));
   const maxFeeXLM = formatStroopsToXLM(parseInt(transaction.max_fee));
 
@@ -432,11 +462,11 @@ export default function TransactionDesktopView({ transaction, operations, effect
                 <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">From</div>
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow-md">{transaction.source_account.charAt(0)}</div>
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow-md">{displaySourceAccount.charAt(0)}</div>
                     <div>
                       <div className="flex items-center">
-                        <Link href={`/address/${transaction.source_account}`} className="font-mono text-sm font-medium text-[var(--text-primary)] hover:text-sky-600">{accountLabels[transaction.source_account]?.name || shortenAddress(transaction.source_account)}</Link>
-                        <AccountBadges address={transaction.source_account} labels={accountLabels} />
+                        <Link href={sourceIsContract ? `/contracts/${displaySourceAccount}` : `/address/${displaySourceAccount}`} className="font-mono text-sm font-medium text-[var(--text-primary)] hover:text-sky-600">{!sourceIsContract ? (accountLabels[displaySourceAccount]?.name || shortenAddress(displaySourceAccount)) : shortenAddress(displaySourceAccount)}</Link>
+                        {!sourceIsContract && <AccountBadges address={displaySourceAccount} labels={accountLabels} />}
                       </div>
                       <div className="text-[10px] text-[var(--text-muted)]">Source</div>
                     </div>
@@ -469,13 +499,13 @@ export default function TransactionDesktopView({ transaction, operations, effect
                       </>
                     ) : (
                       <>
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white text-sm font-bold shadow-md">{isContractDestination ? 'C' : destination.charAt(0)}</div>
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white text-sm font-bold shadow-md">{destinationIsContract ? 'C' : displayDestinationAccount.charAt(0)}</div>
                         <div>
                           <div className="flex items-center">
-                            <Link href={isContractDestination ? `/contracts/${destination}` : `/address/${destination}`} className="font-mono text-sm font-medium text-[var(--text-primary)] hover:text-sky-600">{!isContractDestination ? (accountLabels[destination]?.name || shortenAddress(destination)) : shortenAddress(destination)}</Link>
-                            {!isContractDestination && <AccountBadges address={destination} labels={accountLabels} />}
+                            <Link href={destinationIsContract ? `/contracts/${displayDestinationAccount}` : `/address/${displayDestinationAccount}`} className="font-mono text-sm font-medium text-[var(--text-primary)] hover:text-sky-600">{!destinationIsContract ? (accountLabels[displayDestinationAccount]?.name || shortenAddress(displayDestinationAccount)) : shortenAddress(displayDestinationAccount)}</Link>
+                            {!destinationIsContract && <AccountBadges address={displayDestinationAccount} labels={accountLabels} />}
                           </div>
-                          <div className="text-[10px] text-[var(--text-muted)]">{isContractDestination ? 'Contract' : 'Destination'}</div>
+                          <div className="text-[10px] text-[var(--text-muted)]">{destinationIsContract ? 'Contract' : 'Destination'}</div>
                         </div>
                       </>
                     )}
