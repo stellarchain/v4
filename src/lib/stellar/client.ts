@@ -643,6 +643,18 @@ export async function getOperation(id: string): Promise<Operation> {
   return response as unknown as Operation;
 }
 
+export async function getOperationTransactionHash(operationId: string): Promise<string | null> {
+  try {
+    const baseUrl = await getBaseUrlAsync();
+    const response = await fetch(`${baseUrl}/operations/${operationId}`);
+    if (!response.ok) return null;
+    const operation = await response.json();
+    return operation.transaction_hash || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getEffectById(id: string): Promise<Effect> {
   const baseUrl = await getBaseUrlAsync();
   return fetchJSON<Effect>(`${baseUrl}/effects/${id}`);
