@@ -64,19 +64,19 @@ const HOME_INTERNAL_LINKS = [
 ] as const;
 const HOME_CHANGELOGS = [
   {
-    version: 'v4.6.0',
-    date: '2026-02-24',
-    summary: 'Cross-network checks now include all supported networks for asset and transaction detail routes.',
+    version: 'v4.7.2',
+    date: '2026-03-01',
+    summary: 'Fixed contract transaction direction and amount rendering so sender/receiver flows display correctly.',
   },
   {
-    version: 'v4.5.3',
-    date: '2026-02-23',
-    summary: 'Improved homepage SEO with canonical tags, robots/sitemap metadata, and richer internal links.',
+    version: 'v4.7.1',
+    date: '2026-02-27',
+    summary: 'Added installable PWA support with web manifest, service worker registration, and app icons.',
   },
   {
-    version: 'v4.5.0',
-    date: '2026-02-22',
-    summary: 'Stabilized projects detail pages for static export and ID-based routing.',
+    version: 'v4.7.0',
+    date: '2026-02-27',
+    summary: 'Added cookie consent and richer social sharing metadata for better link previews on bots and messengers.',
   },
 ] as const;
 
