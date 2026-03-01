@@ -7,6 +7,8 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { NetworkProvider } from '@/contexts/NetworkContext';
 import ScrollToTop from '@/components/ScrollToTop';
+import CookieConsentBanner from '@/components/CookieConsentBanner';
+import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -30,6 +32,35 @@ export const metadata: Metadata = {
   },
   description: 'Explore the Stellar blockchain - transactions, accounts, ledgers, and operations',
   keywords: ['Stellar', 'blockchain', 'explorer', 'XLM', 'crypto', 'Lumens'],
+  openGraph: {
+    type: 'website',
+    url: 'https://stellarchain.io',
+    siteName: 'StellarChain Explorer',
+    title: 'Explore Stellar Lumens (XLM) - Real-time Price, Assets, Charts & More',
+    description: 'Explore the Stellar blockchain - transactions, accounts, ledgers, and operations',
+    images: [
+      {
+        url: '/stellar-xlm9125.jpg',
+        width: 866,
+        height: 650,
+        alt: 'StellarChain Explorer',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Explore Stellar Lumens (XLM) - Real-time Price, Assets, Charts & More',
+    description: 'Explore the Stellar blockchain - transactions, accounts, ledgers, and operations',
+    images: ['/stellar-xlm9125.jpg'],
+  },
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/icons/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
@@ -133,6 +164,9 @@ export default function RootLayout({
               {children}
             </div>
           </main>
+
+          <CookieConsentBanner />
+          <ServiceWorkerRegistration />
 
           {/* Mobile Bottom Navigation - iOS 26 Style */}
           <FloatingBottomNav />
