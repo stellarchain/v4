@@ -41,6 +41,15 @@ interface VerifiedContract {
   iconUrl?: string;
 }
 
+interface ContractHolderBalance {
+  relatedContractId: string;
+  balanceRaw: string;
+  inflowRaw: string;
+  outflowRaw: string;
+  label?: string;
+  decimals?: number;
+}
+
 interface ContractData {
   id: string;
   account: any | null;
@@ -75,6 +84,8 @@ interface ContractData {
     beforeId?: number | null;
   };
   spec?: unknown;
+  holderBalances?: ContractHolderBalance[];
+  selectedBalanceToken?: string;
   // API data fields
   totalTransactions?: number;
   totalInvokes?: number;
@@ -89,6 +100,7 @@ interface ContractData {
     invocations?: boolean;
     storage?: boolean;
     spec?: boolean;
+    balances?: boolean;
   };
 }
 
@@ -98,9 +110,10 @@ interface ContractDesktopViewProps {
   onTabChange?: (tabId: 'overview' | 'history' | 'events' | 'storage') => void;
   onHistoryPageChange?: (page: number) => void;
   onEventsPageChange?: (page: number) => void;
+  onBalanceTokenChange?: (token: string) => void;
 }
 
-export default function ContractDesktopView({ contract, operations, onTabChange, onHistoryPageChange, onEventsPageChange }: ContractDesktopViewProps) {
+export default function ContractDesktopView({ contract, operations, onTabChange, onHistoryPageChange, onEventsPageChange, onBalanceTokenChange }: ContractDesktopViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'events' | 'storage' | 'history' | 'code'>('overview');
   const [expandedStorageRows, setExpandedStorageRows] = useState<Set<number>>(new Set());
   const [copied, setCopied] = useState(false);
@@ -470,6 +483,88 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
             {/* Tab Content */}
             {activeTab === 'overview' && (
               <div className="space-y-4">
+                {/* Token Balances */}
+                {(sectionLoading.balances || (contract.holderBalances && contract.holderBalances.length > 0)) && (
+                  <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between px-4 pt-4 pb-3">
+                      <h3 className="text-sm font-bold text-[var(--text-primary)]">Token Balances</h3>
+                      {contract.holderBalances && contract.holderBalances.length > 1 && (
+                        <select
+                          value={contract.selectedBalanceToken || 'all'}
+                          onChange={(e) => onBalanceTokenChange?.(e.target.value)}
+                          className="text-xs rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        >
+                          <option value="all">All Tokens</option>
+                          {[...new Set(contract.holderBalances.map(b => b.label || b.relatedContractId))].map(label => (
+                            <option key={label} value={label}>{label}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                    {sectionLoading.balances ? (
+                      <div className="px-4 pb-4 space-y-2">
+                        {Array.from({ length: 2 }).map((_, idx) => (
+                          <div key={`balance-skeleton-${idx}`} className="flex items-center justify-between py-2">
+                            <InlineSkeleton width="w-20" height="h-4" />
+                            <InlineSkeleton width="w-24" height="h-4" />
+                            <InlineSkeleton width="w-16" height="h-3" />
+                            <InlineSkeleton width="w-16" height="h-3" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full sc-table">
+                          <thead>
+                            <tr className="border-b border-[var(--border-subtle)]">
+                              <th className="px-4 py-2.5 text-left text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Token</th>
+                              <th className="px-4 py-2.5 text-right text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Balance</th>
+                              <th className="px-4 py-2.5 text-right text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Inflow</th>
+                              <th className="px-4 py-2.5 text-right text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Outflow</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--border-subtle)]">
+                            {(contract.holderBalances || [])
+                              .filter(b => contract.selectedBalanceToken === 'all' || b.label === contract.selectedBalanceToken)
+                              .map((balance, idx) => {
+                                const decimals = balance.decimals ?? 7;
+                                const formatRaw = (raw: string) => {
+                                  const num = Number(raw);
+                                  if (Number.isNaN(num)) return raw;
+                                  const adjusted = num / Math.pow(10, decimals);
+                                  return adjusted.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals });
+                                };
+                                return (
+                                  <tr key={`balance-${idx}`} className="hover:bg-[var(--bg-tertiary)] transition-colors">
+                                    <td className="px-4 py-3">
+                                      <Link href={`/contract/${balance.relatedContractId}`} className="flex items-center gap-2 group">
+                                        <div className="w-6 h-6 rounded-full bg-sky-500/10 flex items-center justify-center text-[10px] font-bold text-sky-500 flex-shrink-0">
+                                          {(balance.label || '?').slice(0, 2).toUpperCase()}
+                                        </div>
+                                        <span className="text-sm font-medium text-[var(--text-primary)] group-hover:text-sky-500 transition-colors">
+                                          {balance.label || shortenAddress(balance.relatedContractId)}
+                                        </span>
+                                      </Link>
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                      <span className="text-sm font-semibold font-mono text-[var(--text-primary)]">{formatRaw(balance.balanceRaw)}</span>
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                      <span className="text-xs font-mono text-emerald-500">{formatRaw(balance.inflowRaw)}</span>
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                      <span className="text-xs font-mono text-rose-500">{formatRaw(balance.outflowRaw)}</span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Description */}
                 {contract.verifiedContract?.description && (
                   <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
@@ -674,9 +769,15 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                         const customFlow = !transferFlow && cleanedTopics.length > 2
                           ? `${shortenAddress(cleanedTopics[1])} -> ${shortenAddress(cleanedTopics[2])}`
                           : null;
-                        const valueText = customData?.decodedValue
-                          ? String(customData.decodedValue).replace(/^"+|"+$/g, '').trim()
-                          : '';
+                        const rawVal = customData?.decodedValue;
+                        const valueText = rawVal && typeof rawVal === 'object'
+                          ? Object.entries(rawVal as Record<string, unknown>).map(([k, v]) => {
+                              const s = String(v ?? '');
+                              return s.length === 56 && (s.startsWith('G') || s.startsWith('C'))
+                                ? `${k}: ${shortenAddress(s)}`
+                                : `${k}: ${s}`;
+                            }).join(' · ')
+                          : (rawVal ? String(rawVal).replace(/^"+|"+$/g, '').trim() : '');
 
                         const eventContent = (
                           <div className="px-4 py-4 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] transition-colors">
@@ -741,6 +842,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                     </button>
                   )}
                 </div>
+
               </div>
             )}
 
@@ -989,7 +1091,11 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                       const decodedFrom = decodedTopics?.[1];
                       const decodedTo = decodedTopics?.[2];
                       const decodedAsset = decodedTopics?.[3];
-                      const decodedValue = customData?.decodedValue;
+                      const rawDecodedValue = customData?.decodedValue;
+                      // Parse object values (e.g. {to, from, amount}) into structured display
+                      const isObjectValue = rawDecodedValue && typeof rawDecodedValue === 'object' && !Array.isArray(rawDecodedValue);
+                      const decodedValue = isObjectValue ? null : rawDecodedValue;
+                      const decodedValueObj = isObjectValue ? rawDecodedValue as Record<string, unknown> : null;
                       const parsedDecodedSymbol = typeof decodedAsset === 'string'
                         ? decodedAsset.replace(/^"|"$/g, '').split(':')[0]
                         : '';
@@ -1150,6 +1256,27 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                                     </span>
                                   </div>
                                 )}
+                                {decodedValueObj && (
+                                  <div className="space-y-1">
+                                    {Object.entries(decodedValueObj).map(([key, val]) => {
+                                      const strVal = String(val ?? '');
+                                      const isAddress = strVal.length === 56 && (strVal.startsWith('G') || strVal.startsWith('C'));
+                                      const label = key.charAt(0).toUpperCase() + key.slice(1);
+                                      return (
+                                        <div key={key} className="flex items-center gap-2 text-xs">
+                                          <span className="text-[var(--text-tertiary)]">{label}:</span>
+                                          {isAddress ? (
+                                            <Link href={strVal.startsWith('C') ? `/contract/${strVal}` : `/account/${strVal}`} className="font-mono text-sky-500 hover:underline">
+                                              {shortenAddress(strVal)}
+                                            </Link>
+                                          ) : (
+                                            <span className="font-mono font-semibold text-[var(--text-primary)]">{strVal}</span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                                 {customData.account && !decodedFrom && (
                                   <div className="flex items-center gap-2 text-xs">
                                     <span className="text-[var(--text-tertiary)]">Account:</span>
@@ -1162,7 +1289,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                             )}
 
                             {event.type === 'unknown' && !customData && (
-                              decodedFrom || decodedTo || decodedValue ? (
+                              decodedFrom || decodedTo || decodedValue || decodedValueObj ? (
                                 <div className="space-y-1">
                                   {decodedFrom && (
                                     <div className="flex items-center gap-2 text-xs">
@@ -1185,6 +1312,23 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                                       </span>
                                     </div>
                                   )}
+                                  {decodedValueObj && Object.entries(decodedValueObj).map(([key, val]) => {
+                                    const strVal = String(val ?? '');
+                                    const isAddress = strVal.length === 56 && (strVal.startsWith('G') || strVal.startsWith('C'));
+                                    const label = key.charAt(0).toUpperCase() + key.slice(1);
+                                    return (
+                                      <div key={key} className="flex items-center gap-2 text-xs">
+                                        <span className="text-[var(--text-tertiary)]">{label}:</span>
+                                        {isAddress ? (
+                                          <Link href={strVal.startsWith('C') ? `/contract/${strVal}` : `/account/${strVal}`} className="font-mono text-sky-500 hover:underline">
+                                            {shortenAddress(strVal)}
+                                          </Link>
+                                        ) : (
+                                          <span className="font-mono font-semibold text-[var(--text-primary)]">{strVal}</span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               ) : (
                                 <div className="text-xs text-[var(--text-muted)]">
@@ -1200,7 +1344,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                         <Link
                           key={idx}
                           href={`/transaction/${event.txHash}`}
-                          className="block p-4 hover:bg-sky-50 transition-colors"
+                          className="block p-4 hover:bg-[var(--bg-tertiary)] transition-colors"
                         >
                           {eventContent}
                         </Link>
