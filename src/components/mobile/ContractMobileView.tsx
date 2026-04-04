@@ -41,6 +41,15 @@ interface VerifiedContract {
   iconUrl?: string;
 }
 
+interface ContractHolderBalance {
+  relatedContractId: string;
+  balanceRaw: string;
+  inflowRaw: string;
+  outflowRaw: string;
+  label?: string;
+  decimals?: number;
+}
+
 interface ContractData {
   id: string;
   account: any | null;
@@ -75,6 +84,8 @@ interface ContractData {
     beforeId?: number | null;
   };
   spec?: ContractSpecResult | null;
+  holderBalances?: ContractHolderBalance[];
+  selectedBalanceToken?: string;
   // API data fields
   totalTransactions?: number;
   totalInvokes?: number;
@@ -89,6 +100,7 @@ interface ContractData {
     invocations?: boolean;
     storage?: boolean;
     spec?: boolean;
+    balances?: boolean;
   };
 }
 
@@ -98,9 +110,10 @@ interface ContractMobileViewProps {
   onTabChange?: (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface' | 'events') => void;
   onHistoryPageChange?: (page: number) => void;
   onEventsPageChange?: (page: number) => void;
+  onBalanceTokenChange?: (token: string) => void;
 }
 
-export default function ContractMobileView({ contract, operations, onTabChange, onHistoryPageChange, onEventsPageChange }: ContractMobileViewProps) {
+export default function ContractMobileView({ contract, operations, onTabChange, onHistoryPageChange, onEventsPageChange, onBalanceTokenChange }: ContractMobileViewProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'details' | 'history' | 'interface' | 'code'>('overview');
   const [copied, setCopied] = useState(false);
   const [copiedName, setCopiedName] = useState(false);
@@ -497,6 +510,68 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
             <div className="space-y-4">
+              {/* Token Balances */}
+              {(sectionLoading.balances || (contract.holderBalances && contract.holderBalances.length > 0)) && (
+                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+                  <div className="flex items-center justify-between px-4 pt-4 pb-3">
+                    <div className="text-sm font-bold text-[var(--text-primary)]">Token Balances</div>
+                    {contract.holderBalances && contract.holderBalances.length > 1 && (
+                      <select
+                        value={contract.selectedBalanceToken || 'all'}
+                        onChange={(e) => onBalanceTokenChange?.(e.target.value)}
+                        className="text-xs rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] px-3 py-1.5 focus:outline-none"
+                      >
+                        <option value="all">All Tokens</option>
+                        {[...new Set(contract.holderBalances.map(b => b.label || b.relatedContractId))].map(label => (
+                          <option key={label} value={label}>{label}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  {sectionLoading.balances ? (
+                    <div className="px-4 pb-4 space-y-3">
+                      {Array.from({ length: 2 }).map((_, idx) => (
+                        <div key={`balance-skeleton-${idx}`} className="flex items-center justify-between py-2">
+                          <InlineSkeleton width="w-16" height="h-4" />
+                          <InlineSkeleton width="w-20" height="h-4" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-[var(--border-subtle)]">
+                      {(contract.holderBalances || [])
+                        .filter(b => contract.selectedBalanceToken === 'all' || b.label === contract.selectedBalanceToken)
+                        .map((balance, idx) => {
+                          const decimals = balance.decimals ?? 7;
+                          const formatRaw = (raw: string) => {
+                            const num = Number(raw);
+                            if (Number.isNaN(num)) return raw;
+                            const adjusted = num / Math.pow(10, decimals);
+                            return adjusted.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals });
+                          };
+                          return (
+                            <Link key={`balance-${idx}`} href={`/contract/${balance.relatedContractId}`} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-tertiary)] transition-colors">
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
+                                {(balance.label || '?').slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-[var(--text-primary)]">{balance.label || shortenAddress(balance.relatedContractId)}</div>
+                                <div className="flex items-center gap-3 text-[10px] mt-0.5">
+                                  <span className="text-emerald-500 font-mono">+{formatRaw(balance.inflowRaw)}</span>
+                                  <span className="text-rose-500 font-mono">-{formatRaw(balance.outflowRaw)}</span>
+                                </div>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <div className="text-sm font-semibold font-mono text-[var(--text-primary)]">{formatRaw(balance.balanceRaw)}</div>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Recent Invocations */}
               <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -602,9 +677,15 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                       const customFlow = !transferFlow && cleanedTopics.length > 2
                         ? `${shortenAddress(cleanedTopics[1])} -> ${shortenAddress(cleanedTopics[2])}`
                         : null;
-                      const valueText = customData?.decodedValue
-                        ? String(customData.decodedValue).replace(/^"+|"+$/g, '').trim()
-                        : '';
+                      const rawVal = customData?.decodedValue;
+                      const valueText = rawVal && typeof rawVal === 'object'
+                        ? Object.entries(rawVal as Record<string, unknown>).map(([k, v]) => {
+                            const s = String(v ?? '');
+                            return s.length === 56 && (s.startsWith('G') || s.startsWith('C'))
+                              ? `${k}: ${shortenAddress(s)}`
+                              : `${k}: ${s}`;
+                          }).join(' · ')
+                        : (rawVal ? String(rawVal).replace(/^"+|"+$/g, '').trim() : '');
 
                       const eventContent = (
                         <div className="flex items-center gap-3 py-3">
@@ -730,6 +811,7 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                   </div>
                 )}
               </div>
+
             </div>
           )}
 
@@ -906,7 +988,10 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                       : (event.rawEventName || 'event');
                     const customData = isCustomEventData(event.data) ? event.data : null;
                     const decodedTopics = customData?.decodedTopics;
-                    const decodedValue = customData?.decodedValue;
+                    const rawDecodedValue = customData?.decodedValue;
+                    const isObjectValue = rawDecodedValue && typeof rawDecodedValue === 'object' && !Array.isArray(rawDecodedValue);
+                    const decodedValue = isObjectValue ? null : rawDecodedValue;
+                    const decodedValueObj = isObjectValue ? rawDecodedValue as Record<string, unknown> : null;
                     const subType = customData?.subType;
 
                     const eventContent = (
@@ -955,6 +1040,27 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                             <div className="mt-2 rounded-xl bg-[var(--bg-tertiary)] px-2 py-1 text-[10px] text-[var(--text-muted)] font-mono overflow-hidden min-w-0">
                               <span className="text-[8px] uppercase tracking-wider text-[var(--text-secondary)] block">Value</span>
                               <span className="truncate block">{decodedValue}</span>
+                            </div>
+                          )}
+                          {decodedValueObj && (
+                            <div className="mt-2 space-y-1">
+                              {Object.entries(decodedValueObj).map(([key, val]) => {
+                                const strVal = String(val ?? '');
+                                const isAddress = strVal.length === 56 && (strVal.startsWith('G') || strVal.startsWith('C'));
+                                const label = key.charAt(0).toUpperCase() + key.slice(1);
+                                return (
+                                  <div key={key} className="flex items-center gap-1.5 text-[10px]">
+                                    <span className="text-[var(--text-muted)]">{label}:</span>
+                                    {isAddress ? (
+                                      <Link href={strVal.startsWith('C') ? `/contract/${strVal}` : `/account/${strVal}`} className="font-mono text-sky-500">
+                                        {shortenAddress(strVal)}
+                                      </Link>
+                                    ) : (
+                                      <span className="font-mono font-semibold text-[var(--text-primary)]">{strVal}</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
