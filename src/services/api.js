@@ -37,6 +37,10 @@ const toQueryString = (params = {}) => {
     if (value === undefined || value === null || value === '') {
       return;
     }
+    if (Array.isArray(value)) {
+      value.forEach(v => query.append(key, String(v)));
+      return;
+    }
     query.append(key, String(value));
   });
 
@@ -71,6 +75,8 @@ export const apiEndpoints = {
     contractTransactions: (contractId, params) => withQuery(`/contracts/${contractId}/transactions`, params),
     contractEvents: (contractId, params) => withQuery(`/contracts/${contractId}/events`, params),
     contractStorage: (contractId, params) => withQuery(`/contracts/${contractId}/storage`, params),
+    contractHolderBalances: (contractId, params) => withQuery(`/contracts/${contractId}/holder-balances`, params),
+    contractArgumentUsages: (contractId, params) => withQuery(`/contracts/${contractId}/argument-usages`, params),
     marketAssets: (params) => withQuery('/market/assets', params),
     marketOverview: (params) => withQuery('/market/overview', params),
     assets: (params) => withQuery('/assets', params),

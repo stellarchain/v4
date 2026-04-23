@@ -181,6 +181,15 @@ type ContractEventsPage = {
   beforeId?: number | null;
 };
 
+interface ContractHolderBalance {
+  relatedContractId: string;
+  balanceRaw: string;
+  inflowRaw: string;
+  outflowRaw: string;
+  label?: string;
+  decimals?: number;
+}
+
 type ContractTab = 'overview' | 'history' | 'events' | 'storage' | 'operations' | 'interface' | 'details';
 
 type LoadingSectionsState = {
@@ -600,6 +609,56 @@ async function fetchContractTransactions(
   };
 }
 
+async function fetchHolderBalances(contractId: string): Promise<ContractHolderBalance[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  let data;
+  try {
+    data = await getApiV1Data(
+      apiEndpoints.v1.contractHolderBalances(contractId),
+      { signal: controller.signal }
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+  const records: Array<{ relatedContractId: string; balanceRaw: string; inflowRaw: string; outflowRaw: string }> = data.member || data || [];
+  if (!Array.isArray(records) || records.length === 0) return [];
+
+  const uniqueIds = [...new Set(records.map(r => r.relatedContractId).filter(Boolean))];
+
+  let contractsMap: Record<string, { assetCode?: string; verifiedMetadata?: { symbol?: string } }> = {};
+  if (uniqueIds.length > 0) {
+    try {
+      const contractsData = await getApiV1Data(
+        apiEndpoints.v1.contracts({ 'contractIds[]': uniqueIds })
+      );
+      const members = contractsData.member || contractsData || [];
+      if (Array.isArray(members)) {
+        members.forEach((c: any) => {
+          if (c.contractId) {
+            contractsMap[c.contractId] = c;
+          }
+        });
+      }
+    } catch {
+      // If batch fetch fails, continue without labels
+    }
+  }
+
+  return records.map(r => {
+    const related = contractsMap[r.relatedContractId];
+    const label = related?.assetCode
+      || related?.verifiedMetadata?.symbol
+      || (r.relatedContractId ? `${r.relatedContractId.slice(0, 4)}...${r.relatedContractId.slice(-4)}` : 'Unknown');
+    const decimals = (related as any)?.verifiedMetadata?.decimals ?? 7;
+    return {
+      ...r,
+      label,
+      decimals,
+    };
+  });
+}
+
 function buildTokenMetadata(
   contractId: string,
   apiData: APIContractData,
@@ -744,6 +803,10 @@ export default function ContractPage() {
     nextBeforeId: null as number | null,
     beforeId: null as number | null,
   });
+  const [holderBalances, setHolderBalances] = useState<ContractHolderBalance[]>([]);
+  const [balancesLoading, setBalancesLoading] = useState(false);
+  const [balancesLoaded, setBalancesLoaded] = useState(false);
+  const [selectedBalanceToken, setSelectedBalanceToken] = useState<string>('all');
   const [checkingOtherNetworks, setCheckingOtherNetworks] = useState(false);
   const [availableNetworks, setAvailableNetworks] = useState<NetworkType[]>([]);
 
@@ -845,11 +908,13 @@ export default function ContractPage() {
             storage: true,
             spec: false,
           }));
+          setBalancesLoading(true);
 
-          const [historyResult, eventsResult, storageResult] = await Promise.allSettled([
+          const [historyResult, eventsResult, storageResult, balancesResult] = await Promise.allSettled([
             fetchContractTransactions(id, 1, 5),
             fetchContractEvents(id, 1, 5),
             fetchContractStorage(id, apiData.totalStorageEntries ? Number(apiData.totalStorageEntries) : undefined),
+            fetchHolderBalances(id),
           ]);
 
           if (cancelled) return;
@@ -868,6 +933,14 @@ export default function ContractPage() {
             setContractStorage(storageResult.value);
             setStorageLoaded(true);
           }
+
+          if (balancesResult.status === 'fulfilled') {
+            setHolderBalances(balancesResult.value);
+            setBalancesLoaded(true);
+          } else {
+            setBalancesLoaded(true);
+          }
+          setBalancesLoading(false);
 
           setLoadingSections((prev) => ({
             ...prev,
@@ -926,6 +999,10 @@ export default function ContractPage() {
     setStorageLoaded(false);
     setStorageLoading(false);
     setStorageError(null);
+    setHolderBalances([]);
+    setBalancesLoading(false);
+    setBalancesLoaded(false);
+    setSelectedBalanceToken('all');
     setHistoryInvocations([]);
     setHistoryLoaded(false);
     setHistoryLoading(false);
@@ -999,6 +1076,21 @@ export default function ContractPage() {
     }
   }, [historyLoading, id]);
 
+  const loadHolderBalances = useCallback(async () => {
+    if (balancesLoaded || balancesLoading) return;
+    setBalancesLoading(true);
+    try {
+      const balances = await fetchHolderBalances(id);
+      setHolderBalances(balances);
+      setBalancesLoaded(true);
+    } catch (err) {
+      console.error('Failed to load holder balances:', err);
+      setBalancesLoaded(true);
+    } finally {
+      setBalancesLoading(false);
+    }
+  }, [balancesLoaded, balancesLoading, id]);
+
   const handleTabChange = (tabId: ContractTab) => {
     if (tabId === 'history' && !historyLoaded) {
       void loadHistoryPage(1);
@@ -1008,6 +1100,7 @@ export default function ContractPage() {
     }
     if (tabId === 'storage' || tabId === 'overview') {
       void loadContractStorage();
+      void loadHolderBalances();
     }
   };
 
@@ -1129,13 +1222,16 @@ export default function ContractPage() {
     sourceCodeVerified: baseData.apiContractData?.sourceCodeVerified,
     assetIssuer: baseData.apiContractData?.assetIssuer || undefined,
     isSAC: baseData.apiContractData?.sac,
+    holderBalances,
+    selectedBalanceToken,
     _loading: isValidating
-      ? { events: true, invocations: true, storage: true, spec: true }
+      ? { events: true, invocations: true, storage: true, spec: true, balances: true }
       : {
           events: eventsLoading,
           invocations: historyLoading || loadingSections.invocations,
           storage: storageLoading,
           spec: loadingSections.spec,
+          balances: balancesLoading,
         },
   };
 
@@ -1148,6 +1244,7 @@ export default function ContractPage() {
           onTabChange={handleTabChange}
           onHistoryPageChange={loadHistoryPage}
           onEventsPageChange={loadEventsPage}
+          onBalanceTokenChange={setSelectedBalanceToken}
         />
       </div>
       <div className="md:hidden">
@@ -1157,6 +1254,7 @@ export default function ContractPage() {
           onTabChange={handleTabChange}
           onHistoryPageChange={loadHistoryPage}
           onEventsPageChange={loadEventsPage}
+          onBalanceTokenChange={setSelectedBalanceToken}
         />
       </div>
     </>
