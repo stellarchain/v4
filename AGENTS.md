@@ -5,16 +5,13 @@
 - `src/components`: Reusable UI components; platform-specific variants live under `src/components/mobile` and `src/components/desktop`.
 - `src/contexts`: React context providers (for example, `ThemeContext.tsx`).
 - `src/lib`: Stellar SDK access, data fetching, and helpers.
-- `src/data`: JSON data used by pages (for example, `projects.json`).
 - `public`: Static assets served as-is.
-- `test-xdr.js`: Standalone Node script for quick XDR decoding checks.
 
 ## Build, Test, and Development Commands
 - `npm run dev`: Start the Next.js dev server at `http://localhost:3000`.
 - `npm run build`: Create an optimized production build.
 - `npm run start`: Run the production build locally.
 - `npm run lint`: Run ESLint with Next.js core-web-vitals and TypeScript rules.
-- `node test-xdr.js`: Manually run the XDR decoding sample (optional).
 
 ## Coding Style & Naming Conventions
 
@@ -38,4 +35,6 @@ You are working on a Next.js App Router project with client-only pages. All data
 - Call out data or API changes in the PR description when relevant.
 
 ## Configuration Notes
-- No environment variables are required by default. If you introduce any, document them in this file and update `README.md`.
+- No environment variables are required by default.
+- Optional Sentry monitoring uses `SENTRY_DSN` for server/edge runtime, `NEXT_PUBLIC_SENTRY_DSN` for the browser bundle, and `SENTRY_URL` when using a self-hosted Sentry endpoint. If DSNs are omitted, Sentry initialization is skipped.
+- If you introduce any environment variables, document them in this file and update `README.md`.

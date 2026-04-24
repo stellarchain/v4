@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/nextjs';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const isBrowser = typeof window !== 'undefined';
+const sentryDsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
 const getFeedbackColorScheme = (): 'light' | 'dark' | 'system' => {
   if (!isBrowser) {
@@ -21,9 +22,9 @@ const getFeedbackColorScheme = (): 'light' | 'dark' | 'system' => {
   return 'system';
 };
 
-if (!isDevelopment) {
+if (!isDevelopment && sentryDsn) {
   Sentry.init({
-    dsn: 'REMOVED_SENTRY_DSN',
+    dsn: sentryDsn,
     integrations: [
       Sentry.replayIntegration({
         maskAllText: false,
@@ -36,10 +37,10 @@ if (!isDevelopment) {
           background: 'var(--bg-secondary)',
         },
         showBranding: false,
-        triggerLabel: "",
-        formTitle: "Feedback",
-        submitButtonLabel: "Send feedback",
-        messagePlaceholder: "Tell us what did you observe and what we can improve.",
+        triggerLabel: '',
+        formTitle: 'Feedback',
+        submitButtonLabel: 'Send feedback',
+        messagePlaceholder: 'Tell us what did you observe and what we can improve.',
       }),
     ],
     tracesSampleRate: 1,
@@ -51,6 +52,6 @@ if (!isDevelopment) {
 }
 
 export const onRouterTransitionStart = (...args: Parameters<typeof Sentry.captureRouterTransitionStart>) => {
-  if (isDevelopment) return;
+  if (isDevelopment || !sentryDsn) return;
   return Sentry.captureRouterTransitionStart(...args);
 };

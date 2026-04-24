@@ -29,6 +29,17 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+eslint_report.txt
+api-audit.csv
+explorer_comparison.csv
+mobile_explorer_comparison.csv
+
+# local agent/debug artifacts
+.agent/
+docs/plans/
+decode-tx-meta.js
+test-xdr.js
+scripts/skill_bundle.py
 
 # env files (can opt-in for committing if needed)
 .env*

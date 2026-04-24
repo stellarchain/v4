@@ -15,10 +15,12 @@ const nextConfig: NextConfig = {
   },
 };
 
+const sentryUrl = process.env.SENTRY_URL;
+
 const sentryConfig = {
   org: 'remote-tech',
   project: 'stellarchain-v4',
-  sentryUrl: 'https://monitoring.wifcloud.com/',
+  ...(sentryUrl ? { sentryUrl } : {}),
   silent: !process.env.CI,
   widenClientFileUpload: true,
   webpack: {

@@ -123,4 +123,8 @@ Use this checklist before submitting changes:
 ## Notes
 
 - No environment variables are required by default.
+- Optional Sentry monitoring uses `SENTRY_DSN` for server/edge runtime,
+  `NEXT_PUBLIC_SENTRY_DSN` for the browser bundle, and `SENTRY_URL` when using
+  a self-hosted Sentry endpoint. If DSNs are omitted, Sentry initialization is
+  skipped.
 - If new env vars are introduced, update this README and document defaults/fallbacks.
