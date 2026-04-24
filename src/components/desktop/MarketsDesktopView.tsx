@@ -25,9 +25,10 @@ type SortField = 'rank' | 'market_cap' | 'price_usd' | 'volume_24h';
 type SortOrder = 'asc' | 'desc';
 
 function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
-  if (!data || data.length === 0) return <div className="w-[100px] h-[30px]" />;
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const gradientId = useId();
+
+  if (!data || data.length === 0) return <div className="w-[100px] h-[30px]" />;
 
   const width = 116;
   const height = 36;

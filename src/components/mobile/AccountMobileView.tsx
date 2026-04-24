@@ -280,7 +280,6 @@ export default function AccountMobileView({ account, accountId, transactions, op
     if (initialTab === 'activity') {
       onTabChange?.('operations');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [assetPrices, setAssetPrices] = useState<Record<string, AssetPriceData>>({});
   const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});

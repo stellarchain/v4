@@ -286,7 +286,6 @@ export default function AccountDesktopView({ account, accountId, transactions, o
     if (initialTab !== 'assets') {
       onTabChange?.(initialTab);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync operations state when initialOperations prop changes

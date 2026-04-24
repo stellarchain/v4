@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/nextjs';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const isBrowser = typeof window !== 'undefined';
+const sentryDsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
 const getFeedbackColorScheme = (): 'light' | 'dark' | 'system' => {
   if (!isBrowser) {
@@ -21,9 +22,9 @@ const getFeedbackColorScheme = (): 'light' | 'dark' | 'system' => {
   return 'system';
 };
 
-if (!isDevelopment) {
+if (!isDevelopment && sentryDsn) {
   Sentry.init({
-    dsn: 'REMOVED_SENTRY_DSN',
+    dsn: sentryDsn,
     defaultIntegrations: false,
     integrations: [
       Sentry.feedbackIntegration({
