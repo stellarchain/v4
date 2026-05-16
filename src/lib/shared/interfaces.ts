@@ -536,6 +536,168 @@ export interface NetworkStatisticsResponse {
   chart: NetworkStatisticsChart;
 }
 
+export type PaymentFlowDirection = 'both' | 'incoming' | 'outgoing';
+export type PaymentFlowRiskLevel = 'limited' | 'context' | 'review' | 'elevated';
+
+export interface PaymentFlowAssetRef {
+  key: string;
+  type: string;
+  code: string;
+  issuer: string | null;
+  display: string;
+}
+
+export interface PaymentFlowAccountMetadata {
+  address: string;
+  known: boolean;
+  label: string | null;
+  verified: boolean;
+  orgName: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  firstTransactionAt: string | null;
+  lastTransactionAt: string | null;
+  totalTransactions: string;
+  paymentsCount: string;
+  tradesCount: string;
+  nativeBalance: string;
+  rankPosition: number | null;
+  rankScore: string;
+  metricUpdatedAt: string | null;
+}
+
+export interface PaymentFlowEvent {
+  id: string;
+  ledger: number;
+  closedAt: string | null;
+  txHash: string;
+  operationId: string;
+  operationIndex: number | null;
+  operationType: string;
+  successful: boolean;
+  direction: 'incoming' | 'outgoing' | 'related';
+  counterparty: string | null;
+  sourceAccount: string | null;
+  sourceAccountMetadata: PaymentFlowAccountMetadata | null;
+  fromAddress: string | null;
+  fromAccount: PaymentFlowAccountMetadata | null;
+  toAddress: string | null;
+  toAccount: PaymentFlowAccountMetadata | null;
+  counterpartyAccount: PaymentFlowAccountMetadata | null;
+  sourceAsset: PaymentFlowAssetRef;
+  sourceAmount: string | null;
+  destinationAsset: PaymentFlowAssetRef;
+  destinationAmount: string | null;
+  memoType: string | null;
+  memo: string | null;
+}
+
+export interface PaymentFlowCounterparty {
+  address: string;
+  events: number;
+  incoming: number;
+  outgoing: number;
+  firstLedger: number | null;
+  lastLedger: number | null;
+  firstClosedAt: string | null;
+  lastClosedAt: string | null;
+  nativeReceived: string;
+  nativeSent: string;
+  assets: string[];
+  account: PaymentFlowAccountMetadata | null;
+}
+
+export interface PaymentFlowRiskSignal {
+  severity: 'info' | 'medium' | 'high' | string;
+  label: string;
+  description: string;
+}
+
+export interface PaymentFlowRiskContext {
+  level: PaymentFlowRiskLevel;
+  score: number;
+  signals: PaymentFlowRiskSignal[];
+  guidance: string[];
+  limitations: string[];
+}
+
+export interface PaymentFlowGraphNode {
+  id: string;
+  label: string;
+  role: 'focus' | 'source' | 'destination' | string;
+  events: number;
+  incoming: number;
+  outgoing: number;
+  account: PaymentFlowAccountMetadata | null;
+}
+
+export interface PaymentFlowGraphEdge {
+  source: string;
+  target: string;
+  count: number;
+  totalXlm: string;
+  assets: string[];
+  latestLedger: number;
+  latestClosedAt: string | null;
+}
+
+export interface PaymentFlowInvestigationResponse {
+  network: string;
+  query: {
+    address: string | null;
+    txHash: string | null;
+    ledgerFrom: number | null;
+    ledgerTo: number | null;
+    direction: PaymentFlowDirection;
+    limit: number;
+  };
+  coverage: {
+    rowsReturned: number;
+    hasMore: boolean;
+    firstLedger: number | null;
+    lastLedger: number | null;
+    firstClosedAt: string | null;
+    lastClosedAt: string | null;
+    isPartial: boolean;
+  };
+  summary: {
+    focusAddress: string | null;
+    events: number;
+    transactions: number;
+    incomingEvents: number;
+    outgoingEvents: number;
+    uniqueCounterparties: number;
+    uniqueAssets: number;
+    pathPayments: number;
+    accountMerges: number;
+    createAccounts: number;
+    memoCount: number;
+    nativeReceived: string;
+    nativeSent: string;
+    firstLedger: number | null;
+    lastLedger: number | null;
+    firstClosedAt: string | null;
+    lastClosedAt: string | null;
+  };
+  riskContext: PaymentFlowRiskContext;
+  accounts: Record<string, PaymentFlowAccountMetadata>;
+  accountContext: {
+    metadataAvailable: boolean;
+    metadataUnavailable: boolean;
+    knownAccounts: number;
+    labeledAccounts: number;
+    verifiedAccounts: number;
+    focusAccount: PaymentFlowAccountMetadata | null;
+    note: string;
+  };
+  graph: {
+    nodes: PaymentFlowGraphNode[];
+    edges: PaymentFlowGraphEdge[];
+  };
+  counterparties: PaymentFlowCounterparty[];
+  events: PaymentFlowEvent[];
+}
+
 // Order Book specific interfaces
 export interface TradeAggregation {
   timestamp: number;

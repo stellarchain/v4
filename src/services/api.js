@@ -80,6 +80,7 @@ export const apiEndpoints = {
     marketAssets: (params) => withQuery('/market/assets', params),
     marketOverview: (params) => withQuery('/market/overview', params),
     networkStatistics: (params) => withQuery('/statistics/network', params),
+    paymentFlowInvestigation: (params) => withQuery('/payment-flow/investigation', params),
     assets: (params) => withQuery('/assets', params),
     assetById: (assetId, params) => withQuery(`/assets/${assetId}`, params),
     projects: (params) => withPlainQuery('/projects', params),
@@ -132,6 +133,10 @@ export const fetchMarketOverviewData = async (params) => {
 
 export const fetchNetworkStatisticsData = async (params) => {
   return getApiV1Data(apiEndpoints.v1.networkStatistics(params));
+};
+
+export const fetchPaymentFlowInvestigationData = async (params) => {
+  return getApiV1Data(apiEndpoints.v1.paymentFlowInvestigation(params));
 };
 
 export const buildApiUrl = (path) => `${API_BASE_URL}${ensureNetworkInPath(path)}`;

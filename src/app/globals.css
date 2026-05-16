@@ -611,6 +611,16 @@ input:focus-visible {
   overscroll-behavior: contain;
 }
 
+/* Recharts Brush: smaller label text + lighter fill on the side panes */
+.recharts-brush-texts text {
+  font-size: 10px;
+  fill: var(--text-tertiary);
+}
+
+.recharts-brush-slide {
+  fill-opacity: 0.04;
+}
+
 @media (max-width: 768px) {
   #sentry-feedback {
     --inset: auto 0 60px auto;

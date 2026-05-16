@@ -42,6 +42,7 @@ const getMenuCategories = (): MenuCategory[] => [
     items: [
       { name: 'Ledgers', href: '/ledgers', icon: 'ledger', description: 'Data structures' },
       { name: 'Transactions', href: '/transactions', icon: 'transaction', description: 'Modifies the ledger state' },
+      { name: 'Statistics', href: '/statistics', icon: 'stats', description: 'Network activity charts' },
       { name: 'Smart Contracts', href: '/contracts', icon: 'contract', description: 'Deployed contracts' },
       { name: 'Liquidity Pools', href: '/liquidity-pools', icon: 'pool', description: 'Assets reserves' },
     ],
@@ -52,6 +53,7 @@ const getMenuCategories = (): MenuCategory[] => [
     items: [
       { name: 'Top Accounts', href: '/accounts', icon: 'users', description: 'Ranked by XLM holdings' },
       { name: 'Known Accounts', href: '/known-accounts', icon: 'verified', description: 'Labeled accounts directory' },
+      { name: 'Flow account investigation', href: '/investigate', icon: 'verified', description: 'Account flow safety context' },
       { name: 'Add Label', href: '/accounts/directory/update', icon: 'verified', description: 'Submit a label for an account' },
     ],
   },
@@ -145,6 +147,11 @@ const itemIcons: Record<string, React.ReactNode> = {
   pool: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+    </svg>
+  ),
+  stats: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 19V5m0 14h16M8 16V9m4 7V7m4 9v-4" />
     </svg>
   ),
   users: (

@@ -34,6 +34,7 @@ const menuCategories: MenuCategory[] = [
     items: [
       { name: 'Ledgers', href: '/ledgers', icon: 'ledger', description: 'Data structures' },
       { name: 'Transactions', href: '/transactions', icon: 'transaction', description: 'Modifies the ledger state' },
+      { name: 'Statistics', href: '/statistics', icon: 'stats', description: 'Network activity charts' },
       { name: 'Smart Contracts', href: '/contracts', icon: 'contract', description: 'Deployed contracts' },
       { name: 'Liquidity Pools', href: '/liquidity-pools', icon: 'pool', description: 'Assets reserves' },
     ],
@@ -44,6 +45,7 @@ const menuCategories: MenuCategory[] = [
     items: [
       { name: 'Top Accounts', href: '/accounts', icon: 'users', description: 'Ranked by XLM holdings' },
       { name: 'Known Accounts', href: '/known-accounts', icon: 'verified', description: 'Labeled accounts directory' },
+      { name: 'Flow account investigation', href: '/investigate', icon: 'graph', description: 'Account flow safety context' },
       { name: 'Add Label', href: '/accounts/directory/update', icon: 'verified', description: 'Submit a label for an account' },
     ],
   },

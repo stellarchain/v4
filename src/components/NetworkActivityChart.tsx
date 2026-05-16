@@ -9,6 +9,7 @@ import {
 } from 'react';
 import {
   Area,
+  AreaChart,
   Bar,
   Brush,
   CartesianGrid,
@@ -105,6 +106,11 @@ function CustomTooltip({
 }) {
   if (!active || !payload?.length || !label) return null;
 
+  const colorByKey: Record<string, string> = {
+    transactions: SERIES.transactions.color,
+    operations: SERIES.operations.color,
+    tps: SERIES.tps.color,
+  };
   const ordered = ['transactions', 'operations', 'tps']
     .map((key) => payload.find((p) => p.dataKey === key))
     .filter((item): item is TooltipPayloadItem => Boolean(item));
@@ -120,12 +126,13 @@ function CustomTooltip({
           const display = isTps
             ? Number(item.value).toFixed(2)
             : Number(item.value).toLocaleString();
+          const dotColor = colorByKey[item.dataKey] ?? item.color;
           return (
             <div key={item.dataKey} className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: item.color }}
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ background: dotColor }}
                   aria-hidden
                 />
                 <span className="text-[var(--text-secondary)]">{item.name}</span>
@@ -441,11 +448,11 @@ export default function NetworkActivityChart({ chart, coverage, bucketMinutes }:
               )}
               <Brush
                 dataKey="bucketStart"
-                height={26}
-                travellerWidth={10}
+                height={42}
+                travellerWidth={12}
                 startIndex={visibleRange.startIndex}
                 endIndex={visibleRange.endIndex}
-                stroke="var(--border-strong)"
+                stroke="var(--primary-blue)"
                 fill="var(--bg-tertiary)"
                 tickFormatter={formatTime}
                 onChange={(range) => {
@@ -454,7 +461,24 @@ export default function NetworkActivityChart({ chart, coverage, bucketMinutes }:
                   }
                   setVisibleRange({ startIndex: range.startIndex, endIndex: range.endIndex });
                 }}
-              />
+              >
+                <AreaChart>
+                  <defs>
+                    <linearGradient id={`brush-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={SERIES.operations.color} stopOpacity={0.55} />
+                      <stop offset="100%" stopColor={SERIES.operations.color} stopOpacity={0.1} />
+                    </linearGradient>
+                  </defs>
+                  <Area
+                    dataKey="operations"
+                    type="monotone"
+                    stroke={SERIES.operations.color}
+                    strokeWidth={1}
+                    fill={`url(#brush-${gradientId})`}
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
+              </Brush>
             </ComposedChart>
           </ResponsiveContainer>
         )}

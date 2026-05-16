@@ -52,6 +52,7 @@ export default function DesktopNavbar() {
     const accountsItems: MenuItem[] = [
         { name: 'Top Accounts', href: '/accounts', description: 'Ranked by XLM holdings' },
         { name: 'Known Accounts', href: '/accounts/directory', description: 'Labeled accounts directory' },
+        { name: 'Flow account investigation', href: '/investigate', description: 'Account flow safety context' },
         { name: 'Add Label', href: '/accounts/directory/update', description: 'Submit a label for an account' },
     ];
 
@@ -64,6 +65,7 @@ export default function DesktopNavbar() {
         { name: 'Home', href: '/' },
         { name: 'Blockchain', dropdown: blockchainItems },
         { name: 'Accounts', dropdown: accountsItems },
+        { name: 'Statistics', href: '/statistics' },
         { name: 'Markets', href: '/markets' },
         { name: 'News', dropdown: newsItems },
     ];

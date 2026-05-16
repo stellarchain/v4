@@ -17,6 +17,7 @@ const STATIC_ROUTES = [
   '/projects',
   '/news',
   '/statistics',
+  '/investigate',
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
