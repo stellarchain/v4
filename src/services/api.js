@@ -79,6 +79,7 @@ export const apiEndpoints = {
     contractArgumentUsages: (contractId, params) => withQuery(`/contracts/${contractId}/argument-usages`, params),
     marketAssets: (params) => withQuery('/market/assets', params),
     marketOverview: (params) => withQuery('/market/overview', params),
+    networkStatistics: (params) => withQuery('/statistics/network', params),
     assets: (params) => withQuery('/assets', params),
     assetById: (assetId, params) => withQuery(`/assets/${assetId}`, params),
     projects: (params) => withPlainQuery('/projects', params),
@@ -127,6 +128,10 @@ export const fetchStellarCoinData = async () => {
 
 export const fetchMarketOverviewData = async (params) => {
   return getApiV1Data(apiEndpoints.v1.marketOverview(params));
+};
+
+export const fetchNetworkStatisticsData = async (params) => {
+  return getApiV1Data(apiEndpoints.v1.networkStatistics(params));
 };
 
 export const buildApiUrl = (path) => `${API_BASE_URL}${ensureNetworkInPath(path)}`;

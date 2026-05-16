@@ -475,6 +475,67 @@ export interface StatisticsData {
   };
 }
 
+export type NetworkStatisticsRange = '24h' | '7d' | '30d';
+
+export interface NetworkStatisticsCoverage {
+  requestedStart: string | null;
+  requestedEnd: string | null;
+  firstBucket: string | null;
+  lastBucket: string | null;
+  latestUpdate: string | null;
+  isPartial: boolean;
+  bucketCount: number;
+}
+
+export interface NetworkStatisticsCard {
+  metricKey: string;
+  label: string;
+  value: number;
+  valueDecimal: string;
+  aggregation: 'sum' | 'avg' | 'latest' | string;
+  format: 'integer' | 'decimal' | 'seconds' | 'xlm' | string;
+  suffix?: string | null;
+  changePercent?: number | null;
+  sparkline: number[];
+}
+
+export interface NetworkStatisticsSection {
+  id: string;
+  label: string;
+  description: string;
+  cards: NetworkStatisticsCard[];
+}
+
+export interface NetworkStatisticsChartPoint {
+  bucketStart: string;
+  bucketEnd: string;
+  transactions: number;
+  operations: number;
+  tps: number;
+}
+
+export interface NetworkStatisticsChartSeries {
+  key: 'transactions' | 'operations' | 'tps' | string;
+  label: string;
+  type: 'bar' | 'line' | string;
+  axis: 'left' | 'right' | string;
+}
+
+export interface NetworkStatisticsChart {
+  title: string;
+  series: NetworkStatisticsChartSeries[];
+  points: NetworkStatisticsChartPoint[];
+}
+
+export interface NetworkStatisticsResponse {
+  network: string;
+  range: NetworkStatisticsRange;
+  bucketMinutes: number;
+  coverage: NetworkStatisticsCoverage;
+  sections: NetworkStatisticsSection[];
+  chart: NetworkStatisticsChart;
+}
+
 // Order Book specific interfaces
 export interface TradeAggregation {
   timestamp: number;

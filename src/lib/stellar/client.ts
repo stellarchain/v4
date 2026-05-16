@@ -61,6 +61,13 @@ export type {
   APIContract,
   StatItem,
   StatisticsData,
+  NetworkStatisticsCard,
+  NetworkStatisticsChart,
+  NetworkStatisticsChartPoint,
+  NetworkStatisticsCoverage,
+  NetworkStatisticsRange,
+  NetworkStatisticsResponse,
+  NetworkStatisticsSection,
   TradeAggregation,
   OrderBook,
 } from '../shared/interfaces';

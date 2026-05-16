@@ -1,103 +1,112 @@
 'use client';
 
-import { useState } from 'react';
-import { StatisticsData, StatItem } from '@/lib/stellar';
+import { NetworkStatisticsRange, NetworkStatisticsResponse } from '@/lib/stellar';
 import StatCard from '@/components/StatCard';
-import DetailedChart from '@/components/DetailedChart';
+import NetworkActivityChart from '@/components/NetworkActivityChart';
 import Badge from '@/components/ui/Badge';
-import Card from '@/components/ui/Card';
 
 interface StatisticsViewProps {
-    stats: StatisticsData;
+  stats: NetworkStatisticsResponse;
+  selectedRange: NetworkStatisticsRange;
+  onRangeChange: (range: NetworkStatisticsRange) => void;
+  isRefreshing?: boolean;
 }
 
-export default function StatisticsView({ stats }: StatisticsViewProps) {
-    const [selectedStat, setSelectedStat] = useState<StatItem | null>(null);
+const RANGE_OPTIONS: Array<{ label: string; value: NetworkStatisticsRange }> = [
+  { label: '24H', value: '24h' },
+  { label: '7D', value: '7d' },
+  { label: '30D', value: '30d' },
+];
 
-    return (
-        <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-[var(--primary)]/20 to-[var(--primary)]/5 rounded-xl flex items-center justify-center">
-                    <svg className="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                </div>
-                <div>
-                    <div className="flex items-center gap-2">
-                        <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Statistics</h1>
-                        <Badge>Live</Badge>
-                    </div>
-                    <p className="text-[var(--text-muted)] text-xs">Real-time Stellar network metrics and market data</p>
-                </div>
+function formatCoverageDate(value: string | null): string {
+  if (!value) return 'No data yet';
+  return new Date(value).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export default function StatisticsView({
+  stats,
+  selectedRange,
+  onRangeChange,
+  isRefreshing = false,
+}: StatisticsViewProps) {
+  const coverageText = stats.coverage.firstBucket && stats.coverage.lastBucket
+    ? `${formatCoverageDate(stats.coverage.firstBucket)} - ${formatCoverageDate(stats.coverage.lastBucket)}`
+    : 'Waiting for collected statistics';
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] flex items-center justify-center">
+            <svg className="w-5 h-5 text-[var(--primary-blue)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.5l4.5-4.5 4 4L21 3.5M21 3.5h-6M21 3.5v6M3 20.5h18" />
+            </svg>
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Statistics</h1>
+              <Badge>{stats.network}</Badge>
+              {stats.coverage.isPartial && <Badge>Partial</Badge>}
+              {isRefreshing && <Badge>Updating</Badge>}
             </div>
-
-            {/* Market Section */}
-            <section>
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="w-1 h-4 bg-[var(--primary)] rounded-full" />
-                    <h2 className="text-sm font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Market</h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                    <StatCard stat={stats.market.price} onClick={() => setSelectedStat(stats.market.price)} />
-                    <StatCard stat={stats.market.rank} onClick={() => setSelectedStat(stats.market.rank)} />
-                    <StatCard stat={stats.market.marketCap} onClick={() => setSelectedStat(stats.market.marketCap)} />
-                    <StatCard stat={stats.market.volume} onClick={() => setSelectedStat(stats.market.volume)} />
-                    <StatCard stat={stats.market.circulatingSupply} onClick={() => setSelectedStat(stats.market.circulatingSupply)} />
-                </div>
-            </section>
-
-            {/* Blockchain Section */}
-            <section>
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="w-1 h-4 bg-[var(--info)] rounded-full" />
-                    <h2 className="text-sm font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Blockchain</h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                    <StatCard stat={stats.blockchain.totalLedgers} onClick={() => setSelectedStat(stats.blockchain.totalLedgers)} />
-                    <StatCard stat={stats.blockchain.tps} onClick={() => setSelectedStat(stats.blockchain.tps)} />
-                    <StatCard stat={stats.blockchain.ops} onClick={() => setSelectedStat(stats.blockchain.ops)} />
-                    <StatCard stat={stats.blockchain.txPerLedger} onClick={() => setSelectedStat(stats.blockchain.txPerLedger)} />
-                    <StatCard stat={stats.blockchain.successfulTx} onClick={() => setSelectedStat(stats.blockchain.successfulTx)} />
-                </div>
-            </section>
-
-            {/* Network Section */}
-            <section>
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="w-1 h-4 bg-[var(--purple)] rounded-full" />
-                    <h2 className="text-sm font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Network</h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                    <StatCard stat={stats.network.totalAccounts} onClick={() => setSelectedStat(stats.network.totalAccounts)} />
-                    <StatCard stat={stats.network.totalAssets} onClick={() => setSelectedStat(stats.network.totalAssets)} />
-                    <StatCard stat={stats.network.outputValue} onClick={() => setSelectedStat(stats.network.outputValue)} />
-                    <StatCard stat={stats.network.activeAddresses} onClick={() => setSelectedStat(stats.network.activeAddresses)} />
-                    <StatCard stat={stats.network.contractInvocations} onClick={() => setSelectedStat(stats.network.contractInvocations)} />
-                </div>
-            </section>
-
-            {/* Info Card */}
-            <Card className="p-4 shadow-sm">
-                <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-[var(--bg-tertiary)] rounded-xl flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                            Data is aggregated from multiple sources including CoinGecko, Stellar Horizon, and StellarExpert APIs.
-                            Statistics are updated every 60 seconds. Blockchain metrics are calculated from the last 50 ledgers.
-                        </p>
-                    </div>
-                </div>
-            </Card>
-
-            {/* Detail Modal */}
-            {selectedStat && (
-                <DetailedChart stat={selectedStat} onClose={() => setSelectedStat(null)} />
-            )}
+            <p className="text-[var(--text-muted)] text-xs mt-0.5">
+              {coverageText}
+            </p>
+          </div>
         </div>
-    );
+        <div className="inline-flex rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-0.5 self-start lg:self-auto">
+          {RANGE_OPTIONS.map((option) => {
+            const active = selectedRange === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onRangeChange(option.value)}
+                className={`min-w-12 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  active
+                    ? 'bg-[var(--primary-blue)] text-white'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                }`}
+                aria-pressed={active}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <NetworkActivityChart chart={stats.chart} coverage={stats.coverage} bucketMinutes={stats.bucketMinutes} />
+
+      {stats.sections.map((section) => (
+        <section key={section.id}>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-4 bg-[var(--primary-blue)] rounded-full" />
+                <h2 className="text-sm font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
+                  {section.label}
+                </h2>
+              </div>
+              <p className="text-xs text-[var(--text-muted)] mt-1">{section.description}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {section.cards.map((card) => (
+              <StatCard key={card.metricKey} stat={card} />
+            ))}
+          </div>
+        </section>
+      ))}
+
+      <p className="text-[11px] text-[var(--text-muted)] leading-relaxed text-center">
+        Data sourced from horizon_statistics. Range ends at the latest collected bucket; backfill progress is reflected as new chunks are written.
+      </p>
+    </div>
+  );
 }

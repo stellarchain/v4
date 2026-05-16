@@ -1,46 +1,60 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Horizon } from '@stellar/stellar-sdk';
+import { useEffect, useRef, useState } from 'react';
 import StatisticsView from '@/components/StatisticsView';
 import Loading from '@/components/ui/Loading';
-import { createHorizonServer } from '@/services/horizon';
+import { fetchNetworkStatisticsData } from '@/services/api';
+import { NetworkStatisticsRange, NetworkStatisticsResponse } from '@/lib/stellar';
+
+const BUCKET_MINUTES_BY_RANGE: Record<NetworkStatisticsRange, number> = {
+  '24h': 5,
+  '7d': 60,
+  '30d': 1440,
+};
 
 export default function StatisticsPage() {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<NetworkStatisticsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedRange, setSelectedRange] = useState<NetworkStatisticsRange>('7d');
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadStatistics = async () => {
       try {
-        const server = createHorizonServer();
+        setError(null);
+        if (hasLoadedRef.current) {
+          setIsRefreshing(true);
+        }
 
-        // Fetch latest ledger to get network statistics
-        const ledgerResponse = await server.ledgers().order('desc').limit(1).call();
-        const latestLedger = ledgerResponse.records[0];
+        const statistics = await fetchNetworkStatisticsData({
+          range: selectedRange,
+          bucketMinutes: BUCKET_MINUTES_BY_RANGE[selectedRange],
+        }) as NetworkStatisticsResponse;
 
-        // Construct statistics object
-        const statistics = {
-          ledgerCount: latestLedger.sequence,
-          operationCount: latestLedger.operation_count,
-          transactionCount: latestLedger.successful_transaction_count,
-          feePoolAmount: latestLedger.fee_pool,
-          baseReserve: latestLedger.base_reserve_in_stroops,
-          baseFee: latestLedger.base_fee_in_stroops,
-          lastLedgerTime: latestLedger.closed_at,
-        };
+        if (cancelled) return;
 
         setStats(statistics);
-        setIsLoading(false);
+        hasLoadedRef.current = true;
       } catch (err) {
+        if (cancelled) return;
         setError(err instanceof Error ? err.message : 'Failed to load statistics');
+      } finally {
+        if (cancelled) return;
         setIsLoading(false);
+        setIsRefreshing(false);
       }
     };
 
     loadStatistics();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedRange]);
 
   if (isLoading) {
     return <Loading title="Loading statistics" description="Fetching network statistics." />;
@@ -56,5 +70,18 @@ export default function StatisticsPage() {
     );
   }
 
-  return <StatisticsView stats={stats} />;
+  if (!stats) {
+    return <Loading title="Loading statistics" description="Preparing network statistics." />;
+  }
+
+  return (
+    <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
+      <StatisticsView
+        stats={stats}
+        selectedRange={selectedRange}
+        onRangeChange={setSelectedRange}
+        isRefreshing={isRefreshing}
+      />
+    </div>
+  );
 }
