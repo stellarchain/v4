@@ -225,6 +225,8 @@ export default function DesktopNavbar() {
                                         </svg>
                                     </span>
                                     <input
+                                        id="desktop-navbar-search"
+                                        name="q"
                                         className="w-full py-2 pl-9 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70"
                                         placeholder="Search by address, hash, contract, or ledger"
                                         type="search"

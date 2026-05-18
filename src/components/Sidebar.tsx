@@ -72,11 +72,14 @@ export default function Sidebar() {
               {icons.search}
             </span>
             <input
+              id="sidebar-search"
+              name="q"
               className="w-full py-2 pl-9 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70"
               placeholder="Search by address, hash, contract, or ledger"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search by address, hash, contract, or ledger"
             />
           </div>
         </form>

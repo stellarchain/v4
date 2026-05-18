@@ -131,8 +131,21 @@ export const fetchMarketOverviewData = async (params) => {
   return getApiV1Data(apiEndpoints.v1.marketOverview(params));
 };
 
+const networkStatisticsRequests = new Map();
+
 export const fetchNetworkStatisticsData = async (params) => {
-  return getApiV1Data(apiEndpoints.v1.networkStatistics(params));
+  const path = apiEndpoints.v1.networkStatistics(params);
+  const existing = networkStatisticsRequests.get(path);
+  if (existing) {
+    return existing;
+  }
+
+  const request = getApiV1Data(path).finally(() => {
+    networkStatisticsRequests.delete(path);
+  });
+  networkStatisticsRequests.set(path, request);
+
+  return request;
 };
 
 export const fetchPaymentFlowInvestigationData = async (params) => {

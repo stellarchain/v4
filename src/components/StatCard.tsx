@@ -113,18 +113,18 @@ export default function StatCard({ stat, onClick }: StatCardProps) {
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wider mb-1.5">{stat.label}</p>
+          <p className="text-[var(--text-tertiary)] text-[10px] font-semibold uppercase tracking-wider mb-1.5">{stat.label}</p>
           <p className="text-[var(--text-primary)] text-lg font-semibold font-mono">
             {formatValue(stat)}
           </p>
-          <p className="text-[10px] text-[var(--text-tertiary)] mt-1">{aggregationLabel}</p>
+          <p className="text-[10px] text-[var(--text-secondary)] mt-1">{aggregationLabel}</p>
           {change !== undefined && change !== null && (
             <div className="flex items-center gap-1 mt-1.5">
               <span
                 className={`inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums px-1.5 py-0.5 rounded ${
                   isPositive
-                    ? 'text-[var(--success)] bg-[var(--success-muted)]'
-                    : 'text-[var(--error)] bg-[var(--error-muted)]'
+                    ? 'text-[#047857] dark:text-[var(--success)] bg-[var(--success-muted)]'
+                    : 'text-[#b91c1c] dark:text-[var(--error)] bg-[var(--error-muted)]'
                 }`}
               >
                 <svg

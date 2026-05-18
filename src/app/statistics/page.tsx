@@ -1,15 +1,24 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import StatisticsView from '@/components/StatisticsView';
 import Loading from '@/components/ui/Loading';
 import { fetchNetworkStatisticsData } from '@/services/api';
 import { NetworkStatisticsRange, NetworkStatisticsResponse } from '@/lib/stellar';
 
-const BUCKET_MINUTES_BY_RANGE: Record<NetworkStatisticsRange, number> = {
+// Buttons act as granularity selectors. We always fetch the 30-day window
+// from the backend; bucketMinutes controls how fine the data is.
+// Older data is loaded lazily via the `before` cursor.
+const BUCKET_MINUTES_BY_GRANULARITY: Record<NetworkStatisticsRange, number> = {
   '24h': 5,
   '7d': 60,
   '30d': 1440,
+};
+
+const BUCKET_PAGE_SIZE_BY_GRANULARITY: Record<NetworkStatisticsRange, number> = {
+  '24h': 288,
+  '7d': 168,
+  '30d': 90,
 };
 
 export default function StatisticsPage() {
@@ -17,8 +26,10 @@ export default function StatisticsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [selectedRange, setSelectedRange] = useState<NetworkStatisticsRange>('7d');
   const hasLoadedRef = useRef(false);
+  const inflightOlderRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,8 +42,9 @@ export default function StatisticsPage() {
         }
 
         const statistics = await fetchNetworkStatisticsData({
-          range: selectedRange,
-          bucketMinutes: BUCKET_MINUTES_BY_RANGE[selectedRange],
+          range: '30d',
+          bucketMinutes: BUCKET_MINUTES_BY_GRANULARITY[selectedRange],
+          limitBuckets: BUCKET_PAGE_SIZE_BY_GRANULARITY[selectedRange],
         }) as NetworkStatisticsResponse;
 
         if (cancelled) return;
@@ -55,6 +67,62 @@ export default function StatisticsPage() {
       cancelled = true;
     };
   }, [selectedRange]);
+
+  const loadOlder = useCallback(async () => {
+    if (inflightOlderRef.current) return;
+    const current = stats;
+    if (!current || !current.coverage.hasMore) return;
+    const firstBucket = current.coverage.firstBucket;
+    if (!firstBucket) return;
+
+    inflightOlderRef.current = true;
+    setIsLoadingOlder(true);
+
+    try {
+      const older = await fetchNetworkStatisticsData({
+        range: '30d',
+        bucketMinutes: BUCKET_MINUTES_BY_GRANULARITY[selectedRange],
+        limitBuckets: BUCKET_PAGE_SIZE_BY_GRANULARITY[selectedRange],
+        before: firstBucket,
+      }) as NetworkStatisticsResponse;
+
+      if (!older.chart.points.length) {
+        // Nothing new to merge; mark as no more so we don't loop.
+        setStats((previous) => previous
+          ? { ...previous, coverage: { ...previous.coverage, hasMore: false } }
+          : previous);
+        return;
+      }
+
+      setStats((previous) => {
+        if (!previous) return older;
+        const seen = new Set(previous.chart.points.map((p) => p.bucketStart));
+        const merged = [
+          ...older.chart.points.filter((p) => !seen.has(p.bucketStart)),
+          ...previous.chart.points,
+        ];
+        return {
+          ...previous,
+          coverage: {
+            ...previous.coverage,
+            firstBucket: older.coverage.firstBucket ?? previous.coverage.firstBucket,
+            bucketCount: merged.length,
+            hasMore: older.coverage.hasMore ?? false,
+          },
+          chart: {
+            ...previous.chart,
+            points: merged,
+          },
+        };
+      });
+    } catch (err) {
+      // Keep silent so user can retry by panning again; surface only if first page errored.
+      console.error('Failed to load older statistics page', err);
+    } finally {
+      inflightOlderRef.current = false;
+      setIsLoadingOlder(false);
+    }
+  }, [stats, selectedRange]);
 
   if (isLoading) {
     return <Loading title="Loading statistics" description="Fetching network statistics." />;
@@ -81,6 +149,8 @@ export default function StatisticsPage() {
         selectedRange={selectedRange}
         onRangeChange={setSelectedRange}
         isRefreshing={isRefreshing}
+        onLoadOlder={loadOlder}
+        isLoadingOlder={isLoadingOlder}
       />
     </div>
   );

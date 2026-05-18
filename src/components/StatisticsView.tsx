@@ -10,12 +10,14 @@ interface StatisticsViewProps {
   selectedRange: NetworkStatisticsRange;
   onRangeChange: (range: NetworkStatisticsRange) => void;
   isRefreshing?: boolean;
+  onLoadOlder?: () => void;
+  isLoadingOlder?: boolean;
 }
 
 const RANGE_OPTIONS: Array<{ label: string; value: NetworkStatisticsRange }> = [
-  { label: '24H', value: '24h' },
-  { label: '7D', value: '7d' },
-  { label: '30D', value: '30d' },
+  { label: '5m', value: '24h' },
+  { label: '1h', value: '7d' },
+  { label: '1d', value: '30d' },
 ];
 
 function formatCoverageDate(value: string | null): string {
@@ -33,6 +35,8 @@ export default function StatisticsView({
   selectedRange,
   onRangeChange,
   isRefreshing = false,
+  onLoadOlder,
+  isLoadingOlder = false,
 }: StatisticsViewProps) {
   const coverageText = stats.coverage.firstBucket && stats.coverage.lastBucket
     ? `${formatCoverageDate(stats.coverage.firstBucket)} - ${formatCoverageDate(stats.coverage.lastBucket)}`
@@ -54,7 +58,7 @@ export default function StatisticsView({
               {stats.coverage.isPartial && <Badge>Partial</Badge>}
               {isRefreshing && <Badge>Updating</Badge>}
             </div>
-            <p className="text-[var(--text-muted)] text-xs mt-0.5">
+            <p className="text-[var(--text-secondary)] text-xs mt-0.5">
               {coverageText}
             </p>
           </div>
@@ -70,7 +74,7 @@ export default function StatisticsView({
                 className={`min-w-12 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                   active
                     ? 'bg-[var(--primary-blue)] text-white'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
                 aria-pressed={active}
               >
@@ -81,7 +85,13 @@ export default function StatisticsView({
         </div>
       </div>
 
-      <NetworkActivityChart chart={stats.chart} coverage={stats.coverage} bucketMinutes={stats.bucketMinutes} />
+      <NetworkActivityChart
+        chart={stats.chart}
+        coverage={stats.coverage}
+        bucketMinutes={stats.bucketMinutes}
+        onLoadOlder={onLoadOlder}
+        isLoadingOlder={isLoadingOlder}
+      />
 
       {stats.sections.map((section) => (
         <section key={section.id}>
@@ -89,11 +99,11 @@ export default function StatisticsView({
             <div>
               <div className="flex items-center gap-2">
                 <div className="w-1 h-4 bg-[var(--primary-blue)] rounded-full" />
-                <h2 className="text-sm font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
+                <h2 className="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider">
                   {section.label}
                 </h2>
               </div>
-              <p className="text-xs text-[var(--text-muted)] mt-1">{section.description}</p>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">{section.description}</p>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
@@ -104,7 +114,7 @@ export default function StatisticsView({
         </section>
       ))}
 
-      <p className="text-[11px] text-[var(--text-muted)] leading-relaxed text-center">
+      <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed text-center">
         Data sourced from horizon_statistics. Range ends at the latest collected bucket; backfill progress is reflected as new chunks are written.
       </p>
     </div>

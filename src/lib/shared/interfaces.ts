@@ -485,6 +485,8 @@ export interface NetworkStatisticsCoverage {
   latestUpdate: string | null;
   isPartial: boolean;
   bucketCount: number;
+  limitBuckets?: number;
+  hasMore?: boolean;
 }
 
 export interface NetworkStatisticsCard {

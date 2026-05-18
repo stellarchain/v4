@@ -4,19 +4,17 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
+  type PointerEvent,
   type WheelEvent,
 } from 'react';
 import {
   Area,
-  AreaChart,
   Bar,
-  Brush,
   CartesianGrid,
   ComposedChart,
   Line,
-  ReferenceArea,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -28,6 +26,8 @@ interface NetworkActivityChartProps {
   chart: NetworkStatisticsChart;
   coverage: NetworkStatisticsCoverage;
   bucketMinutes: number;
+  onLoadOlder?: () => void;
+  isLoadingOlder?: boolean;
 }
 
 interface ChartRange {
@@ -40,6 +40,8 @@ const SERIES = {
   operations: { label: 'Operations', color: 'var(--purple)' },
   tps: { label: 'TPS', color: 'var(--success)' },
 } as const;
+
+const CHART_HEIGHT = 360;
 
 function compactNumber(value: number): string {
   if (Math.abs(value) >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
@@ -68,9 +70,18 @@ function formatBucketSize(minutes: number): string {
   return `${minutes}m`;
 }
 
-function getInitialRange(pointCount: number): ChartRange {
+function getInitialRange(pointCount: number, bucketMinutes: number): ChartRange {
   const endIndex = Math.max(pointCount - 1, 0);
-  const windowSize = pointCount <= 320 ? pointCount : pointCount <= 2200 ? 288 : 576;
+  if (pointCount <= 40) {
+    return { startIndex: 0, endIndex };
+  }
+  // Default visible window: ~1 day for 5min, ~7 days for 1h, all for 1d granularity.
+  // The remainder of the loaded history is reachable by panning / dragging the brush.
+  const targetMinutes =
+    bucketMinutes <= 5 ? 1440 :
+    bucketMinutes <= 60 ? 1440 * 7 :
+    1440 * 30;
+  const windowSize = Math.max(40, Math.min(pointCount, Math.round(targetMinutes / bucketMinutes)));
   return {
     startIndex: Math.max(0, endIndex - windowSize + 1),
     endIndex,
@@ -150,7 +161,7 @@ function CustomTooltip({
 
 function LegendDot({ color, label, kind }: { color: string; label: string; kind: 'bar' | 'line' }) {
   return (
-    <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+    <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]" role="listitem">
       {kind === 'bar' ? (
         <span
           className="w-2.5 h-2.5 rounded-[3px]"
@@ -169,20 +180,40 @@ function LegendDot({ color, label, kind }: { color: string; label: string; kind:
   );
 }
 
-interface ChartMouseState {
-  activeLabel?: string | number;
-  activeTooltipIndex?: number | string | null;
+interface DragState {
+  pointerId: number;
+  startX: number;
+  startRange: ChartRange;
 }
 
-export default function NetworkActivityChart({ chart, coverage, bucketMinutes }: NetworkActivityChartProps) {
+export default function NetworkActivityChart({
+  chart,
+  coverage,
+  bucketMinutes,
+  onLoadOlder,
+  isLoadingOlder = false,
+}: NetworkActivityChartProps) {
   const hasData = chart.points.length > 0;
-  const initialRange = useMemo(() => getInitialRange(chart.points.length), [chart.points.length]);
+  const initialRange = useMemo(
+    () => getInitialRange(chart.points.length, bucketMinutes),
+    [chart.points.length, bucketMinutes]
+  );
   const [visibleRange, setVisibleRange] = useState<ChartRange>(initialRange);
-  const [zoomStartLabel, setZoomStartLabel] = useState<string | null>(null);
-  const [zoomEndLabel, setZoomEndLabel] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [chartWidth, setChartWidth] = useState(0);
+  const chartShellRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const pendingRangeRef = useRef<ChartRange | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const lastBucketMinutesRef = useRef<number>(bucketMinutes);
+  const lastFirstBucketRef = useRef<string | null>(chart.points[0]?.bucketStart ?? null);
   const gradientId = useId().replace(/:/g, '');
   const visibleBucketCount = hasData ? visibleRange.endIndex - visibleRange.startIndex + 1 : 0;
-  const chartKey = `${bucketMinutes}-${chart.points.length}-${coverage.lastBucket ?? 'empty'}`;
+  const visiblePoints = useMemo(
+    () => chart.points.slice(visibleRange.startIndex, visibleRange.endIndex + 1),
+    [chart.points, visibleRange.startIndex, visibleRange.endIndex]
+  );
+  const chartKey = `${bucketMinutes}-${coverage.lastBucket ?? 'empty'}`;
   const isZoomed =
     hasData &&
     (visibleRange.startIndex !== initialRange.startIndex || visibleRange.endIndex !== initialRange.endIndex);
@@ -190,55 +221,129 @@ export default function NetworkActivityChart({ chart, coverage, bucketMinutes }:
     ? `Network activity chart from ${coverage.firstBucket ?? 'start'} to ${coverage.lastBucket ?? 'end'} showing transactions, operations, and TPS.`
     : 'Network activity chart with no data available yet.';
 
+  // Reset on granularity change; otherwise preserve the user's position when
+  // older pages are prepended by shifting indices forward by the added count.
   useEffect(() => {
-    setVisibleRange(initialRange);
-  }, [initialRange]);
+    if (lastBucketMinutesRef.current !== bucketMinutes) {
+      lastBucketMinutesRef.current = bucketMinutes;
+      lastFirstBucketRef.current = chart.points[0]?.bucketStart ?? null;
+      setVisibleRange(initialRange);
+      return;
+    }
+    const currentFirst = chart.points[0]?.bucketStart ?? null;
+    const previousFirst = lastFirstBucketRef.current;
+    if (previousFirst && currentFirst && previousFirst !== currentFirst) {
+      const offset = chart.points.findIndex((p) => p.bucketStart === previousFirst);
+      if (offset > 0) {
+        setVisibleRange((current) => ({
+          startIndex: Math.min(chart.points.length - 1, current.startIndex + offset),
+          endIndex: Math.min(chart.points.length - 1, current.endIndex + offset),
+        }));
+      }
+    }
+    lastFirstBucketRef.current = currentFirst;
+  }, [bucketMinutes, chart.points, initialRange]);
+
+  // Cancel any queued drag-frame update when the chart unmounts.
+  useEffect(() => {
+    return () => {
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const element = chartShellRef.current;
+    if (!element) return;
+
+    const updateWidth = () => {
+      const nextWidth = Math.floor(element.clientWidth);
+      setChartWidth((current) => current === nextWidth ? current : nextWidth);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  const requestOlderIfNeeded = (range: ChartRange) => {
+    if (!hasData || !onLoadOlder || isLoadingOlder || !coverage.hasMore) return;
+    if (range.startIndex <= 8) {
+      onLoadOlder();
+    }
+  };
+
+  const scheduleVisibleRange = (range: ChartRange) => {
+    pendingRangeRef.current = range;
+    if (frameRef.current !== null) return;
+
+    frameRef.current = window.requestAnimationFrame(() => {
+      frameRef.current = null;
+      const next = pendingRangeRef.current;
+      pendingRangeRef.current = null;
+      if (next) {
+        setVisibleRange(next);
+      }
+    });
+  };
 
   const showOldest = () => {
     const windowSize = visibleRange.endIndex - visibleRange.startIndex;
-    setVisibleRange({ startIndex: 0, endIndex: Math.min(windowSize, chart.points.length - 1) });
+    const next = { startIndex: 0, endIndex: Math.min(windowSize, chart.points.length - 1) };
+    setVisibleRange(next);
+    requestOlderIfNeeded(next);
   };
 
   const resetZoom = () => {
     setVisibleRange(initialRange);
   };
 
-  const commitZoom = () => {
-    if (!zoomStartLabel || !zoomEndLabel || zoomStartLabel === zoomEndLabel) {
-      setZoomStartLabel(null);
-      setZoomEndLabel(null);
-      return;
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (!hasData || event.button !== 0) return;
+
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startRange: visibleRange,
+    };
+
+    setIsDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    const width = Math.max(chartShellRef.current?.getBoundingClientRect().width ?? 1, 1);
+    const visiblePoints = Math.max(drag.startRange.endIndex - drag.startRange.startIndex + 1, 1);
+    const pointsPerPixel = visiblePoints / width;
+    const shift = Math.round((drag.startX - event.clientX) * pointsPerPixel);
+
+    if (shift === 0) return;
+
+    const next = shiftRange(drag.startRange, shift, chart.points.length);
+    scheduleVisibleRange(next);
+    if (shift < 0) {
+      requestOlderIfNeeded(next);
     }
-    const startIdx = chart.points.findIndex((p) => p.bucketStart === zoomStartLabel);
-    const endIdx = chart.points.findIndex((p) => p.bucketStart === zoomEndLabel);
-    if (startIdx >= 0 && endIdx >= 0 && startIdx !== endIdx) {
-      setVisibleRange({
-        startIndex: Math.min(startIdx, endIdx),
-        endIndex: Math.max(startIdx, endIdx),
-      });
+  };
+
+  const stopDragging = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    dragRef.current = null;
+    setIsDragging(false);
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
     }
-    setZoomStartLabel(null);
-    setZoomEndLabel(null);
-  };
-
-  const cancelZoom = () => {
-    setZoomStartLabel(null);
-    setZoomEndLabel(null);
-  };
-
-  const handleMouseDown = (state: ChartMouseState | null) => {
-    if (!hasData || !state) return;
-    const label = state.activeLabel != null ? String(state.activeLabel) : null;
-    if (!label) return;
-    setZoomStartLabel(label);
-    setZoomEndLabel(label);
-  };
-
-  const handleMouseMove = (state: ChartMouseState | null) => {
-    if (!zoomStartLabel || !state) return;
-    const label = state.activeLabel != null ? String(state.activeLabel) : null;
-    if (!label) return;
-    setZoomEndLabel(label);
   };
 
   const handleWheel = (event: WheelEvent<HTMLDivElement>) => {
@@ -251,20 +356,21 @@ export default function NetworkActivityChart({ chart, coverage, bucketMinutes }:
 
     const visiblePoints = Math.max(visibleRange.endIndex - visibleRange.startIndex + 1, 1);
     const shift = Math.sign(delta) * Math.max(1, Math.round((Math.abs(delta) / 80) * (visiblePoints / 24)));
-    setVisibleRange((current) => shiftRange(current, shift, chart.points.length));
+    const next = shiftRange(visibleRange, shift, chart.points.length);
+    setVisibleRange(next);
+    if (shift < 0) {
+      requestOlderIfNeeded(next);
+    }
   };
 
-  const showSelection =
-    zoomStartLabel !== null && zoomEndLabel !== null && zoomStartLabel !== zoomEndLabel;
-
   return (
-    <Card className="p-5 shadow-sm">
+    <Card className="p-5 shadow-sm min-w-0 overflow-hidden">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-5">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
             {chart.title}
           </h2>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
             Transactions and operations per bucket, with TPS as throughput.
           </p>
           <div className="flex items-center gap-4 mt-3" role="list" aria-label="Series legend">
@@ -293,25 +399,25 @@ export default function NetworkActivityChart({ chart, coverage, bucketMinutes }:
                 <button
                   type="button"
                   onClick={showOldest}
-                  className="rounded-md px-2.5 py-1 text-xs font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+                  className="rounded-md px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
                 >
                   Oldest
                 </button>
                 <button
                   type="button"
                   onClick={resetZoom}
-                  className="rounded-md px-2.5 py-1 text-xs font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+                  className="rounded-md px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
                 >
                   Latest
                 </button>
               </div>
             </div>
           )}
-          <div className="text-[11px] text-[var(--text-tertiary)] tabular-nums">
+          <div className="text-[11px] text-[var(--text-secondary)] tabular-nums">
             <span className="font-medium text-[var(--text-secondary)]">
               {visibleBucketCount.toLocaleString()}
             </span>
-            <span className="mx-1 text-[var(--text-muted)]">/</span>
+            <span className="mx-1 text-[var(--text-tertiary)]">/</span>
             <span>{coverage.bucketCount.toLocaleString()}</span>
             <span className="ml-1.5">{formatBucketSize(bucketMinutes)} buckets</span>
           </div>
@@ -319,12 +425,23 @@ export default function NetworkActivityChart({ chart, coverage, bucketMinutes }:
       </div>
 
       <div
-        className={`h-[360px] w-full select-none ${hasData ? 'cursor-crosshair' : ''}`}
+        ref={chartShellRef}
+        className={`relative h-[360px] min-w-0 w-full select-none ${hasData ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
         role="img"
         aria-label={ariaLabel}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={stopDragging}
+        onPointerCancel={stopDragging}
         onWheel={handleWheel}
         style={{ touchAction: 'pan-y' }}
       >
+        {isLoadingOlder && (
+          <div className="pointer-events-none absolute left-12 top-2 z-10 inline-flex items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)] shadow-sm">
+            <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-[var(--primary-blue)] border-t-transparent" />
+            Loading older
+          </div>
+        )}
         {!hasData ? (
           <div className="h-full flex flex-col items-center justify-center gap-3 text-center">
             <div className="w-12 h-12 rounded-2xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] flex items-center justify-center">
@@ -340,14 +457,13 @@ export default function NetworkActivityChart({ chart, coverage, bucketMinutes }:
             </div>
           </div>
         ) : (
-          <ResponsiveContainer key={chartKey} width="100%" height="100%">
+          chartWidth > 0 && (
             <ComposedChart
-              data={chart.points}
-              margin={{ top: 8, right: 12, left: 0, bottom: 4 }}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={commitZoom}
-              onMouseLeave={cancelZoom}
+              key={chartKey}
+              width={chartWidth}
+              height={CHART_HEIGHT}
+              data={visiblePoints}
+              margin={{ top: 8, right: 12, left: 0, bottom: 8 }}
             >
               <defs>
                 <linearGradient id={`tx-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
@@ -390,7 +506,7 @@ export default function NetworkActivityChart({ chart, coverage, bucketMinutes }:
                 width={42}
               />
               <Tooltip
-                cursor={showSelection ? false : { fill: 'var(--bg-tertiary)', opacity: 0.4 }}
+                cursor={isDragging ? false : { fill: 'var(--bg-tertiary)', opacity: 0.4 }}
                 content={<CustomTooltip />}
                 wrapperStyle={{ outline: 'none' }}
               />
@@ -435,58 +551,14 @@ export default function NetworkActivityChart({ chart, coverage, bucketMinutes }:
                 activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--bg-secondary)', fill: SERIES.tps.color }}
                 isAnimationActive={false}
               />
-              {showSelection && (
-                <ReferenceArea
-                  yAxisId="left"
-                  x1={zoomStartLabel ?? undefined}
-                  x2={zoomEndLabel ?? undefined}
-                  stroke="var(--primary-blue)"
-                  strokeOpacity={0.4}
-                  fill="var(--primary-blue)"
-                  fillOpacity={0.1}
-                />
-              )}
-              <Brush
-                dataKey="bucketStart"
-                height={42}
-                travellerWidth={12}
-                startIndex={visibleRange.startIndex}
-                endIndex={visibleRange.endIndex}
-                stroke="var(--primary-blue)"
-                fill="var(--bg-tertiary)"
-                tickFormatter={formatTime}
-                onChange={(range) => {
-                  if (typeof range?.startIndex !== 'number' || typeof range?.endIndex !== 'number') {
-                    return;
-                  }
-                  setVisibleRange({ startIndex: range.startIndex, endIndex: range.endIndex });
-                }}
-              >
-                <AreaChart>
-                  <defs>
-                    <linearGradient id={`brush-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={SERIES.operations.color} stopOpacity={0.55} />
-                      <stop offset="100%" stopColor={SERIES.operations.color} stopOpacity={0.1} />
-                    </linearGradient>
-                  </defs>
-                  <Area
-                    dataKey="operations"
-                    type="monotone"
-                    stroke={SERIES.operations.color}
-                    strokeWidth={1}
-                    fill={`url(#brush-${gradientId})`}
-                    isAnimationActive={false}
-                  />
-                </AreaChart>
-              </Brush>
             </ComposedChart>
-          </ResponsiveContainer>
+          )
         )}
       </div>
 
       {hasData && (
-        <div className="mt-3 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-          <span>Drag on the chart to zoom · Shift + wheel to scroll · Drag the brush to pan</span>
+        <div className="mt-3 flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
+          <span>Drag to pan · Shift + wheel to scroll</span>
           <span className="hidden sm:inline tabular-nums">
             {coverage.firstBucket && coverage.lastBucket
               ? `${formatTimeFull(coverage.firstBucket)} – ${formatTimeFull(coverage.lastBucket)}`
