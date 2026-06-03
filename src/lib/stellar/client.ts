@@ -4,6 +4,8 @@ import { apiEndpoints, getApiData, getApiV1Data } from '@/services/api';
 import { createHorizonServer, getHorizonBaseUrl } from '@/services/horizon';
 import { DEFAULT_NETWORK, NETWORK_COOKIE_NAME, isNetworkType, type NetworkType } from '../network/config';
 import { getCurrentNetwork, setCurrentNetwork } from '../network/state';
+import { mapHorizonAssetRecordToIssuedAsset } from '../shared/issuedAssets';
+import { parseStellarTomlAssetMetadata } from '../shared/stellarToml';
 
 import type {
   Ledger,
@@ -1400,6 +1402,133 @@ export async function getMarketAssetsFromMarketV1(
   }
 }
 
+function extractHorizonRecords(response: unknown): any[] {
+  const directRecords = (response as any)?.records;
+  if (Array.isArray(directRecords)) {
+    return directRecords;
+  }
+
+  const embeddedRecords = (response as any)?._embedded?.records;
+  return Array.isArray(embeddedRecords) ? embeddedRecords : [];
+}
+
+function buildAssetIdentity(asset: { code?: string; issuer?: string }): string {
+  return `${String(asset.code || '').toUpperCase()}:${String(asset.issuer || '').toUpperCase()}`;
+}
+
+type HorizonTomlAssetMetadata = {
+  name?: string;
+  description?: string;
+  image?: string;
+  homeUrl?: string;
+  orgLogo?: string;
+  homeDomain?: string;
+};
+
+const tomlTextCache = new Map<string, Promise<string | null>>();
+
+function getHorizonTomlUrl(record: any): string | undefined {
+  const href = String(record?._links?.toml?.href || '').trim();
+  return href || undefined;
+}
+
+function hostnameFromUrl(url: string | undefined): string | undefined {
+  if (!url) {
+    return undefined;
+  }
+
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return undefined;
+  }
+}
+
+async function fetchTomlText(tomlUrl: string): Promise<string | null> {
+  if (!tomlTextCache.has(tomlUrl)) {
+    tomlTextCache.set(tomlUrl, (async () => {
+      const response = await fetch(tomlUrl);
+      if (!response.ok) {
+        return null;
+      }
+      return response.text();
+    })().catch(() => null));
+  }
+
+  return tomlTextCache.get(tomlUrl) || null;
+}
+
+async function fetchHorizonTomlAssetMetadata(record: any, code: string, issuer: string): Promise<HorizonTomlAssetMetadata> {
+  const tomlUrl = getHorizonTomlUrl(record);
+  if (!tomlUrl) {
+    return {};
+  }
+
+  const tomlText = await fetchTomlText(tomlUrl);
+  if (!tomlText) {
+    return {
+      homeDomain: hostnameFromUrl(tomlUrl),
+    };
+  }
+
+  const metadata = parseStellarTomlAssetMetadata(tomlText, code, issuer);
+  return {
+    ...metadata,
+    homeDomain: hostnameFromUrl(tomlUrl),
+  };
+}
+
+export async function getIssuedAssetsByIssuer(
+  issuer: string,
+  page: number = 1,
+  itemsPerPage: number = 50
+): Promise<MarketAsset[]> {
+  const normalizedIssuer = String(issuer || '').trim().toUpperCase();
+  if (!normalizedIssuer) {
+    return [];
+  }
+
+  let marketAssets: MarketAsset[] = [];
+  try {
+    const result = await getMarketAssetsFromMarketV1(page, itemsPerPage, {
+      issuer: normalizedIssuer,
+    });
+    marketAssets = result.assets.filter((asset) => asset.issuer === normalizedIssuer);
+  } catch (error) {
+    console.error('Error fetching issued market assets:', error);
+  }
+
+  try {
+    const response = await getHorizonServer()
+      .assets()
+      .forIssuer(normalizedIssuer)
+      .limit(itemsPerPage)
+      .call();
+    const horizonAssets = await Promise.all(extractHorizonRecords(response).map(async (record) => {
+      const code = String(record?.asset_code || record?.code || 'UNKNOWN');
+      const assetIssuer = String(record?.asset_issuer || record?.issuer || normalizedIssuer);
+      const metadata = await fetchHorizonTomlAssetMetadata(record, code, assetIssuer);
+      return mapHorizonAssetRecordToIssuedAsset(record, normalizedIssuer, metadata) as MarketAsset;
+    }));
+    const merged = new Map<string, MarketAsset>();
+
+    marketAssets.forEach((asset) => {
+      merged.set(buildAssetIdentity(asset), asset);
+    });
+    horizonAssets.forEach((asset) => {
+      const key = buildAssetIdentity(asset);
+      if (!merged.has(key)) {
+        merged.set(key, asset);
+      }
+    });
+
+    return Array.from(merged.values());
+  } catch (error) {
+    console.error('Error fetching Horizon issued assets:', error);
+    return marketAssets;
+  }
+}
+
 export async function getMarketAssetRankPosition(code: string, issuer?: string): Promise<number> {
   try {
     const assetKey = issuer ? `${code}-${issuer}` : `${code}-native`;
@@ -1437,7 +1566,7 @@ function isExpectedAssetV1LookupError(error: unknown): boolean {
 async function getHorizonAssetFallbackSummary(
   code: string,
   issuer?: string
-): Promise<{ supply: number; holders: number } | null> {
+): Promise<{ supply: number; holders: number; metadata: HorizonTomlAssetMetadata } | null> {
   if (!issuer) {
     return null;
   }
@@ -1464,10 +1593,12 @@ async function getHorizonAssetFallbackSummary(
     const maintainAccounts = Number(accounts.authorized_to_maintain_liabilities || 0);
     const unauthorizedAccounts = Number(accounts.unauthorized || 0);
     const totalHolders = authorizedAccounts + maintainAccounts + unauthorizedAccounts;
+    const metadata = await fetchHorizonTomlAssetMetadata(record, code, issuer);
 
     return {
       supply: totalSupply,
       holders: totalHolders,
+      metadata,
     };
   } catch {
     return null;
@@ -1634,14 +1765,15 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
       if (v1NotFound) {
         const horizonSummary = await getHorizonAssetFallbackSummary(parsedCode, parsedIssuer);
         if (horizonSummary) {
+          const horizonMetadata = horizonSummary.metadata || {};
           return {
             rank: 0,
             code: parsedCode,
             issuer: parsedIssuer || '',
-            name: parsedCode,
-            description: '',
-            domain: '',
-            image: undefined,
+            name: horizonMetadata.name || parsedCode,
+            description: horizonMetadata.description || '',
+            domain: horizonMetadata.homeDomain || '',
+            image: horizonMetadata.image,
             price_usd: 0,
             price_xlm: 0,
             change_1h: 0,
@@ -1663,6 +1795,8 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
             price_history: [],
             volume_history: [],
             ...metaFromV1,
+            homeUrl: horizonMetadata.homeUrl,
+            homeDomain: horizonMetadata.homeDomain,
           };
         }
       }
