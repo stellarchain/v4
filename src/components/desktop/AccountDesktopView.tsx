@@ -25,6 +25,8 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { addressRoute, assetRoute, txRoute } from '@/lib/shared/routes';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
+import RiskWarningRow from '@/components/RiskWarningRow';
+import { isRiskLabel } from '@/lib/shared/riskLabels';
 
 interface Balance {
   asset_type: string;
@@ -174,7 +176,7 @@ function parseNativeBalanceDeltaPercent(
 function AccountStatusIcons({ labelText, verified, size = 'sm' }: { labelText?: string; verified?: boolean; size?: 'sm' | 'lg' }) {
   const normalized = (labelText || '').toLowerCase();
   const isSpam = normalized.includes('spam');
-  const isRisk = normalized.includes('scam') || normalized.includes('hack') || normalized.includes('malicious') || isSpam;
+  const isRisk = isRiskLabel(labelText);
   const hasLabel = Boolean(labelText);
   const isVerified = Boolean(verified) && !isRisk;
   const iconSize = size === 'lg' ? 'w-8 h-8' : 'w-4 h-4';
@@ -232,6 +234,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
   const isCurrentFavorite = isFavorite(accountId);
   const currentFavorite = getFavorite(accountId);
   const accountLabelText = currentFavorite?.label || currentAccountLabel?.name || currentAccountLabel?.org_name;
+  const accountRiskLabelText = currentAccountLabel?.name || currentAccountLabel?.org_name;
   const labelActionText = accountLabelText ? 'Update label' : 'Add label';
 
   // Read initial tab from URL params
@@ -849,6 +852,13 @@ export default function AccountDesktopView({ account, accountId, transactions, o
           </button>
         </div>
 
+        <RiskWarningRow
+          labelText={accountRiskLabelText}
+          subject="address"
+          address={accountId}
+          className="mb-4"
+        />
+
         {/* Overview Cards Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Card 1 - Overview */}
@@ -1068,7 +1078,10 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                         </td>
                         <td className="py-3 px-3 text-[13px] text-[var(--text-tertiary)]">{timeAgo(tx.created_at)}</td>
                         <td className="py-3 px-3">
-                          <Link href={`/account/${tx.source_account}`} className="font-mono text-[13px] text-[var(--text-secondary)] hover:text-sky-600 flex items-center gap-2">
+                          <Link
+                            href={`/account/${tx.source_account}`}
+                            className="font-mono text-[13px] text-[var(--text-secondary)] hover:text-sky-600 flex items-center gap-2"
+                          >
                             <AccountBadges address={tx.source_account} labels={accountLabels} size="sm" />
                             {accountLabels[tx.source_account]?.name || shortenAddress(tx.source_account)}
                           </Link>

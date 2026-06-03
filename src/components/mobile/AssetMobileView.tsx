@@ -8,6 +8,8 @@ import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrder
 import { getXLMHoldersAction } from '@/lib/helpers';
 import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/shared/designSystem';
 import GliderTabs from '@/components/ui/GliderTabs';
+import RiskWarningRow from '@/components/RiskWarningRow';
+import RiskAwareLink from '@/components/RiskAwareLink';
 
 interface AssetMobileViewProps {
   asset: AssetDetails;
@@ -886,7 +888,10 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
             {asset.issuer && (
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-white/50">Issuer:</span>
-                <Link href={`/account/${asset.issuer}`} className="text-xs font-mono text-white/70 hover:text-white">
+                <Link
+                  href={`/account/${asset.issuer}`}
+                  className="text-xs font-mono text-white/70 hover:text-white"
+                >
                   {shortenAddress(asset.issuer)}
                 </Link>
                 <button
@@ -906,21 +911,29 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
               </div>
             )}
             {asset.domain && (
-              <a
+              <RiskAwareLink
                 href={`https://${asset.domain}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                riskLabelText={asset.issuerLabel?.name}
                 className="flex items-center gap-1 text-xs text-white/70 hover:text-white"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                 </svg>
                 {asset.domain}
-              </a>
+              </RiskAwareLink>
             )}
           </div>
         )}
       </header>
+
+      <RiskWarningRow
+        labelText={asset.issuerLabel?.name}
+        subject="issuer"
+        address={asset.issuer}
+        className="mx-3 mt-3"
+      />
 
       {/* Main Tab Navigation - Glider Style */}
       <div className="max-w-2xl mx-auto px-3 mt-2 mb-1">
@@ -1276,14 +1289,15 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 <div>
                   <h3 className="text-base font-bold" style={{ color: 'var(--primary-blue)' }}>{asset.code}</h3>
                   {asset.domain && (
-                    <a
+                    <RiskAwareLink
                       href={`https://${asset.domain}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs hover:underline" style={{ color: 'var(--primary-blue)' }}
+                      riskLabelText={asset.issuerLabel?.name}
+                      className="text-xs text-[var(--primary-blue)] hover:underline"
                     >
                       https://{asset.domain}
-                    </a>
+                    </RiskAwareLink>
                   )}
                 </div>
               </div>
@@ -1300,7 +1314,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                   <div className="flex items-center gap-1.5 mt-1">
                     <Link
                       href={`/account/${asset.issuer}`}
-                      className="text-xs font-mono break-all hover:underline" style={{ color: 'var(--primary-blue)' }}
+                      className="text-xs font-mono break-all text-[var(--primary-blue)] hover:underline"
                     >
                       {asset.issuer}
                     </Link>

@@ -21,6 +21,8 @@ import InlineSkeleton from '@/components/ui/InlineSkeleton';
 import { QRCodeSVG } from 'qrcode.react';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { assetRoute } from '@/lib/shared/routes';
+import RiskWarningRow from '@/components/RiskWarningRow';
+import { isRiskLabel } from '@/lib/shared/riskLabels';
 
 function formatCompactNumber(value: number): string {
   if (value === 0) return '0';
@@ -180,7 +182,7 @@ function getAssetUrl(code: string | undefined, issuer: string | undefined): stri
 function AccountStatusIcons({ labelText, verified, size = 'sm' }: { labelText?: string; verified?: boolean; size?: 'sm' | 'lg' }) {
   const normalized = (labelText || '').toLowerCase();
   const isSpam = normalized.includes('spam');
-  const isRisk = normalized.includes('scam') || normalized.includes('hack') || normalized.includes('malicious') || isSpam;
+  const isRisk = isRiskLabel(labelText);
   const hasLabel = Boolean(labelText);
   const isVerified = Boolean(verified) && !isRisk;
   const iconSize = size === 'lg' ? 'w-8 h-8' : 'w-4 h-4';
@@ -245,6 +247,7 @@ export default function AccountMobileView({ account, accountId, transactions, op
   const isCurrentFavorite = isFavorite(accountId);
   const currentFavorite = getFavorite(accountId);
   const accountLabelText = currentFavorite?.label || currentAccountLabel?.name || currentAccountLabel?.org_name;
+  const accountRiskLabelText = currentAccountLabel?.name || currentAccountLabel?.org_name;
   const labelActionText = accountLabelText ? 'Update label' : 'Add label';
   const rankPosition = Number(accountMeta?.accountMetric?.rankPosition || 0) || null;
   const totalTransactions24h = Number(
@@ -938,6 +941,13 @@ export default function AccountMobileView({ account, accountId, transactions, op
             {labelActionText}
           </Link>
         </div>
+
+        <RiskWarningRow
+          labelText={accountRiskLabelText}
+          subject="address"
+          address={accountId}
+          className="mb-4"
+        />
 
         {/* Total Balance Section - Centered */}
         <div className="text-center mb-4">
