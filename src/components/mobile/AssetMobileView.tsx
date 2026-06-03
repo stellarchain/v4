@@ -928,12 +928,13 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
         )}
       </header>
 
-      <RiskWarningRow
-        labelText={asset.issuerLabel?.name}
-        subject="issuer"
-        address={asset.issuer}
-        className="mx-3 mt-3"
-      />
+      <div className="px-3 mt-3">
+        <RiskWarningRow
+          labelText={asset.issuerLabel?.name}
+          subject="issuer"
+          address={asset.issuer}
+        />
+      </div>
 
       {/* Main Tab Navigation - Glider Style */}
       <div className="max-w-2xl mx-auto px-3 mt-2 mb-1">
