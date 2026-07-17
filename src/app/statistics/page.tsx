@@ -6,19 +6,20 @@ import Loading from '@/components/ui/Loading';
 import { fetchNetworkStatisticsData } from '@/services/api';
 import { NetworkStatisticsRange, NetworkStatisticsResponse } from '@/lib/stellar';
 
-// Buttons act as granularity selectors. We always fetch the 30-day window
-// from the backend; bucketMinutes controls how fine the data is.
-// Older data is loaded lazily via the `before` cursor.
-const BUCKET_MINUTES_BY_GRANULARITY: Record<NetworkStatisticsRange, number> = {
+// Buttons select both the historical window and an appropriate bucket size.
+// Older data is loaded lazily via the `before` cursor when available.
+const BUCKET_MINUTES_BY_RANGE: Record<NetworkStatisticsRange, number> = {
   '24h': 5,
   '7d': 60,
   '30d': 1440,
+  '1y': 1440,
 };
 
-const BUCKET_PAGE_SIZE_BY_GRANULARITY: Record<NetworkStatisticsRange, number> = {
+const BUCKET_PAGE_SIZE_BY_RANGE: Record<NetworkStatisticsRange, number> = {
   '24h': 288,
   '7d': 168,
-  '30d': 90,
+  '30d': 31,
+  '1y': 366,
 };
 
 export default function StatisticsPage() {
@@ -42,9 +43,9 @@ export default function StatisticsPage() {
         }
 
         const statistics = await fetchNetworkStatisticsData({
-          range: '30d',
-          bucketMinutes: BUCKET_MINUTES_BY_GRANULARITY[selectedRange],
-          limitBuckets: BUCKET_PAGE_SIZE_BY_GRANULARITY[selectedRange],
+          range: selectedRange,
+          bucketMinutes: BUCKET_MINUTES_BY_RANGE[selectedRange],
+          limitBuckets: BUCKET_PAGE_SIZE_BY_RANGE[selectedRange],
         }) as NetworkStatisticsResponse;
 
         if (cancelled) return;
@@ -80,9 +81,9 @@ export default function StatisticsPage() {
 
     try {
       const older = await fetchNetworkStatisticsData({
-        range: '30d',
-        bucketMinutes: BUCKET_MINUTES_BY_GRANULARITY[selectedRange],
-        limitBuckets: BUCKET_PAGE_SIZE_BY_GRANULARITY[selectedRange],
+        range: selectedRange,
+        bucketMinutes: BUCKET_MINUTES_BY_RANGE[selectedRange],
+        limitBuckets: BUCKET_PAGE_SIZE_BY_RANGE[selectedRange],
         before: firstBucket,
       }) as NetworkStatisticsResponse;
 

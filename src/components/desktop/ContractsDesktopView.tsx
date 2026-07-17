@@ -96,25 +96,13 @@ export default function ContractsDesktopView({
 
   const filteredContracts = useMemo(() => {
     const seen = new Set<string>();
-    let result = contracts.filter((contract) => {
+    return contracts.filter((contract) => {
       const key = String(contract.id || '').trim();
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-
-    if (sortBy === 'activity') {
-      result.sort((a, b) => b.operationCount - a.operationCount);
-    } else if (sortBy === 'activity_asc') {
-      result.sort((a, b) => a.operationCount - b.operationCount);
-    } else if (sortBy === 'transactions') {
-      result.sort((a, b) => (b.totalTransactions ?? 0) - (a.totalTransactions ?? 0));
-    } else if (sortBy === 'asset_code') {
-      result.sort((a, b) => (a.symbol || a.name || '').localeCompare((b.symbol || b.name || '')));
-    }
-
-    return result;
-  }, [contracts, sortBy]);
+  }, [contracts]);
 
   const getTypeBadge = (type: string) => {
     switch (type) {
@@ -167,7 +155,7 @@ export default function ContractsDesktopView({
                 <div className="text-lg font-bold text-[var(--text-primary)]">{pagination.total.toLocaleString()}</div>
               </div>
               <div className="p-3 rounded-xl bg-[var(--bg-primary)]/70 border border-[var(--border-subtle)] min-w-[90px]">
-                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Tokens</div>
+                <div className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Page Tokens</div>
                 <div className="text-lg font-bold text-[var(--text-primary)]">{stats.tokens.toLocaleString()}</div>
               </div>
             </div>

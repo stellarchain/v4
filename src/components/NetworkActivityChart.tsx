@@ -19,12 +19,13 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { NetworkStatisticsChart, NetworkStatisticsCoverage } from '@/lib/stellar';
+import { NetworkStatisticsChart, NetworkStatisticsCoverage, NetworkStatisticsRange } from '@/lib/stellar';
 import Card from '@/components/ui/Card';
 
 interface NetworkActivityChartProps {
   chart: NetworkStatisticsChart;
   coverage: NetworkStatisticsCoverage;
+  range: NetworkStatisticsRange;
   bucketMinutes: number;
   onLoadOlder?: () => void;
   isLoadingOlder?: boolean;
@@ -50,13 +51,18 @@ function compactNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
-function formatTime(value: string): string {
+function formatTime(value: string, bucketMinutes: number): string {
   const date = new Date(value);
+  if (bucketMinutes >= 1440) {
+    return date.toLocaleDateString(undefined, { year: '2-digit', month: 'short', day: 'numeric' });
+  }
+
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 function formatTimeFull(value: string): string {
   return new Date(value).toLocaleString(undefined, {
+    year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -70,16 +76,17 @@ function formatBucketSize(minutes: number): string {
   return `${minutes}m`;
 }
 
-function getInitialRange(pointCount: number, bucketMinutes: number): ChartRange {
+function getInitialRange(pointCount: number, bucketMinutes: number, range: NetworkStatisticsRange): ChartRange {
   const endIndex = Math.max(pointCount - 1, 0);
   if (pointCount <= 40) {
     return { startIndex: 0, endIndex };
   }
-  // Default visible window: ~1 day for 5min, ~7 days for 1h, all for 1d granularity.
+  // Default visible window: ~1 day for 5min, ~7 days for 1h, full 1M/1Y for daily buckets.
   // The remainder of the loaded history is reachable by panning / dragging the brush.
   const targetMinutes =
     bucketMinutes <= 5 ? 1440 :
     bucketMinutes <= 60 ? 1440 * 7 :
+    range === '1y' ? 1440 * 366 :
     1440 * 30;
   const windowSize = Math.max(40, Math.min(pointCount, Math.round(targetMinutes / bucketMinutes)));
   return {
@@ -97,6 +104,12 @@ function shiftRange(range: ChartRange, shift: number, pointCount: number): Chart
     startIndex,
     endIndex: Math.min(pointCount - 1, startIndex + span),
   };
+}
+
+function getOlderPrefetchThreshold(range: ChartRange): number {
+  const visibleBuckets = Math.max(range.endIndex - range.startIndex + 1, 1);
+
+  return Math.max(8, Math.ceil(visibleBuckets * 0.25));
 }
 
 interface TooltipPayloadItem {
@@ -189,14 +202,15 @@ interface DragState {
 export default function NetworkActivityChart({
   chart,
   coverage,
+  range,
   bucketMinutes,
   onLoadOlder,
   isLoadingOlder = false,
 }: NetworkActivityChartProps) {
   const hasData = chart.points.length > 0;
   const initialRange = useMemo(
-    () => getInitialRange(chart.points.length, bucketMinutes),
-    [chart.points.length, bucketMinutes]
+    () => getInitialRange(chart.points.length, bucketMinutes, range),
+    [chart.points.length, bucketMinutes, range]
   );
   const [visibleRange, setVisibleRange] = useState<ChartRange>(initialRange);
   const [isDragging, setIsDragging] = useState(false);
@@ -206,6 +220,7 @@ export default function NetworkActivityChart({
   const pendingRangeRef = useRef<ChartRange | null>(null);
   const frameRef = useRef<number | null>(null);
   const lastBucketMinutesRef = useRef<number>(bucketMinutes);
+  const lastRangeRef = useRef<NetworkStatisticsRange>(range);
   const lastFirstBucketRef = useRef<string | null>(chart.points[0]?.bucketStart ?? null);
   const gradientId = useId().replace(/:/g, '');
   const visibleBucketCount = hasData ? visibleRange.endIndex - visibleRange.startIndex + 1 : 0;
@@ -213,7 +228,7 @@ export default function NetworkActivityChart({
     () => chart.points.slice(visibleRange.startIndex, visibleRange.endIndex + 1),
     [chart.points, visibleRange.startIndex, visibleRange.endIndex]
   );
-  const chartKey = `${bucketMinutes}-${coverage.lastBucket ?? 'empty'}`;
+  const chartKey = `${range}-${bucketMinutes}-${coverage.lastBucket ?? 'empty'}`;
   const isZoomed =
     hasData &&
     (visibleRange.startIndex !== initialRange.startIndex || visibleRange.endIndex !== initialRange.endIndex);
@@ -224,8 +239,9 @@ export default function NetworkActivityChart({
   // Reset on granularity change; otherwise preserve the user's position when
   // older pages are prepended by shifting indices forward by the added count.
   useEffect(() => {
-    if (lastBucketMinutesRef.current !== bucketMinutes) {
+    if (lastBucketMinutesRef.current !== bucketMinutes || lastRangeRef.current !== range) {
       lastBucketMinutesRef.current = bucketMinutes;
+      lastRangeRef.current = range;
       lastFirstBucketRef.current = chart.points[0]?.bucketStart ?? null;
       setVisibleRange(initialRange);
       return;
@@ -242,7 +258,7 @@ export default function NetworkActivityChart({
       }
     }
     lastFirstBucketRef.current = currentFirst;
-  }, [bucketMinutes, chart.points, initialRange]);
+  }, [bucketMinutes, range, chart.points, initialRange]);
 
   // Cancel any queued drag-frame update when the chart unmounts.
   useEffect(() => {
@@ -273,7 +289,7 @@ export default function NetworkActivityChart({
 
   const requestOlderIfNeeded = (range: ChartRange) => {
     if (!hasData || !onLoadOlder || isLoadingOlder || !coverage.hasMore) return;
-    if (range.startIndex <= 8) {
+    if (range.startIndex <= getOlderPrefetchThreshold(range)) {
       onLoadOlder();
     }
   };
@@ -485,7 +501,7 @@ export default function NetworkActivityChart({
                 tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }}
                 tickLine={false}
                 axisLine={{ stroke: 'var(--border-default)' }}
-                tickFormatter={formatTime}
+                tickFormatter={(value) => formatTime(String(value), bucketMinutes)}
                 minTickGap={42}
               />
               <YAxis

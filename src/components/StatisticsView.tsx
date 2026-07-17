@@ -15,14 +15,16 @@ interface StatisticsViewProps {
 }
 
 const RANGE_OPTIONS: Array<{ label: string; value: NetworkStatisticsRange }> = [
-  { label: '5m', value: '24h' },
-  { label: '1h', value: '7d' },
-  { label: '1d', value: '30d' },
+  { label: '24H', value: '24h' },
+  { label: '7D', value: '7d' },
+  { label: '1 month', value: '30d' },
+  { label: '1 year', value: '1y' },
 ];
 
 function formatCoverageDate(value: string | null): string {
   if (!value) return 'No data yet';
   return new Date(value).toLocaleString(undefined, {
+    year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -71,7 +73,7 @@ export default function StatisticsView({
                 key={option.value}
                 type="button"
                 onClick={() => onRangeChange(option.value)}
-                className={`min-w-12 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`min-w-12 rounded-md px-3 py-1.5 text-xs font-medium transition-colors sm:min-w-[4.75rem] ${
                   active
                     ? 'bg-[var(--primary-blue)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -88,6 +90,7 @@ export default function StatisticsView({
       <NetworkActivityChart
         chart={stats.chart}
         coverage={stats.coverage}
+        range={selectedRange}
         bucketMinutes={stats.bucketMinutes}
         onLoadOlder={onLoadOlder}
         isLoadingOlder={isLoadingOlder}

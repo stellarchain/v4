@@ -75,6 +75,7 @@ export const apiEndpoints = {
     contractTransactions: (contractId, params) => withQuery(`/contracts/${contractId}/transactions`, params),
     contractEvents: (contractId, params) => withQuery(`/contracts/${contractId}/events`, params),
     contractStorage: (contractId, params) => withQuery(`/contracts/${contractId}/storage`, params),
+    contractBalances: (contractId, params) => withQuery(`/contracts/${contractId}/balances`, params),
     contractHolderBalances: (contractId, params) => withQuery(`/contracts/${contractId}/holder-balances`, params),
     contractArgumentUsages: (contractId, params) => withQuery(`/contracts/${contractId}/argument-usages`, params),
     marketAssets: (params) => withQuery('/market/assets', params),

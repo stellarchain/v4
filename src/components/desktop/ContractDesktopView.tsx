@@ -50,6 +50,30 @@ interface ContractHolderBalance {
   decimals?: number;
 }
 
+interface ContractTokenHolderBalance {
+  address: string;
+  balanceRaw: string;
+  inflowRaw: string;
+  outflowRaw: string;
+}
+
+interface ContractBalanceSummary {
+  holdersCount: number;
+  indexedBalanceRaw: string;
+  inflowRaw: string;
+  outflowRaw: string;
+  hasMore: boolean;
+}
+
+interface SacMarketReconciliation {
+  assetKey: string;
+  indexedBalanceRaw: string | null;
+  assetMarketSupplyRaw: string | null;
+  differenceRaw: string | null;
+  lastMarketUpdate?: string;
+  status: 'matched' | 'differs' | 'not_enough_indexed_data' | 'market_unavailable';
+}
+
 interface ContractData {
   id: string;
   account: any | null;
@@ -85,10 +109,14 @@ interface ContractData {
   };
   spec?: unknown;
   holderBalances?: ContractHolderBalance[];
+  tokenHolderBalances?: ContractTokenHolderBalance[];
+  tokenBalanceSummary?: ContractBalanceSummary | null;
+  sacMarketReconciliation?: SacMarketReconciliation | null;
   selectedBalanceToken?: string;
   // API data fields
   totalTransactions?: number;
   totalInvokes?: number;
+  totalOperations?: number;
   createdAt?: string;
   wasmId?: string;
   contractCode?: string;
@@ -101,6 +129,7 @@ interface ContractData {
     storage?: boolean;
     spec?: boolean;
     balances?: boolean;
+    tokenBalances?: boolean;
   };
 }
 
@@ -141,6 +170,49 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
   const isNFT = contract.type === 'nft';
   const isVault = contract.type === 'vault';
   const sectionLoading = contract._loading || {};
+  const isSac = Boolean(contract.isSAC || contract.tokenMetadata?.isSAC);
+  const tokenDecimals = contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7;
+  const totalOperationsCount = Math.max(
+    Number(contract.totalOperations ?? 0),
+    Number(contract.totalInvokes ?? 0),
+    Number(contract.historyPagination?.totalItems ?? 0),
+    historyInvocations.length,
+    operations.length
+  );
+  const tokenHolders = contract.tokenHolderBalances ?? [];
+  const tokenBalanceSummary = contract.tokenBalanceSummary;
+  const reconciliation = contract.sacMarketReconciliation ?? null;
+
+  const formatRawAmount = (raw?: string | null, decimals = tokenDecimals) => {
+    const value = String(raw ?? '0').trim();
+    if (!/^-?\d+$/.test(value)) return value || '0';
+
+    const negative = value.startsWith('-');
+    const unsigned = negative ? value.slice(1) : value;
+    if (decimals <= 0) {
+      return `${negative ? '-' : ''}${unsigned.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+    }
+
+    const padded = unsigned.padStart(decimals + 1, '0');
+    const whole = padded.slice(0, -decimals).replace(/^0+(?=\d)/, '') || '0';
+    const fraction = padded.slice(-decimals).replace(/0+$/, '');
+    const formattedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    return `${negative ? '-' : ''}${formattedWhole}${fraction ? `.${fraction}` : ''}`;
+  };
+
+  const getReconciliationBadge = (status: SacMarketReconciliation['status']) => {
+    switch (status) {
+      case 'matched':
+        return { label: 'Matches Asset Market', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+      case 'differs':
+        return { label: 'Differs from Asset Market', className: 'border-amber-200 bg-amber-50 text-amber-700' };
+      case 'not_enough_indexed_data':
+        return { label: 'Not enough indexed data', className: 'border-slate-200 bg-slate-50 text-slate-600' };
+      default:
+        return { label: 'Asset Market unavailable', className: 'border-rose-200 bg-rose-50 text-rose-700' };
+    }
+  };
 
   const handleTabChange = (tabId: 'overview' | 'history' | 'events' | 'storage' | 'code') => {
     setActiveTab(tabId);
@@ -256,12 +328,15 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
         {/* Header Card */}
-        <div className="mb-4 rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] px-4 py-4">
-          <div className="flex items-center gap-4">
+        <div className="relative mb-4 overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
+          {/* Decorative gradient glow */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-indigo-500/[0.07] via-violet-500/[0.03] to-transparent" />
+          <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/20 to-violet-500/5 blur-3xl" />
+          <div className="relative flex items-center gap-4 px-5 py-5">
             {/* Back Button */}
             <Link
               href="/contracts"
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border-default)] text-[var(--text-muted)] transition hover:text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)]/60 text-[var(--text-muted)] transition hover:text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-tertiary)]"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -269,39 +344,40 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
             </Link>
 
             {/* Divider */}
-            <div className="h-8 w-px bg-[var(--border-default)]" />
+            <div className="h-10 w-px bg-[var(--border-default)]" />
 
             {/* Contract Icon */}
-            <div className={`w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0 ${isToken ? 'bg-indigo-500' :
-              isNFT ? 'bg-pink-500' :
-                isVault ? 'bg-amber-500' :
-                  'bg-[var(--text-secondary)]'
-              } text-white`}>
-              {getTypeIcon()}
+            <div className={`relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ${isToken ? 'bg-gradient-to-br from-indigo-500 to-violet-600 shadow-indigo-500/30' :
+              isNFT ? 'bg-gradient-to-br from-pink-500 to-rose-600 shadow-pink-500/30' :
+                isVault ? 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/30' :
+                  'bg-gradient-to-br from-slate-600 to-slate-800 shadow-slate-500/30'
+              }`}>
+              <span className="scale-110">{getTypeIcon()}</span>
+              <span className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/20" />
             </div>
 
             {/* Contract Info */}
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <h1
-                  className="text-lg font-semibold text-[var(--text-primary)] truncate max-w-[520px]"
+                  className="text-2xl font-bold tracking-tight text-[var(--text-primary)] truncate max-w-[520px]"
                   title={contractDisplayName}
                 >
                   {contractDisplayName}
                   {isToken && tokenInfo?.symbol && tokenInfo.name !== 'Unknown Token' && (
-                    <span className="text-base font-medium text-[var(--text-muted)] ml-1.5">({tokenInfo.symbol})</span>
+                    <span className="text-lg font-semibold text-[var(--text-muted)] ml-1.5">({tokenInfo.symbol})</span>
                   )}
                   {isNFT && contract.nftInfo?.symbol && (
-                    <span className="text-base font-medium text-[var(--text-muted)] ml-1.5">({contract.nftInfo.symbol})</span>
+                    <span className="text-lg font-semibold text-[var(--text-muted)] ml-1.5">({contract.nftInfo.symbol})</span>
                   )}
                   {isVault && contract.vaultInfo?.symbol && (
-                    <span className="text-base font-medium text-[var(--text-muted)] ml-1.5">({contract.vaultInfo.symbol})</span>
+                    <span className="text-lg font-semibold text-[var(--text-muted)] ml-1.5">({contract.vaultInfo.symbol})</span>
                   )}
                 </h1>
 
                 {/* Badges */}
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)] px-2 py-0.5 bg-[var(--bg-tertiary)] rounded">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--text-secondary)] px-2.5 py-1 bg-[var(--bg-tertiary)] border border-[var(--border-default)] rounded-full">
                     {contract.type === 'dex' ? 'DEX' :
                       contract.type === 'lending' ? 'Lending' :
                         contract.type === 'nft' ? 'NFT' :
@@ -309,7 +385,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                             isToken ? 'Token' : 'Contract'}
                   </span>
                   {contract.isVerified && (
-                    <span className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400">
                       <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -321,7 +397,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                       href={sourceRepo}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
+                      className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700 hover:bg-blue-100 transition-colors dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-400"
                     >
                       <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -330,11 +406,11 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                     </a>
                   )}
                   {isToken && (
-                    <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold ${contract.tokenMetadata?.isSAC
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-purple-50 text-purple-700 border-purple-200'
+                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold ${isSac
+                      ? 'bg-blue-50 text-blue-700 border-blue-200 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-400'
+                      : 'bg-purple-50 text-purple-700 border-purple-200 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-400'
                       }`}>
-                      {contract.tokenMetadata?.isSAC ? 'SAC' : 'SEP-41'}
+                      {isSac ? 'SAC' : 'SEP-41'}
                     </span>
                   )}
                 </div>
@@ -344,13 +420,13 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
               <button
                 type="button"
                 onClick={handleCopy}
-                className="group flex max-w-full items-center gap-1.5 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-secondary)] mt-0.5"
+                className="group mt-1.5 flex max-w-full items-center gap-1.5 rounded-md text-xs font-mono text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
               >
                 <span className="truncate">{contract.id}</span>
-                <svg className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-3.5 w-3.5 opacity-40 transition-opacity group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                {copied && <span className="text-[10px] font-medium text-emerald-500">Copied</span>}
+                {copied && <span className="text-[10px] font-bold text-emerald-500">Copied</span>}
               </button>
             </div>
 
@@ -360,7 +436,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                 href={contract.verifiedContract.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border-default)] rounded-md text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:border-[var(--border-strong)] transition-colors"
+                className="flex flex-shrink-0 items-center gap-1.5 px-3.5 py-2 border border-[var(--border-default)] rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:border-[var(--border-strong)] transition-colors"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -377,25 +453,49 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
             {/* Token Stats (if token) */}
             {isToken && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Symbol</div>
-                  <div className="text-xl font-bold text-[var(--text-primary)]">{tokenInfo?.symbol || '???'}</div>
+                <div className="group relative overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md dark:hover:border-indigo-500/40">
+                  <div className="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full bg-indigo-500/10 blur-2xl transition-opacity group-hover:opacity-100 opacity-60" />
+                  <div className="relative mb-2 flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 8V3a1 1 0 011-1z" /></svg>
+                    </span>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Symbol</div>
+                  </div>
+                  <div className="relative text-2xl font-bold text-[var(--text-primary)]">{tokenInfo?.symbol || '???'}</div>
                 </div>
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Decimals</div>
-                  <div className="text-xl font-bold text-[var(--text-primary)]">
+                <div className="group relative overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md dark:hover:border-sky-500/40">
+                  <div className="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full bg-sky-500/10 blur-2xl transition-opacity group-hover:opacity-100 opacity-60" />
+                  <div className="relative mb-2 flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/10 text-sky-500">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m-6 4h6m-2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    </span>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Decimals</div>
+                  </div>
+                  <div className="relative text-2xl font-bold text-[var(--text-primary)]">
                     {contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7}
                   </div>
                 </div>
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Type</div>
-                  <div className="text-xl font-bold text-[var(--text-primary)]">
-                    {contract.tokenMetadata?.isSAC ? 'SAC' : 'SEP-41'}
+                <div className="group relative overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md dark:hover:border-violet-500/40">
+                  <div className="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full bg-violet-500/10 blur-2xl transition-opacity group-hover:opacity-100 opacity-60" />
+                  <div className="relative mb-2 flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/10 text-violet-500">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                    </span>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Type</div>
+                  </div>
+                  <div className="relative text-2xl font-bold text-[var(--text-primary)]">
+                    {isSac ? 'SAC' : 'SEP-41'}
                   </div>
                 </div>
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Operations</div>
-                  <div className="text-xl font-bold text-[var(--text-primary)]">{operations.length}</div>
+                <div className="group relative overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md dark:hover:border-emerald-500/40">
+                  <div className="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full bg-emerald-500/10 blur-2xl transition-opacity group-hover:opacity-100 opacity-60" />
+                  <div className="relative mb-2 flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </span>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Operations</div>
+                  </div>
+                  <div className="relative text-2xl font-bold text-[var(--text-primary)]">{totalOperationsCount.toLocaleString()}</div>
                 </div>
               </div>
             )}
@@ -403,23 +503,23 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
             {/* NFT Stats */}
             {isNFT && contract.nftInfo && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Symbol</div>
                   <div className="text-xl font-bold text-[var(--text-primary)]">{contract.nftInfo.symbol || '???'}</div>
                 </div>
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Total Supply</div>
                   <div className="text-xl font-bold text-[var(--text-primary)]">
                     {contract.nftInfo.totalSupply !== undefined ? formatTokenAmount(String(contract.nftInfo.totalSupply), 0) : 'N/A'}
                   </div>
                 </div>
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Type</div>
                   <div className="text-xl font-bold text-[var(--text-primary)]">NFT</div>
                 </div>
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Operations</div>
-                  <div className="text-xl font-bold text-[var(--text-primary)]">{operations.length}</div>
+                  <div className="text-xl font-bold text-[var(--text-primary)]">{totalOperationsCount.toLocaleString()}</div>
                 </div>
               </div>
             )}
@@ -427,25 +527,25 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
             {/* Vault Stats */}
             {isVault && contract.vaultInfo && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Total Assets</div>
                   <div className="text-xl font-bold text-[var(--text-primary)]">
                     {formatTokenAmount(contract.vaultInfo.totalAssets, 2)}
                   </div>
                 </div>
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Total Shares</div>
                   <div className="text-xl font-bold text-[var(--text-primary)]">
                     {formatTokenAmount(contract.vaultInfo.totalShares, 2)}
                   </div>
                 </div>
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Asset Address</div>
                   <div className="text-sm font-bold text-[var(--text-primary)] font-mono truncate" title={contract.vaultInfo.underlyingAsset}>
                     {shortenAddress(contract.vaultInfo.underlyingAsset)}
                   </div>
                 </div>
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-1">Decimals Offset</div>
                   <div className="text-xl font-bold text-[var(--text-primary)]">{contract.vaultInfo.decimalsOffset}</div>
                 </div>
@@ -483,11 +583,122 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
             {/* Tab Content */}
             {activeTab === 'overview' && (
               <div className="space-y-4">
-                {/* Token Balances */}
-                {(sectionLoading.balances || (contract.holderBalances && contract.holderBalances.length > 0)) && (
-                  <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
+                {/* SAC Balance Reconciliation */}
+                {isToken && reconciliation && (
+                  <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                        </span>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-bold text-[var(--text-primary)]">SAC Balance Reconciliation</h3>
+                          <div className="mt-0.5 truncate text-xs text-[var(--text-tertiary)]">{reconciliation.assetKey}</div>
+                        </div>
+                      </div>
+                      <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${getReconciliationBadge(reconciliation.status).className}`}>
+                        {getReconciliationBadge(reconciliation.status).label}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Indexed Soroban balance</div>
+                        <div className="mt-1 font-mono text-sm font-semibold text-[var(--text-primary)]">{formatRawAmount(reconciliation.indexedBalanceRaw)}</div>
+                      </div>
+                      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Asset Market supply</div>
+                        <div className="mt-1 font-mono text-sm font-semibold text-[var(--text-primary)]">
+                          {reconciliation.assetMarketSupplyRaw ? formatRawAmount(reconciliation.assetMarketSupplyRaw) : 'Unavailable'}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Difference</div>
+                        <div className="mt-1 font-mono text-sm font-semibold text-[var(--text-primary)]">
+                          {reconciliation.differenceRaw ? formatRawAmount(reconciliation.differenceRaw) : 'N/A'}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Last market update</div>
+                        <div className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
+                          {reconciliation.lastMarketUpdate ? timeAgo(reconciliation.lastMarketUpdate) : 'N/A'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Token Holders */}
+                {isToken && (sectionLoading.tokenBalances || tokenHolders.length > 0 || (tokenBalanceSummary?.holdersCount ?? 0) > 0) && (
+                  <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
                     <div className="flex items-center justify-between px-4 pt-4 pb-3">
-                      <h3 className="text-sm font-bold text-[var(--text-primary)]">Token Balances</h3>
+                      <div>
+                        <h3 className="text-sm font-bold text-[var(--text-primary)]">Token Holders</h3>
+                        {tokenBalanceSummary && (
+                          <div className="mt-0.5 text-xs text-[var(--text-tertiary)]">
+                            {tokenBalanceSummary.holdersCount.toLocaleString()} indexed holders
+                          </div>
+                        )}
+                      </div>
+                      {tokenBalanceSummary?.hasMore && (
+                        <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">More indexed</span>
+                      )}
+                    </div>
+                    {sectionLoading.tokenBalances ? (
+                      <div className="px-4 pb-4 space-y-2">
+                        {Array.from({ length: 3 }).map((_, idx) => (
+                          <div key={`token-holder-skeleton-${idx}`} className="flex items-center justify-between py-2">
+                            <InlineSkeleton width="w-36" height="h-4" />
+                            <InlineSkeleton width="w-24" height="h-4" />
+                            <InlineSkeleton width="w-16" height="h-3" />
+                            <InlineSkeleton width="w-16" height="h-3" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full sc-table">
+                          <thead>
+                            <tr className="border-b border-[var(--border-subtle)]">
+                              <th className="px-4 py-2.5 text-left text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Holder</th>
+                              <th className="px-4 py-2.5 text-right text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Balance</th>
+                              <th className="px-4 py-2.5 text-right text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Inflow</th>
+                              <th className="px-4 py-2.5 text-right text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Outflow</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--border-subtle)]">
+                            {tokenHolders.map((holder) => {
+                              const isContractHolder = holder.address.startsWith('C');
+                              return (
+                                <tr key={holder.address} className="hover:bg-[var(--bg-tertiary)] transition-colors">
+                                  <td className="px-4 py-3">
+                                    <Link href={isContractHolder ? `/contracts/${holder.address}` : `/account/${holder.address}`} className="font-mono text-sm font-medium text-sky-600 hover:underline">
+                                      {shortenAddress(holder.address)}
+                                    </Link>
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    <span className="font-mono text-sm font-semibold text-[var(--text-primary)]">{formatRawAmount(holder.balanceRaw)}</span>
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    <span className="font-mono text-xs text-emerald-500">{formatRawAmount(holder.inflowRaw)}</span>
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    <span className="font-mono text-xs text-rose-500">{formatRawAmount(holder.outflowRaw)}</span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Contract Token Holdings */}
+                {(sectionLoading.balances || (contract.holderBalances && contract.holderBalances.length > 0)) && (
+                  <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between px-4 pt-4 pb-3">
+                      <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract Token Holdings</h3>
                       {contract.holderBalances && contract.holderBalances.length > 1 && (
                         <select
                           value={contract.selectedBalanceToken || 'all'}
@@ -528,16 +739,10 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                               .filter(b => contract.selectedBalanceToken === 'all' || b.label === contract.selectedBalanceToken)
                               .map((balance, idx) => {
                                 const decimals = balance.decimals ?? 7;
-                                const formatRaw = (raw: string) => {
-                                  const num = Number(raw);
-                                  if (Number.isNaN(num)) return raw;
-                                  const adjusted = num / Math.pow(10, decimals);
-                                  return adjusted.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals });
-                                };
                                 return (
                                   <tr key={`balance-${idx}`} className="hover:bg-[var(--bg-tertiary)] transition-colors">
                                     <td className="px-4 py-3">
-                                      <Link href={`/contract/${balance.relatedContractId}`} className="flex items-center gap-2 group">
+                                      <Link href={`/contracts/${balance.relatedContractId}`} className="flex items-center gap-2 group">
                                         <div className="w-6 h-6 rounded-full bg-sky-500/10 flex items-center justify-center text-[10px] font-bold text-sky-500 flex-shrink-0">
                                           {(balance.label || '?').slice(0, 2).toUpperCase()}
                                         </div>
@@ -547,13 +752,13 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                                       </Link>
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                      <span className="text-sm font-semibold font-mono text-[var(--text-primary)]">{formatRaw(balance.balanceRaw)}</span>
+                                      <span className="text-sm font-semibold font-mono text-[var(--text-primary)]">{formatRawAmount(balance.balanceRaw, decimals)}</span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                      <span className="text-xs font-mono text-emerald-500">{formatRaw(balance.inflowRaw)}</span>
+                                      <span className="text-xs font-mono text-emerald-500">{formatRawAmount(balance.inflowRaw, decimals)}</span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                      <span className="text-xs font-mono text-rose-500">{formatRaw(balance.outflowRaw)}</span>
+                                      <span className="text-xs font-mono text-rose-500">{formatRawAmount(balance.outflowRaw, decimals)}</span>
                                     </td>
                                   </tr>
                                 );
@@ -567,16 +772,21 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
 
                 {/* Description */}
                 {contract.verifiedContract?.description && (
-                  <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                  <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                     <h3 className="text-sm font-bold text-[var(--text-primary)] mb-3">About</h3>
                     <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{contract.verifiedContract.description}</p>
                   </div>
                 )}
 
                 {/* Recent Transactions */}
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
+                <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                   <div className="flex items-center justify-between px-4 pt-4 pb-3">
-                    <h3 className="text-sm font-bold text-[var(--text-primary)]">Recent Transactions</h3>
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/10 text-sky-500">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                      </span>
+                      Recent Transactions
+                    </h3>
                     <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
                       {sectionLoading.invocations ? <InlineSkeleton width="w-16" height="h-3" /> : `${Math.min(contract.invocations?.length || 0, 5)} of ${contract.totalInvokes ?? contract.invocations?.length ?? 0}`}
                     </span>
@@ -717,7 +927,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                   {contract.invocations && contract.invocations.length > 5 && (
                     <button
                       onClick={() => handleTabChange('history')}
-                      className="w-full rounded-b-xl border-t border-[var(--border-subtle)] py-3 text-center text-xs font-bold text-sky-600 transition-colors hover:bg-[var(--bg-tertiary)]"
+                      className="w-full rounded-b-2xl border-t border-[var(--border-subtle)] py-3 text-center text-xs font-bold text-sky-600 transition-colors hover:bg-[var(--bg-tertiary)]"
                     >
                       View All {contract.totalInvokes ?? contract.invocations.length} Invocations
                     </button>
@@ -725,9 +935,14 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                 </div>
 
                 {/* Recent Events */}
-                <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
+                <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                   <div className="flex items-center justify-between px-4 pt-4 pb-3">
-                    <h3 className="text-sm font-bold text-[var(--text-primary)]">Recent Events</h3>
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                      </span>
+                      Recent Events
+                    </h3>
                     <span className="rounded-full bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-tertiary)]">
                       {sectionLoading.events ? <InlineSkeleton width="w-16" height="h-3" /> : `${Math.min(contract.events?.length || 0, 5)} of ${contract.eventSummary?.totalEvents ?? contract.events?.length ?? 0}`}
                     </span>
@@ -836,7 +1051,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                   {contract.events && contract.events.length > 5 && (
                     <button
                       onClick={() => handleTabChange('events')}
-                      className="w-full rounded-b-xl border-t border-[var(--border-subtle)] py-3 text-center text-xs font-bold text-sky-600 transition-colors hover:bg-[var(--bg-tertiary)]"
+                      className="w-full rounded-b-2xl border-t border-[var(--border-subtle)] py-3 text-center text-xs font-bold text-sky-600 transition-colors hover:bg-[var(--bg-tertiary)]"
                     >
                       View All {contract.eventSummary?.totalEvents ?? contract.events.length} Events
                     </button>
@@ -848,7 +1063,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
 
             {/* History Tab - Contract Invocations */}
             {activeTab === 'history' && (
-              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
+              <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                 <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract functions Invocations History</h3>
                   <div className="flex items-center gap-3">
@@ -1022,7 +1237,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
 
             {/* Events Tab */}
             {activeTab === 'events' && (
-              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
+              <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                 <div className="flex items-center justify-between px-4 pt-4 pb-3">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">Contract Events</h3>
                   <div className="flex items-center gap-3">
@@ -1361,7 +1576,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
 
             {/* Storage Tab */}
             {activeTab === 'storage' && (
-              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] overflow-hidden">
+              <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] overflow-hidden">
                 <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                   <h3 className="text-sm font-semibold text-[var(--text-primary)]">Contract Storage</h3>
                   <p className="text-xs text-[var(--text-tertiary)]">
@@ -1444,7 +1659,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
 
             {/* Code Tab */}
             {activeTab === 'code' && (
-              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
+              <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                 <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                   <h3 className="text-sm font-semibold text-[var(--text-primary)]">Source Code</h3>
                   <p className="text-xs text-[var(--text-tertiary)]">Contract source code</p>
@@ -1486,8 +1701,13 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
           {/* Sidebar */}
           <div className="w-full lg:w-80 space-y-4 flex-shrink-0">
             {/* Contract Details */}
-            <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Contract Details</h3>
+            <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+              <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </span>
+                Contract Details
+              </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
                   <span className="text-[11px] text-[var(--text-tertiary)]">Contract Type</span>
@@ -1518,7 +1738,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                     <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
                       <span className="text-[11px] text-[var(--text-tertiary)]">Is SAC</span>
                       <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
-                        {contract.tokenMetadata?.isSAC ? 'Yes' : 'No'}
+                        {isSac ? 'Yes' : 'No'}
                       </span>
                     </div>
                   </>
@@ -1526,7 +1746,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                 <div className="flex justify-between items-center py-1">
                   <span className="text-[11px] text-[var(--text-tertiary)]">Total Operations</span>
                   <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
-                    {contract.totalTransactions ?? contract.invocations?.length ?? 0}
+                    {totalOperationsCount.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -1534,8 +1754,13 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
 
             {/* Event Summary */}
             {contract.eventSummary && contract.eventSummary.totalEvents > 0 && (
-              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">Event Summary</h3>
+              <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                <h3 className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-500/10 text-amber-500">
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </span>
+                  Event Summary
+                </h3>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-[var(--text-tertiary)]">Total Events</span>
@@ -1599,8 +1824,13 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
 
             {/* Build Verification Section */}
             {contract.verification && (
-              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
-                <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Build Verification</h3>
+              <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+                <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </span>
+                  Build Verification
+                </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
                     <span className="text-[11px] text-[var(--text-tertiary)]">Status</span>
@@ -1694,7 +1924,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
 
             {/* Access Control Section */}
             {contract.accessControl && (contract.accessControl.admin || contract.accessControl.owner || contract.accessControl.pendingOwner || contract.accessControl.isPaused) && (
-              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+              <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                 <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Access Control</h3>
                 <div className="space-y-3">
                   {contract.accessControl.admin && (
@@ -1743,7 +1973,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
 
             {/* Contract Metadata Section */}
             {contract.contractMetadata && (contract.contractMetadata.homeDomain || contract.contractMetadata.sourceRepo || contract.contractMetadata.customMeta) && (
-              <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+              <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
                 <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Contract Metadata</h3>
                 <div className="space-y-3">
                   {contract.contractMetadata.homeDomain && (
@@ -1791,17 +2021,22 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
             )}
 
             {/* External Links */}
-            <section className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">External Links</h3>
+            <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
+              <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/10 text-sky-500">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                </span>
+                External Links
+              </h3>
               <div className="space-y-2">
                 <a
                   href={`https://stellarchain.io/accounts/${contract.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] transition-colors"
+                  className="group flex items-center justify-between py-2.5 px-3 rounded-xl border border-transparent bg-[var(--bg-tertiary)] hover:border-[var(--border-default)] hover:bg-[var(--bg-primary)] transition-colors"
                 >
-                  <span className="text-xs font-semibold text-[var(--text-secondary)]">Stellarchain.io</span>
-                  <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <span className="text-xs font-semibold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">Stellarchain.io</span>
+                  <svg className="w-4 h-4 text-[var(--text-muted)] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                 </a>
@@ -1810,7 +2045,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                     href={sourceRepo}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] transition-colors"
+                    className="group flex items-center justify-between py-2.5 px-3 rounded-xl border border-transparent bg-[var(--bg-tertiary)] hover:border-[var(--border-default)] hover:bg-[var(--bg-primary)] transition-colors"
                   >
                     <span className="text-xs font-semibold text-[var(--text-secondary)]">Source Repository</span>
                     <svg className="w-4 h-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">

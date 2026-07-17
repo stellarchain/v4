@@ -20,6 +20,7 @@ interface EnhancedContract {
   id: string;
   name: string;
   type: string;
+  isSac?: boolean;
   symbol?: string;
   description?: string;
   verified: boolean;
@@ -32,11 +33,19 @@ interface EnhancedContract {
   createdAt?: string;
 }
 
+function isApiSac(apiContract: APIContract): boolean {
+  return Boolean(apiContract.isSac ?? apiContract.sac);
+}
+
 function transformContract(apiContract: APIContract): EnhancedContract {
   const verifiedMetadata = apiContract.verifiedMetadata || null;
+  const isSac = isApiSac(apiContract);
+  const metadataVerified = verifiedMetadata?.isVerified ?? verifiedMetadata?.verified;
+  const isVerified = Boolean(apiContract.sourceCodeVerified || metadataVerified);
+  const isSep41 = Boolean(isSac || apiContract.assetCode || verifiedMetadata?.isSep41 || verifiedMetadata?.sep41);
 
   let type = 'contract';
-  if (apiContract.sac || apiContract.assetCode) {
+  if (isSac || apiContract.assetCode) {
     type = 'token';
   } else if (verifiedMetadata?.metadataType) {
     type = verifiedMetadata.metadataType;
@@ -53,10 +62,11 @@ function transformContract(apiContract: APIContract): EnhancedContract {
     id: apiContract.contractId,
     name,
     type,
+    isSac,
     symbol: apiContract.assetCode || verifiedMetadata?.symbol,
     description: verifiedMetadata?.description,
-    verified: Boolean(apiContract.sourceCodeVerified || verifiedMetadata?.verified),
-    sep41: apiContract.sac || !!apiContract.assetCode || Boolean(verifiedMetadata?.sep41),
+    verified: isVerified,
+    sep41: isSep41,
     website: verifiedMetadata?.website,
     operationCount: Number(apiContract.totalInvokes ?? 0),
     totalTransactions: Number(apiContract.totalTransactions ?? 0),
@@ -125,6 +135,7 @@ export default function ContractsPage() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(urlQuery);
 
   const hasLoadedOnceRef = useRef(false);
+  const requestShapeRef = useRef(`${urlFilter}|${urlSort}|${urlQuery}`);
 
   useEffect(() => {
     if (hasDetailsRoute) return;
@@ -166,6 +177,15 @@ export default function ContractsPage() {
   useEffect(() => {
     if (hasDetailsRoute) return;
 
+    const requestShape = `${filter}|${sortBy}|${debouncedSearchQuery}`;
+    if (requestShapeRef.current !== requestShape) {
+      requestShapeRef.current = requestShape;
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+        return;
+      }
+    }
+
     let cancelled = false;
 
     const fetchData = async () => {
@@ -185,8 +205,9 @@ export default function ContractsPage() {
           .map(transformContract);
 
         setContracts(transformed);
-        setTotalPages(Math.max(1, Math.ceil((data.totalItems || 0) / PAGE_SIZE)));
-        setTotalItems(data.totalItems || 0);
+        const nextTotalItems = Number(data.totalItems || 0);
+        setTotalPages(Math.max(1, Math.ceil(nextTotalItems / PAGE_SIZE)));
+        setTotalItems(nextTotalItems);
         setError(null);
       } catch (err) {
         if (!cancelled) {
@@ -206,16 +227,6 @@ export default function ContractsPage() {
       cancelled = true;
     };
   }, [currentPage, filter, sortBy, debouncedSearchQuery, hasDetailsRoute]);
-
-  const resetPageRef = useRef(false);
-  useEffect(() => {
-    if (hasDetailsRoute) return;
-    if (!resetPageRef.current) {
-      resetPageRef.current = true;
-      return;
-    }
-    setCurrentPage(1);
-  }, [debouncedSearchQuery, filter, sortBy, hasDetailsRoute]);
 
   if (hasDetailsRoute) {
     return <ContractDetailsClientPage />;
@@ -240,20 +251,29 @@ export default function ContractsPage() {
 
   const handleFilterChange = (nextFilter: ContractFilter) => {
     if (nextFilter === filter) return;
+    setCurrentPage(1);
     setFilter(nextFilter);
     window.scrollTo(0, 0);
   };
 
   const handleSortChange = (nextSort: ContractsSort) => {
     if (nextSort === sortBy) return;
+    setCurrentPage(1);
     setSortBy(nextSort);
     window.scrollTo(0, 0);
   };
 
+  const pageStats = {
+    total: totalItems,
+    contracts: contracts.filter((contract) => contract.type !== 'token').length,
+    tokens: contracts.filter((contract) => contract.type === 'token').length,
+    verified: contracts.filter((contract) => contract.verified).length,
+  };
+
   return (
-    <ContractsClient
-      contracts={contracts}
-      stats={{ total: totalItems, contracts: 0, tokens: 0, verified: 0 }}
+      <ContractsClient
+        contracts={contracts}
+      stats={pageStats}
       categories={CONTRACT_CATEGORIES}
       loading={isInitialLoading}
       tableLoading={isTableLoading}

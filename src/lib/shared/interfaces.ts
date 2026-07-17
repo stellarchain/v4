@@ -411,7 +411,8 @@ export interface APIContract {
   assetIssuer: string | null;
   createdAt: string;
   wasmId: string | null;
-  sac: boolean; // Stellar Asset Contract flag
+  sac?: boolean | null; // Legacy Stellar Asset Contract flag
+  isSac?: boolean | null; // Stellar Asset Contract flag
   network: number;
   sourceCodeVerified: boolean;
   verifiedMetadata?: {
@@ -422,9 +423,11 @@ export interface APIContract {
     displayName?: string;
     metadataType?: string;
     sep41?: boolean;
+    isSep41?: boolean;
     symbol?: string;
     decimals?: number;
     verified?: boolean;
+    isVerified?: boolean;
     website?: string;
     description?: string;
     iconUrl?: string;
@@ -475,7 +478,7 @@ export interface StatisticsData {
   };
 }
 
-export type NetworkStatisticsRange = '24h' | '7d' | '30d';
+export type NetworkStatisticsRange = '24h' | '7d' | '30d' | '1y';
 
 export interface NetworkStatisticsCoverage {
   requestedStart: string | null;
