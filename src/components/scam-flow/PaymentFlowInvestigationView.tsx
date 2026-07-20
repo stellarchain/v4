@@ -25,7 +25,6 @@ interface PaymentFlowInvestigationViewProps {
 }
 
 const DIRECTION_OPTIONS: Array<{ label: string; value: PaymentFlowDirection }> = [
-  { label: 'Both', value: 'both' },
   { label: 'Incoming', value: 'incoming' },
   { label: 'Outgoing', value: 'outgoing' },
 ];

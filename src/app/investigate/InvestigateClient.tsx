@@ -11,7 +11,7 @@ import PaymentFlowInvestigationView from '@/components/scam-flow/PaymentFlowInve
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
 function normalizeDirection(value: string | null): PaymentFlowDirection {
-  return value === 'incoming' || value === 'outgoing' || value === 'both' ? value : 'both';
+  return value === 'outgoing' ? 'outgoing' : 'incoming';
 }
 
 function inferQueryParamName(query: string): 'txHash' | 'address' {
