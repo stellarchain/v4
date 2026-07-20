@@ -25,12 +25,8 @@ const getFeedbackColorScheme = (): 'light' | 'dark' | 'system' => {
 if (!isDevelopment && sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
+    defaultIntegrations: false,
     integrations: [
-      Sentry.replayIntegration({
-        maskAllText: false,
-        blockAllMedia: true,
-        maskAllInputs: false,
-      }),
       Sentry.feedbackIntegration({
         colorScheme: getFeedbackColorScheme(),
         themeDark: {
@@ -43,11 +39,6 @@ if (!isDevelopment && sentryDsn) {
         messagePlaceholder: 'Tell us what did you observe and what we can improve.',
       }),
     ],
-    tracesSampleRate: 1,
-    enableLogs: true,
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
-    sendDefaultPii: true,
   });
 }
 

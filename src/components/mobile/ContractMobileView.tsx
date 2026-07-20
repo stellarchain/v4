@@ -50,6 +50,30 @@ interface ContractHolderBalance {
   decimals?: number;
 }
 
+interface ContractTokenHolderBalance {
+  address: string;
+  balanceRaw: string;
+  inflowRaw: string;
+  outflowRaw: string;
+}
+
+interface ContractBalanceSummary {
+  holdersCount: number;
+  indexedBalanceRaw: string;
+  inflowRaw: string;
+  outflowRaw: string;
+  hasMore: boolean;
+}
+
+interface SacMarketReconciliation {
+  assetKey: string;
+  indexedBalanceRaw: string | null;
+  assetMarketSupplyRaw: string | null;
+  differenceRaw: string | null;
+  lastMarketUpdate?: string;
+  status: 'matched' | 'differs' | 'not_enough_indexed_data' | 'market_unavailable';
+}
+
 interface ContractData {
   id: string;
   account: any | null;
@@ -85,10 +109,14 @@ interface ContractData {
   };
   spec?: ContractSpecResult | null;
   holderBalances?: ContractHolderBalance[];
+  tokenHolderBalances?: ContractTokenHolderBalance[];
+  tokenBalanceSummary?: ContractBalanceSummary | null;
+  sacMarketReconciliation?: SacMarketReconciliation | null;
   selectedBalanceToken?: string;
   // API data fields
   totalTransactions?: number;
   totalInvokes?: number;
+  totalOperations?: number;
   createdAt?: string;
   wasmId?: string;
   contractCode?: string;
@@ -101,6 +129,7 @@ interface ContractData {
     storage?: boolean;
     spec?: boolean;
     balances?: boolean;
+    tokenBalances?: boolean;
   };
 }
 
@@ -163,6 +192,50 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
   const isNFT = contract.type === 'nft';
   const isVault = contract.type === 'vault';
   const sectionLoading = contract._loading || {};
+  const isSac = Boolean(contract.isSAC || contract.tokenMetadata?.isSAC);
+  const tokenDecimals = contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7;
+  const totalOperationsCount = Math.max(
+    Number(contract.totalOperations ?? 0),
+    Number(contract.totalInvokes ?? 0),
+    Number(contract.historyPagination?.totalItems ?? 0),
+    historyInvocations.length,
+    operations.length
+  );
+  const tokenHolders = contract.tokenHolderBalances ?? [];
+  const tokenBalanceSummary = contract.tokenBalanceSummary;
+  const reconciliation = contract.sacMarketReconciliation ?? null;
+
+  const formatRawAmount = (raw?: string | null, decimals = tokenDecimals) => {
+    const value = String(raw ?? '0').trim();
+    if (!/^-?\d+$/.test(value)) return value || '0';
+
+    const negative = value.startsWith('-');
+    const unsigned = negative ? value.slice(1) : value;
+    if (decimals <= 0) {
+      return `${negative ? '-' : ''}${unsigned.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+    }
+
+    const padded = unsigned.padStart(decimals + 1, '0');
+    const whole = padded.slice(0, -decimals).replace(/^0+(?=\d)/, '') || '0';
+    const fraction = padded.slice(-decimals).replace(/0+$/, '');
+    const formattedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    return `${negative ? '-' : ''}${formattedWhole}${fraction ? `.${fraction}` : ''}`;
+  };
+
+  const getReconciliationBadge = (status: SacMarketReconciliation['status']) => {
+    switch (status) {
+      case 'matched':
+        return { label: 'Matches Asset Market', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+      case 'differs':
+        return { label: 'Differs from Asset Market', className: 'border-amber-200 bg-amber-50 text-amber-700' };
+      case 'not_enough_indexed_data':
+        return { label: 'Not enough indexed data', className: 'border-slate-200 bg-slate-50 text-slate-600' };
+      default:
+        return { label: 'Asset Market unavailable', className: 'border-rose-200 bg-rose-50 text-rose-700' };
+    }
+  };
+
   const changeTab = (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface' | 'code') => {
     setActiveTab(tabId);
 
@@ -331,7 +404,7 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
 
           {/* SAC/SEP-41 Badge for tokens */}
           {isToken && (
-            contract.tokenMetadata?.isSAC ? (
+            isSac ? (
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-white"
                 style={{ backgroundColor: primaryColor }}
               >
@@ -510,11 +583,103 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
             <div className="space-y-4">
-              {/* Token Balances */}
+              {/* SAC Balance Reconciliation */}
+              {isToken && reconciliation && (
+                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-bold text-[var(--text-primary)]">SAC Balance Reconciliation</div>
+                      <div className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">{reconciliation.assetKey}</div>
+                    </div>
+                    <span className={`rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${getReconciliationBadge(reconciliation.status).className}`}>
+                      {getReconciliationBadge(reconciliation.status).label}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-xl bg-[var(--bg-tertiary)] p-3">
+                      <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Indexed Soroban balance</div>
+                      <div className="mt-1 font-mono font-semibold text-[var(--text-primary)]">{formatRawAmount(reconciliation.indexedBalanceRaw)}</div>
+                    </div>
+                    <div className="rounded-xl bg-[var(--bg-tertiary)] p-3">
+                      <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Asset Market supply</div>
+                      <div className="mt-1 font-mono font-semibold text-[var(--text-primary)]">
+                        {reconciliation.assetMarketSupplyRaw ? formatRawAmount(reconciliation.assetMarketSupplyRaw) : 'Unavailable'}
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-[var(--bg-tertiary)] p-3">
+                      <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Difference</div>
+                      <div className="mt-1 font-mono font-semibold text-[var(--text-primary)]">
+                        {reconciliation.differenceRaw ? formatRawAmount(reconciliation.differenceRaw) : 'N/A'}
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-[var(--bg-tertiary)] p-3">
+                      <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Last market update</div>
+                      <div className="mt-1 font-semibold text-[var(--text-primary)]">
+                        {reconciliation.lastMarketUpdate ? timeAgo(reconciliation.lastMarketUpdate) : 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Token Holders */}
+              {isToken && (sectionLoading.tokenBalances || tokenHolders.length > 0 || (tokenBalanceSummary?.holdersCount ?? 0) > 0) && (
+                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+                  <div className="px-4 pt-4 pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-bold text-[var(--text-primary)]">Token Holders</div>
+                      {tokenBalanceSummary?.hasMore && (
+                        <span className="rounded-full bg-[var(--bg-tertiary)] px-2 py-1 text-[9px] font-bold text-[var(--text-tertiary)]">More</span>
+                      )}
+                    </div>
+                    {tokenBalanceSummary && (
+                      <div className="mt-1 text-xs text-[var(--text-tertiary)]">
+                        {tokenBalanceSummary.holdersCount.toLocaleString()} indexed holders
+                      </div>
+                    )}
+                  </div>
+                  {sectionLoading.tokenBalances ? (
+                    <div className="px-4 pb-4 space-y-3">
+                      {Array.from({ length: 3 }).map((_, idx) => (
+                        <div key={`token-holder-mobile-skeleton-${idx}`} className="flex items-center justify-between py-1">
+                          <InlineSkeleton width="w-24" height="h-4" />
+                          <InlineSkeleton width="w-20" height="h-4" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-[var(--border-subtle)]">
+                      {tokenHolders.slice(0, 10).map((holder) => {
+                        const isContractHolder = holder.address.startsWith('C');
+                        return (
+                          <Link
+                            key={holder.address}
+                            href={isContractHolder ? `/contracts/${holder.address}` : `/account/${holder.address}`}
+                            className="block px-4 py-3 active:bg-[var(--bg-tertiary)]"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="font-mono text-sm font-semibold text-sky-600">{shortenAddress(holder.address)}</div>
+                                <div className="mt-1 flex items-center gap-2 text-[10px]">
+                                  <span className="font-mono text-emerald-500">+{formatRawAmount(holder.inflowRaw)}</span>
+                                  <span className="font-mono text-rose-500">-{formatRawAmount(holder.outflowRaw)}</span>
+                                </div>
+                              </div>
+                              <div className="font-mono text-sm font-semibold text-[var(--text-primary)]">{formatRawAmount(holder.balanceRaw)}</div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Contract Token Holdings */}
               {(sectionLoading.balances || (contract.holderBalances && contract.holderBalances.length > 0)) && (
                 <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
                   <div className="flex items-center justify-between px-4 pt-4 pb-3">
-                    <div className="text-sm font-bold text-[var(--text-primary)]">Token Balances</div>
+                    <div className="text-sm font-bold text-[var(--text-primary)]">Contract Token Holdings</div>
                     {contract.holderBalances && contract.holderBalances.length > 1 && (
                       <select
                         value={contract.selectedBalanceToken || 'all'}
@@ -543,26 +708,20 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                         .filter(b => contract.selectedBalanceToken === 'all' || b.label === contract.selectedBalanceToken)
                         .map((balance, idx) => {
                           const decimals = balance.decimals ?? 7;
-                          const formatRaw = (raw: string) => {
-                            const num = Number(raw);
-                            if (Number.isNaN(num)) return raw;
-                            const adjusted = num / Math.pow(10, decimals);
-                            return adjusted.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: decimals });
-                          };
                           return (
-                            <Link key={`balance-${idx}`} href={`/contract/${balance.relatedContractId}`} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-tertiary)] transition-colors">
+                            <Link key={`balance-${idx}`} href={`/contracts/${balance.relatedContractId}`} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-tertiary)] transition-colors">
                               <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
                                 {(balance.label || '?').slice(0, 2).toUpperCase()}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="text-sm font-medium text-[var(--text-primary)]">{balance.label || shortenAddress(balance.relatedContractId)}</div>
                                 <div className="flex items-center gap-3 text-[10px] mt-0.5">
-                                  <span className="text-emerald-500 font-mono">+{formatRaw(balance.inflowRaw)}</span>
-                                  <span className="text-rose-500 font-mono">-{formatRaw(balance.outflowRaw)}</span>
+                                  <span className="text-emerald-500 font-mono">+{formatRawAmount(balance.inflowRaw, decimals)}</span>
+                                  <span className="text-rose-500 font-mono">-{formatRawAmount(balance.outflowRaw, decimals)}</span>
                                 </div>
                               </div>
                               <div className="text-right flex-shrink-0">
-                                <div className="text-sm font-semibold font-mono text-[var(--text-primary)]">{formatRaw(balance.balanceRaw)}</div>
+                                <div className="text-sm font-semibold font-mono text-[var(--text-primary)]">{formatRawAmount(balance.balanceRaw, decimals)}</div>
                               </div>
                             </Link>
                           );
@@ -1224,6 +1383,7 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                   { label: 'Contract ID', value: contract.id, mono: true },
                   { label: 'Type', value: contract.type.charAt(0).toUpperCase() + contract.type.slice(1) },
                   { label: 'Verified', value: contract.isVerified ? 'Yes' : 'No' },
+                  { label: 'Total Operations', value: totalOperationsCount.toLocaleString() },
                   ...(contract.verification ? [
                     { label: 'Build Verified', value: contract.verification.isVerified ? 'Yes' : 'No' },
                     ...(contract.verification.wasmHash ? [{ label: 'WASM Hash', value: contract.verification.wasmHash, mono: true }] : []),
@@ -1232,7 +1392,7 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                     { label: 'Token Name', value: contractDisplayName },
                     { label: 'Token Symbol', value: tokenInfo?.symbol || 'Unknown' },
                     { label: 'Decimals', value: (contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7).toString() },
-                    { label: 'Is SAC', value: contract.tokenMetadata?.isSAC ? 'Yes' : 'No' },
+                    { label: 'Is SAC', value: isSac ? 'Yes' : 'No' },
                   ] : []),
                   ...(isNFT && contract.nftInfo ? [
                     { label: 'Collection Name', value: contract.nftInfo.name },
@@ -1264,7 +1424,7 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                         {shortenAddress(item.value)}
                       </Link>
                     ) : item.isContractLink ? (
-                      <Link href={`/contract/${item.value}`} className="text-xs font-semibold hover:underline font-mono truncate max-w-[180px]" style={{ color: primaryColor }}>
+                      <Link href={`/contracts/${item.value}`} className="text-xs font-semibold hover:underline font-mono truncate max-w-[180px]" style={{ color: primaryColor }}>
                         {shortenAddress(item.value)}
                       </Link>
                     ) : (

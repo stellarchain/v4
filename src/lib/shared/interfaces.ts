@@ -412,7 +412,8 @@ export interface APIContract {
   assetIssuer: string | null;
   createdAt: string;
   wasmId: string | null;
-  sac: boolean; // Stellar Asset Contract flag
+  sac?: boolean | null; // Legacy Stellar Asset Contract flag
+  isSac?: boolean | null; // Stellar Asset Contract flag
   network: number;
   sourceCodeVerified: boolean;
   verifiedMetadata?: {
@@ -423,9 +424,11 @@ export interface APIContract {
     displayName?: string;
     metadataType?: string;
     sep41?: boolean;
+    isSep41?: boolean;
     symbol?: string;
     decimals?: number;
     verified?: boolean;
+    isVerified?: boolean;
     website?: string;
     description?: string;
     iconUrl?: string;
@@ -474,6 +477,231 @@ export interface StatisticsData {
     activeAddresses: StatItem;
     contractInvocations: StatItem;
   };
+}
+
+export type NetworkStatisticsRange = '24h' | '7d' | '30d' | '1y';
+
+export interface NetworkStatisticsCoverage {
+  requestedStart: string | null;
+  requestedEnd: string | null;
+  firstBucket: string | null;
+  lastBucket: string | null;
+  latestUpdate: string | null;
+  isPartial: boolean;
+  bucketCount: number;
+  limitBuckets?: number;
+  hasMore?: boolean;
+}
+
+export interface NetworkStatisticsCard {
+  metricKey: string;
+  label: string;
+  value: number;
+  valueDecimal: string;
+  aggregation: 'sum' | 'avg' | 'latest' | string;
+  format: 'integer' | 'decimal' | 'seconds' | 'xlm' | string;
+  suffix?: string | null;
+  changePercent?: number | null;
+  sparkline: number[];
+}
+
+export interface NetworkStatisticsSection {
+  id: string;
+  label: string;
+  description: string;
+  cards: NetworkStatisticsCard[];
+}
+
+export interface NetworkStatisticsChartPoint {
+  bucketStart: string;
+  bucketEnd: string;
+  transactions: number;
+  operations: number;
+  tps: number;
+}
+
+export interface NetworkStatisticsChartSeries {
+  key: 'transactions' | 'operations' | 'tps' | string;
+  label: string;
+  type: 'bar' | 'line' | string;
+  axis: 'left' | 'right' | string;
+}
+
+export interface NetworkStatisticsChart {
+  title: string;
+  series: NetworkStatisticsChartSeries[];
+  points: NetworkStatisticsChartPoint[];
+}
+
+export interface NetworkStatisticsResponse {
+  network: string;
+  range: NetworkStatisticsRange;
+  bucketMinutes: number;
+  coverage: NetworkStatisticsCoverage;
+  sections: NetworkStatisticsSection[];
+  chart: NetworkStatisticsChart;
+}
+
+export type PaymentFlowDirection = 'both' | 'incoming' | 'outgoing';
+export type PaymentFlowRiskLevel = 'limited' | 'context' | 'review' | 'elevated';
+
+export interface PaymentFlowAssetRef {
+  key: string;
+  type: string;
+  code: string;
+  issuer: string | null;
+  display: string;
+}
+
+export interface PaymentFlowAccountMetadata {
+  address: string;
+  known: boolean;
+  label: string | null;
+  verified: boolean;
+  orgName: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  firstTransactionAt: string | null;
+  lastTransactionAt: string | null;
+  totalTransactions: string;
+  paymentsCount: string;
+  tradesCount: string;
+  nativeBalance: string;
+  rankPosition: number | null;
+  rankScore: string;
+  metricUpdatedAt: string | null;
+}
+
+export interface PaymentFlowEvent {
+  id: string;
+  ledger: number;
+  closedAt: string | null;
+  txHash: string;
+  operationId: string;
+  operationIndex: number | null;
+  operationType: string;
+  successful: boolean;
+  direction: 'incoming' | 'outgoing' | 'related';
+  counterparty: string | null;
+  sourceAccount: string | null;
+  sourceAccountMetadata: PaymentFlowAccountMetadata | null;
+  fromAddress: string | null;
+  fromAccount: PaymentFlowAccountMetadata | null;
+  toAddress: string | null;
+  toAccount: PaymentFlowAccountMetadata | null;
+  counterpartyAccount: PaymentFlowAccountMetadata | null;
+  sourceAsset: PaymentFlowAssetRef;
+  sourceAmount: string | null;
+  destinationAsset: PaymentFlowAssetRef;
+  destinationAmount: string | null;
+  memoType: string | null;
+  memo: string | null;
+}
+
+export interface PaymentFlowCounterparty {
+  address: string;
+  events: number;
+  incoming: number;
+  outgoing: number;
+  firstLedger: number | null;
+  lastLedger: number | null;
+  firstClosedAt: string | null;
+  lastClosedAt: string | null;
+  nativeReceived: string;
+  nativeSent: string;
+  assets: string[];
+  account: PaymentFlowAccountMetadata | null;
+}
+
+export interface PaymentFlowRiskSignal {
+  severity: 'info' | 'medium' | 'high' | string;
+  label: string;
+  description: string;
+}
+
+export interface PaymentFlowRiskContext {
+  level: PaymentFlowRiskLevel;
+  score: number;
+  signals: PaymentFlowRiskSignal[];
+  guidance: string[];
+  limitations: string[];
+}
+
+export interface PaymentFlowGraphNode {
+  id: string;
+  label: string;
+  role: 'focus' | 'source' | 'destination' | string;
+  events: number;
+  incoming: number;
+  outgoing: number;
+  account: PaymentFlowAccountMetadata | null;
+}
+
+export interface PaymentFlowGraphEdge {
+  source: string;
+  target: string;
+  count: number;
+  totalXlm: string;
+  assets: string[];
+  latestLedger: number;
+  latestClosedAt: string | null;
+}
+
+export interface PaymentFlowInvestigationResponse {
+  network: string;
+  query: {
+    address: string | null;
+    txHash: string | null;
+    ledgerFrom: number | null;
+    ledgerTo: number | null;
+    direction: PaymentFlowDirection;
+    limit: number;
+  };
+  coverage: {
+    rowsReturned: number;
+    hasMore: boolean;
+    firstLedger: number | null;
+    lastLedger: number | null;
+    firstClosedAt: string | null;
+    lastClosedAt: string | null;
+    isPartial: boolean;
+  };
+  summary: {
+    focusAddress: string | null;
+    events: number;
+    transactions: number;
+    incomingEvents: number;
+    outgoingEvents: number;
+    uniqueCounterparties: number;
+    uniqueAssets: number;
+    pathPayments: number;
+    accountMerges: number;
+    createAccounts: number;
+    memoCount: number;
+    nativeReceived: string;
+    nativeSent: string;
+    firstLedger: number | null;
+    lastLedger: number | null;
+    firstClosedAt: string | null;
+    lastClosedAt: string | null;
+  };
+  riskContext: PaymentFlowRiskContext;
+  accounts: Record<string, PaymentFlowAccountMetadata>;
+  accountContext: {
+    metadataAvailable: boolean;
+    metadataUnavailable: boolean;
+    knownAccounts: number;
+    labeledAccounts: number;
+    verifiedAccounts: number;
+    focusAccount: PaymentFlowAccountMetadata | null;
+    note: string;
+  };
+  graph: {
+    nodes: PaymentFlowGraphNode[];
+    edges: PaymentFlowGraphEdge[];
+  };
+  counterparties: PaymentFlowCounterparty[];
+  events: PaymentFlowEvent[];
 }
 
 // Order Book specific interfaces

@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import * as Sentry from '@sentry/nextjs';
 
 type Theme = 'dark' | 'light';
 
@@ -16,7 +15,6 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: ReactNode }) {
     const [theme, setThemeState] = useState<Theme>('light');
     const [mounted, setMounted] = useState(false);
-    const isDevelopment = process.env.NODE_ENV === 'development';
 
     useEffect(() => {
         setMounted(true);
@@ -44,14 +42,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const toggleTheme = () => {
         setTheme(theme === 'dark' ? 'light' : 'dark');
     };
-
-    useEffect(() => {
-        if (isDevelopment) {
-            return;
-        }
-        Sentry.setTag('theme', theme);
-        Sentry.setContext('ui', { theme });
-    }, [isDevelopment, theme]);
 
     // Prevent flash of wrong theme
     if (!mounted) {

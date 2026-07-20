@@ -75,10 +75,13 @@ export const apiEndpoints = {
     contractTransactions: (contractId, params) => withQuery(`/contracts/${contractId}/transactions`, params),
     contractEvents: (contractId, params) => withQuery(`/contracts/${contractId}/events`, params),
     contractStorage: (contractId, params) => withQuery(`/contracts/${contractId}/storage`, params),
+    contractBalances: (contractId, params) => withQuery(`/contracts/${contractId}/balances`, params),
     contractHolderBalances: (contractId, params) => withQuery(`/contracts/${contractId}/holder-balances`, params),
     contractArgumentUsages: (contractId, params) => withQuery(`/contracts/${contractId}/argument-usages`, params),
     marketAssets: (params) => withQuery('/market/assets', params),
     marketOverview: (params) => withQuery('/market/overview', params),
+    networkStatistics: (params) => withQuery('/statistics/network', params),
+    paymentFlowInvestigation: (params) => withQuery('/payment-flow/investigation', params),
     assets: (params) => withQuery('/assets', params),
     assetById: (assetId, params) => withQuery(`/assets/${assetId}`, params),
     projects: (params) => withPlainQuery('/projects', params),
@@ -127,6 +130,27 @@ export const fetchStellarCoinData = async () => {
 
 export const fetchMarketOverviewData = async (params) => {
   return getApiV1Data(apiEndpoints.v1.marketOverview(params));
+};
+
+const networkStatisticsRequests = new Map();
+
+export const fetchNetworkStatisticsData = async (params) => {
+  const path = apiEndpoints.v1.networkStatistics(params);
+  const existing = networkStatisticsRequests.get(path);
+  if (existing) {
+    return existing;
+  }
+
+  const request = getApiV1Data(path).finally(() => {
+    networkStatisticsRequests.delete(path);
+  });
+  networkStatisticsRequests.set(path, request);
+
+  return request;
+};
+
+export const fetchPaymentFlowInvestigationData = async (params) => {
+  return getApiV1Data(apiEndpoints.v1.paymentFlowInvestigation(params));
 };
 
 export const buildApiUrl = (path) => `${API_BASE_URL}${ensureNetworkInPath(path)}`;

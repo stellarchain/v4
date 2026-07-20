@@ -126,18 +126,21 @@ interface APIContractData {
   totalEffects?: number;
   totalStorageEntries?: number;
   totalInvokes?: number;
+  isSac?: boolean | null;
   verifiedMetadata?: {
     displayName?: string;
     metadataType?: string;
+    isSep41?: boolean;
     sep41?: boolean;
     symbol?: string;
     decimals?: number;
+    isVerified?: boolean;
     verified?: boolean;
     website?: string;
     description?: string;
     iconUrl?: string;
   } | null;
-  sac: boolean;
+  sac?: boolean | null;
   network: number;
 }
 
@@ -188,6 +191,41 @@ interface ContractHolderBalance {
   outflowRaw: string;
   label?: string;
   decimals?: number;
+}
+
+interface ContractTokenHolderBalance {
+  address: string;
+  balanceRaw: string;
+  inflowRaw: string;
+  outflowRaw: string;
+}
+
+interface ContractBalanceSummary {
+  holdersCount: number;
+  indexedBalanceRaw: string;
+  inflowRaw: string;
+  outflowRaw: string;
+  hasMore: boolean;
+}
+
+type ContractBalancesPage = {
+  items: ContractTokenHolderBalance[];
+  summary: ContractBalanceSummary | null;
+  hasMore: boolean;
+  nextOffset: number | null;
+  limit: number;
+  offset: number;
+};
+
+type SacReconciliationStatus = 'matched' | 'differs' | 'not_enough_indexed_data' | 'market_unavailable';
+
+interface SacMarketReconciliation {
+  assetKey: string;
+  indexedBalanceRaw: string | null;
+  assetMarketSupplyRaw: string | null;
+  differenceRaw: string | null;
+  lastMarketUpdate?: string;
+  status: SacReconciliationStatus;
 }
 
 type ContractTab = 'overview' | 'history' | 'events' | 'storage' | 'operations' | 'interface' | 'details';
@@ -390,13 +428,28 @@ function inferContractType(
   verifiedContract: VerifiedContract | undefined
 ): string {
   if (apiContractData?.assetCode) return 'token';
-  if (apiContractData?.sac) return 'token';
+  if (isSacContract(apiContractData)) return 'token';
   if (verifiedContract?.type) return verifiedContract.type;
   return 'contract';
 }
 
-function mapEventSummary(apiData: APIContractData | null, events: ParsedEvent[]): EventSummary {
-  const totalEvents = Number(apiData?.totalEvents ?? events.length ?? 0);
+function isSacContract(apiData?: APIContractData | null): boolean {
+  return Boolean(apiData?.isSac ?? apiData?.sac);
+}
+
+function isTokenLikeContract(apiData?: APIContractData | null): boolean {
+  return Boolean(apiData?.assetCode || isSacContract(apiData));
+}
+
+function maxCount(...values: Array<number | string | null | undefined>): number {
+  return values.reduce<number>((max, value) => {
+    const numeric = Number(value ?? 0);
+    return Number.isFinite(numeric) && numeric > max ? numeric : max;
+  }, 0);
+}
+
+function mapEventSummary(apiData: APIContractData | null, events: ParsedEvent[], totalOverride?: number): EventSummary {
+  const totalEvents = maxCount(apiData?.totalEvents, events.length, totalOverride);
   return {
     totalEvents,
     transfers: 0,
@@ -550,18 +603,40 @@ type ContractTransactionRecord = {
   ledger?: number;
   createdAt?: string;
   sourceAccount?: string;
-  hostFunctions?: string;
+  hostFunctions?: unknown;
   totalOperations?: number;
   successful?: boolean;
 };
 
-function parseHostFunctionName(hostFunctions?: string): string {
+function parseHostFunctionName(hostFunctions?: unknown): string {
   if (!hostFunctions) return 'invoke';
+
+  let payload = hostFunctions;
+
   try {
-    const payload = JSON.parse(hostFunctions);
-    const invoking = payload.invokeContracts || payload.hostFunctionInvocations || [];
-    const first = invoking[0];
-    if (first?.functionName) return first.functionName;
+    if (typeof hostFunctions === 'string') {
+      payload = JSON.parse(hostFunctions);
+    }
+    if (!payload || typeof payload !== 'object') return 'invoke';
+
+    const record = payload as {
+      functionName?: unknown;
+      invokeContracts?: unknown;
+      hostFunctionInvocations?: unknown;
+    };
+    if (typeof record.functionName === 'string' && record.functionName.trim() !== '') {
+      return record.functionName;
+    }
+
+    const invoking = Array.isArray(record.invokeContracts)
+      ? record.invokeContracts
+      : Array.isArray(record.hostFunctionInvocations)
+        ? record.hostFunctionInvocations
+        : [];
+    const first = invoking[0] as { functionName?: unknown } | undefined;
+    if (typeof first?.functionName === 'string' && first.functionName.trim() !== '') {
+      return first.functionName;
+    }
   } catch {
     // ignore
   }
@@ -659,6 +734,142 @@ async function fetchHolderBalances(contractId: string): Promise<ContractHolderBa
   });
 }
 
+async function fetchContractBalances(contractId: string, limit = 25, offset = 0): Promise<ContractBalancesPage> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  let data;
+  try {
+    data = await getApiV1Data(
+      apiEndpoints.v1.contractBalances(contractId, { limit, offset }),
+      { signal: controller.signal }
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  const records: ContractTokenHolderBalance[] = Array.isArray(data.member) ? data.member : [];
+  const summaryNode = data.meta?.summary || null;
+  const summary = summaryNode ? {
+    holdersCount: Number(summaryNode.holdersCount ?? 0),
+    indexedBalanceRaw: String(summaryNode.indexedBalanceRaw ?? '0'),
+    inflowRaw: String(summaryNode.inflowRaw ?? '0'),
+    outflowRaw: String(summaryNode.outflowRaw ?? '0'),
+    hasMore: Boolean(summaryNode.hasMore ?? data.meta?.hasMore),
+  } : null;
+
+  return {
+    items: records,
+    summary,
+    hasMore: Boolean(data.meta?.hasMore ?? summary?.hasMore),
+    nextOffset: data.meta?.nextOffset ?? null,
+    limit: Number(data.meta?.limit ?? limit),
+    offset: Number(data.meta?.offset ?? offset),
+  };
+}
+
+function buildSacAssetKey(apiData: APIContractData): string | null {
+  const code = String(apiData.assetCode || '').trim();
+  const issuer = String(apiData.assetIssuer || '').trim();
+  if (!code) return null;
+
+  if (code.toUpperCase() === 'XLM' && !issuer) {
+    return 'XLM-native';
+  }
+
+  return issuer ? `${code}-${issuer}` : null;
+}
+
+function normalizeRawInteger(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (raw === '') return null;
+  if (/^-?\d+$/.test(raw)) return raw;
+
+  const numeric = Number(raw);
+  if (!Number.isFinite(numeric)) return null;
+
+  return String(Math.trunc(numeric));
+}
+
+function subtractRawIntegers(left: string | null, right: string | null): string | null {
+  if (left === null || right === null) return null;
+
+  try {
+    return (BigInt(left) - BigInt(right)).toString();
+  } catch {
+    const diff = Number(left) - Number(right);
+    return Number.isFinite(diff) ? String(Math.trunc(diff)) : null;
+  }
+}
+
+function isZeroRaw(value: string | null): boolean {
+  if (value === null) return true;
+  try {
+    return BigInt(value) === BigInt(0);
+  } catch {
+    return Number(value) === 0;
+  }
+}
+
+async function fetchSacMarketReconciliation(
+  apiData: APIContractData,
+  balanceSummary: ContractBalanceSummary | null
+): Promise<SacMarketReconciliation | null> {
+  if (!isSacContract(apiData) || !apiData.assetCode) return null;
+
+  const assetKey = buildSacAssetKey(apiData);
+  if (!assetKey) return null;
+
+  let assetData: any = null;
+  try {
+    assetData = await getApiV1Data(apiEndpoints.v1.assetById(assetKey));
+  } catch {
+    return {
+      assetKey,
+      indexedBalanceRaw: balanceSummary?.indexedBalanceRaw ?? null,
+      assetMarketSupplyRaw: null,
+      differenceRaw: null,
+      status: 'market_unavailable',
+    };
+  }
+
+  const market = assetData?.market || {};
+  const marketSupplyRaw = normalizeRawInteger(market.supply ?? assetData?.latestStatistic?.supply ?? assetData?.supply);
+  const indexedBalanceRaw = normalizeRawInteger(balanceSummary?.indexedBalanceRaw);
+  const differenceRaw = subtractRawIntegers(indexedBalanceRaw, marketSupplyRaw);
+  const lastMarketUpdate = market.updated_at || market.updatedAt || assetData?.updatedAt || assetData?.updated_at;
+
+  let status: SacReconciliationStatus = 'market_unavailable';
+  if (marketSupplyRaw === null) {
+    status = 'market_unavailable';
+  } else if (!balanceSummary || indexedBalanceRaw === null || (balanceSummary.holdersCount === 0 && !isZeroRaw(marketSupplyRaw))) {
+    status = 'not_enough_indexed_data';
+  } else {
+    status = differenceRaw === '0' ? 'matched' : 'differs';
+  }
+
+  return {
+    assetKey,
+    indexedBalanceRaw,
+    assetMarketSupplyRaw: marketSupplyRaw,
+    differenceRaw,
+    lastMarketUpdate: typeof lastMarketUpdate === 'string' && lastMarketUpdate.trim() !== '' ? lastMarketUpdate : undefined,
+    status,
+  };
+}
+
+async function fetchTokenBalanceBundle(
+  contractId: string,
+  apiData: APIContractData
+): Promise<{ balances: ContractBalancesPage; reconciliation: SacMarketReconciliation | null } | null> {
+  if (!isTokenLikeContract(apiData)) return null;
+
+  const balances = await fetchContractBalances(contractId);
+  const reconciliation = await fetchSacMarketReconciliation(apiData, balances.summary);
+
+  return { balances, reconciliation };
+}
+
 function buildTokenMetadata(
   contractId: string,
   apiData: APIContractData,
@@ -684,7 +895,7 @@ function buildTokenMetadata(
     name: verifiedContract?.name || symbol,
     symbol,
     decimals: Number(verifiedContract?.decimals ?? 7),
-    isSAC: Boolean(apiData.sac),
+    isSAC: isSacContract(apiData),
     underlyingAsset: apiData.assetCode
       ? {
           code: apiData.assetCode,
@@ -708,11 +919,11 @@ function mapVerifiedContract(apiData: APIContractData): VerifiedContract | undef
   return {
     id: apiData.contractId,
     name: metadata.displayName || metadata.symbol || apiData.assetCode || 'Smart Contract',
-    type: metadata.metadataType || (apiData.sac || apiData.assetCode ? 'token' : 'contract'),
-    sep41: Boolean(metadata.sep41),
+    type: metadata.metadataType || (isSacContract(apiData) || apiData.assetCode ? 'token' : 'contract'),
+    sep41: Boolean(metadata.isSep41 ?? metadata.sep41),
     symbol: metadata.symbol || undefined,
     decimals: metadata.decimals,
-    verified: Boolean(metadata.verified),
+    verified: Boolean(metadata.isVerified ?? metadata.verified),
     website: metadata.website || undefined,
     description: metadata.description || undefined,
     iconUrl: metadata.iconUrl || undefined,
@@ -804,6 +1015,11 @@ export default function ContractPage() {
     beforeId: null as number | null,
   });
   const [holderBalances, setHolderBalances] = useState<ContractHolderBalance[]>([]);
+  const [tokenHolderBalances, setTokenHolderBalances] = useState<ContractTokenHolderBalance[]>([]);
+  const [tokenBalanceSummary, setTokenBalanceSummary] = useState<ContractBalanceSummary | null>(null);
+  const [tokenBalancesLoading, setTokenBalancesLoading] = useState(false);
+  const [tokenBalancesLoaded, setTokenBalancesLoaded] = useState(false);
+  const [sacMarketReconciliation, setSacMarketReconciliation] = useState<SacMarketReconciliation | null>(null);
   const [balancesLoading, setBalancesLoading] = useState(false);
   const [balancesLoaded, setBalancesLoaded] = useState(false);
   const [selectedBalanceToken, setSelectedBalanceToken] = useState<string>('all');
@@ -909,22 +1125,38 @@ export default function ContractPage() {
             spec: false,
           }));
           setBalancesLoading(true);
+          setTokenBalancesLoading(isTokenLikeContract(apiData));
 
-          const [historyResult, eventsResult, storageResult, balancesResult] = await Promise.allSettled([
+          const [historyResult, eventsResult, storageResult, balancesResult, tokenBalancesResult] = await Promise.allSettled([
             fetchContractTransactions(id, 1, 5),
             fetchContractEvents(id, 1, 5),
             fetchContractStorage(id, apiData.totalStorageEntries ? Number(apiData.totalStorageEntries) : undefined),
             fetchHolderBalances(id),
+            fetchTokenBalanceBundle(id, apiData),
           ]);
 
           if (cancelled) return;
 
           if (historyResult.status === 'fulfilled') {
             setHistoryInvocations(historyResult.value.items);
+            setHistoryPagination((prev) => ({
+              ...prev,
+              totalItems: historyResult.value.totalItems,
+              hasMore: historyResult.value.totalItems > HISTORY_PAGE_SIZE,
+              nextBeforeId: historyResult.value.nextBeforeId ?? null,
+              beforeId: historyResult.value.beforeId ?? null,
+            }));
           }
 
           if (eventsResult.status === 'fulfilled') {
             setContractEvents(eventsResult.value.items);
+            setEventsPagination((prev) => ({
+              ...prev,
+              totalItems: eventsResult.value.totalItems,
+              hasMore: eventsResult.value.totalItems > EVENTS_PAGE_SIZE,
+              nextBeforeId: eventsResult.value.nextBeforeId ?? null,
+              beforeId: eventsResult.value.beforeId ?? null,
+            }));
           } else {
             setEventsError(eventsResult.reason instanceof Error ? eventsResult.reason.message : 'Failed to load events');
           }
@@ -941,6 +1173,14 @@ export default function ContractPage() {
             setBalancesLoaded(true);
           }
           setBalancesLoading(false);
+
+          if (tokenBalancesResult.status === 'fulfilled' && tokenBalancesResult.value) {
+            setTokenHolderBalances(tokenBalancesResult.value.balances.items);
+            setTokenBalanceSummary(tokenBalancesResult.value.balances.summary);
+            setSacMarketReconciliation(tokenBalancesResult.value.reconciliation);
+          }
+          setTokenBalancesLoaded(true);
+          setTokenBalancesLoading(false);
 
           setLoadingSections((prev) => ({
             ...prev,
@@ -1000,6 +1240,11 @@ export default function ContractPage() {
     setStorageLoading(false);
     setStorageError(null);
     setHolderBalances([]);
+    setTokenHolderBalances([]);
+    setTokenBalanceSummary(null);
+    setTokenBalancesLoading(false);
+    setTokenBalancesLoaded(false);
+    setSacMarketReconciliation(null);
     setBalancesLoading(false);
     setBalancesLoaded(false);
     setSelectedBalanceToken('all');
@@ -1091,6 +1336,27 @@ export default function ContractPage() {
     }
   }, [balancesLoaded, balancesLoading, id]);
 
+  const loadTokenBalances = useCallback(async () => {
+    const apiData = contractData?.apiContractData;
+    if (!apiData || !isTokenLikeContract(apiData) || tokenBalancesLoaded || tokenBalancesLoading) return;
+
+    setTokenBalancesLoading(true);
+    try {
+      const bundle = await fetchTokenBalanceBundle(id, apiData);
+      if (bundle) {
+        setTokenHolderBalances(bundle.balances.items);
+        setTokenBalanceSummary(bundle.balances.summary);
+        setSacMarketReconciliation(bundle.reconciliation);
+      }
+      setTokenBalancesLoaded(true);
+    } catch (err) {
+      console.error('Failed to load token balances:', err);
+      setTokenBalancesLoaded(true);
+    } finally {
+      setTokenBalancesLoading(false);
+    }
+  }, [contractData?.apiContractData, id, tokenBalancesLoaded, tokenBalancesLoading]);
+
   const handleTabChange = (tabId: ContractTab) => {
     if (tabId === 'history' && !historyLoaded) {
       void loadHistoryPage(1);
@@ -1101,6 +1367,7 @@ export default function ContractPage() {
     if (tabId === 'storage' || tabId === 'overview') {
       void loadContractStorage();
       void loadHolderBalances();
+      void loadTokenBalances();
     }
   };
 
@@ -1177,8 +1444,26 @@ export default function ContractPage() {
 
   const baseData = contractData || emptyContractData(id);
   const visibleEvents = contractEvents.length > 0 ? contractEvents : baseData.events;
+  const visibleInvocations = historyInvocations.length > 0 ? historyInvocations : baseData.invocations;
   const visibleStorage = storageLoaded ? contractStorage : baseData.storage;
-  const eventSummaryFromData = mapEventSummary(baseData.apiContractData, visibleEvents);
+  const totalInvokes = maxCount(
+    baseData.apiContractData?.totalInvokes,
+    historyPagination.totalItems,
+    visibleInvocations.length
+  );
+  const totalEvents = maxCount(
+    baseData.apiContractData?.totalEvents,
+    eventsPagination.totalItems,
+    visibleEvents.length
+  );
+  const totalOperations = maxCount(
+    baseData.apiContractData?.totalOperations,
+    baseData.apiContractData?.totalInvokes,
+    historyPagination.totalItems,
+    visibleInvocations.length,
+    visibleEvents.length
+  );
+  const eventSummaryFromData = mapEventSummary(baseData.apiContractData, visibleEvents, totalEvents);
 
   const contractForView = {
     id: baseData.id,
@@ -1193,45 +1478,50 @@ export default function ContractPage() {
     nftInfo: null,
     vaultInfo: null,
     events: visibleEvents,
-    eventSummary: eventsLoaded ? eventSummaryFromData : baseData.eventSummary ?? eventSummaryFromData,
+    eventSummary: eventSummaryFromData,
     storage: visibleStorage,
-    invocations: historyInvocations.length > 0 ? historyInvocations : baseData.invocations,
-    historyInvocations: historyInvocations.length > 0 ? historyInvocations : baseData.invocations,
+    invocations: visibleInvocations,
+    historyInvocations: visibleInvocations,
     historyPagination: {
       currentPage: historyPagination.currentPage,
-      totalItems: historyPagination.totalItems || Number(baseData.apiContractData?.totalInvokes ?? 0),
+      totalItems: totalInvokes,
       itemsPerPage: historyPagination.itemsPerPage,
-      hasMore: historyPagination.hasMore,
+      hasMore: historyPagination.hasMore || totalInvokes > historyPagination.currentPage * historyPagination.itemsPerPage,
       nextBeforeId: historyPagination.nextBeforeId,
       beforeId: historyPagination.beforeId,
     },
     eventsPagination: {
       currentPage: eventsPagination.currentPage,
-      totalItems: eventsPagination.totalItems || Number(baseData.apiContractData?.totalEvents ?? 0),
+      totalItems: totalEvents,
       itemsPerPage: eventsPagination.itemsPerPage,
-      hasMore: eventsPagination.hasMore,
+      hasMore: eventsPagination.hasMore || totalEvents > eventsPagination.currentPage * eventsPagination.itemsPerPage,
       nextBeforeId: eventsPagination.nextBeforeId,
       beforeId: eventsPagination.beforeId,
     },
     spec: baseData.spec,
     totalTransactions: baseData.apiContractData?.totalTransactions,
-    totalInvokes: baseData.apiContractData?.totalInvokes,
+    totalInvokes,
     createdAt: baseData.apiContractData?.createdAt,
     wasmId: baseData.apiContractData?.wasmId || undefined,
     contractCode: baseData.apiContractData?.sourceCode || baseData.apiContractData?.contractCode || undefined,
     sourceCodeVerified: baseData.apiContractData?.sourceCodeVerified,
     assetIssuer: baseData.apiContractData?.assetIssuer || undefined,
-    isSAC: baseData.apiContractData?.sac,
+    isSAC: isSacContract(baseData.apiContractData),
+    totalOperations,
     holderBalances,
+    tokenHolderBalances,
+    tokenBalanceSummary,
+    sacMarketReconciliation,
     selectedBalanceToken,
     _loading: isValidating
-      ? { events: true, invocations: true, storage: true, spec: true, balances: true }
+      ? { events: true, invocations: true, storage: true, spec: true, balances: true, tokenBalances: true }
       : {
           events: eventsLoading,
           invocations: historyLoading || loadingSections.invocations,
           storage: storageLoading,
           spec: loadingSections.spec,
           balances: balancesLoading,
+          tokenBalances: tokenBalancesLoading,
         },
   };
 

@@ -95,11 +95,14 @@ export default function MobileHeader({ forceShow = false }: MobileHeaderProps) {
             </svg>
           </span>
           <input
+            id="mobile-header-search"
+            name="q"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-400 rounded-xl py-3 pl-11 pr-4 focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
             placeholder="Search hash, ledger, account..."
+            aria-label="Search hash, ledger, account, contract, or transaction"
           />
         </form>
       </div>

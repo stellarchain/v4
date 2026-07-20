@@ -52,6 +52,7 @@ export default function DesktopNavbar() {
     const accountsItems: MenuItem[] = [
         { name: 'Top Accounts', href: '/accounts', description: 'Ranked by XLM holdings' },
         { name: 'Known Accounts', href: '/accounts/directory', description: 'Labeled accounts directory' },
+        { name: 'Flow account investigation', href: '/investigate', description: 'Account flow safety context' },
         { name: 'Add Label', href: '/accounts/directory/update', description: 'Submit a label for an account' },
     ];
 
@@ -64,6 +65,7 @@ export default function DesktopNavbar() {
         { name: 'Home', href: '/' },
         { name: 'Blockchain', dropdown: blockchainItems },
         { name: 'Accounts', dropdown: accountsItems },
+        { name: 'Statistics', href: '/statistics' },
         { name: 'Markets', href: '/markets' },
         { name: 'News', dropdown: newsItems },
     ];
@@ -223,6 +225,8 @@ export default function DesktopNavbar() {
                                         </svg>
                                     </span>
                                     <input
+                                        id="desktop-navbar-search"
+                                        name="q"
                                         className="w-full py-2 pl-9 pr-3 text-xs font-mono rounded-md bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)]/70"
                                         placeholder="Search by address, hash, contract, or ledger"
                                         type="search"
