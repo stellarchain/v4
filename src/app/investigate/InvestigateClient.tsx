@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   PaymentFlowDirection,
   PaymentFlowInvestigationResponse,
@@ -37,7 +37,12 @@ function buildInvestigationUrl(target: string, direction: PaymentFlowDirection):
 export default function InvestigateClient({ pathAccount = '' }: InvestigateClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const decodedPathAccount = pathAccount ? decodeURIComponent(pathAccount).trim() : '';
+  const pathname = usePathname();
+  const pathAccountFromUrl = useMemo(() => {
+    const match = pathname.match(/^\/investigate\/([^/?#]+)/);
+    return match ? decodeURIComponent(match[1]).trim() : '';
+  }, [pathname]);
+  const decodedPathAccount = pathAccount ? decodeURIComponent(pathAccount).trim() : pathAccountFromUrl;
   const initialQuery = decodedPathAccount || searchParams.get('q') || searchParams.get('address') || searchParams.get('txHash') || '';
   const initialDirection = normalizeDirection(searchParams.get('direction'));
   const [query, setQuery] = useState(initialQuery);

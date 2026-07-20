@@ -3,10 +3,14 @@ import { DEFAULT_NETWORK } from '@/lib/network/config';
 import { getCurrentNetwork } from '@/lib/network/state';
 
 const appEnv = (process.env.NEXT_PUBLIC_ENV || '').toLowerCase();
+const configuredApiBaseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/+$/, '');
 
 const resolveApiBaseUrl = () => {
+  if (configuredApiBaseUrl) {
+    return configuredApiBaseUrl;
+  }
   if (appEnv === 'development') {
-    return 'https://localhost';
+    return 'https://api.stellarchain.dev';
   }
   if (appEnv === 'staging') {
     return 'https://api.stellarchain.dev';
