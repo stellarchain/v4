@@ -123,6 +123,8 @@ Use this checklist before submitting changes:
 ## Notes
 
 - No environment variables are required by default.
+- `NEXT_PUBLIC_API_BASE_URL` can override the API host used by the browser bundle,
+  for example `https://api.stellarchain.io` or `https://localhost`.
 - Optional Sentry monitoring uses `SENTRY_DSN` for server/edge runtime,
   `NEXT_PUBLIC_SENTRY_DSN` for the browser bundle, and `SENTRY_URL` when using
   a self-hosted Sentry endpoint. If DSNs are omitted, Sentry initialization is

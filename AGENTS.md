@@ -36,5 +36,6 @@ You are working on a Next.js App Router project with client-only pages. All data
 
 ## Configuration Notes
 - No environment variables are required by default.
+- `NEXT_PUBLIC_API_BASE_URL` can override the API host used by the browser bundle.
 - Optional Sentry monitoring uses `SENTRY_DSN` for server/edge runtime, `NEXT_PUBLIC_SENTRY_DSN` for the browser bundle, and `SENTRY_URL` when using a self-hosted Sentry endpoint. If DSNs are omitted, Sentry initialization is skipped.
 - If you introduce any environment variables, document them in this file and update `README.md`.
