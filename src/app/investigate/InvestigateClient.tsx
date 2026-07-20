@@ -1,17 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   PaymentFlowDirection,
   PaymentFlowInvestigationResponse,
 } from '@/lib/stellar';
 import { fetchPaymentFlowInvestigationData } from '@/services/api';
 import PaymentFlowInvestigationView from '@/components/scam-flow/PaymentFlowInvestigationView';
-
-interface InvestigateClientProps {
-  pathAccount?: string;
-}
+import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
 function normalizeDirection(value: string | null): PaymentFlowDirection {
   return value === 'incoming' || value === 'outgoing' || value === 'both' ? value : 'both';
@@ -34,15 +31,29 @@ function buildInvestigationUrl(target: string, direction: PaymentFlowDirection):
   return `/investigate/${encodeURIComponent(normalizedTarget)}?${params.toString()}`;
 }
 
-export default function InvestigateClient({ pathAccount = '' }: InvestigateClientProps) {
+function extractInvestigationPathTarget(pathname: string): string {
+  const cleanPath = pathname.replace(/\/+$/, '');
+  const prefix = '/investigate/';
+
+  if (!cleanPath.startsWith(prefix)) {
+    return '';
+  }
+
+  return decodeURIComponent(cleanPath.slice(prefix.length)).trim();
+}
+
+export default function InvestigateClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams<{ account?: string }>();
   const pathname = usePathname();
-  const pathAccountFromUrl = useMemo(() => {
-    const match = pathname.match(/^\/investigate\/([^/?#]+)/);
-    return match ? decodeURIComponent(match[1]).trim() : '';
-  }, [pathname]);
-  const decodedPathAccount = pathAccount ? decodeURIComponent(pathAccount).trim() : pathAccountFromUrl;
+  const decodedPathAccount = decodeURIComponent(getDetailRouteValue({
+    pathname,
+    searchParams,
+    queryKey: 'address',
+    routeParam: params.account,
+    aliases: ['/investigate'],
+  })).trim();
   const initialQuery = decodedPathAccount || searchParams.get('q') || searchParams.get('address') || searchParams.get('txHash') || '';
   const initialDirection = normalizeDirection(searchParams.get('direction'));
   const [query, setQuery] = useState(initialQuery);
@@ -51,9 +62,20 @@ export default function InvestigateClient({ pathAccount = '' }: InvestigateClien
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const activeQuery = useMemo(() => (
-    decodedPathAccount || searchParams.get('q') || searchParams.get('address') || searchParams.get('txHash') || ''
-  ).trim(), [decodedPathAccount, searchParams]);
+  const activeQuery = useMemo(() => {
+    const browserPathTarget = typeof window !== 'undefined'
+      ? extractInvestigationPathTarget(window.location.pathname)
+      : '';
+
+    return (
+      decodedPathAccount
+      || browserPathTarget
+      || searchParams.get('q')
+      || searchParams.get('address')
+      || searchParams.get('txHash')
+      || ''
+    ).trim();
+  }, [decodedPathAccount, searchParams]);
   const activeDirection = normalizeDirection(searchParams.get('direction'));
 
   const loadInvestigation = useCallback(async (target: string, nextDirection: PaymentFlowDirection) => {
