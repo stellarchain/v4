@@ -41,3 +41,8 @@ if (!isDevelopment && sentryDsn) {
     ],
   });
 }
+
+export const onRouterTransitionStart = (...args: Parameters<typeof Sentry.captureRouterTransitionStart>) => {
+  if (isDevelopment || !sentryDsn) return;
+  return Sentry.captureRouterTransitionStart(...args);
+};

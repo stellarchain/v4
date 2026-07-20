@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
-import { normalizeTransactions, getXLMUSDPriceFromHorizon, getAccountLabels } from '@/lib/stellar';
-import type { AccountLabel, Transaction, Operation } from '@/lib/stellar';
+import { normalizeTransactions, getXLMUSDPriceFromHorizon, getAccountLabels, getIssuedAssetsByIssuer } from '@/lib/stellar';
+import type { AccountLabel, MarketAsset, Transaction, Operation } from '@/lib/stellar';
 import Link from 'next/link';
 import AccountMobileView from '@/components/mobile/AccountMobileView';
 import AccountDesktopView from '@/components/desktop/AccountDesktopView';
@@ -12,6 +12,7 @@ import { createHorizonServer } from '@/services/horizon';
 import { apiEndpoints, getApiV1Data } from '@/services/api';
 import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
 import { redirectToNetwork } from '@/lib/network/navigation';
+import { buildIssuedAssetsFilters, shouldShowIssuedAssetsTab } from '@/lib/shared/issuedAssets';
 
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
@@ -142,8 +143,11 @@ export default function AccountPage() {
   // Track which tab data has been fetched
   const [transactionsFetched, setTransactionsFetched] = useState(false);
   const [operationsFetched, setOperationsFetched] = useState(false);
+  const [issuedAssetsFetched, setIssuedAssetsFetched] = useState(false);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [loadingOperations, setLoadingOperations] = useState(false);
+  const [loadingIssuedAssets, setLoadingIssuedAssets] = useState(false);
+  const [issuedAssets, setIssuedAssets] = useState<MarketAsset[]>([]);
   const [checkingOtherNetworks, setCheckingOtherNetworks] = useState(false);
   const [availableNetworks, setAvailableNetworks] = useState<NetworkType[]>([]);
 
@@ -202,16 +206,20 @@ export default function AccountPage() {
         }
         const server = createHorizonServer();
 
-        const [accountResponse, priceData, accountMetaResponse] = await Promise.all([
+        const issuedAssetFilters = buildIssuedAssetsFilters(id);
+        const [accountResponse, priceData, accountMetaResponse, issuedAssetsResponse] = await Promise.all([
           server.accounts().accountId(id).call(),
           getXLMUSDPriceFromHorizon(),
           getApiV1Data(apiEndpoints.v1.accountById(id)).catch(() => null),
+          getIssuedAssetsByIssuer(issuedAssetFilters.issuer, issuedAssetFilters.page, issuedAssetFilters.itemsPerPage).catch(() => []),
         ]);
 
         const accountData = accountResponse as unknown as Account;
 
         setAccount(accountData);
         setXlmPrice(priceData);
+        setIssuedAssets(issuedAssetsResponse);
+        setIssuedAssetsFetched(true);
 
         const accountMetaRecord = accountMetaResponse as AccountMeta | null;
         setAccountMeta(accountMetaRecord);
@@ -251,8 +259,10 @@ export default function AccountPage() {
       // Reset state for new account
       setTransactionsFetched(false);
       setOperationsFetched(false);
+      setIssuedAssetsFetched(false);
       setTransactions([]);
       setOperations([]);
+      setIssuedAssets([]);
       setAccountLabels({});
       setCurrentAccountLabel(null);
       setAccountMetricDates({});
@@ -279,6 +289,23 @@ export default function AccountPage() {
       setLoadingTransactions(false);
     }
   }, [id, transactionsFetched, loadingTransactions]);
+
+  const fetchIssuedAssets = useCallback(async () => {
+    if (issuedAssetsFetched || loadingIssuedAssets) return;
+
+    setLoadingIssuedAssets(true);
+    try {
+      const filters = buildIssuedAssetsFilters(id);
+      setIssuedAssets(await getIssuedAssetsByIssuer(filters.issuer, filters.page, filters.itemsPerPage));
+      setIssuedAssetsFetched(true);
+    } catch (e) {
+      console.error('Error fetching issued assets:', e);
+      setIssuedAssets([]);
+      setIssuedAssetsFetched(true);
+    } finally {
+      setLoadingIssuedAssets(false);
+    }
+  }, [id, issuedAssetsFetched, loadingIssuedAssets]);
 
   // Fetch operations lazily when tab is activated
   const fetchOperations = useCallback(async () => {
@@ -400,6 +427,14 @@ export default function AccountPage() {
     );
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="text-sm text-[var(--text-muted)]">Loading account view...</div>
+      </div>
+    );
+  }
+
   if (isMobile === null) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -422,6 +457,7 @@ export default function AccountPage() {
     flags: account.flags,
     home_domain: account.home_domain,
   } : null;
+  const showIssuedAssetsTab = shouldShowIssuedAssetsTab(issuedAssetsFetched, issuedAssets);
 
   return (
     <>
@@ -441,9 +477,13 @@ export default function AccountPage() {
           onTabChange={(tab: string) => {
             if (tab === 'transactions' && !transactionsFetched) fetchTransactions();
             if (tab === 'operations' && !operationsFetched) fetchOperations();
+            if (tab === 'issued' && !issuedAssetsFetched) fetchIssuedAssets();
           }}
           loadingTransactions={loadingTransactions}
           loadingOperations={loadingOperations}
+          issuedAssets={issuedAssets}
+          loadingIssuedAssets={loadingIssuedAssets}
+          showIssuedAssetsTab={showIssuedAssetsTab}
         />
       ) : (
         <AccountDesktopView
@@ -461,9 +501,13 @@ export default function AccountPage() {
           onTabChange={(tab: string) => {
             if (tab === 'transactions' && !transactionsFetched) fetchTransactions();
             if (tab === 'operations' && !operationsFetched) fetchOperations();
+            if (tab === 'issued' && !issuedAssetsFetched) fetchIssuedAssets();
           }}
           loadingTransactions={loadingTransactions}
           loadingOperations={loadingOperations}
+          issuedAssets={issuedAssets}
+          loadingIssuedAssets={loadingIssuedAssets}
+          showIssuedAssetsTab={showIssuedAssetsTab}
         />
       )}
     </>

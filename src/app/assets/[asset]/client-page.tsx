@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, usePathname, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getAssetDetails } from '@/lib/stellar';
+import { getAccountLabels, getAssetDetails } from '@/lib/stellar';
 import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
 import MobileHeader from '@/components/mobile/MobileHeader';
@@ -120,7 +120,16 @@ export default function AssetDetailsRoute() {
           return;
         }
 
-        setDetails(assetDetails);
+        let enrichedAssetDetails = assetDetails;
+        if (assetDetails.issuer) {
+          const labels = await getAccountLabels([assetDetails.issuer]);
+          const issuerLabel = labels.get(assetDetails.issuer);
+          if (issuerLabel) {
+            enrichedAssetDetails = { ...assetDetails, issuerLabel };
+          }
+        }
+
+        setDetails(enrichedAssetDetails);
         setRank(Number(assetDetails.rank || 0));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load asset details.');

@@ -1,3 +1,4 @@
+import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,4 +22,22 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const sentryUrl = process.env.SENTRY_URL;
+
+const sentryConfig = {
+  org: 'remote-tech',
+  project: 'stellarchain-v4',
+  ...(sentryUrl ? { sentryUrl } : {}),
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  webpack: {
+    automaticVercelMonitors: true,
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
+};
+
+export default process.env.NODE_ENV === 'development'
+  ? nextConfig
+  : withSentryConfig(nextConfig, sentryConfig);

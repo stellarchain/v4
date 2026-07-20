@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { getAssetDetails, getMarketAssets, getBaseUrl, shortenAddress } from '@/lib/stellar';
+import { getAccountLabels, getAssetDetails, getMarketAssets, getBaseUrl, shortenAddress } from '@/lib/stellar';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Loading from '@/components/ui/Loading';
 import ShowError from '@/components/ui/ShowError';
@@ -10,6 +10,7 @@ import AssetDesktopView from '@/components/desktop/AssetDesktopView';
 import AssetMobileView from '@/components/mobile/AssetMobileView';
 import { assetRoute, addressRoute } from '@/lib/shared/routes';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
+import { attachIssuerLabel } from '@/lib/shared/assetLabels';
 
 type AssetListItem = {
   asset_code: string;
@@ -157,9 +158,15 @@ export default function AssetsPage() {
             throw new Error(`Asset ${id} not found`);
           }
 
+          let enrichedAssetDetails = assetDetails;
+          if (assetDetails.issuer) {
+            const labels = await getAccountLabels([assetDetails.issuer]);
+            enrichedAssetDetails = attachIssuerLabel(assetDetails, labels);
+          }
+
           const assetRank = marketAssets.findIndex((a) => a.code === assetDetails.code) + 1;
           if (!isMounted) return;
-          setDetails(assetDetails);
+          setDetails(enrichedAssetDetails);
           setRank(assetRank);
           setAssets(null);
         } else {

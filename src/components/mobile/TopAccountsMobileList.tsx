@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { RichListAccount, shortenAddress } from '@/lib/stellar';
+import { isRiskLabel } from '@/lib/shared/riskLabels';
 
 interface TopAccountsMobileListProps {
     initialAccounts: RichListAccount[];
@@ -18,7 +19,7 @@ interface TopAccountsMobileListProps {
 function AccountStatusIcons({ labelName, verified }: { labelName?: string; verified?: boolean }) {
     const labelText = (labelName || '').toLowerCase();
     const isSpam = labelText.includes('spam');
-    const isRisk = labelText.includes('scam') || labelText.includes('hack') || labelText.includes('malicious') || isSpam;
+    const isRisk = isRiskLabel(labelName);
     const hasLabel = Boolean(labelName);
     const isVerified = Boolean(verified) && !isRisk;
 
@@ -114,6 +115,7 @@ export default function TopAccountsMobileList({
                     <div className="space-y-1.5">
                         {accounts.map((account, index) => {
                             const displayRank = (currentPage - 1) * 30 + index + 1;
+                            const riskLabelText = account.label?.name;
                             return (
                             <Link
                                 key={account.account}

@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/stellar';
 import type { LabeledAccountsAPIResponse } from '@/lib/stellar';
+import { isRiskLabel } from '@/lib/shared/riskLabels';
 
 interface KnownAccountsDesktopViewProps {
   initialData: LabeledAccountsAPIResponse | null;
@@ -95,8 +96,8 @@ export default function KnownAccountsDesktopView({
   // Calculate totals
   const totals = useMemo(() => {
     const verifiedCount = displayAccounts.filter((acc) => {
-      const labelText = (acc.label?.name || acc.org_name || '').toLowerCase();
-      const isRisk = labelText.includes('scam') || labelText.includes('hack') || labelText.includes('malicious') || labelText.includes('spam');
+      const labelText = acc.label?.name || acc.org_name || undefined;
+      const isRisk = isRiskLabel(labelText);
       return acc.label?.verified === 1 && !isRisk;
     }).length;
     return { verifiedCount };
@@ -242,9 +243,10 @@ export default function KnownAccountsDesktopView({
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]">
               {filteredAndSortedAccounts.map((account, index) => {
-                const labelText = (account.label?.name || account.org_name || '').toLowerCase();
+                const riskLabelText = account.label?.name || account.org_name || undefined;
+                const labelText = (riskLabelText || '').toLowerCase();
                 const isSpam = labelText.includes('spam');
-                const isRisk = labelText.includes('scam') || labelText.includes('hack') || labelText.includes('malicious') || isSpam;
+                const isRisk = isRiskLabel(riskLabelText);
                 const isVerified = account.label?.verified === 1 && !isRisk;
                 const hasLabel = !!(account.label?.name || account.org_name);
                 const displayName = account.label?.name || account.org_name || 'Unknown';

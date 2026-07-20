@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { RichListAccount, shortenAddress } from '@/lib/stellar';
+import { isRiskLabel } from '@/lib/shared/riskLabels';
 
 interface TopAccountsDesktopViewProps {
   initialAccounts: RichListAccount[];
@@ -84,8 +85,7 @@ export default function TopAccountsDesktopView({
     const totalBalance = initialAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
     const totalPercent = initialAccounts.reduce((sum, acc) => sum + parseFloat(acc.percent_of_coins || '0'), 0);
     const verifiedCount = initialAccounts.filter((acc) => {
-      const labelText = (acc.label?.name || '').toLowerCase();
-      const isRisk = labelText.includes('scam') || labelText.includes('hack') || labelText.includes('malicious') || labelText.includes('spam');
+      const isRisk = isRiskLabel(acc.label?.name);
       return acc.label?.verified && !isRisk;
     }).length;
     return { totalBalance, totalPercent, verifiedCount, totalAccounts, displayedAccounts: initialAccounts.length };
@@ -243,9 +243,10 @@ export default function TopAccountsDesktopView({
             <tbody className="divide-y divide-[var(--border-subtle)]">
               {filteredAndSortedAccounts.map((account, index) => {
                 const displayRank = (currentPage - 1) * 30 + index + 1;
-                const labelText = (account.label?.name || '').toLowerCase();
+                const riskLabelText = account.label?.name;
+                const labelText = (riskLabelText || '').toLowerCase();
                 const isSpam = labelText.includes('spam');
-                const isRisk = labelText.includes('scam') || labelText.includes('hack') || labelText.includes('malicious') || isSpam;
+                const isRisk = isRiskLabel(riskLabelText);
                 const isVerified = account.label?.verified && !isRisk;
                 const hasLabel = !!account.label?.name;
 

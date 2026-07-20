@@ -142,6 +142,7 @@ export interface AssetDetails extends MarketAsset {
   description?: string;
   domain?: string;
   image?: string;
+  issuerLabel?: AccountLabel;
   assetKey?: string;
   network?: number;
   native?: boolean;

@@ -8,6 +8,7 @@ import {
   Transaction,
   Operation,
   Effect,
+  MarketAsset,
   shortenAddress,
   timeAgo,
   formatXLM,
@@ -25,6 +26,9 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { addressRoute, assetRoute, txRoute } from '@/lib/shared/routes';
 import GliderTabs from '@/components/ui/GliderTabs';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
+import RiskWarningRow from '@/components/RiskWarningRow';
+import RiskAwareLink from '@/components/RiskAwareLink';
+import { isRiskLabel } from '@/lib/shared/riskLabels';
 
 interface Balance {
   asset_type: string;
@@ -116,7 +120,12 @@ interface AccountDesktopViewProps {
   onTabChange?: (tab: string) => void;
   loadingTransactions?: boolean;
   loadingOperations?: boolean;
+  issuedAssets?: MarketAsset[];
+  loadingIssuedAssets?: boolean;
+  showIssuedAssetsTab?: boolean;
 }
+
+type AccountDesktopTab = 'assets' | 'issued' | 'transactions' | 'operations' | 'details';
 
 function getAssetUrl(code: string | undefined, issuer: string | undefined): string {
   if (!code || code === 'native') return assetRoute('XLM', null);
@@ -174,7 +183,7 @@ function parseNativeBalanceDeltaPercent(
 function AccountStatusIcons({ labelText, verified, size = 'sm' }: { labelText?: string; verified?: boolean; size?: 'sm' | 'lg' }) {
   const normalized = (labelText || '').toLowerCase();
   const isSpam = normalized.includes('spam');
-  const isRisk = normalized.includes('scam') || normalized.includes('hack') || normalized.includes('malicious') || isSpam;
+  const isRisk = isRiskLabel(labelText);
   const hasLabel = Boolean(labelText);
   const isVerified = Boolean(verified) && !isRisk;
   const iconSize = size === 'lg' ? 'w-8 h-8' : 'w-4 h-4';
@@ -219,7 +228,7 @@ const getOperationCategory = (type: string): { label: string; color: string; bgC
   return { label: 'Action', color: 'text-[var(--text-secondary)]', bgColor: 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]' };
 };
 
-export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false }: AccountDesktopViewProps) {
+export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false, issuedAssets = [], loadingIssuedAssets = false, showIssuedAssetsTab = false }: AccountDesktopViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -232,11 +241,20 @@ export default function AccountDesktopView({ account, accountId, transactions, o
   const isCurrentFavorite = isFavorite(accountId);
   const currentFavorite = getFavorite(accountId);
   const accountLabelText = currentFavorite?.label || currentAccountLabel?.name || currentAccountLabel?.org_name;
+  const accountRiskLabelText = currentAccountLabel?.name || currentAccountLabel?.org_name;
   const labelActionText = accountLabelText ? 'Update label' : 'Add label';
 
   // Read initial tab from URL params
-  const initialTab = (searchParams.get('tab') as 'assets' | 'transactions' | 'operations' | 'details') || 'assets';
-  const [activeTab, setActiveTab] = useState<'assets' | 'transactions' | 'operations' | 'details'>(initialTab);
+  const requestedInitialTab = (searchParams.get('tab') as AccountDesktopTab) || 'assets';
+  const initialTab = requestedInitialTab === 'issued' && !showIssuedAssetsTab ? 'assets' : requestedInitialTab;
+  const [activeTab, setActiveTab] = useState<AccountDesktopTab>(initialTab);
+  const desktopTabs = [
+    { id: 'assets' as const, label: 'Assets' },
+    ...(showIssuedAssetsTab ? [{ id: 'issued' as const, label: 'Issued Assets' }] : []),
+    { id: 'transactions' as const, label: 'Transactions' },
+    { id: 'operations' as const, label: 'Operations' },
+    { id: 'details' as const, label: 'Details' },
+  ];
 
   const [assetPrices, setAssetPrices] = useState<Record<string, AssetPriceData>>({});
   const [opEffects, setOpEffects] = useState<Record<string, Effect[]>>({});
@@ -268,7 +286,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
   const opsLoadMoreRef = useRef<HTMLDivElement | null>(null);
 
   // Update URL when tab changes (use history.replaceState to avoid Next.js re-render)
-  const handleTabChange = (tab: 'assets' | 'transactions' | 'operations' | 'details') => {
+  const handleTabChange = (tab: AccountDesktopTab) => {
     setActiveTab(tab);
     onTabChange?.(tab);
     const params = new URLSearchParams(searchParams.toString());
@@ -280,6 +298,33 @@ export default function AccountDesktopView({ account, accountId, transactions, o
     const newUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
     window.history.replaceState(null, '', newUrl);
   };
+
+  useEffect(() => {
+    if (requestedInitialTab === 'issued' && showIssuedAssetsTab && activeTab !== 'issued') {
+      setActiveTab('issued');
+      onTabChange?.('issued');
+      return;
+    }
+
+    if (requestedInitialTab === 'issued' && !showIssuedAssetsTab) {
+      if (activeTab !== 'assets') {
+        setActiveTab('assets');
+      }
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('tab');
+      const newUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+      window.history.replaceState(null, '', newUrl);
+      return;
+    }
+
+    if (activeTab === 'issued' && !showIssuedAssetsTab) {
+      setActiveTab('assets');
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('tab');
+      const newUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [activeTab, onTabChange, requestedInitialTab, searchParams, showIssuedAssetsTab]);
 
   // Trigger lazy load if initial tab is not 'assets'
   useEffect(() => {
@@ -849,6 +894,13 @@ export default function AccountDesktopView({ account, accountId, transactions, o
           </button>
         </div>
 
+        <RiskWarningRow
+          labelText={accountRiskLabelText}
+          subject="address"
+          address={accountId}
+          className="mb-4"
+        />
+
         {/* Overview Cards Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Card 1 - Overview */}
@@ -978,17 +1030,18 @@ export default function AccountDesktopView({ account, accountId, transactions, o
               {account?.home_domain && (
                 <div>
                   <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide mb-0.5">Home Domain</div>
-                  <a
+                  <RiskAwareLink
                     href={`https://${account.home_domain}`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    riskLabelText={accountRiskLabelText}
                     className="text-sm text-sky-600 hover:text-sky-700 hover:underline flex items-center gap-1"
                   >
                     <svg className="w-3.5 h-3.5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                     </svg>
                     {account.home_domain}
-                  </a>
+                  </RiskAwareLink>
                 </div>
               )}
             </div>
@@ -1022,12 +1075,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
           <GliderTabs
             size="md"
             className="border-[var(--border-default)]"
-            tabs={[
-              { id: 'assets', label: 'Assets' },
-              { id: 'transactions', label: 'Transactions' },
-              { id: 'operations', label: 'Operations' },
-              { id: 'details', label: 'Details' },
-            ] as const}
+            tabs={desktopTabs}
             activeId={activeTab}
             onChange={(id) => handleTabChange(id)}
           />
@@ -1068,7 +1116,10 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                         </td>
                         <td className="py-3 px-3 text-[13px] text-[var(--text-tertiary)]">{timeAgo(tx.created_at)}</td>
                         <td className="py-3 px-3">
-                          <Link href={`/account/${tx.source_account}`} className="font-mono text-[13px] text-[var(--text-secondary)] hover:text-sky-600 flex items-center gap-2">
+                          <Link
+                            href={`/account/${tx.source_account}`}
+                            className="font-mono text-[13px] text-[var(--text-secondary)] hover:text-sky-600 flex items-center gap-2"
+                          >
                             <AccountBadges address={tx.source_account} labels={accountLabels} size="sm" />
                             {accountLabels[tx.source_account]?.name || shortenAddress(tx.source_account)}
                           </Link>
@@ -1369,6 +1420,86 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Issued Assets Tab */}
+            {activeTab === 'issued' && showIssuedAssetsTab && (
+              <div>
+                <div className="px-4 py-4 text-xs text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
+                  Assets issued by this address
+                </div>
+                {loadingIssuedAssets ? (
+                  <div className="flex items-center justify-center gap-2 py-10 text-sm text-[var(--text-muted)]">
+                    <div className="w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                    Loading issued assets...
+                  </div>
+                ) : issuedAssets.length === 0 ? (
+                  <div className="py-10 text-center text-sm text-[var(--text-muted)]">
+                    No issued assets found for this address.
+                  </div>
+                ) : (
+                  <table className="w-full sc-table">
+                    <thead>
+                      <tr className="border-b border-[var(--border-subtle)]">
+                        <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-left">Asset</th>
+                        <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right">Rank</th>
+                        <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right">Price</th>
+                        <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right">24H %</th>
+                        <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right">Market Cap</th>
+                        <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right">Supply</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border-subtle)]">
+                      {issuedAssets.map((asset) => (
+                        <tr
+                          key={`${asset.code}:${asset.issuer}`}
+                          className="hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                          onClick={() => router.push(getAssetUrl(asset.code, asset.issuer))}
+                        >
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-3 min-w-0">
+                              {asset.image ? (
+                                <img src={asset.image} alt={asset.code} className="w-8 h-8 rounded-full shrink-0" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-sky-500 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                                  {(asset.code || '?')[0]}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <Link
+                                  href={getAssetUrl(asset.code, asset.issuer)}
+                                  className="font-medium text-sm text-sky-600 hover:text-sky-700 hover:underline"
+                                  onClick={(event) => event.stopPropagation()}
+                                >
+                                  {asset.code}
+                                </Link>
+                                <div className="text-xs text-[var(--text-muted)] truncate max-w-[260px]">{asset.name || asset.code}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right text-sm text-[var(--text-secondary)]">
+                            {asset.rank > 0 ? `#${asset.rank.toLocaleString()}` : '--'}
+                          </td>
+                          <td className="px-4 py-4 text-right text-sm text-[var(--text-secondary)]">
+                            {asset.price_usd > 0 ? `$${asset.price_usd.toFixed(asset.price_usd >= 1 ? 4 : 6)}` : '--'}
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <span className={`text-sm font-medium ${asset.change_24h >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                              {asset.change_24h >= 0 ? '+' : ''}{asset.change_24h.toFixed(2)}%
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-right text-sm text-[var(--text-secondary)]">
+                            {asset.market_cap > 0 ? `$${formatCompactNumber(asset.market_cap)}` : '--'}
+                          </td>
+                          <td className="px-4 py-4 text-right text-sm text-[var(--text-secondary)]">
+                            {asset.circulating_supply > 0 ? formatCompactNumber(asset.circulating_supply) : '--'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             )}
 

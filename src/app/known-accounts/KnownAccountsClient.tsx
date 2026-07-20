@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { shortenAddress } from '@/lib/stellar';
 import type { LabeledAccountsAPIResponse } from '@/lib/stellar';
+import { isRiskLabel } from '@/lib/shared/riskLabels';
 
 interface KnownAccountsClientProps {
   initialData: LabeledAccountsAPIResponse | null;
@@ -19,7 +20,7 @@ interface KnownAccountsClientProps {
 function AccountStatusIcons({ labelText, verified }: { labelText?: string; verified?: boolean }) {
   const normalized = (labelText || '').toLowerCase();
   const isSpam = normalized.includes('spam');
-  const isRisk = normalized.includes('scam') || normalized.includes('hack') || normalized.includes('malicious') || isSpam;
+  const isRisk = isRiskLabel(labelText);
   const hasLabel = Boolean(labelText);
   const isVerified = Boolean(verified) && !isRisk;
 
@@ -125,43 +126,47 @@ export default function KnownAccountsClient({
           </div>
         ) : (
           <div className="space-y-1.5">
-            {accounts.map((account) => (
-              <Link
-                key={account.account}
-                href={`/account/${account.account}`}
-                className="block bg-[var(--bg-secondary)] rounded-lg shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
-              >
-                <div className="px-3 py-2">
-                  <div className="flex items-center">
-                    <div className="flex-1 min-w-0 mr-2">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[13px] font-semibold text-[var(--primary-blue)] truncate">
-                          {account.label?.name || account.org_name || 'Unknown'}
+            {accounts.map((account) => {
+              const riskLabelText = account.label?.name || account.org_name || undefined;
+
+              return (
+                <Link
+                  key={account.account}
+                  href={`/account/${account.account}`}
+                  className="block bg-[var(--bg-secondary)] rounded-lg shadow-sm border border-[var(--border-subtle)] active:bg-[var(--bg-tertiary)] transition-colors"
+                >
+                  <div className="px-3 py-2">
+                    <div className="flex items-center">
+                      <div className="flex-1 min-w-0 mr-2">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[13px] font-semibold text-[var(--primary-blue)] truncate">
+                            {account.label?.name || account.org_name || 'Unknown'}
+                          </span>
+                          <AccountStatusIcons
+                            labelText={riskLabelText}
+                            verified={account.label?.verified === 1}
+                          />
+                        </div>
+                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                          {shortenAddress(account.account)}
                         </span>
-                        <AccountStatusIcons
-                          labelText={account.label?.name || account.org_name || undefined}
-                          verified={account.label?.verified === 1}
-                        />
                       </div>
-                      <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                        {shortenAddress(account.account)}
-                      </span>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-[13px] font-bold text-[var(--text-primary)]">
-                        {formatBalance(account.balance || 0)} <span className="text-[var(--text-muted)] font-normal text-[10px]">XLM</span>
-                      </div>
-                      <div className="text-[10px] text-[var(--text-tertiary)]">
-                        {formatUsdBalance(account.balance || 0)}
-                      </div>
-                      <div className="text-[10px] text-[var(--text-muted)]">
-                        {parseInt(account.transactions || '0').toLocaleString()} txs
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-[13px] font-bold text-[var(--text-primary)]">
+                          {formatBalance(account.balance || 0)} <span className="text-[var(--text-muted)] font-normal text-[10px]">XLM</span>
+                        </div>
+                        <div className="text-[10px] text-[var(--text-tertiary)]">
+                          {formatUsdBalance(account.balance || 0)}
+                        </div>
+                        <div className="text-[10px] text-[var(--text-muted)]">
+                          {parseInt(account.transactions || '0').toLocaleString()} txs
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
 
