@@ -21,10 +21,15 @@ export default function ProjectDetailPage() {
   const projectId = useMemo(() => {
     const fromQuery = (searchParams.get('id') || '').trim();
     if (fromQuery) return getProjectIdFromRoute(fromQuery);
-    const fromParams = (params.slug || '').trim();
-    if (fromParams) return getProjectIdFromRoute(fromParams);
+
+    // Static export generates this page with slug "1". On fallback routes such
+    // as /projects/3, useParams can therefore still expose "1", while the
+    // browser pathname contains the project the visitor actually requested.
     const fromPath = pathname.replace(/\/+$/, '').split('/').pop() || '';
-    return getProjectIdFromRoute(fromPath);
+    const fromPathId = getProjectIdFromRoute(fromPath);
+    if (fromPathId) return fromPathId;
+
+    return getProjectIdFromRoute(params.slug || '');
   }, [params.slug, pathname, searchParams]);
 
   const [project, setProject] = useState<Project | null>(null);
