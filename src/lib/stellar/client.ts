@@ -6,6 +6,7 @@ import { DEFAULT_NETWORK, NETWORK_COOKIE_NAME, isNetworkType, type NetworkType }
 import { getCurrentNetwork, setCurrentNetwork } from '../network/state';
 import { mapHorizonAssetRecordToIssuedAsset } from '../shared/issuedAssets';
 import { parseStellarTomlAssetMetadata } from '../shared/stellarToml';
+import { resolveVerifiedIssuedAssetMetadata } from '../soroban/verifiedIssuedAssets';
 
 import type {
   Ledger,
@@ -1476,23 +1477,24 @@ async function fetchTomlText(tomlUrl: string): Promise<string | null> {
 }
 
 async function fetchHorizonTomlAssetMetadata(record: any, code: string, issuer: string): Promise<HorizonTomlAssetMetadata> {
+  const network = getCurrentNetwork();
   const tomlUrl = getHorizonTomlUrl(record);
   if (!tomlUrl) {
-    return {};
+    return resolveVerifiedIssuedAssetMetadata(code, issuer, network);
   }
 
   const tomlText = await fetchTomlText(tomlUrl);
   if (!tomlText) {
-    return {
+    return resolveVerifiedIssuedAssetMetadata(code, issuer, network, {
       homeDomain: hostnameFromUrl(tomlUrl),
-    };
+    });
   }
 
   const metadata = parseStellarTomlAssetMetadata(tomlText, code, issuer);
-  return {
+  return resolveVerifiedIssuedAssetMetadata(code, issuer, network, {
     ...metadata,
     homeDomain: hostnameFromUrl(tomlUrl),
-  };
+  });
 }
 
 export async function getIssuedAssetsByIssuer(
