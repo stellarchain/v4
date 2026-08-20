@@ -20,6 +20,26 @@ const tokenCache: Map<string, CacheEntry> = new Map();
 // Known tokens registry - instant lookup for popular tokens
 // These are verified contracts on Stellar mainnet
 export const KNOWN_TOKENS: Record<string, TokenRegistryEntry> = {
+  // USDT0 - Everdawn Labs omnichain USDT SAC
+  'CBSJZEIO5C7KC2SF3MKSNXXJSW5G3VTNBX4ATMKUI3B2MR4JKM4R26YF': {
+    contractId: 'CBSJZEIO5C7KC2SF3MKSNXXJSW5G3VTNBX4ATMKUI3B2MR4JKM4R26YF',
+    name: 'USDT0',
+    symbol: 'USDT0',
+    decimals: 7,
+    isSAC: true,
+    underlyingAsset: {
+      code: 'USDT0',
+      issuer: 'GATISXX6BZ6NC7IKQBY37CJD4SOZL3CYZJWXEDG6JVIY4WBS6KXJHN6Q',
+    },
+    lastFetched: Date.now(),
+    fetchedFromRPC: false,
+    verified: true,
+    domain: 'usdt0.to',
+    iconUrl: 'https://ipfs.io/ipfs/bafkreifaalohkkikosp27qp6qczwaffwseejvoaafkgv7ahyrqvejmpqou',
+    description: 'USDT0 is the omnichain deployment of Tether\'s USDT.',
+    category: 'token',
+  },
+
   // USDC - Circle's USD Coin SAC
   'CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75': {
     contractId: 'CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75',
