@@ -8,6 +8,7 @@ import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrder
 import { getXLMHoldersAction } from '@/lib/helpers';
 import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/shared/designSystem';
 import GliderTabs from '@/components/ui/GliderTabs';
+import Badge from '@/components/ui/Badge';
 import RiskWarningRow from '@/components/RiskWarningRow';
 import RiskAwareLink from '@/components/RiskAwareLink';
 
@@ -858,6 +859,14 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 <div className="text-white/60 text-[11px] uppercase tracking-wide">Asset price</div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-white">{asset.code}</span>
+                  {asset.verified && (
+                    <Badge variant="success" className="gap-1 shrink-0 bg-emerald-400/15 text-emerald-300 border-emerald-300/30">
+                      <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                      </svg>
+                      Verified
+                    </Badge>
+                  )}
                   {asset.code !== 'XLM' && (
                     <span className="text-white/50 text-xs">/ USD</span>
                   )}

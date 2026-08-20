@@ -15,7 +15,7 @@ export const VERIFIED_ISSUED_ASSET_TOKENS: Record<string, TokenRegistryEntry> = 
     fetchedFromRPC: false,
     verified: true,
     domain: 'usdt0.to',
-    iconUrl: 'https://ipfs.io/ipfs/bafkreifaalohkkikosp27qp6qczwaffwseejvoaafkgv7ahyrqvejmpqou',
+    iconUrl: '/usdt0-icon.svg',
     description: 'USDT0 is the omnichain deployment of Tether\'s USDT.',
     category: 'token',
   },
@@ -28,6 +28,7 @@ export type VerifiedIssuedAssetMetadata = {
   homeUrl?: string;
   orgLogo?: string;
   homeDomain?: string;
+  verified?: boolean;
 };
 
 export function getVerifiedIssuedAssetToken(
@@ -63,9 +64,10 @@ export function resolveVerifiedIssuedAssetMetadata(
   return {
     name: primaryMetadata.name || verifiedToken.name,
     description: primaryMetadata.description || verifiedToken.description,
-    image: primaryMetadata.image || verifiedToken.iconUrl,
+    image: verifiedToken.iconUrl || primaryMetadata.image,
     homeUrl: primaryMetadata.homeUrl || (verifiedToken.domain ? `https://${verifiedToken.domain}` : undefined),
     orgLogo: primaryMetadata.orgLogo,
     homeDomain: primaryMetadata.homeDomain || verifiedToken.domain,
+    verified: primaryMetadata.verified ?? verifiedToken.verified === true,
   };
 }

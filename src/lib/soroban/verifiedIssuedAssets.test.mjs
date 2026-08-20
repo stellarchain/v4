@@ -13,10 +13,7 @@ describe('verified issued asset registry', () => {
 
     assert.equal(token?.symbol, 'USDT0');
     assert.equal(token?.domain, 'usdt0.to');
-    assert.equal(
-      token?.iconUrl,
-      'https://ipfs.io/ipfs/bafkreifaalohkkikosp27qp6qczwaffwseejvoaafkgv7ahyrqvejmpqou'
-    );
+    assert.equal(token?.iconUrl, '/usdt0-icon.svg');
   });
 
   it('does not return verified metadata for a lookalike issuer', () => {
@@ -38,11 +35,12 @@ describe('verified issued asset registry', () => {
   it('provides asset-page metadata when Horizon has no TOML link', () => {
     const metadata = resolveVerifiedIssuedAssetMetadata('USDT0', USDT0_ISSUER, 'mainnet');
 
-    assert.equal(metadata.image, 'https://ipfs.io/ipfs/bafkreifaalohkkikosp27qp6qczwaffwseejvoaafkgv7ahyrqvejmpqou');
+    assert.equal(metadata.image, '/usdt0-icon.svg');
     assert.equal(metadata.homeDomain, 'usdt0.to');
+    assert.equal(metadata.verified, true);
   });
 
-  it('keeps TOML metadata authoritative over the verified fallback', () => {
+  it('keeps TOML identity metadata while using the same-origin verified icon', () => {
     const metadata = resolveVerifiedIssuedAssetMetadata('USDT0', USDT0_ISSUER, 'mainnet', {
       name: 'TOML USDT0',
       image: 'https://usdt0.to/toml-logo.png',
@@ -50,7 +48,7 @@ describe('verified issued asset registry', () => {
     });
 
     assert.equal(metadata.name, 'TOML USDT0');
-    assert.equal(metadata.image, 'https://usdt0.to/toml-logo.png');
+    assert.equal(metadata.image, '/usdt0-icon.svg');
     assert.equal(metadata.homeDomain, 'toml.usdt0.to');
   });
 });

@@ -1658,6 +1658,9 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
     }
   }
 
+  const verifiedAssetPresentation = parsedIssuer
+    ? resolveVerifiedIssuedAssetMetadata(parsedCode, parsedIssuer, getCurrentNetwork())
+    : {};
   const latestStatisticNode = (v1AssetPayload?.latestStatistic as Record<string, unknown>) || null;
   const marketNode = (v1AssetPayload?.market as Record<string, unknown>) || null;
   const metaFromV1 = {
@@ -1670,6 +1673,10 @@ export async function getAssetDetails(code: string, issuer?: string): Promise<As
     updatedAt: String(v1AssetPayload?.updatedAt || '') || undefined,
     marketUpdatedAt: String(marketNode?.updated_at || '') || undefined,
     ratingAverage: Number(v1AssetPayload?.ratingAverage ?? latestStatisticNode?.ratingAverage ?? 0) || undefined,
+    ...(verifiedAssetPresentation.verified ? {
+      verified: true,
+      image: verifiedAssetPresentation.image,
+    } : {}),
     latestStatistic: latestStatisticNode ? {
       price: Number(latestStatisticNode.price || 0),
       supply: Number(latestStatisticNode.supply || 0),
