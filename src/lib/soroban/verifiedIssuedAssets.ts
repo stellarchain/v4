@@ -16,7 +16,7 @@ export const VERIFIED_ISSUED_ASSET_TOKENS: Record<string, TokenRegistryEntry> = 
     verified: true,
     domain: 'usdt0.to',
     iconUrl: '/usdt0-icon.svg',
-    description: 'USDT0 is the omnichain deployment of Tether\'s USDT.',
+    description: 'USDT0 is Tether’s USDT, built to move seamlessly across every supported network.',
     category: 'token',
   },
 };

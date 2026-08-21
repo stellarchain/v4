@@ -14,6 +14,10 @@ describe('verified issued asset registry', () => {
     assert.equal(token?.symbol, 'USDT0');
     assert.equal(token?.domain, 'usdt0.to');
     assert.equal(token?.iconUrl, '/usdt0-icon.svg');
+    assert.equal(
+      token?.description,
+      'USDT0 is Tether’s USDT, built to move seamlessly across every supported network.'
+    );
   });
 
   it('does not return verified metadata for a lookalike issuer', () => {
