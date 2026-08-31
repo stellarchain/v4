@@ -7,6 +7,18 @@ import { getCurrentNetwork, setCurrentNetwork } from '../network/state';
 import { mapHorizonAssetRecordToIssuedAsset } from '../shared/issuedAssets';
 import { parseStellarTomlAssetMetadata } from '../shared/stellarToml';
 import { resolveVerifiedIssuedAssetMetadata } from '../soroban/verifiedIssuedAssets';
+import {
+  collectFundedAssetHolderBatch,
+  sortAssetHoldersByBalance,
+} from '../shared/assetHolders';
+import {
+  collectTradingPairCandidatesFromOffers,
+  getTradingPairAssetKey,
+  summarizeTradingPairAggregations,
+  type TradingPairAsset,
+  type TradingPairCandidate,
+  type TradingPairOffer,
+} from '../shared/assetTradingPairs';
 
 import type {
   Ledger,
@@ -33,7 +45,6 @@ import type {
   V1AccountMetric,
   V1AccountRecord,
   V1CollectionResponse,
-  TradePage,
   StellarCoinApiResponse,
   NormalizedStellarchainAsset,
 } from '../shared/interfaces';
@@ -256,8 +267,24 @@ export async function getAssetTrades(
     .limit(limit)
     .order(order);
   if (cursor) builder.cursor(cursor);
-  const response = await builder.call();
-  return response as unknown as PaginatedResponse<AssetTrade>;
+  try {
+    const response = await builder.call();
+    return response as unknown as PaginatedResponse<AssetTrade>;
+  } catch (error) {
+    const status = Number((error as any)?.response?.status || (error as any)?.status);
+    const message = String((error as any)?.message || '').toLowerCase();
+    if (status === 404 || message.includes('not found')) {
+      return {
+        records: [],
+        _links: {
+          self: { href: '' },
+          next: { href: '' },
+          prev: { href: '' },
+        },
+      };
+    }
+    throw error;
+  }
 }
 
 export function resolveAssetPair(
@@ -782,208 +809,271 @@ export async function getContractInvocations(
   }
 }
 
-// Get accounts holding a specific asset (sorted by balance descending)
+const HORIZON_HOLDER_REQUEST_PAGE_SIZE = 200;
+const HORIZON_HOLDER_DEFAULT_TARGET = 20;
+const HORIZON_HOLDER_MAX_TARGET = 100;
+const HORIZON_HOLDER_MAX_SCAN_PAGES = 50;
+
+// Horizon paginates asset trustlines by account cursor, not by balance.
 export async function getAssetHolders(
   assetCode: string,
   assetIssuer: string,
-  limit: number = 20,
+  limit: number = HORIZON_HOLDER_DEFAULT_TARGET,
   cursor?: string
-): Promise<{ holders: AssetHolder[]; nextCursor: string | null; totalSupply: number }> {
-  // For native XLM, we can't query by asset filter - return empty
+): Promise<{ holders: AssetHolder[]; nextCursor: string | null }> {
   if (assetCode === 'XLM' && !assetIssuer) {
-    return { holders: [], nextCursor: null, totalSupply: 0 };
+    return { holders: [], nextCursor: null };
   }
 
+  const targetHolderCount = Math.min(
+    Math.max(Number.isFinite(limit) ? Math.trunc(limit) : HORIZON_HOLDER_DEFAULT_TARGET, 1),
+    HORIZON_HOLDER_MAX_TARGET
+  );
+  const server = getHorizonServer();
   const asset = new Asset(assetCode, assetIssuer);
-  const builder = getHorizonServer().accounts().forAsset(asset).limit(limit).order('desc');
-  if (cursor) builder.cursor(cursor);
-  const response = await builder.call() as unknown as PaginatedResponse<StellarAccount>;
-  const accounts = response.records;
+  const holders: AssetHolder[] = [];
+  let scanCursor = cursor;
+  let nextCursor: string | null = cursor || null;
 
-  // Extract the balance for the specific asset from each account
-  const holders: AssetHolder[] = accounts.map(account => {
-    const assetBalance = account.balances.find(
-      b => b.asset_code === assetCode && b.asset_issuer === assetIssuer
+  for (let pageCount = 0; pageCount < HORIZON_HOLDER_MAX_SCAN_PAGES; pageCount++) {
+    const builder = server
+      .accounts()
+      .forAsset(asset)
+      .limit(HORIZON_HOLDER_REQUEST_PAGE_SIZE)
+      .order('asc');
+    if (scanCursor) builder.cursor(scanCursor);
+
+    const response = await builder.call() as unknown as PaginatedResponse<StellarAccount>;
+    if (response.records.length === 0) {
+      nextCursor = null;
+      break;
+    }
+
+    const batch = collectFundedAssetHolderBatch(
+      response.records,
+      assetCode,
+      assetIssuer,
+      targetHolderCount - holders.length
     );
-    return {
-      account_id: account.account_id,
-      balance: assetBalance?.balance || '0',
-      paging_token: account.paging_token || account.id,
-    };
-  }).filter(h => parseFloat(h.balance) > 0);
+    holders.push(...batch.holders);
 
-  // Sort by balance descending (accounts endpoint doesn't sort by balance)
-  holders.sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance));
+    if (!batch.lastProcessedCursor || batch.lastProcessedCursor === scanCursor) {
+      nextCursor = null;
+      break;
+    }
 
-  // Get next cursor from the last account
-  const lastAccount = accounts[accounts.length - 1];
-  const nextCursor = accounts.length === limit ? (lastAccount?.paging_token || lastAccount?.id || null) : null;
+    const consumedEntirePage = batch.processedAccounts === response.records.length;
+    const reachedHorizonEnd = consumedEntirePage
+      && response.records.length < HORIZON_HOLDER_REQUEST_PAGE_SIZE;
+    nextCursor = reachedHorizonEnd ? null : batch.lastProcessedCursor;
 
-  // Calculate total supply from all holders (approximate - for display purposes)
-  const totalSupply = holders.reduce((sum, h) => sum + parseFloat(h.balance), 0);
+    if (holders.length >= targetHolderCount || reachedHorizonEnd) break;
+    scanCursor = batch.lastProcessedCursor;
+  }
 
-  return { holders, nextCursor, totalSupply };
+  return {
+    holders: sortAssetHoldersByBalance(holders),
+    nextCursor,
+  };
 }
 
-// Get all trading pairs for a specific asset
+const TRADING_PAIR_OFFER_PAGE_SIZE = 200;
+const TRADING_PAIR_MAX_OFFER_PAGES = 3;
+const TRADING_PAIR_MAX_CANDIDATES = 25;
+const TRADING_PAIR_REQUEST_BATCH_SIZE = 5;
+const TRADING_PAIR_AGGREGATION_RESOLUTION = 60 * 60 * 1000;
+
+function getTradingPairAsset(assetCode: string, assetIssuer?: string): TradingPairAsset {
+  const isNative = assetCode === 'XLM' && !assetIssuer;
+  return {
+    code: assetCode,
+    issuer: assetIssuer,
+    type: isNative ? 'native' : (assetCode.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12'),
+  };
+}
+
+function getDefaultTradingPairCandidates(
+  assetCode: string,
+  assetIssuer?: string
+): TradingPairCandidate[] {
+  const candidates: TradingPairCandidate[] = [];
+  const defaultCounters = assetCode === 'XLM' && !assetIssuer
+    ? [getTradingPairAsset('USDC', USDC_ISSUER)]
+    : [getTradingPairAsset('XLM'), getTradingPairAsset('USDC', USDC_ISSUER)];
+
+  for (const counterAsset of defaultCounters) {
+    if (counterAsset.code === assetCode && counterAsset.issuer === assetIssuer) continue;
+    candidates.push({
+      counterAsset,
+      offerCount: 0,
+      referencePrice: 0,
+      spread: 0,
+    });
+  }
+
+  return candidates;
+}
+
+async function getOffersForTradingPairDiscovery(
+  server: Horizon.Server,
+  asset: Asset,
+  direction: 'buying' | 'selling'
+): Promise<TradingPairOffer[]> {
+  const offers: TradingPairOffer[] = [];
+  let page = await (direction === 'buying'
+    ? server.offers().buying(asset)
+    : server.offers().selling(asset))
+    .limit(TRADING_PAIR_OFFER_PAGE_SIZE)
+    .order('desc')
+    .call();
+
+  for (let pageCount = 0; pageCount < TRADING_PAIR_MAX_OFFER_PAGES; pageCount++) {
+    offers.push(...page.records as unknown as TradingPairOffer[]);
+    if (
+      pageCount === TRADING_PAIR_MAX_OFFER_PAGES - 1
+      || page.records.length < TRADING_PAIR_OFFER_PAGE_SIZE
+    ) {
+      break;
+    }
+    page = await page.next();
+  }
+
+  return offers;
+}
+
+function mergeTradingPairCandidates(
+  defaultCandidates: TradingPairCandidate[],
+  offerCandidates: TradingPairCandidate[]
+): TradingPairCandidate[] {
+  const merged = new Map<string, TradingPairCandidate>();
+  for (const candidate of defaultCandidates) {
+    merged.set(getTradingPairAssetKey(candidate.counterAsset), candidate);
+  }
+  for (const candidate of offerCandidates) {
+    merged.set(getTradingPairAssetKey(candidate.counterAsset), candidate);
+  }
+
+  return Array.from(merged.values())
+    .sort((left, right) => right.offerCount - left.offerCount)
+    .slice(0, TRADING_PAIR_MAX_CANDIDATES);
+}
+
+async function getLatestTradingPairTrade(
+  server: Horizon.Server,
+  baseAsset: Asset,
+  counterAsset: Asset
+): Promise<AssetTrade | null> {
+  try {
+    const response = await server
+      .trades()
+      .forAssetPair(baseAsset, counterAsset)
+      .limit(1)
+      .order('desc')
+      .call();
+    return (response.records[0] as unknown as AssetTrade | undefined) || null;
+  } catch (error) {
+    const status = Number((error as any)?.response?.status || (error as any)?.status);
+    const message = String((error as any)?.message || '').toLowerCase();
+    if (status === 404 || message.includes('not found')) return null;
+    throw error;
+  }
+}
+
+async function loadTradingPair(
+  server: Horizon.Server,
+  baseAsset: TradingPairAsset,
+  candidate: TradingPairCandidate,
+  startTime: number,
+  endTime: number
+): Promise<TradingPair | null> {
+  const horizonBaseAsset = toHorizonAsset(baseAsset);
+  const horizonCounterAsset = toHorizonAsset(candidate.counterAsset);
+  if (!horizonBaseAsset || !horizonCounterAsset) return null;
+
+  try {
+    const [aggregations, latestTrade] = await Promise.all([
+      getTradeAggregations(
+        baseAsset,
+        candidate.counterAsset,
+        TRADING_PAIR_AGGREGATION_RESOLUTION,
+        25,
+        startTime,
+        endTime
+      ),
+      getLatestTradingPairTrade(server, horizonBaseAsset, horizonCounterAsset),
+    ]);
+    const summary = summarizeTradingPairAggregations(aggregations);
+    const latestTradePrice = latestTrade && latestTrade.price.d > 0
+      ? latestTrade.price.n / latestTrade.price.d
+      : 0;
+    const price = summary.price || latestTradePrice || candidate.referencePrice;
+    if (price <= 0 && candidate.offerCount === 0) return null;
+
+    return {
+      baseAsset,
+      counterAsset: candidate.counterAsset,
+      price,
+      baseVolume24h: summary.baseVolume,
+      counterVolume24h: summary.counterVolume,
+      tradeCount24h: summary.tradeCount,
+      totalTradeCount: Math.max(summary.tradeCount, latestTrade ? 1 : 0),
+      priceChange24h: summary.priceChange,
+      spread: candidate.spread,
+      lastTradeTime: latestTrade?.ledger_close_time || candidate.lastOfferTime,
+    };
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(
+        `Failed to fetch ${baseAsset.code}/${candidate.counterAsset.code} market:`,
+        error
+      );
+    }
+    return null;
+  }
+}
+
+// Discover counterparties from active offers, then query every market by its exact asset pair.
 export async function getAssetTradingPairs(
   assetCode: string,
   assetIssuer?: string
 ): Promise<TradingPair[]> {
-  const pairs: TradingPair[] = [];
-
-  const isNative = assetCode === 'XLM' && (!assetIssuer || assetIssuer === '');
-  const assetType = isNative ? 'native' : (assetCode.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12');
-
   try {
-    // Fetch multiple pages to get more trades
-    let allTrades: AssetTrade[] = [];
-    let currentPage = await getHorizonServer().trades().limit(200).order('desc').call() as unknown as TradePage;
-    const maxPages = 5; // Fetch up to 5 pages (1000 trades)
+    const baseAsset = getTradingPairAsset(assetCode, assetIssuer);
+    const horizonAsset = toHorizonAsset(baseAsset);
+    if (!horizonAsset) return [];
 
-    for (let pageCount = 0; pageCount < maxPages; pageCount++) {
-      allTrades = [...allTrades, ...(currentPage.records || [])];
-      if (pageCount === maxPages - 1 || typeof currentPage.next !== 'function') {
-        break;
-      }
-      currentPage = await currentPage.next();
-    }
-
-    // Filter trades that involve our asset
-    const relevantTrades = allTrades.filter(trade => {
-      const baseCode = trade.base_asset_type === 'native' ? 'XLM' : (trade.base_asset_code || '');
-      const baseIssuer = trade.base_asset_issuer || '';
-      const counterCode = trade.counter_asset_type === 'native' ? 'XLM' : (trade.counter_asset_code || '');
-      const counterIssuer = trade.counter_asset_issuer || '';
-
-      const normalizedAssetIssuer = assetIssuer || '';
-
-      // Check if our asset is involved
-      const isOurAssetBase = isNative
-        ? trade.base_asset_type === 'native'
-        : (baseCode === assetCode && baseIssuer === normalizedAssetIssuer);
-
-      const isOurAssetCounter = isNative
-        ? trade.counter_asset_type === 'native'
-        : (counterCode === assetCode && counterIssuer === normalizedAssetIssuer);
-
-      return isOurAssetBase || isOurAssetCounter;
-    });
-
-    if (relevantTrades.length === 0) {
-      return pairs;
-    }
-
+    const server = getHorizonServer();
+    const offerResults = await Promise.allSettled([
+      getOffersForTradingPairDiscovery(server, horizonAsset, 'buying'),
+      getOffersForTradingPairDiscovery(server, horizonAsset, 'selling'),
+    ]);
+    const offers = offerResults.flatMap(result =>
+      result.status === 'fulfilled' ? result.value : []
+    );
+    const candidates = mergeTradingPairCandidates(
+      getDefaultTradingPairCandidates(assetCode, assetIssuer),
+      collectTradingPairCandidatesFromOffers(assetCode, assetIssuer, offers)
+    );
     const now = Date.now();
     const oneDayAgo = now - 24 * 60 * 60 * 1000;
+    const pairs: TradingPair[] = [];
 
-    // Group trades by pair
-    const pairStats = new Map<string, {
-      baseAsset: { code: string; issuer?: string; type: string };
-      counterAsset: { code: string; issuer?: string; type: string };
-      trades24h: number;
-      totalTrades: number;
-      baseVolume: number;
-      counterVolume: number;
-      lastPrice: number;
-      firstPrice: number;
-      lastTradeTime: string;
-    }>();
-
-    for (const trade of relevantTrades) {
-      const baseCode = trade.base_asset_type === 'native' ? 'XLM' : (trade.base_asset_code || '');
-      const baseIssuer = trade.base_asset_issuer || '';
-      const counterCode = trade.counter_asset_type === 'native' ? 'XLM' : (trade.counter_asset_code || '');
-      const counterIssuer = trade.counter_asset_issuer || '';
-
-      // Check if our asset is the base or counter
-      const isOurAssetBase = isNative
-        ? trade.base_asset_type === 'native'
-        : (baseCode === assetCode && baseIssuer === (assetIssuer || ''));
-
-
-      // Create a unique key for this pair (always put our asset first)
-      const otherCode = isOurAssetBase ? counterCode : baseCode;
-      const otherIssuer = isOurAssetBase ? counterIssuer : baseIssuer;
-      const otherType = isOurAssetBase ? trade.counter_asset_type : trade.base_asset_type;
-
-      const pairKey = `${otherCode}:${otherIssuer || 'native'}`;
-
-      if (!pairStats.has(pairKey)) {
-        pairStats.set(pairKey, {
-          baseAsset: { code: assetCode, issuer: assetIssuer, type: isNative ? 'native' : assetType },
-          counterAsset: { code: otherCode, issuer: otherIssuer || undefined, type: otherType },
-          trades24h: 0,
-          totalTrades: 0,
-          baseVolume: 0,
-          counterVolume: 0,
-          lastPrice: 0,
-          firstPrice: 0,
-          lastTradeTime: trade.ledger_close_time,
-        });
-      }
-
-      const stats = pairStats.get(pairKey)!;
-      const tradeTime = new Date(trade.ledger_close_time).getTime();
-
-      stats.totalTrades++;
-
-      // Count 24h stats
-      if (tradeTime >= oneDayAgo) {
-        stats.trades24h++;
-        if (isOurAssetBase) {
-          stats.baseVolume += parseFloat(trade.base_amount);
-          stats.counterVolume += parseFloat(trade.counter_amount);
-        } else {
-          stats.baseVolume += parseFloat(trade.counter_amount);
-          stats.counterVolume += parseFloat(trade.base_amount);
-        }
-      }
-
-      // Track prices for change calculation (price is always base/counter in the trade)
-      const rawPrice = trade.price.d > 0 ? trade.price.n / trade.price.d : 0;
-      // If our asset is the counter, we need to invert the price
-      const price = isOurAssetBase ? rawPrice : (rawPrice > 0 ? 1 / rawPrice : 0);
-
-      if (stats.lastPrice === 0) {
-        stats.lastPrice = price;
-      }
-      stats.firstPrice = price;
-
-      if (trade.ledger_close_time > stats.lastTradeTime) {
-        stats.lastTradeTime = trade.ledger_close_time;
-        stats.lastPrice = price;
-      }
+    for (let index = 0; index < candidates.length; index += TRADING_PAIR_REQUEST_BATCH_SIZE) {
+      const batch = candidates.slice(index, index + TRADING_PAIR_REQUEST_BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(candidate => loadTradingPair(server, baseAsset, candidate, oneDayAgo, now))
+      );
+      pairs.push(...batchResults.filter((pair): pair is TradingPair => pair !== null));
     }
 
-    // Convert to TradingPair array - include ALL pairs, not just those with 24h activity
-    for (const [, stats] of pairStats) {
-      const priceChange = stats.firstPrice > 0 && stats.lastPrice > 0
-        ? ((stats.lastPrice - stats.firstPrice) / stats.firstPrice) * 100
-        : 0;
-
-      pairs.push({
-        baseAsset: stats.baseAsset,
-        counterAsset: stats.counterAsset,
-        price: stats.lastPrice,
-        baseVolume24h: stats.baseVolume,
-        counterVolume24h: stats.counterVolume,
-        tradeCount24h: stats.trades24h,
-        totalTradeCount: stats.totalTrades,
-        priceChange24h: priceChange,
-        spread: 0,
-        lastTradeTime: stats.lastTradeTime,
-      });
-    }
-
-    // Sort by total trade count (most active pairs first)
-    pairs.sort((a, b) => b.totalTradeCount - a.totalTradeCount);
-
+    return pairs.sort((left, right) =>
+      right.baseVolume24h - left.baseVolume24h
+      || right.totalTradeCount - left.totalTradeCount
+    );
   } catch (error) {
     console.error('Failed to fetch trading pairs:', error);
+    return [];
   }
-
-  return pairs;
 }
 
 // Calculate percentage change between two prices
