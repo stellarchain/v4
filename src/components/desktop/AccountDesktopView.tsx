@@ -9,6 +9,7 @@ import {
   Operation,
   Effect,
   MarketAsset,
+  AssetDetails,
   shortenAddress,
   timeAgo,
   formatXLM,
@@ -29,6 +30,8 @@ import InlineSkeleton from '@/components/ui/InlineSkeleton';
 import RiskWarningRow from '@/components/RiskWarningRow';
 import RiskAwareLink from '@/components/RiskAwareLink';
 import { isRiskLabel } from '@/lib/shared/riskLabels';
+import BalanceAssetIdentity from '@/components/BalanceAssetIdentity';
+import { buildBalanceAssetKey } from '@/lib/shared/assetBalancePresentation';
 
 interface Balance {
   asset_type: string;
@@ -123,6 +126,7 @@ interface AccountDesktopViewProps {
   issuedAssets?: MarketAsset[];
   loadingIssuedAssets?: boolean;
   showIssuedAssetsTab?: boolean;
+  balanceAssetDetails?: Record<string, AssetDetails>;
 }
 
 type AccountDesktopTab = 'assets' | 'issued' | 'transactions' | 'operations' | 'details';
@@ -228,7 +232,7 @@ const getOperationCategory = (type: string): { label: string; color: string; bgC
   return { label: 'Action', color: 'text-[var(--text-secondary)]', bgColor: 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]' };
 };
 
-export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false, issuedAssets = [], loadingIssuedAssets = false, showIssuedAssetsTab = false }: AccountDesktopViewProps) {
+export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false, issuedAssets = [], loadingIssuedAssets = false, showIssuedAssetsTab = false, balanceAssetDetails = {} }: AccountDesktopViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -1364,32 +1368,31 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                     </tr>
 
                     {/* Other Assets */}
-                    {otherBalances.map((balance, idx) => {
+                    {otherBalances.map((balance) => {
                       const amount = parseFloat(balance.balance);
                       const key = `${balance.asset_code}:${balance.asset_issuer}`;
                       const priceData = assetPrices[key];
                       const valueUSD = priceData ? amount * priceData.price : 0;
                       const pnlPercent = priceData?.change24h || 0;
 
-                      const bgColors = ['bg-blue-500', 'bg-purple-500', 'bg-emerald-500', 'bg-orange-500', 'bg-pink-500', 'bg-indigo-500', 'bg-violet-500'];
-                      const colorIdx = (balance.asset_code || '').length % bgColors.length;
-
                       return (
                         <tr
-                          key={idx}
-                          className="hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                          key={key}
+                          className="cursor-pointer transition-colors hover:bg-[var(--bg-tertiary)]"
                           onClick={() => router.push(getAssetUrl(balance.asset_code, balance.asset_issuer))}
                         >
                           <td className="px-4 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-full ${bgColors[colorIdx]} text-white flex items-center justify-center font-bold text-xs shrink-0`}>
-                                {(balance.asset_code || 'LP')[0]}
-                              </div>
-                              <div>
-                                <div className="font-medium text-sm text-[var(--text-primary)]">{balance.asset_code || 'LP'}</div>
-                                <div className="text-xs text-[var(--text-muted)] capitalize">{balance.asset_type.replace(/_/g, ' ')}</div>
-                              </div>
-                            </div>
+                            <Link
+                              href={getAssetUrl(balance.asset_code, balance.asset_issuer)}
+                              className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-blue)]"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              <BalanceAssetIdentity
+                                balance={balance}
+                                details={balanceAssetDetails[buildBalanceAssetKey(balance.asset_code, balance.asset_issuer)]}
+                                size="sm"
+                              />
+                            </Link>
                           </td>
                           <td className="px-4 py-4 text-right">
                             <div className="font-mono text-sm text-[var(--text-primary)]" title={formatExactNumber(amount)}>

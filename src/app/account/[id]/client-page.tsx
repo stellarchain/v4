@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { Horizon } from '@stellar/stellar-sdk';
-import { normalizeTransactions, getXLMUSDPriceFromHorizon, getAccountLabels, getIssuedAssetsByIssuer } from '@/lib/stellar';
-import type { AccountLabel, MarketAsset, Transaction, Operation } from '@/lib/stellar';
+import { normalizeTransactions, getXLMUSDPriceFromHorizon, getAccountLabels, getAssetDetails, getIssuedAssetsByIssuer } from '@/lib/stellar';
+import type { AccountLabel, AssetDetails, MarketAsset, Transaction, Operation } from '@/lib/stellar';
 import Link from 'next/link';
 import AccountMobileView from '@/components/mobile/AccountMobileView';
 import AccountDesktopView from '@/components/desktop/AccountDesktopView';
@@ -13,6 +13,7 @@ import { apiEndpoints, getApiV1Data } from '@/services/api';
 import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
 import { redirectToNetwork } from '@/lib/network/navigation';
 import { buildIssuedAssetsFilters, shouldShowIssuedAssetsTab } from '@/lib/shared/issuedAssets';
+import { buildBalanceAssetKey, runBalanceAssetRequests } from '@/lib/shared/assetBalancePresentation';
 
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 
@@ -148,6 +149,8 @@ export default function AccountPage() {
   const [loadingOperations, setLoadingOperations] = useState(false);
   const [loadingIssuedAssets, setLoadingIssuedAssets] = useState(false);
   const [issuedAssets, setIssuedAssets] = useState<MarketAsset[]>([]);
+  const [balanceAssetDetails, setBalanceAssetDetails] = useState<Record<string, AssetDetails>>({});
+  const balanceAssetDetailsCache = useRef<Map<string, AssetDetails>>(new Map());
   const [checkingOtherNetworks, setCheckingOtherNetworks] = useState(false);
   const [availableNetworks, setAvailableNetworks] = useState<NetworkType[]>([]);
 
@@ -263,6 +266,7 @@ export default function AccountPage() {
       setTransactions([]);
       setOperations([]);
       setIssuedAssets([]);
+      setBalanceAssetDetails({});
       setAccountLabels({});
       setCurrentAccountLabel(null);
       setAccountMetricDates({});
@@ -272,6 +276,65 @@ export default function AccountPage() {
       fetchAccountData();
     }
   }, [id, activeNetwork, isLikelyStellarAccount, checkOtherNetworksForAccount]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const issuedBalances = (account?.balances || []).flatMap((balance) => {
+      const candidate = balance as typeof balance & { asset_code?: string; asset_issuer?: string };
+      if (candidate.asset_type === 'native' || !candidate.asset_code || !candidate.asset_issuer) {
+        return [];
+      }
+      return [{ code: candidate.asset_code, issuer: candidate.asset_issuer }];
+    });
+
+    if (issuedBalances.length === 0) {
+      setBalanceAssetDetails({});
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const loadBalanceAssetDetails = async () => {
+      setBalanceAssetDetails({});
+
+      await runBalanceAssetRequests(
+        issuedBalances,
+        async ({ code, issuer }) => {
+          if (cancelled) return null;
+
+          const assetKey = buildBalanceAssetKey(code, issuer);
+          const cacheKey = `${activeNetwork}:${assetKey}`;
+          const cachedDetails = balanceAssetDetailsCache.current.get(cacheKey);
+          if (cachedDetails) {
+            return [assetKey, cachedDetails] as const;
+          }
+
+          const details = await getAssetDetails(code, issuer).catch(() => null);
+          if (details) {
+            balanceAssetDetailsCache.current.set(cacheKey, details);
+          }
+
+          return details ? [assetKey, details] as const : null;
+        },
+        (entry) => {
+          if (cancelled || !entry) return;
+
+          const [assetKey, details] = entry;
+          setBalanceAssetDetails((current) => ({
+            ...current,
+            [assetKey]: details,
+          }));
+        },
+        4
+      );
+    };
+
+    void loadBalanceAssetDetails();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [account, activeNetwork]);
 
   // Fetch transactions lazily when tab is activated
   const fetchTransactions = useCallback(async () => {
@@ -484,6 +547,7 @@ export default function AccountPage() {
           issuedAssets={issuedAssets}
           loadingIssuedAssets={loadingIssuedAssets}
           showIssuedAssetsTab={showIssuedAssetsTab}
+          balanceAssetDetails={balanceAssetDetails}
         />
       ) : (
         <AccountDesktopView
@@ -508,6 +572,7 @@ export default function AccountPage() {
           issuedAssets={issuedAssets}
           loadingIssuedAssets={loadingIssuedAssets}
           showIssuedAssetsTab={showIssuedAssetsTab}
+          balanceAssetDetails={balanceAssetDetails}
         />
       )}
     </>

@@ -11,6 +11,7 @@ import {
   formatXLM,
   AccountLabel,
   MarketAsset,
+  AssetDetails,
   getOrderBook,
   getTradeAggregations,
   getAccountOperations,
@@ -25,6 +26,8 @@ import { assetRoute } from '@/lib/shared/routes';
 import RiskWarningRow from '@/components/RiskWarningRow';
 import RiskAwareLink from '@/components/RiskAwareLink';
 import { isRiskLabel } from '@/lib/shared/riskLabels';
+import BalanceAssetIdentity from '@/components/BalanceAssetIdentity';
+import { buildBalanceAssetKey } from '@/lib/shared/assetBalancePresentation';
 
 function formatCompactNumber(value: number): string {
   if (value === 0) return '0';
@@ -176,6 +179,7 @@ interface AccountMobileViewProps {
   issuedAssets?: MarketAsset[];
   loadingIssuedAssets?: boolean;
   showIssuedAssetsTab?: boolean;
+  balanceAssetDetails?: Record<string, AssetDetails>;
 }
 
 type AccountMobileTab = 'assets' | 'issued' | 'activity' | 'details';
@@ -224,7 +228,7 @@ function AccountStatusIcons({ labelText, verified, size = 'sm' }: { labelText?: 
   );
 }
 
-export default function AccountMobileView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false, issuedAssets = [], loadingIssuedAssets = false, showIssuedAssetsTab = false }: AccountMobileViewProps) {
+export default function AccountMobileView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false, issuedAssets = [], loadingIssuedAssets = false, showIssuedAssetsTab = false, balanceAssetDetails = {} }: AccountMobileViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -1127,74 +1131,46 @@ export default function AccountMobileView({ account, accountId, transactions, op
                 const valueUSD = priceData ? amount * priceData.price : 0;
                 return valueUSD >= 1;
               })
-              .map((balance, idx) => {
+              .map((balance) => {
                 const amount = parseFloat(balance.balance);
                 const key = `${balance.asset_code}:${balance.asset_issuer}`;
                 const priceData = assetPrices[key];
                 const valueUSD = priceData ? amount * priceData.price : 0;
                 const pnlPercent = priceData?.change24h || 0;
 
-                const bgColors = [
-                  'bg-[var(--info-muted)]',
-                  'bg-[var(--purple-muted)]',
-                  'bg-[var(--success-muted)]',
-                  'bg-[var(--warning-muted)]',
-                  'bg-[var(--pink-muted)]',
-                  'bg-[var(--indigo-muted)]',
-                  'bg-[var(--violet-muted)]'
-                ];
-                const textColors = [
-                  'text-[var(--info)]',
-                  'text-[var(--purple)]',
-                  'text-[var(--success)]',
-                  'text-[var(--warning)]',
-                  'text-[var(--pink)]',
-                  'text-[var(--indigo)]',
-                  'text-[var(--violet)]'
-                ];
-                const colorIdx = (balance.asset_code || '').length % bgColors.length;
-
                 return (
-                  <div
-                    key={idx}
-                    className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] px-4 py-3 active:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
-                    onClick={() => router.push(getAssetUrl(balance.asset_code, balance.asset_issuer))}
+                  <Link
+                    key={key}
+                    href={getAssetUrl(balance.asset_code, balance.asset_issuer)}
+                    className="block cursor-pointer rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-4 py-3 shadow-sm transition-all duration-200 hover:border-[var(--border-default)] hover:bg-[var(--bg-tertiary)] active:scale-[0.99] active:bg-[var(--bg-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-blue)]"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full ${bgColors[colorIdx]} flex items-center justify-center ${textColors[colorIdx]}`}>
-                          <span className="font-bold text-base">{(balance.asset_code || 'LP')[0]}</span>
-                        </div>
-                        <div>
-                          <div className="text-sm font-bold text-[var(--text-primary)]">{balance.asset_code || 'LP'}</div>
-                          <div className="flex items-center gap-1.5 text-[11px]">
-                            <span className="text-[var(--text-muted)]">
-                              {valueUSD > 0 ? `${currencySymbol}${convertCurrency(valueUSD).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '--'}
+                      <div className="min-w-0 flex-1">
+                        <BalanceAssetIdentity
+                          balance={balance}
+                          details={balanceAssetDetails[buildBalanceAssetKey(balance.asset_code, balance.asset_issuer)]}
+                        />
+                        <div className="mt-1 flex items-center gap-1.5 pl-[52px] text-[11px]">
+                          <span className="text-[var(--text-muted)]">
+                            {valueUSD > 0 ? `${currencySymbol}${convertCurrency(valueUSD).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '--'}
+                          </span>
+                          {!hidePnl && priceData ? (
+                            <span className={`font-medium ${pnlPercent >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
+                              {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
                             </span>
-                            {!hidePnl && priceData ? (
-                              <span className={`font-medium ${pnlPercent >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}>
-                                {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
-                              </span>
-                            ) : null}
-                          </div>
+                          ) : null}
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="ml-3 shrink-0 text-right">
                         <div className="text-base font-bold text-[var(--text-primary)]" title={formatExactNumber(amount)}>
                           {formatCompactNumber(amount)}
                         </div>
                         <div className="text-[11px] text-[var(--text-muted)]">
-                          {priceData ? `@${currencySymbol}${convertCurrency(priceData.price).toFixed(priceData.price >= 1 ? 2 : 6)}` : (
-                            balance.asset_issuer ? (
-                              <Link href={`/account/${balance.asset_issuer}`} onClick={(e) => e.stopPropagation()} className="hover:text-[var(--primary-blue)]">
-                                {shortenAddress(balance.asset_issuer)}
-                              </Link>
-                            ) : 'LP'
-                          )}
+                          {priceData ? `@${currencySymbol}${convertCurrency(priceData.price).toFixed(priceData.price >= 1 ? 2 : 6)}` : '--'}
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
           </div>
