@@ -5,6 +5,7 @@ import { createHorizonServer, getHorizonBaseUrl } from '@/services/horizon';
 import { DEFAULT_NETWORK, NETWORK_COOKIE_NAME, isNetworkType, type NetworkType } from '../network/config';
 import { getCurrentNetwork, setCurrentNetwork } from '../network/state';
 import { mapHorizonAssetRecordToIssuedAsset } from '../shared/issuedAssets';
+import { sumHorizonAssetSupply } from '../shared/horizonAssetSupply';
 import { parseStellarTomlAssetMetadata } from '../shared/stellarToml';
 import { resolveVerifiedIssuedAssetMetadata } from '../soroban/verifiedIssuedAssets';
 import {
@@ -1463,6 +1464,9 @@ export async function getMarketAssetsFromMarketV1(
       const defaultName = code || 'Unknown Asset';
       const name = item.tomlInfo?.documentation?.ORG_NAME || item.tomlInfo?.name || defaultName;
       const image = item.imageUrl || item.image_url || item.tomlInfo?.image || undefined;
+      const presentation = issuer
+        ? resolveVerifiedIssuedAssetMetadata(code, issuer, getCurrentNetwork(), { name, image })
+        : { name, image };
       const rawSparkline = Array.isArray(item.sparkline1h) ? item.sparkline1h : [];
       const sparkline = rawSparkline
         .map((value) => Number(value))
@@ -1472,8 +1476,8 @@ export async function getMarketAssetsFromMarketV1(
         rank,
         code,
         issuer,
-        name,
-        image,
+        name: presentation.name || name,
+        image: presentation.image || image,
         price_usd: priceUsd,
         price_xlm: priceXlm,
         change_1h: Number(item.priceChange1h ?? item.price_change_1h ?? 0),
@@ -1690,13 +1694,9 @@ async function getHorizonAssetFallbackSummary(
       return null;
     }
 
-    const balances = (record.balances as Record<string, unknown> | undefined) || {};
     const accounts = (record.accounts as Record<string, unknown> | undefined) || {};
 
-    const authorizedBalance = Number(balances.authorized || 0);
-    const maintainBalance = Number(balances.authorized_to_maintain_liabilities || 0);
-    const unauthorizedBalance = Number(balances.unauthorized || 0);
-    const totalSupply = authorizedBalance + maintainBalance + unauthorizedBalance;
+    const totalSupply = sumHorizonAssetSupply(record);
 
     const authorizedAccounts = Number(accounts.authorized || 0);
     const maintainAccounts = Number(accounts.authorized_to_maintain_liabilities || 0);
