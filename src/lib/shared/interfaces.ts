@@ -657,6 +657,8 @@ export interface PaymentFlowInvestigationResponse {
     ledgerTo: number | null;
     direction: PaymentFlowDirection;
     limit: number;
+    cursor?: string | null;
+    operationType?: string | null;
   };
   coverage: {
     rowsReturned: number;
@@ -666,6 +668,12 @@ export interface PaymentFlowInvestigationResponse {
     firstClosedAt: string | null;
     lastClosedAt: string | null;
     isPartial: boolean;
+    scope?: 'page';
+    nextCursor?: string | null;
+    latestObservedLedger?: number | null;
+    latestObservedClosedAt?: string | null;
+    completeHistoryVerified?: boolean;
+    note?: string;
   };
   summary: {
     focusAddress: string | null;

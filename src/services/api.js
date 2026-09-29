@@ -153,8 +153,8 @@ export const fetchNetworkStatisticsData = async (params) => {
   return request;
 };
 
-export const fetchPaymentFlowInvestigationData = async (params) => {
-  return getApiV1Data(apiEndpoints.v1.paymentFlowInvestigation(params));
+export const fetchPaymentFlowInvestigationData = async (params, config = {}) => {
+  return getApiV1Data(apiEndpoints.v1.paymentFlowInvestigation(params), { timeout: 20000, ...config });
 };
 
 export const buildApiUrl = (path) => `${API_BASE_URL}${ensureNetworkInPath(path)}`;

@@ -1,6 +1,7 @@
 'use client';
 
-import { FormEvent, ReactNode } from 'react';
+import { FormEvent, ReactNode, useRef } from 'react';
+import type { InvestigationFilters, InvestigationErrors } from '@/lib/shared/investigationTypes';
 import {
   PaymentFlowDirection,
   PaymentFlowInvestigationResponse,
@@ -9,6 +10,8 @@ import {
 } from '@/lib/stellar';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import PaymentFlowEvidenceTable from '@/components/scam-flow/PaymentFlowEvidenceTable';
 import PaymentFlowAccountIdentity from '@/components/scam-flow/PaymentFlowAccountIdentity';
 import PaymentFlowMap from '@/components/scam-flow/PaymentFlowMap';
 import PaymentFlowTimeline from '@/components/scam-flow/PaymentFlowTimeline';
@@ -22,9 +25,18 @@ interface PaymentFlowInvestigationViewProps {
   onQueryChange: (query: string) => void;
   onDirectionChange: (direction: PaymentFlowDirection) => void;
   onSubmit: () => void;
+  filters: InvestigationFilters;
+  fieldErrors: InvestigationErrors;
+  onFiltersChange: (filters: InvestigationFilters) => void;
+  onClear: () => void;
+  onRetry: () => void;
+  onPageChange: (cursor: string | null) => void;
+  onExport: (format: 'json' | 'csv') => void;
+  isOlderPage: boolean;
 }
 
 const DIRECTION_OPTIONS: Array<{ label: string; value: PaymentFlowDirection }> = [
+  { label: 'Both', value: 'both' },
   { label: 'Incoming', value: 'incoming' },
   { label: 'Outgoing', value: 'outgoing' },
 ];
@@ -46,12 +58,8 @@ function signalVariant(severity: PaymentFlowRiskSignal['severity']): 'info' | 'w
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return 'No data';
-  return new Date(value).toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Unknown time' : date.toISOString().replace('T', ' ').replace('.000Z', ' UTC');
 }
 
 function formatNumber(value: number | string): string {
@@ -146,9 +154,12 @@ export default function PaymentFlowInvestigationView({
   onQueryChange,
   onDirectionChange,
   onSubmit,
+  filters, fieldErrors, onFiltersChange, onClear, onRetry, onPageChange, onExport, isOlderPage,
 }: PaymentFlowInvestigationViewProps) {
+  const composing = useRef(false);
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
+    if (composing.current) return;
     onSubmit();
   };
   const tone = investigation ? riskTone(investigation.riskContext.level) : null;
@@ -171,7 +182,7 @@ export default function PaymentFlowInvestigationView({
             </div>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
               {investigation
-                ? `Coverage ${formatDate(investigation.coverage.firstClosedAt)} – ${formatDate(investigation.coverage.lastClosedAt)}${investigation.coverage.isPartial ? ` · sample limited to ${investigation.query.limit} rows` : ''}`
+                ? `Current page: ${formatDate(investigation.coverage.firstClosedAt)} – ${formatDate(investigation.coverage.lastClosedAt)}`
                 : 'Safety context from indexed Stellar payment-flow history.'}
             </p>
           </div>
@@ -179,7 +190,8 @@ export default function PaymentFlowInvestigationView({
       </div>
 
       <Card className="p-4 shadow-sm">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <label htmlFor="investigation-query" className="text-xs font-medium text-[var(--text-secondary)]">Account or transaction hash</label>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
             <div className="relative flex-1">
               <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[var(--text-muted)]">
@@ -188,18 +200,25 @@ export default function PaymentFlowInvestigationView({
                 </svg>
               </div>
               <input
+                id="investigation-query"
+                type="text"
                 value={query}
                 onChange={(event) => onQueryChange(event.target.value)}
                 placeholder="Paste a Stellar address (G...) or transaction hash"
                 className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)] py-3 pl-10 pr-4 font-mono text-sm text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--primary-blue)]"
                 spellCheck={false}
                 autoComplete="off"
+                aria-invalid={Boolean(fieldErrors.query)}
+                aria-describedby={fieldErrors.query ? 'investigation-query-error' : undefined}
+                onCompositionStart={() => { composing.current = true; }}
+                onCompositionEnd={() => { composing.current = false; }}
+                onKeyDown={(event) => { if (event.key === 'Enter' && event.nativeEvent.isComposing) event.preventDefault(); }}
               />
             </div>
             <button
               type="submit"
               disabled={!canSubmit}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--primary-blue)] px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 min-w-40 items-center justify-center gap-2 rounded-xl bg-[var(--primary-blue)] px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-blue)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? (
                 <>
@@ -215,7 +234,9 @@ export default function PaymentFlowInvestigationView({
                 </>
               )}
             </button>
+            {query && <Button type="button" onClick={onClear} className="text-sm focus-visible:outline-2 focus-visible:outline-offset-2">Clear</Button>}
           </div>
+          {fieldErrors.query && <p id="investigation-query-error" role="alert" className="text-xs text-[var(--error)]">{fieldErrors.query}</p>}
 
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Direction</span>
@@ -241,12 +262,41 @@ export default function PaymentFlowInvestigationView({
             </div>
           </div>
 
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="space-y-1 text-xs text-[var(--text-secondary)]" htmlFor="investigation-operationType">
+              <span>Operation</span>
+              <select id="investigation-operationType" value={filters.operationType}
+                onChange={(event) => onFiltersChange({ ...filters, operationType: event.target.value })}
+                className="block h-10 w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]">
+                <option value="">All payment-flow operations</option>
+                <option value="payment">Payment</option>
+                <option value="create_account">Create account</option>
+                <option value="account_merge">Account merge</option>
+                <option value="path_payment_strict_send">Path payment — strict send</option>
+                <option value="path_payment_strict_receive">Path payment — strict receive</option>
+              </select>
+            </label>
+            {(['ledgerFrom', 'ledgerTo'] as const).map((key) => (
+              <label key={key} htmlFor={`investigation-${key}`} className="space-y-1 text-xs text-[var(--text-secondary)]">
+                <span>{key === 'ledgerFrom' ? 'From ledger (inclusive)' : 'To ledger (inclusive)'}</span>
+                <input id={`investigation-${key}`} type="text" inputMode="numeric" value={filters[key]}
+                  onChange={(event) => onFiltersChange({ ...filters, [key]: event.target.value })}
+                  aria-invalid={Boolean(fieldErrors[key])} aria-describedby={fieldErrors[key] ? `investigation-${key}-error` : undefined}
+                  className="block h-10 w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 font-mono focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]" />
+                {fieldErrors[key] && <span id={`investigation-${key}-error`} role="alert" className="block text-[var(--error)]">{fieldErrors[key]}</span>}
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-[var(--text-secondary)]">Choose filters, then Investigate. Results, graph and exports describe one page, not the complete account history.</p>
+
           {error && (
-            <div className="flex items-start gap-2 rounded-xl border border-[var(--error)]/20 bg-[var(--error-muted)] px-3 py-2 text-xs text-[var(--error)]">
+            <div role="alert" className="flex flex-wrap items-start gap-2 rounded-xl border border-[var(--error)]/20 bg-[var(--error-muted)] px-3 py-2 text-xs text-[var(--error)]">
               <svg className="mt-0.5 h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v3.75m0 3.75h.01M4.5 19.5h15L12 4.5l-7.5 15z" />
               </svg>
               <span>{error}</span>
+              <Button type="button" onClick={onRetry} disabled={isLoading}>Retry</Button>
+              {isOlderPage && <Button type="button" onClick={() => onPageChange(null)} disabled={isLoading}>Latest page</Button>}
             </div>
           )}
         </form>
@@ -285,9 +335,9 @@ export default function PaymentFlowInvestigationView({
       )}
 
       {isLoading && (
-        <Card className="p-8 shadow-sm">
-          <div className="flex flex-col items-center justify-center gap-3 text-sm text-[var(--text-muted)]">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--primary-blue)] border-t-transparent" />
+        <Card className="min-h-64 p-8 shadow-sm">
+          <div role="status" className="flex flex-col items-center justify-center gap-3 text-sm text-[var(--text-secondary)]">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--primary-blue)] border-t-transparent motion-reduce:animate-none" />
             <span>Reading payment-flow statistics…</span>
           </div>
         </Card>
@@ -295,6 +345,21 @@ export default function PaymentFlowInvestigationView({
 
       {investigation && !isLoading && (
         <>
+          <Card className="p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div role="status" className="space-y-1 text-xs text-[var(--text-secondary)]">
+                <p>{investigation.network} · {investigation.events.length} events on this page · newest first</p>
+                <p>Latest observed indexed ledger: {investigation.coverage.latestObservedLedger?.toLocaleString() ?? 'Unavailable'} · {formatDate(investigation.coverage.latestObservedClosedAt)}</p>
+                <p>{investigation.coverage.note ?? 'Successful classic payment-flow operations only. Full-history coverage is not verified.'}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" onClick={() => onExport('json')} className="text-xs">Export page JSON</Button>
+                <Button type="button" onClick={() => onExport('csv')} disabled={!investigation.events.length} className="text-xs">Export page CSV</Button>
+                <Button type="button" onClick={() => onPageChange(null)} disabled={!isOlderPage} className="text-xs">Latest page</Button>
+                <Button type="button" onClick={() => onPageChange(investigation.coverage.nextCursor ?? null)} disabled={!investigation.coverage.nextCursor} className="text-xs">Older events</Button>
+              </div>
+            </div>
+          </Card>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {metricSpecs(investigation).map((metric) => {
               const accentColor =
@@ -447,7 +512,11 @@ export default function PaymentFlowInvestigationView({
             </Card>
           </div>
 
-          <PaymentFlowTimeline events={investigation.events} />
+          <PaymentFlowEvidenceTable events={investigation.events} />
+          <details className="text-sm text-[var(--text-secondary)]">
+            <summary className="cursor-pointer py-3 focus-visible:outline-2">Event timeline for this page</summary>
+            <PaymentFlowTimeline events={investigation.events} />
+          </details>
         </>
       )}
     </div>
