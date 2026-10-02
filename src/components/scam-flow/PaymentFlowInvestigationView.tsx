@@ -19,6 +19,7 @@ import { formatCompactAmount } from '@/lib/shared/formatCompactAmount';
 import { formatExactAmount } from '@/lib/shared/formatExactAmount';
 import InfoTooltip from '@/components/InfoTooltip';
 import SegmentedControl from '@/components/ui/SegmentedControl';
+import { getAccountTrustAssessment } from '@/lib/shared/accountTrustAssessment';
 
 interface PaymentFlowInvestigationViewProps {
   mode: InvestigationMode;
@@ -177,27 +178,20 @@ export default function PaymentFlowInvestigationView({
     }
   };
   const focusAccount = investigation?.accountContext.focusAccount ?? null;
-  const directorySignal = investigation?.accountContext.metadataUnavailable
-    ? 'Directory unavailable'
-    : focusAccount?.verified
-      ? 'Verified directory identity'
-      : focusAccount?.label
-        ? 'Known directory label'
-        : 'Unlisted account';
-  const directoryStatusLabel = investigation?.accountContext.metadataUnavailable
-    ? 'Directory unavailable'
-    : focusAccount?.verified
-      ? 'Identity verified'
-      : focusAccount?.label
-        ? 'Public label found'
-        : 'Unverified';
-  const directoryBadgeVariant = focusAccount?.verified
-    ? 'success'
-    : focusAccount?.label
-      ? 'info'
-      : investigation?.accountContext.metadataUnavailable
-        ? 'warning'
-        : 'neutral';
+  const trustAssessment = getAccountTrustAssessment(
+    focusAccount,
+    investigation?.accountContext.metadataUnavailable ?? false
+  );
+  const trustIconClassName = trustAssessment.status === 'trusted'
+    ? 'border-[var(--success)]/20 bg-[var(--success-muted)] text-[var(--success)]'
+    : trustAssessment.status === 'untrusted'
+      ? 'border-[var(--error)]/20 bg-[var(--error-muted)] text-[var(--error)]'
+      : 'border-[var(--info)]/15 bg-[var(--info-muted)] text-[var(--primary-blue)]';
+  const trustHeadingClassName = trustAssessment.status === 'trusted'
+    ? 'text-[var(--success)]'
+    : trustAssessment.status === 'untrusted'
+      ? 'text-[var(--error)]'
+      : 'text-[var(--text-primary)]';
 
   return (
     <div className="space-y-5">
@@ -514,62 +508,70 @@ export default function PaymentFlowInvestigationView({
         <>
           {mode === 'basic' && investigation.query.address && (
             <Card className="overflow-hidden shadow-sm">
-              <div className="grid border-b border-[var(--border-default)] lg:grid-cols-[minmax(0,1fr)_minmax(19rem,0.42fr)]">
-                <div className="flex gap-4 p-5 sm:p-6">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[var(--info)]/15 bg-[var(--info-muted)] text-[var(--primary-blue)] shadow-sm">
-                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <div className="grid border-b border-[var(--border-default)] lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.55fr)]">
+                <div className="flex items-center gap-3 px-4 py-3 sm:px-5">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-sm ${trustIconClassName}`}>
+                    <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 3l7 3v5c0 4.4-2.9 8.4-7 9.7C7.9 19.4 5 15.4 5 11V6l7-3z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9.5 12l1.6 1.6 3.6-4" />
+                      {trustAssessment.status === 'trusted' ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9.5 12l1.6 1.6 3.6-4" />
+                      ) : trustAssessment.status === 'untrusted' ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9.5 9.5l5 5m0-5l-5 5" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M10.4 9.5a1.8 1.8 0 013.5.5c0 1.5-1.9 1.7-1.9 3m0 3h.01" />
+                      )}
                     </svg>
                   </div>
-                  <div className="min-w-0 max-w-3xl">
-                    <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Evidence snapshot</span>
-                      <Badge variant={directoryBadgeVariant}>{directoryStatusLabel}</Badge>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Account trust assessment</div>
+                    <div className="mt-0.5 flex items-center gap-1">
+                      <h2 className={`text-lg font-semibold tracking-tight ${trustHeadingClassName}`}>{trustAssessment.label}</h2>
+                      <InfoTooltip
+                        ariaLabel="About this trust assessment"
+                        content={`${trustAssessment.reason} This status is based on public directory metadata, not payment activity.`}
+                        direction="bottom"
+                        align="start"
+                        className="-my-1"
+                      />
                     </div>
-                    <h2 className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">Account overview</h2>
-                    <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-secondary)]">
-                      Identity and payment activity found for this address.
-                    </p>
                   </div>
                 </div>
-                <div className="border-t border-[var(--border-default)] bg-[var(--info-muted)]/35 p-5 lg:border-l lg:border-t-0 sm:p-6">
-                  <div className="flex gap-3">
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--bg-secondary)] text-[var(--primary-blue)] shadow-sm ring-1 ring-[var(--info)]/15">
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 7.5A2.5 2.5 0 0110.5 5h6A2.5 2.5 0 0119 7.5v9a2.5 2.5 0 01-2.5 2.5h-6A2.5 2.5 0 018 16.5v-9zM5 15H4.5A2.5 2.5 0 012 12.5v-6A2.5 2.5 0 014.5 4H11" />
-                      </svg>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-default)] bg-[var(--info-muted)]/35 px-4 py-3 lg:border-l lg:border-t-0 sm:px-5">
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Assessment limit</div>
+                    <div className="mt-0.5 flex items-center gap-1">
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">Not a guarantee</p>
+                      <InfoTooltip
+                        ariaLabel="About assessment limitations"
+                        content="This assessment uses public directory evidence only. Confirm the full address with the person or service before sending funds."
+                        direction="bottom"
+                        align="end"
+                        className="-my-1"
+                      />
                     </div>
-                    <div className="min-w-0">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Quick check</div>
-                      <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">Confirm the recipient</p>
-                      <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
-                        Compare the full Stellar address with the one received directly from the person or service. An unlisted account is not automatically unsafe.
-                      </p>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <code className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)]">
-                          {shortenAccountAddress(investigation.query.address)}
-                        </code>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyAddress(investigation.query.address!)}
-                          className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--primary-blue)] transition-colors hover:bg-[var(--bg-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-blue)]/40"
-                          aria-label="Copy full Stellar address"
-                        >
-                          {copiedAddress === investigation.query.address ? 'Copied' : 'Copy address'}
-                        </button>
-                        <span className="sr-only" aria-live="polite">
-                          {copiedAddress === investigation.query.address ? 'Full Stellar address copied.' : ''}
-                        </span>
-                      </div>
-                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <code className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1 text-xs text-[var(--text-secondary)]">
+                      {shortenAccountAddress(investigation.query.address)}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyAddress(investigation.query.address!)}
+                      className="rounded-lg px-2 py-1 text-xs font-semibold text-[var(--primary-blue)] transition-colors hover:bg-[var(--bg-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-blue)]/40"
+                      aria-label="Copy full Stellar address"
+                    >
+                      {copiedAddress === investigation.query.address ? 'Copied' : 'Copy address'}
+                    </button>
+                    <span className="sr-only" aria-live="polite">
+                      {copiedAddress === investigation.query.address ? 'Full Stellar address copied.' : ''}
+                    </span>
                   </div>
                 </div>
               </div>
               <div className="grid gap-px bg-[var(--border-default)] sm:grid-cols-3">
-                <div className="flex items-center gap-3 bg-[var(--bg-tertiary)] px-5 py-4">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-secondary)] text-[var(--text-secondary)] shadow-sm ring-1 ring-[var(--border-default)]">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <div className="flex items-center gap-2.5 bg-[var(--bg-tertiary)] px-4 py-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-secondary)] text-[var(--text-secondary)] shadow-sm ring-1 ring-[var(--border-default)]">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d="M4 6.5A2.5 2.5 0 016.5 4h11A2.5 2.5 0 0120 6.5v11a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5v-11zM8 9h8m-8 3h5m-5 3h6" />
                     </svg>
                   </div>
@@ -584,12 +586,12 @@ export default function PaymentFlowInvestigationView({
                         className="-my-1"
                       />
                     </div>
-                    <div className="mt-0.5 truncate text-sm font-semibold text-[var(--text-primary)]">{directorySignal}</div>
+                    <div className="mt-0.5 truncate text-sm font-semibold text-[var(--text-primary)]">{trustAssessment.directorySignal}</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 bg-[var(--bg-tertiary)] px-5 py-4">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-secondary)] text-[var(--primary-blue)] shadow-sm ring-1 ring-[var(--border-default)]">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <div className="flex items-center gap-2.5 bg-[var(--bg-tertiary)] px-4 py-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-secondary)] text-[var(--primary-blue)] shadow-sm ring-1 ring-[var(--border-default)]">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d="M5 7h14M5 12h14M5 17h8" />
                       <circle cx="17" cy="17" r="3" strokeWidth={1.7} />
                     </svg>
@@ -608,9 +610,9 @@ export default function PaymentFlowInvestigationView({
                     <div className="mt-0.5 text-sm font-semibold tabular-nums text-[var(--text-primary)]">{investigation.summary.events.toLocaleString()} events</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 bg-[var(--bg-tertiary)] px-5 py-4">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-secondary)] text-[var(--warning)] shadow-sm ring-1 ring-[var(--border-default)]">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <div className="flex items-center gap-2.5 bg-[var(--bg-tertiary)] px-4 py-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-secondary)] text-[var(--warning)] shadow-sm ring-1 ring-[var(--border-default)]">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d="M4 16l4-4 3 3 6-7 3 3" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d="M4 20h16" />
                     </svg>

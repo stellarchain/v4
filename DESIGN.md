@@ -43,7 +43,7 @@ This scan documents the existing application, not a rebrand. Runtime CSS remains
 
 IBM Plex Sans owns navigation, labels and prose; JetBrains Mono owns chain identifiers and exact decimal strings. Keep tabular numbers aligned. Do not round exported amounts or coerce bigint identifiers into JavaScript numbers. English labels follow the existing sentence-case vocabulary. Full identifiers remain accessible in evidence tables and exports.
 
-Investigator summary surfaces use compact `K` / `M` / `B` notation for values at or above one thousand. The exact source decimal remains available through the shared accessible tooltip and in evidence exports; small nonzero values stay fully visible so dust is never rendered as zero.
+Investigator summary surfaces use compact `K` / `M` / `B` notation for values at or above one thousand. The exact source decimal remains available through the shared accessible tooltip and in evidence exports; small nonzero values stay fully visible so dust is never rendered as zero. The Account Trust Checker uses a three-state directory assessment: green `Trusted` for a verified public identity without an adverse label, red `Untrusted` for an explicit adverse directory label, and neutral `Unverified` when evidence is inconclusive or unavailable. Payment-pattern heuristics never change this status, and a visible `Not a guarantee` note accompanies every result.
 
 ## Layout
 
