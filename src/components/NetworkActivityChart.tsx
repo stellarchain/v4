@@ -30,6 +30,9 @@ interface NetworkActivityChartProps {
   range: NetworkStatisticsRange;
   bucketMinutes: number;
   onRangeChange: (range: NetworkStatisticsRange) => void;
+  isRefreshing?: boolean;
+  refreshError?: string | null;
+  onRefreshRetry?: () => void;
   onLoadOlder?: () => void;
   isLoadingOlder?: boolean;
 }
@@ -206,6 +209,9 @@ export default function NetworkActivityChart({
   range,
   bucketMinutes,
   onRangeChange,
+  isRefreshing = false,
+  refreshError = null,
+  onRefreshRetry,
   onLoadOlder,
   isLoadingOlder = false,
 }: NetworkActivityChartProps) {
@@ -445,11 +451,30 @@ export default function NetworkActivityChart({
         </div>
       </div>
 
+      <span className="sr-only" role="status" aria-live="polite">
+        {isRefreshing ? 'Updating network activity chart.' : ''}
+      </span>
+      {!isRefreshing && refreshError && (
+        <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-lg border border-[var(--warning)]/25 bg-[var(--warning-muted)] px-3 py-2 text-xs text-[var(--text-primary)] shadow-sm sm:mx-5" role="alert">
+          <span>{refreshError}</span>
+          {onRefreshRetry && (
+            <button
+              type="button"
+              onClick={onRefreshRetry}
+              className="shrink-0 rounded-md px-2 py-1 font-semibold text-[var(--primary-blue)] hover:bg-[var(--bg-secondary)] focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]"
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      )}
+
       <div
         ref={chartShellRef}
         className={`relative mx-4 h-[300px] min-w-0 w-[calc(100%-2rem)] select-none overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/35 px-1 pt-2 sm:mx-5 sm:w-[calc(100%-2.5rem)] ${hasData ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
         role="img"
         aria-label={ariaLabel}
+        aria-busy={isRefreshing}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={stopDragging}
@@ -457,6 +482,14 @@ export default function NetworkActivityChart({
         onWheel={handleWheel}
         style={{ touchAction: 'pan-y' }}
       >
+        {isRefreshing && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--bg-primary)]/80 backdrop-blur-[1px]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] shadow-sm">
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--primary-blue)] border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
+              Updating chart
+            </div>
+          </div>
+        )}
         {isLoadingOlder && (
           <div className="pointer-events-none absolute left-12 top-2 z-10 inline-flex items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)] shadow-sm">
             <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-[var(--primary-blue)] border-t-transparent" />

@@ -12,6 +12,8 @@ interface StatisticsViewProps {
   selectedRange: NetworkStatisticsRange;
   onRangeChange: (range: NetworkStatisticsRange) => void;
   isRefreshing?: boolean;
+  refreshError?: string | null;
+  onRefreshRetry?: () => void;
   onLoadOlder?: () => void;
   isLoadingOlder?: boolean;
 }
@@ -57,6 +59,8 @@ export default function StatisticsView({
   selectedRange,
   onRangeChange,
   isRefreshing = false,
+  refreshError = null,
+  onRefreshRetry,
   onLoadOlder,
   isLoadingOlder = false,
 }: StatisticsViewProps) {
@@ -93,6 +97,9 @@ export default function StatisticsView({
         range={selectedRange}
         bucketMinutes={stats.bucketMinutes}
         onRangeChange={onRangeChange}
+        isRefreshing={isRefreshing}
+        refreshError={refreshError}
+        onRefreshRetry={onRefreshRetry}
         onLoadOlder={onLoadOlder}
         isLoadingOlder={isLoadingOlder}
       />

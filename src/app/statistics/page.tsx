@@ -31,7 +31,6 @@ export default function StatisticsPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [selectedRange, setSelectedRange] = useState<NetworkStatisticsRange>('7d');
-  const [loadedRange, setLoadedRange] = useState<NetworkStatisticsRange | null>(null);
   const [revision, setRevision] = useState(0);
   const hasLoadedRef = useRef(false);
   const inflightOlderRef = useRef(false);
@@ -40,6 +39,8 @@ export default function StatisticsPage() {
   function changeRange(range: NetworkStatisticsRange) {
     if (range === selectedRange) return;
     rangeGenerationRef.current += 1;
+    setError(null);
+    setIsRefreshing(true);
     setSelectedRange(range);
   }
 
@@ -62,7 +63,6 @@ export default function StatisticsPage() {
         if (cancelled) return;
 
         setStats(statistics);
-        setLoadedRange(selectedRange);
         hasLoadedRef.current = true;
       } catch {
         if (cancelled) return;
@@ -141,11 +141,11 @@ export default function StatisticsPage() {
     }
   }, [stats, selectedRange]);
 
-  if (isLoading || (!error && loadedRange !== selectedRange)) {
+  if (isLoading && !stats) {
     return <Loading title="Loading statistics" description="Fetching network statistics." />;
   }
 
-  if (error) {
+  if (error && !stats) {
     return (
       <main className="mx-auto max-w-[1400px] p-4">
         <Card variant="bordered" className="p-6">
@@ -168,6 +168,8 @@ export default function StatisticsPage() {
         selectedRange={selectedRange}
         onRangeChange={changeRange}
         isRefreshing={isRefreshing}
+        refreshError={error}
+        onRefreshRetry={() => setRevision((value) => value + 1)}
         onLoadOlder={loadOlder}
         isLoadingOlder={isLoadingOlder}
       />
