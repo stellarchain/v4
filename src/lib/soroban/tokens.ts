@@ -3,6 +3,7 @@
 
 import type { TokenRegistryEntry, SEP41TokenMetadata } from '../shared/interfaces';
 import { queryTokenMetadata, detectSAC, isContractAddress } from './client';
+import { VERIFIED_ISSUED_ASSET_TOKENS } from './verifiedIssuedAssets';
 
 // Cache configuration
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;  // 24 hours for valid entries
@@ -20,6 +21,8 @@ const tokenCache: Map<string, CacheEntry> = new Map();
 // Known tokens registry - instant lookup for popular tokens
 // These are verified contracts on Stellar mainnet
 export const KNOWN_TOKENS: Record<string, TokenRegistryEntry> = {
+  ...VERIFIED_ISSUED_ASSET_TOKENS,
+
   // USDC - Circle's USD Coin SAC
   'CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75': {
     contractId: 'CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75',

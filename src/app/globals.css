@@ -84,6 +84,9 @@
 
   /* Header background */
   --header-bg: #050b20;
+
+  /* Overlay layers */
+  --z-popover: 300;
 }
 
 /* Dark Mode - Obsidian Theme */
@@ -202,6 +205,17 @@ body {
 }
 
 /* Custom scrollbar - refined enterprise style */
+:root {
+  scrollbar-color: var(--border-strong) var(--bg-primary);
+  scrollbar-width: thin;
+}
+
+@media (forced-colors: active) {
+  :root {
+    scrollbar-color: auto;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

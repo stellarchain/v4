@@ -4,26 +4,24 @@ import { NetworkStatisticsRange, NetworkStatisticsResponse } from '@/lib/stellar
 import StatCard from '@/components/StatCard';
 import NetworkActivityChart from '@/components/NetworkActivityChart';
 import Badge from '@/components/ui/Badge';
+import Card from '@/components/ui/Card';
+import { chartMetric } from '@/lib/shared/chartCatalog';
 
 interface StatisticsViewProps {
   stats: NetworkStatisticsResponse;
   selectedRange: NetworkStatisticsRange;
   onRangeChange: (range: NetworkStatisticsRange) => void;
   isRefreshing?: boolean;
+  refreshError?: string | null;
+  onRefreshRetry?: () => void;
   onLoadOlder?: () => void;
   isLoadingOlder?: boolean;
 }
 
-const RANGE_OPTIONS: Array<{ label: string; value: NetworkStatisticsRange }> = [
-  { label: '24H', value: '24h' },
-  { label: '7D', value: '7d' },
-  { label: '1 month', value: '30d' },
-  { label: '1 year', value: '1y' },
-];
-
 function formatCoverageDate(value: string | null): string {
   if (!value) return 'No data yet';
   return new Date(value).toLocaleString(undefined, {
+    timeZone: 'UTC',
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -32,94 +30,122 @@ function formatCoverageDate(value: string | null): string {
   });
 }
 
+function StatisticsSectionIcon({ sectionId }: { sectionId: string }) {
+  if (sectionId === 'dex-payments') {
+    return (
+      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3 3m-3-3 3-3" />
+      </svg>
+    );
+  }
+
+  if (sectionId === 'accounts-contracts') {
+    return (
+      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-3h5m-2.5-2.5v5" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 19V9m5 10V5m5 14v-7m5 7V3M2 21h20" />
+    </svg>
+  );
+}
+
 export default function StatisticsView({
   stats,
   selectedRange,
   onRangeChange,
   isRefreshing = false,
+  refreshError = null,
+  onRefreshRetry,
   onLoadOlder,
   isLoadingOlder = false,
 }: StatisticsViewProps) {
   const coverageText = stats.coverage.firstBucket && stats.coverage.lastBucket
-    ? `${formatCoverageDate(stats.coverage.firstBucket)} - ${formatCoverageDate(stats.coverage.lastBucket)}`
+    ? `${formatCoverageDate(stats.coverage.firstBucket)} – ${formatCoverageDate(stats.coverage.lastBucket)} UTC`
     : 'Waiting for collected statistics';
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] flex items-center justify-center">
-            <svg className="w-5 h-5 text-[var(--primary-blue)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.5l4.5-4.5 4 4L21 3.5M21 3.5h-6M21 3.5v6M3 20.5h18" />
-            </svg>
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Statistics</h1>
-              <Badge>{stats.network}</Badge>
-              {stats.coverage.isPartial && <Badge>Partial</Badge>}
-              {isRefreshing && <Badge>Updating</Badge>}
+    <div className="space-y-8">
+      <Card variant="bordered" className="shadow-sm">
+        <div className="p-5">
+          <div className="flex min-w-0 items-start gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--info-muted)] text-[var(--primary-blue)]">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.5l4.5-4.5 4 4L21 3.5M21 3.5h-6M21 3.5v6M3 20.5h18" />
+              </svg>
             </div>
-            <p className="text-[var(--text-secondary)] text-xs mt-0.5">
-              {coverageText}
-            </p>
+            <div className="min-w-0">
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-tertiary)]">Network statistics</span>
+                {stats.coverage.isPartial && <Badge variant="warning">Partial coverage</Badge>}
+                {isRefreshing && <Badge variant="info">Updating</Badge>}
+              </div>
+              <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Statistics</h1>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">{coverageText}</p>
+            </div>
           </div>
         </div>
-        <div className="inline-flex rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-0.5 self-start lg:self-auto">
-          {RANGE_OPTIONS.map((option) => {
-            const active = selectedRange === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => onRangeChange(option.value)}
-                className={`min-w-12 rounded-md px-3 py-1.5 text-xs font-medium transition-colors sm:min-w-[4.75rem] ${
-                  active
-                    ? 'bg-[var(--primary-blue)] text-white'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-                aria-pressed={active}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      </Card>
 
       <NetworkActivityChart
         chart={stats.chart}
         coverage={stats.coverage}
         range={selectedRange}
         bucketMinutes={stats.bucketMinutes}
+        onRangeChange={onRangeChange}
+        isRefreshing={isRefreshing}
+        refreshError={refreshError}
+        onRefreshRetry={onRefreshRetry}
         onLoadOlder={onLoadOlder}
         isLoadingOlder={isLoadingOlder}
       />
 
-      {stats.sections.map((section) => (
-        <section key={section.id}>
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-4 bg-[var(--primary-blue)] rounded-full" />
-                <h2 className="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider">
-                  {section.label}
-                </h2>
+      <div className="space-y-10">
+        {stats.sections.map((section) => (
+          <section key={section.id} aria-labelledby={`stats-${section.id}`} className="scroll-mt-20">
+            <div className="mb-4 flex items-end justify-between gap-4 border-b border-[var(--border-default)] pb-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--info-muted)] text-[var(--primary-blue)]">
+                  <StatisticsSectionIcon sectionId={section.id} />
+                </div>
+                <div className="min-w-0">
+                  <h2 id={`stats-${section.id}`} className="text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
+                    {section.label}
+                  </h2>
+                  <p className="mt-1 max-w-3xl text-xs leading-relaxed text-[var(--text-secondary)]">{section.description}</p>
+                </div>
               </div>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">{section.description}</p>
+              <Badge className="shrink-0 font-mono tabular-nums">{section.cards.length} metrics</Badge>
             </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-            {section.cards.map((card) => (
-              <StatCard key={card.metricKey} stat={card} />
-            ))}
-          </div>
-        </section>
-      ))}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {section.cards.map((card) => {
+                const metric = chartMetric(card.metricKey);
+                const chartBucketMinutes = card.metricKey === 'active-addresses' ? 5 : stats.bucketMinutes;
+                const href = metric ? `/chart/${metric.key}?bucketMinutes=${chartBucketMinutes}` : undefined;
+                return <StatCard key={card.metricKey} stat={card} href={href} />;
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
 
-      <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed text-center">
-        Data sourced from horizon_statistics. Range ends at the latest collected bucket; backfill progress is reflected as new chunks are written.
-      </p>
+      <Card variant="bordered" className="flex items-start gap-3 bg-[var(--bg-primary)]/45 p-4 shadow-none">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--info-muted)] text-[var(--primary-blue)]">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v4m0 4h.01M10.3 3.7 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-xs font-semibold text-[var(--text-primary)]">Indexed coverage</h2>
+          <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-secondary)]">
+            Historical data reflects indexed buckets only. The range ends at the latest collected bucket and expands as backfill writes new chunks. Active transaction sources are five-minute bucket counts, not unique accounts across the selected range.
+          </p>
+        </div>
+      </Card>
     </div>
   );
 }

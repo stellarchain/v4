@@ -1,158 +1,85 @@
+function Pulse({ className }: { className: string }) {
+  return <div className={`animate-pulse rounded bg-[var(--border-default)] ${className}`} />;
+}
+
+function MetricCardSkeleton() {
+  return (
+    <div className="min-h-[286px] overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
+      <div className="flex h-[137px] items-end border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/45 p-3">
+        <div className="h-20 w-full animate-pulse rounded-xl bg-[var(--border-subtle)]" />
+      </div>
+      <div className="p-4 pt-3.5">
+        <Pulse className="h-2.5 w-24" />
+        <Pulse className="mt-4 h-7 w-28" />
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <Pulse className="h-2.5 w-16" />
+          <Pulse className="h-5 w-16" />
+        </div>
+        <Pulse className="mt-8 h-3 w-20" />
+      </div>
+    </div>
+  );
+}
+
 export default function StatisticsLoading() {
   return (
-    <>
-      {/* Desktop View */}
-      <div className="hidden md:block min-h-screen bg-[var(--bg-primary)]">
-        <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
-          {/* Header Card */}
-          <div className="mb-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-[var(--border-default)] rounded-xl animate-pulse" />
-                <div>
-                  <div className="h-3 w-24 bg-[var(--border-default)] rounded animate-pulse mb-2" />
-                  <div className="h-6 w-36 bg-[var(--border-default)] rounded animate-pulse mb-1" />
-                  <div className="h-4 w-64 bg-[var(--border-default)] rounded animate-pulse" />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {['1D', '7D', '30D', '1Y'].map((_, i) => (
-                  <div key={i} className={`h-9 w-12 rounded-lg animate-pulse ${i === 0 ? 'bg-[var(--info-muted)]' : 'bg-[var(--bg-tertiary)]'}`} />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Main Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 bg-[var(--info-muted)] rounded-lg animate-pulse" />
-                  <div className="h-3 w-20 bg-[var(--border-default)] rounded animate-pulse" />
-                </div>
-                <div className="h-8 w-28 bg-[var(--border-default)] rounded animate-pulse mb-1" />
-                <div className="h-4 w-20 bg-emerald-100 rounded animate-pulse" />
-              </div>
-            ))}
-          </div>
-
-          {/* Secondary Stats Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-[var(--border-default)] rounded-lg animate-pulse" />
-                    <div className="h-4 w-28 bg-[var(--border-default)] rounded animate-pulse" />
-                  </div>
-                  <div className="h-6 w-16 bg-emerald-100 rounded-lg animate-pulse" />
-                </div>
-
-                {/* Mini Chart Placeholder */}
-                <div className="h-20 bg-[var(--bg-tertiary)] rounded-xl animate-pulse mb-3" />
-
-                {/* Stats Row */}
-                <div className="flex justify-between">
-                  <div>
-                    <div className="h-3 w-12 bg-[var(--border-default)] rounded animate-pulse mb-1" />
-                    <div className="h-5 w-16 bg-[var(--border-default)] rounded animate-pulse" />
-                  </div>
-                  <div>
-                    <div className="h-3 w-12 bg-[var(--border-default)] rounded animate-pulse mb-1" />
-                    <div className="h-5 w-16 bg-[var(--border-default)] rounded animate-pulse" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Large Chart Section */}
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-default)] p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="h-5 w-32 bg-[var(--border-default)] rounded animate-pulse" />
-              <div className="flex gap-2">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className={`h-8 w-16 rounded-lg animate-pulse ${i === 0 ? 'bg-[var(--info-muted)]' : 'bg-[var(--bg-tertiary)]'}`} />
-                ))}
-              </div>
-            </div>
-            <div className="h-80 bg-[var(--bg-tertiary)] rounded-xl animate-pulse" />
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile View */}
-      <div className="block md:hidden bg-[var(--bg-primary)] min-h-screen pb-24">
-        <div className="px-4 py-4 space-y-4">
-          {/* Header */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[var(--border-default)] animate-pulse rounded-xl" />
+    <div className="mx-auto max-w-[1400px] space-y-8 p-4" aria-label="Loading statistics" aria-busy="true">
+      <div className="overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
+        <div className="p-5">
+          <div className="flex items-start gap-4">
+            <Pulse className="h-11 w-11 rounded-xl" />
             <div>
-              <div className="h-5 w-32 bg-[var(--border-default)] rounded animate-pulse mb-1" />
-              <div className="h-4 w-48 bg-[var(--border-default)] animate-pulse rounded" />
+              <Pulse className="h-2.5 w-28" />
+              <Pulse className="mt-3 h-6 w-36" />
+              <Pulse className="mt-2 h-3 w-64 max-w-[55vw]" />
             </div>
           </div>
-
-          {/* Time Range Pills */}
-          <div className="flex gap-2">
-            {['1D', '7D', '30D', '1Y'].map((_, i) => (
-              <div key={i} className={`h-8 w-12 rounded-lg animate-pulse ${i === 0 ? 'bg-[var(--info-muted)]' : 'bg-[var(--bg-secondary)] border border-[var(--border-default)]'}`} />
-            ))}
-          </div>
-
-          {/* Main Stats Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-[var(--bg-secondary)] rounded-xl p-4 shadow-sm border border-[var(--border-default)]">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 bg-[var(--info-muted)] rounded-lg animate-pulse" />
-                  <div className="h-3 w-16 bg-[var(--border-default)] rounded animate-pulse" />
-                </div>
-                <div className="h-6 w-20 bg-[var(--border-default)] rounded animate-pulse mb-1" />
-                <div className="h-3 w-14 bg-emerald-100 rounded animate-pulse" />
-              </div>
-            ))}
-          </div>
-
-          {/* Chart Card */}
-          <div className="bg-[var(--bg-secondary)] rounded-xl p-4 shadow-sm border border-[var(--border-default)]">
-            <div className="flex items-center justify-between mb-3">
-              <div className="h-4 w-28 bg-[var(--border-default)] rounded animate-pulse" />
-              <div className="flex gap-1">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-6 w-10 bg-[var(--bg-tertiary)] rounded animate-pulse" />
-                ))}
-              </div>
-            </div>
-            <div className="h-48 bg-[var(--bg-tertiary)] rounded-xl animate-pulse" />
-          </div>
-
-          {/* Secondary Stats Cards */}
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-[var(--bg-secondary)] rounded-xl p-4 shadow-sm border border-[var(--border-default)]">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 bg-[var(--border-default)] rounded-lg animate-pulse" />
-                  <div className="h-4 w-24 bg-[var(--border-default)] rounded animate-pulse" />
-                </div>
-                <div className="h-5 w-14 bg-emerald-100 rounded-lg animate-pulse" />
-              </div>
-              <div className="h-16 bg-[var(--bg-tertiary)] rounded-xl animate-pulse mb-3" />
-              <div className="flex justify-between">
-                <div>
-                  <div className="h-3 w-10 bg-[var(--border-default)] rounded animate-pulse mb-1" />
-                  <div className="h-4 w-14 bg-[var(--border-default)] rounded animate-pulse" />
-                </div>
-                <div>
-                  <div className="h-3 w-10 bg-[var(--border-default)] rounded animate-pulse mb-1" />
-                  <div className="h-4 w-14 bg-[var(--border-default)] rounded animate-pulse" />
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
-    </>
+
+      <div className="overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
+        <div className="flex items-start justify-between gap-4 p-5 pb-4">
+          <div className="flex items-start gap-3">
+            <Pulse className="h-9 w-9 rounded-lg" />
+            <div>
+              <Pulse className="h-4 w-32" />
+              <Pulse className="mt-2 h-3 w-64 max-w-[50vw]" />
+              <Pulse className="mt-3 h-3 w-48" />
+            </div>
+          </div>
+          <Pulse className="hidden h-8 w-28 sm:block" />
+        </div>
+        <div className="flex justify-end border-y border-[var(--border-subtle)] bg-[var(--bg-primary)]/35 px-5 py-3.5">
+          <Pulse className="h-9 w-full rounded-lg sm:w-80" />
+        </div>
+        <div className="mx-4 h-[300px] animate-pulse rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/55 sm:mx-5" />
+        <div className="mt-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/35 px-5 py-4">
+          <Pulse className="mx-auto h-3 w-52 max-w-full" />
+          <div className="mt-3 flex items-center justify-between gap-4 border-t border-[var(--border-subtle)] pt-3">
+            <Pulse className="h-3 w-56 max-w-[40%]" />
+            <Pulse className="h-3 w-32" />
+            <Pulse className="h-3 w-56 max-w-[40%]" />
+          </div>
+        </div>
+      </div>
+
+      {Array.from({ length: 2 }, (_, sectionIndex) => (
+        <section key={sectionIndex}>
+          <div className="mb-4 flex items-center justify-between border-b border-[var(--border-default)] pb-3">
+            <div className="flex items-center gap-3">
+              <Pulse className="h-9 w-9 rounded-lg" />
+              <div>
+                <Pulse className="h-3 w-28" />
+                <Pulse className="mt-2 h-3 w-64 max-w-[55vw]" />
+              </div>
+            </div>
+            <Pulse className="h-5 w-20" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 4 }, (_, cardIndex) => <MetricCardSkeleton key={cardIndex} />)}
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }

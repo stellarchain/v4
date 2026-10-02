@@ -1,61 +1,121 @@
 'use client';
 
 import { useId } from 'react';
+import Link from 'next/link';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+} from 'recharts';
 import { NetworkStatisticsCard } from '@/lib/stellar';
 
 interface StatCardProps {
   stat: NetworkStatisticsCard;
-  onClick?: () => void;
+  href?: string;
 }
 
+interface StatChartPoint {
+  sample: number;
+  value: number;
+}
 
-function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
-  const reactId = useId().replace(/:/g, '');
-  if (!data || data.length === 0) return null;
+interface StatChartTooltipPayload {
+  value: number;
+  payload: StatChartPoint;
+}
 
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
+type TrendTone = 'increase' | 'decrease' | 'neutral';
 
-  const width = 84;
-  const height = 32;
-  const padding = 2;
-  const innerWidth = width - padding * 2;
-  const innerHeight = height - padding * 2;
-
-  const points = data.map((value, index) => {
-    const x = padding + (data.length === 1 ? innerWidth / 2 : (index / (data.length - 1)) * innerWidth);
-    const y = height - padding - ((value - min) / range) * innerHeight;
-    return { x, y };
+function formatExactValue(value: number, suffix?: string | null): string {
+  const formatted = value.toLocaleString(undefined, {
+    maximumFractionDigits: 6,
   });
 
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
-  const firstX = points[0].x;
-  const lastX = points[points.length - 1].x;
-  const baseY = height - padding;
-  const areaPath = `${linePath} L${lastX},${baseY} L${firstX},${baseY} Z`;
+  return `${formatted}${suffix ? ` ${suffix}` : ''}`;
+}
 
-  const strokeColor = positive ? 'var(--success)' : 'var(--error)';
-  const gradientId = `spark-${reactId}`;
+function StatChartTooltip({
+  active,
+  payload,
+  totalSamples,
+  suffix,
+}: {
+  active?: boolean;
+  payload?: StatChartTooltipPayload[];
+  totalSamples: number;
+  suffix?: string | null;
+}) {
+  const point = payload?.[0]?.payload;
+  if (!active || !point) return null;
 
   return (
-    <svg width={width} height={height} className="overflow-visible" aria-hidden="true">
-      <defs>
-        <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor={strokeColor} stopOpacity="0.28" />
-          <stop offset="100%" stopColor={strokeColor} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={areaPath} fill={`url(#${gradientId})`} />
-      <path
-        d={linePath}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div className="min-w-36 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-2 shadow-lg">
+      <p className="text-[10px] font-medium text-[var(--text-tertiary)]">
+        Indexed sample {point.sample} of {totalSamples}
+      </p>
+      <p className="mt-1 font-mono text-xs font-semibold tabular-nums text-[var(--text-primary)]">
+        {formatExactValue(point.value, suffix)}
+      </p>
+    </div>
+  );
+}
+
+function StatChart({ data, suffix, label, tone }: { data: number[]; suffix?: string | null; label: string; tone: TrendTone }) {
+  const reactId = useId().replace(/:/g, '');
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="relative flex h-32 w-full items-center justify-center" aria-hidden="true">
+        <span className="absolute inset-x-2 top-1/4 border-t border-dashed border-[var(--border-subtle)]" />
+        <span className="absolute inset-x-2 top-1/2 border-t border-dashed border-[var(--border-subtle)]" />
+        <span className="absolute inset-x-2 top-3/4 border-t border-dashed border-[var(--border-subtle)]" />
+        <span className="relative text-[11px] font-medium text-[var(--text-tertiary)]">No trend available</span>
+      </div>
+    );
+  }
+
+  const points: StatChartPoint[] = data.map((value, index) => ({
+    sample: index + 1,
+    value,
+  }));
+  const areaGradientId = `spark-area-${reactId}`;
+  const trendColor = tone === 'increase'
+    ? 'var(--success)'
+    : tone === 'decrease'
+      ? 'var(--error)'
+      : 'var(--text-tertiary)';
+
+  return (
+    <div className="h-32 w-full" role="img" aria-label={`${label} trend across ${points.length} indexed samples`}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={points} margin={{ top: 10, right: 3, bottom: 4, left: 3 }} accessibilityLayer>
+          <defs>
+            <linearGradient id={areaGradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={trendColor} stopOpacity={0.12} />
+              <stop offset="100%" stopColor={trendColor} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="2 6" vertical={false} />
+          <Tooltip
+            cursor={{ stroke: 'var(--text-tertiary)', strokeOpacity: 0.35, strokeWidth: 1 }}
+            content={<StatChartTooltip totalSamples={points.length} suffix={suffix} />}
+            wrapperStyle={{ outline: 'none', zIndex: 20 }}
+          />
+          <Area
+            type="linear"
+            dataKey="value"
+            stroke={trendColor}
+            strokeWidth={1.6}
+            fill={`url(#${areaGradientId})`}
+            dot={false}
+            activeDot={{ r: 3, fill: trendColor, stroke: 'var(--bg-secondary)', strokeWidth: 1.5 }}
+            isAnimationActive={false}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -68,7 +128,9 @@ function compactNumber(num: number, decimals = 1): string {
 }
 
 function formatValue(stat: NetworkStatisticsCard): string {
-  const num = Number(stat.value || 0);
+  if (stat.value === null) return '—';
+
+  const num = stat.value;
   let formatted: string;
 
   if (stat.format === 'xlm') {
@@ -96,58 +158,79 @@ function formatValue(stat: NetworkStatisticsCard): string {
   return `${formatted}${stat.suffix ? ' ' + stat.suffix : ''}`;
 }
 
-export default function StatCard({ stat, onClick }: StatCardProps) {
+export default function StatCard({ stat, href }: StatCardProps) {
   const change = stat.changePercent;
-  const isPositive = (change ?? 0) >= 0;
+  const trendTone: TrendTone = change === undefined || change === null || change === 0
+    ? 'neutral'
+    : change > 0
+      ? 'increase'
+      : 'decrease';
   const aggregationLabel = stat.aggregation === 'sum'
     ? 'range total'
     : stat.aggregation === 'avg'
       ? 'range average'
-      : 'latest bucket';
+      : stat.aggregation === 'max'
+        ? 'range peak'
+        : 'latest bucket';
 
-  return (
-    <div
-      onClick={onClick}
-      className={`bg-[var(--bg-secondary)] rounded-2xl p-4 transition-[box-shadow,transform] shadow-sm ${onClick ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''
-        }`}
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-[var(--text-tertiary)] text-[10px] font-semibold uppercase tracking-wider mb-1.5">{stat.label}</p>
-          <p className="text-[var(--text-primary)] text-lg font-semibold font-mono">
-            {formatValue(stat)}
-          </p>
-          <p className="text-[10px] text-[var(--text-secondary)] mt-1">{aggregationLabel}</p>
+  const content = (
+    <>
+      <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/45 px-3 pt-2">
+        <StatChart data={stat.sparkline} suffix={stat.suffix} label={stat.label} tone={trendTone} />
+      </div>
+      <div className="flex flex-1 flex-col p-4 pt-3.5">
+        <p className="min-h-7 text-[9px] font-bold uppercase leading-relaxed tracking-widest text-[var(--text-tertiary)]">{stat.label}</p>
+        <p className="font-mono text-xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-2xl">
+          {formatValue(stat)}
+        </p>
+        <div className="mt-1.5 flex min-h-9 flex-wrap items-start justify-between gap-2">
+          {stat.unavailableReason ? (
+            <p className="max-w-[75%] text-[10px] leading-relaxed text-[var(--text-secondary)]">{stat.unavailableReason}</p>
+          ) : (
+            <p className="text-[10px] text-[var(--text-secondary)]">{aggregationLabel}</p>
+          )}
           {change !== undefined && change !== null && (
-            <div className="flex items-center gap-1 mt-1.5">
-              <span
-                className={`inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums px-1.5 py-0.5 rounded ${
-                  isPositive
-                    ? 'text-[#047857] dark:text-[var(--success)] bg-[var(--success-muted)]'
-                    : 'text-[#b91c1c] dark:text-[var(--error)] bg-[var(--error-muted)]'
-                }`}
-              >
-                <svg
-                  className={`w-2.5 h-2.5 ${isPositive ? '' : 'rotate-180'}`}
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z"
-                    clipRule="evenodd"
-                  />
+            <span
+              className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${
+                trendTone === 'increase'
+                  ? 'bg-[var(--success-muted)] text-[#047857] dark:text-[var(--success)]'
+                  : trendTone === 'decrease'
+                    ? 'bg-[var(--error-muted)] text-[#b91c1c] dark:text-[var(--error)]'
+                    : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
+              }`}
+            >
+              {trendTone === 'neutral' ? (
+                <span aria-hidden="true">—</span>
+              ) : (
+                <svg className={`h-2.5 w-2.5 ${trendTone === 'decrease' ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
                 </svg>
-                {isPositive ? '+' : ''}{change.toFixed(2)}%
-              </span>
-            </div>
+              )}
+              {trendTone === 'increase' ? '+' : ''}{change.toFixed(2)}%
+            </span>
           )}
         </div>
-        <div className="flex-shrink-0 ml-3">
-          <Sparkline data={stat.sparkline} positive={isPositive} />
-        </div>
+        {href && (
+          <span className="mt-auto inline-flex items-center gap-1 pt-2 text-[11px] font-semibold text-[var(--primary-blue)]">
+            View chart
+            <svg className="h-3 w-3 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m9 18 6-6-6-6" />
+            </svg>
+          </span>
+        )}
       </div>
-    </div>
+    </>
+  );
+
+  const cardClass = 'group flex h-full min-h-[286px] flex-col overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm';
+  if (!href) return <div className={cardClass}>{content}</div>;
+
+  return (
+    <Link
+      href={href}
+      className={`${cardClass} cursor-pointer transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-[var(--primary-blue)]/35 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-blue)] active:translate-y-0`}
+    >
+      {content}
+    </Link>
   );
 }

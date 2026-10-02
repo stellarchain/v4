@@ -26,6 +26,7 @@ You are working on a Next.js App Router project with client-only pages. All data
 - We need consistency in the design, use the same colors, fonts, and spacing throughout the website, for example tabs have a specific style, should be use everywhere the same style, also lists have a specific style, with a bubble for each item.
 ## Testing Guidelines
 - No automated test framework is currently configured.
+- `npm test`: Run the lightweight Node.js regression tests under `src/lib`.
 - If you add tests, keep them close to the source (for example, `src/components/__tests__/Component.test.tsx`) and document any new command in this file.
 
 

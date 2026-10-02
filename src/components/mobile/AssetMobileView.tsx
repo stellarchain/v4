@@ -8,6 +8,7 @@ import { AssetDetails, getTradeAggregations, getXLMUSDPriceFromHorizon, getOrder
 import { getXLMHoldersAction } from '@/lib/helpers';
 import { containers, colors, coreColors, tabs, badges, getPrimaryColor } from '@/lib/shared/designSystem';
 import GliderTabs from '@/components/ui/GliderTabs';
+import Badge from '@/components/ui/Badge';
 import RiskWarningRow from '@/components/RiskWarningRow';
 import RiskAwareLink from '@/components/RiskAwareLink';
 
@@ -15,6 +16,8 @@ interface AssetMobileViewProps {
   asset: AssetDetails;
   rank: number;
 }
+
+const FUNDED_HOLDER_PAGE_SIZE = 20;
 
 function formatNumber(num: number): string {
   if (num === 0 || isNaN(num)) return '0';
@@ -123,6 +126,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
   const [holdersCursor, setHoldersCursor] = useState<string | null>(null);
   const [hasMoreHolders, setHasMoreHolders] = useState(true);
   const [holdersTotalSupply, setHoldersTotalSupply] = useState(0);
+  const [holdersError, setHoldersError] = useState<string | null>(null);
   const [holderLabels, setHolderLabels] = useState<Map<string, AccountLabel>>(new Map());
   const holdersEndRef = useRef<HTMLDivElement>(null);
 
@@ -421,10 +425,11 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
     const fetchInitialHolders = async () => {
       setHoldersLoading(true);
+      setHoldersError(null);
       try {
         const data = asset.code === 'XLM'
           ? await getXLMHoldersAction(20)
-          : await getAssetHolders(asset.code, asset.issuer || '', 20);
+          : await getAssetHolders(asset.code, asset.issuer || '', FUNDED_HOLDER_PAGE_SIZE);
 
         const initialHolders = [...data.holders].sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance));
         setAllHolders(initialHolders);
@@ -440,6 +445,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
         }
       } catch (e) {
         console.error('Failed to fetch holders', e);
+        setHoldersError(e instanceof Error ? e.message : 'Failed to load holder ranking.');
       }
       setHoldersLoading(false);
     };
@@ -454,15 +460,21 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     try {
       const data = asset.code === 'XLM'
         ? await getXLMHoldersAction(20, holdersCursor)
-        : await getAssetHolders(asset.code, asset.issuer || '', 20, holdersCursor);
+        : await getAssetHolders(
+          asset.code,
+          asset.issuer || '',
+          FUNDED_HOLDER_PAGE_SIZE,
+          holdersCursor
+        );
+
+      setHoldersCursor(data.nextCursor || null);
+      setHasMoreHolders(!!data.nextCursor);
 
       if (data.holders.length > 0) {
         const merged = [...allHolders, ...data.holders];
         merged.sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance));
         setAllHolders(merged);
         setDisplayedHoldersCount(prev => Math.min(prev + 20, merged.length));
-        setHoldersCursor(data.nextCursor || null);
-        setHasMoreHolders(!!data.nextCursor);
 
         const addresses = data.holders.map(h => h.account_id);
         if (addresses.length > 0) {
@@ -473,11 +485,10 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
             return next;
           });
         }
-      } else {
-        setHasMoreHolders(false);
       }
     } catch (e) {
       console.error('Failed to load more holders', e);
+      setHoldersError(e instanceof Error ? e.message : 'Failed to load the next holder page.');
     }
     setLoadingMoreHolders(false);
   }, [allHolders, asset.code, asset.issuer, hasMoreHolders, holdersCursor, loadingMoreHolders]);
@@ -487,7 +498,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
     setDisplayedHoldersCount(prev => Math.min(prev + 20, allHolders.length));
   }, [allHolders.length]);
 
-  // Infinite scroll observer for holders - just shows more from pre-loaded list
+  // Infinite scroll reveals already-loaded holders without fetching another Horizon page.
   useEffect(() => {
     if (activeTab !== 'holders') return;
     if (!holdersEndRef.current) return;
@@ -498,10 +509,6 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
         if (entries[0].isIntersecting) {
           if (displayedHoldersCount < allHolders.length) {
             showMoreHolders();
-            return;
-          }
-          if (hasMoreHolders && !loadingMoreHolders) {
-            loadMoreHolders();
           }
         }
       },
@@ -510,7 +517,7 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
 
     observer.observe(currentRef);
     return () => observer.disconnect();
-  }, [displayedHoldersCount, allHolders.length, activeTab, showMoreHolders, hasMoreHolders, loadingMoreHolders, loadMoreHolders]);
+  }, [displayedHoldersCount, allHolders.length, activeTab, showMoreHolders]);
 
   // Fetch markets only when Markets tab is active
   useEffect(() => {
@@ -858,6 +865,14 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 <div className="text-white/60 text-[11px] uppercase tracking-wide">Asset price</div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-white">{asset.code}</span>
+                  {asset.verified && (
+                    <Badge variant="success" className="gap-1 shrink-0 bg-emerald-400/15 text-emerald-300 border-emerald-300/30">
+                      <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                      </svg>
+                      Verified
+                    </Badge>
+                  )}
                   {asset.code !== 'XLM' && (
                     <span className="text-white/50 text-xs">/ USD</span>
                   )}
@@ -1627,6 +1642,10 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                   </div>
                 ))}
               </div>
+            ) : holdersError ? (
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 px-4 text-center text-[var(--text-muted)] text-sm">
+                {holdersError}
+              </div>
             ) : allHolders.length > 0 ? (
               <>
                 {allHolders.slice(0, displayedHoldersCount).map((holder, index) => {
@@ -1708,10 +1727,28 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
                 {loadingMoreHolders && (
                   <div className="py-3 text-center text-xs text-[var(--text-muted)]">Loading more holders...</div>
                 )}
+
+                {displayedHoldersCount >= allHolders.length && hasMoreHolders && !loadingMoreHolders && (
+                  <button
+                    onClick={loadMoreHolders}
+                    className="w-full py-3 text-sm font-semibold text-[var(--primary-blue)] bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-subtle)]"
+                  >
+                    Load More Holders
+                  </button>
+                )}
               </>
             ) : (
-              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 text-center text-[var(--text-muted)] text-sm">
-                No holders found
+              <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-subtle)] py-4 px-4 text-center text-[var(--text-muted)] text-sm">
+                <p>{hasMoreHolders ? 'No funded holders found in the scanned trustlines.' : 'No holders found'}</p>
+                {hasMoreHolders && (
+                  <button
+                    onClick={loadMoreHolders}
+                    disabled={loadingMoreHolders}
+                    className="mt-3 px-4 py-2 font-semibold text-[var(--primary-blue)] disabled:opacity-50"
+                  >
+                    {loadingMoreHolders ? 'Loading...' : 'Continue Scanning'}
+                  </button>
+                )}
               </div>
             )}
           </div>

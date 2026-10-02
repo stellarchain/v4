@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { PaymentFlowEvent } from '@/lib/stellar';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
+import CompactAmount from '@/components/scam-flow/CompactAmount';
 import PaymentFlowAccountIdentity from '@/components/scam-flow/PaymentFlowAccountIdentity';
 
 interface PaymentFlowTimelineProps {
@@ -18,17 +19,12 @@ function shorten(value: string | null | undefined, head = 6, tail = 6): string {
 function formatDate(value: string | null): string {
   if (!value) return 'unknown time';
   return new Date(value).toLocaleString(undefined, {
+    timeZone: 'UTC',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function formatAmount(value: string | null, asset: string): string {
-  const numericValue = Number(value ?? 0);
-  if (!Number.isFinite(numericValue)) return `0 ${asset}`;
-  return `${numericValue.toLocaleString(undefined, { maximumFractionDigits: 7 })} ${asset}`;
 }
 
 function directionMeta(direction: PaymentFlowEvent['direction']) {
@@ -61,8 +57,8 @@ export default function PaymentFlowTimeline({ events }: PaymentFlowTimelineProps
     <Card className="shadow-sm">
       <div className="flex flex-col gap-1 border-b border-[var(--border-default)] p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">Event timeline</h2>
-          <p className="text-xs text-[var(--text-muted)]">Latest matching payment-flow events from the indexed dataset.</p>
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">Event timeline for this page</h2>
+          <p className="text-xs text-[var(--text-muted)]">Latest matching events in chronological context.</p>
         </div>
         {events.length > 0 && (
           <span className="text-[11px] tabular-nums text-[var(--text-tertiary)]">
@@ -118,20 +114,25 @@ export default function PaymentFlowTimeline({ events }: PaymentFlowTimelineProps
 
                   <div className="grid gap-2 text-xs md:grid-cols-[1fr_auto_1fr] md:items-center">
                     {event.fromAddress ? (
-                      <PaymentFlowAccountIdentity address={event.fromAddress} account={event.fromAccount} compact />
+                      <PaymentFlowAccountIdentity address={event.fromAddress} account={event.fromAccount} />
                     ) : (
                       <span className="min-w-0 font-mono text-[var(--text-muted)]">unknown</span>
                     )}
                     <div className="flex items-center gap-2">
                       <span className="hidden h-px w-8 bg-[var(--border-default)] md:block" />
                       <span
-                        className="rounded-md px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums"
+                        className="rounded-md px-1 py-0.5 font-mono text-[11px] font-semibold tabular-nums"
                         style={{
                           background: `color-mix(in srgb, ${meta.color} 10%, transparent)`,
                           color: meta.color,
                         }}
                       >
-                        {formatAmount(primaryAmount, primaryAsset)}
+                        <CompactAmount
+                          value={primaryAmount}
+                          asset={primaryAsset}
+                          align="center"
+                          className="whitespace-nowrap text-inherit"
+                        />
                       </span>
                       <svg
                         className="hidden h-3 w-3 md:block"
@@ -145,7 +146,7 @@ export default function PaymentFlowTimeline({ events }: PaymentFlowTimelineProps
                       </svg>
                     </div>
                     {event.toAddress ? (
-                      <PaymentFlowAccountIdentity address={event.toAddress} account={event.toAccount} align="right" compact />
+                      <PaymentFlowAccountIdentity address={event.toAddress} account={event.toAccount} align="right" />
                     ) : (
                       <span className="min-w-0 font-mono text-[var(--text-muted)] md:text-right">unknown</span>
                     )}
@@ -156,7 +157,7 @@ export default function PaymentFlowTimeline({ events }: PaymentFlowTimelineProps
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
                         Source
                       </span>
-                      <PaymentFlowAccountIdentity address={event.sourceAccount} account={event.sourceAccountMetadata} compact />
+                      <PaymentFlowAccountIdentity address={event.sourceAccount} account={event.sourceAccountMetadata} />
                     </div>
                   )}
 

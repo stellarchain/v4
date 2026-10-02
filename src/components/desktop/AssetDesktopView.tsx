@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import AssetCandlestickChart from '@/components/AssetCandlestickChart';
 import AssetOrderBook from '@/components/AssetOrderBook';
 import GliderTabs from '@/components/ui/GliderTabs';
+import Badge from '@/components/ui/Badge';
 import { AssetDetails, AssetHolder, AssetTrade, AccountLabel, TradingPair, shortenAddress, timeAgo, getAssetHolders, getAssetTrades, getAccountLabels, getAssetTradingPairs, getLiquidityPoolByAssets, getOperation } from '@/lib/stellar';
 import { getXLMHoldersAction } from '@/lib/helpers';
 import RiskWarningRow from '@/components/RiskWarningRow';
@@ -44,6 +45,7 @@ function formatPriceShort(price: number): string {
 }
 
 type TabType = 'chart' | 'markets' | 'trades' | 'holders' | 'about';
+const FUNDED_HOLDER_PAGE_SIZE = 20;
 
 export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps) {
   const router = useRouter();
@@ -59,6 +61,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
   const [hasMoreHolders, setHasMoreHolders] = useState(false);
   const [loadingHolders, setLoadingHolders] = useState(false);
   const [loadingMoreHolders, setLoadingMoreHolders] = useState(false);
+  const [holdersError, setHoldersError] = useState<string | null>(null);
   const [holderLabels, setHolderLabels] = useState<Map<string, AccountLabel>>(new Map());
 
   const [tradingPairs, setTradingPairs] = useState<TradingPair[]>([]);
@@ -199,6 +202,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
 
     const fetchHolders = async () => {
       setLoadingHolders(true);
+      setHoldersError(null);
       try {
         let holdersData: AssetHolder[];
         let nextCursor: string | null | undefined;
@@ -208,7 +212,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
           holdersData = result.holders;
           nextCursor = result.nextCursor || null;
         } else {
-          const result = await getAssetHolders(asset.code, asset.issuer!, 25);
+          const result = await getAssetHolders(asset.code, asset.issuer!, FUNDED_HOLDER_PAGE_SIZE);
           holdersData = result.holders;
           nextCursor = result.nextCursor;
         }
@@ -225,6 +229,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
         }
       } catch (error) {
         console.error('Failed to fetch holders:', error);
+        setHoldersError(error instanceof Error ? error.message : 'Failed to load holder ranking.');
       }
       setLoadingHolders(false);
     };
@@ -245,12 +250,19 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
         newHolders = result.holders;
         nextCursor = result.nextCursor || null;
       } else {
-        const result = await getAssetHolders(asset.code, asset.issuer!, 25, holdersCursor);
+        const result = await getAssetHolders(
+          asset.code,
+          asset.issuer!,
+          FUNDED_HOLDER_PAGE_SIZE,
+          holdersCursor
+        );
         newHolders = result.holders;
         nextCursor = result.nextCursor;
       }
 
-      setHolders(prev => [...prev, ...newHolders]);
+      setHolders(prev => [...prev, ...newHolders].sort(
+        (left, right) => parseFloat(right.balance) - parseFloat(left.balance)
+      ));
       setHoldersCursor(nextCursor ?? null);
       setHasMoreHolders(!!nextCursor);
 
@@ -266,6 +278,7 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
       }
     } catch (error) {
       console.error('Failed to load more holders:', error);
+      setHoldersError(error instanceof Error ? error.message : 'Failed to load the next holder page.');
     }
     setLoadingMoreHolders(false);
   };
@@ -306,6 +319,14 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                   <div className="flex items-center gap-2">
                     <h1 className="text-lg font-bold text-[var(--text-primary)]">{asset.name}</h1>
                     <span className="text-[var(--text-muted)] text-sm font-medium">{asset.code}</span>
+                    {asset.verified && (
+                      <Badge variant="success" className="gap-1 shrink-0">
+                        <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                        </svg>
+                        Verified
+                      </Badge>
+                    )}
                     {rank > 0 && (
                       <span className="bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-[10px] font-bold px-1.5 py-0.5 rounded">
                         #{rank}
@@ -785,8 +806,10 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
             {activeTab === 'holders' && (
               <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm overflow-x-auto">
                 <div className="p-4 border-b border-[var(--border-subtle)]">
-                  <h3 className="font-semibold text-[var(--text-primary)]">Top {asset.code} Holders</h3>
-                  <p className="text-xs text-[var(--text-tertiary)] mt-1">{formatNumber(asset.holders)} total holders</p>
+                  <h3 className="font-semibold text-[var(--text-primary)]">{asset.code} Holders</h3>
+                  <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                    {formatNumber(asset.holders)} trustlines · up to {FUNDED_HOLDER_PAGE_SIZE} funded holders per page
+                  </p>
                 </div>
 
                 {!asset.issuer ? (
@@ -797,9 +820,22 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                   <div className="flex items-center justify-center py-16">
                     <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
                   </div>
+                ) : holdersError ? (
+                  <div className="text-center py-16 px-6 text-[var(--text-muted)]">
+                    {holdersError}
+                  </div>
                 ) : holders.length === 0 ? (
-                  <div className="text-center py-16 text-[var(--text-muted)]">
-                    No holders found
+                  <div className="text-center py-16 px-6 text-[var(--text-muted)]">
+                    <p>{hasMoreHolders ? 'No funded holders found in the scanned trustlines.' : 'No holders found'}</p>
+                    {hasMoreHolders && (
+                      <button
+                        onClick={loadMoreHolders}
+                        disabled={loadingMoreHolders}
+                        className="mt-4 px-4 py-2 text-sm font-medium text-sky-600 hover:bg-sky-50 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {loadingMoreHolders ? 'Loading...' : 'Continue Scanning'}
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <>

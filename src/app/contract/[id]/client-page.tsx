@@ -10,6 +10,7 @@ import ContractMobileView from '@/components/mobile/ContractMobileView';
 import ContractDesktopView from '@/components/desktop/ContractDesktopView';
 import type { TokenRegistryEntry, ContractVerification } from '@/lib/shared/interfaces';
 import { decodeScVal } from '@/lib/shared/xdr';
+import { contractVerificationFromApi } from '@/lib/shared/contractProvenance';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { apiEndpoints, getApiV1Data } from '@/services/api';
 import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
@@ -119,6 +120,11 @@ interface APIContractData {
   sourceCode?: string | null;
   wasmId?: string | null;
   sourceCodeVerified: boolean;
+  sep55Verified?: boolean;
+  githubAddress?: string | null;
+  sep55CommitHash?: string | null;
+  sep55AttestationUrl?: string | null;
+  source?: { sourceCodeAvailable?: boolean; type?: string | null } | null;
   createdAt: string;
   totalTransactions: number;
   totalOperations?: number;
@@ -783,12 +789,7 @@ function normalizeRawInteger(value: unknown): string | null {
   if (value === null || value === undefined) return null;
   const raw = String(value).trim();
   if (raw === '') return null;
-  if (/^-?\d+$/.test(raw)) return raw;
-
-  const numeric = Number(raw);
-  if (!Number.isFinite(numeric)) return null;
-
-  return String(Math.trunc(numeric));
+  return /^-?\d+$/.test(raw) ? raw : null;
 }
 
 function subtractRawIntegers(left: string | null, right: string | null): string | null {
@@ -797,8 +798,7 @@ function subtractRawIntegers(left: string | null, right: string | null): string 
   try {
     return (BigInt(left) - BigInt(right)).toString();
   } catch {
-    const diff = Number(left) - Number(right);
-    return Number.isFinite(diff) ? String(Math.trunc(diff)) : null;
+    return null;
   }
 }
 
@@ -807,7 +807,7 @@ function isZeroRaw(value: string | null): boolean {
   try {
     return BigInt(value) === BigInt(0);
   } catch {
-    return Number(value) === 0;
+    return false;
   }
 }
 
@@ -904,7 +904,7 @@ function buildTokenMetadata(
       : undefined,
     lastFetched: Date.now(),
     fetchedFromRPC: false,
-    verified: Boolean(apiData.sourceCodeVerified || verifiedContract?.verified),
+    verified: Boolean(apiData.sep55Verified || verifiedContract?.verified),
     iconUrl: verifiedContract?.iconUrl,
     description: verifiedContract?.description,
     domain: undefined,
@@ -931,10 +931,7 @@ function mapVerifiedContract(apiData: APIContractData): VerifiedContract | undef
 }
 
 function buildVerification(apiData: APIContractData): ContractVerification | null {
-  return {
-    isVerified: Boolean(apiData.sourceCodeVerified),
-    wasmHash: apiData.wasmId || undefined,
-  };
+  return contractVerificationFromApi(apiData, isSacContract(apiData));
 }
 
 async function fetchContractBaseData(contractId: string): Promise<APIContractData> {
@@ -1077,7 +1074,7 @@ export default function ContractPage() {
           verifiedContract,
           type,
           accessControl: null,
-          isVerified: Boolean(apiData.sourceCodeVerified || verifiedContract?.verified),
+          isVerified: Boolean(apiData.sep55Verified),
           apiContractData: apiData,
           events: [],
           eventSummary: mapEventSummary(apiData, []),
