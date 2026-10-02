@@ -497,13 +497,14 @@ export interface NetworkStatisticsCoverage {
 export interface NetworkStatisticsCard {
   metricKey: string;
   label: string;
-  value: number;
-  valueDecimal: string;
+  value: number | null;
+  valueDecimal: string | null;
   aggregation: 'sum' | 'avg' | 'latest' | string;
   format: 'integer' | 'decimal' | 'seconds' | 'xlm' | string;
   suffix?: string | null;
   changePercent?: number | null;
   sparkline: number[];
+  unavailableReason?: string;
 }
 
 export interface NetworkStatisticsSection {
@@ -583,6 +584,7 @@ export interface PaymentFlowEvent {
   operationType: string;
   successful: boolean;
   direction: 'incoming' | 'outgoing' | 'related';
+  assetMatch?: 'source' | 'destination' | 'both' | null;
   counterparty: string | null;
   sourceAccount: string | null;
   sourceAccountMetadata: PaymentFlowAccountMetadata | null;
@@ -666,6 +668,7 @@ export interface PaymentFlowGroup {
 export interface PaymentFlowInvestigationResponse {
   network: string;
   query: {
+    targetType?: 'address' | 'transaction' | 'asset';
     address: string | null;
     txHash: string | null;
     ledgerFrom: number | null;
@@ -678,6 +681,7 @@ export interface PaymentFlowInvestigationResponse {
     operationType?: string | null;
     asset?: string | null;
     minAssetAmount?: string | null;
+    depth?: 1 | 2;
   };
   coverage: {
     rowsReturned: number;
@@ -691,6 +695,8 @@ export interface PaymentFlowInvestigationResponse {
     nextCursor?: string | null;
     latestObservedLedger?: number | null;
     latestObservedClosedAt?: string | null;
+    assetIndexFirstBuiltLedger?: number | null;
+    assetIndexLatestBuiltLedger?: number | null;
     completeHistoryVerified?: boolean;
     note?: string;
   };
@@ -727,6 +733,35 @@ export interface PaymentFlowInvestigationResponse {
   graph: {
     nodes: PaymentFlowGraphNode[];
     edges: PaymentFlowGraphEdge[];
+  };
+  trace?: {
+    depthRequested: 1 | 2;
+    depthReturned: 1 | 2;
+    candidatePaths: Array<{
+      id: string;
+      direction: 'incoming' | 'outgoing';
+      accounts: Array<string | null>;
+      eventIds: string[];
+      asset: PaymentFlowAssetRef;
+      firstLedger: number;
+      lastLedger: number;
+      amountsKnown: boolean;
+      containsConversion: boolean;
+    }>;
+    frontierAccounts: number;
+    frontierLimit: number;
+    eventLimitPerFrontier: number;
+    secondHopEvents: number;
+    truncated: boolean;
+    truncatedBranches: number;
+    exclusions: {
+      failedOperations: number;
+      selfTransfers: number;
+      cycles: number;
+      timeOrder: number;
+      assetDiscontinuity: number;
+    };
+    note: string;
   };
   counterparties: PaymentFlowCounterparty[];
   flowGroups?: PaymentFlowGroup[];

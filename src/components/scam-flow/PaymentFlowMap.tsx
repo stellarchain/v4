@@ -4,24 +4,50 @@ import Link from 'next/link';
 import { PaymentFlowInvestigationResponse, PaymentFlowCounterparty } from '@/lib/stellar';
 import Card from '@/components/ui/Card';
 import PaymentFlowAccountIdentity from '@/components/scam-flow/PaymentFlowAccountIdentity';
+import CompactAmount from '@/components/scam-flow/CompactAmount';
+import { formatExactAmount } from '@/lib/shared/formatExactAmount';
 
 interface PaymentFlowMapProps {
   investigation: PaymentFlowInvestigationResponse;
 }
 
-function formatAmount(value: string | number | null | undefined): string {
-  const numericValue = Number(value ?? 0);
-  if (!Number.isFinite(numericValue) || numericValue === 0) return '0';
-  if (Math.abs(numericValue) >= 1_000_000_000) return `${(numericValue / 1_000_000_000).toFixed(2)}B`;
-  if (Math.abs(numericValue) >= 1_000_000) return `${(numericValue / 1_000_000).toFixed(2)}M`;
-  if (Math.abs(numericValue) >= 1_000) return `${(numericValue / 1_000).toFixed(2)}K`;
-  return numericValue.toLocaleString(undefined, { maximumFractionDigits: 4 });
+type CandidatePath = NonNullable<PaymentFlowInvestigationResponse['trace']>['candidatePaths'][number];
+
+function CandidatePathRow({
+  path,
+  investigation,
+}: {
+  path: CandidatePath;
+  investigation: PaymentFlowInvestigationResponse;
+}) {
+  const source = path.accounts[0];
+  const via = path.accounts[1];
+  const target = path.accounts[2];
+  if (!source || !via || !target) return null;
+
+  return (
+    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)] p-3">
+      <div className="grid gap-2 text-xs md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
+        <PaymentFlowAccountIdentity address={source} account={investigation.accounts[source] ?? null} />
+        <span className="text-[var(--text-tertiary)]" aria-hidden="true">→</span>
+        <PaymentFlowAccountIdentity address={via} account={investigation.accounts[via] ?? null} align="center" />
+        <span className="text-[var(--text-tertiary)]" aria-hidden="true">→</span>
+        <PaymentFlowAccountIdentity address={target} account={investigation.accounts[target] ?? null} align="right" />
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--text-secondary)]">
+        <span className="font-mono text-[var(--text-primary)]">{path.asset.display}</span>
+        <span>ledgers {path.firstLedger.toLocaleString()}–{path.lastLedger.toLocaleString()}</span>
+        <span>{path.direction}</span>
+        {path.containsConversion && <span>contains path-payment conversion</span>}
+        {!path.amountsKnown && <span>one or more amounts unavailable</span>}
+      </div>
+    </div>
+  );
 }
 
-function flowValueLabel(value: string, assets: string[]): string {
-  if (Number(value) > 0) return `${formatAmount(value)} XLM`;
-  if (assets.length === 0) return 'assets';
-  return assets.slice(0, 3).join(', ');
+function hasKnownFlowValue(value: string): boolean {
+  const amount = formatExactAmount(value);
+  return amount !== 'Unknown' && amount !== '0';
 }
 
 function CounterpartyRow({
@@ -37,9 +63,7 @@ function CounterpartyRow({
   const accentColor = isIncoming ? 'var(--success)' : 'var(--error)';
   const events = isIncoming ? counterparty.incoming : counterparty.outgoing;
   const widthPct = maxEvents > 0 ? Math.max(8, (events / maxEvents) * 100) : 12;
-  const valueLabel = isIncoming
-    ? flowValueLabel(counterparty.nativeReceived, counterparty.assets)
-    : flowValueLabel(counterparty.nativeSent, counterparty.assets);
+  const value = isIncoming ? counterparty.nativeReceived : counterparty.nativeSent;
 
   return (
     <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)] p-3">
@@ -47,12 +71,16 @@ function CounterpartyRow({
         <Link href={`/account/${counterparty.address}`} className="min-w-0 rounded text-[var(--primary-blue)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]">
           <PaymentFlowAccountIdentity address={counterparty.address} account={counterparty.account} link={false} />
         </Link>
-        <span
-          className="inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums"
-          style={{ color: accentColor }}
-        >
-          {isIncoming ? '+' : '−'}{valueLabel}
-        </span>
+        {hasKnownFlowValue(value) ? (
+          <CompactAmount
+            value={value}
+            asset="XLM"
+            prefix={isIncoming ? '+' : '−'}
+            className={`whitespace-nowrap text-right text-[11px] font-semibold tabular-nums ${isIncoming ? 'text-[var(--success)]' : 'text-[var(--error)]'}`}
+          />
+        ) : (
+          <span className="text-[11px] font-medium text-[var(--text-muted)]">Amount unavailable</span>
+        )}
       </div>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--bg-secondary)]">
         <div
@@ -62,10 +90,10 @@ function CounterpartyRow({
       </div>
       <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-[10px]">
         <p className="text-[var(--text-secondary)]">
-          {events} {isIncoming ? 'incoming' : 'outgoing'} {events === 1 ? 'event' : 'events'} on this page
+          {events} {events === 1 ? 'event' : 'events'}
         </p>
         <Link href={`/investigate/${counterparty.address}?direction=both`} className="inline-flex min-h-8 items-center rounded px-1 text-xs font-medium text-[var(--primary-blue)] underline hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]">
-          Investigate address ↗
+          Inspect ↗
         </Link>
       </div>
     </div>
@@ -74,6 +102,8 @@ function CounterpartyRow({
 
 export default function PaymentFlowMap({ investigation }: PaymentFlowMapProps) {
   const focusAddress = investigation.query.address;
+  const trace = investigation.trace;
+  const isTwoHop = trace?.depthReturned === 2;
   const incoming = investigation.counterparties
     .filter((counterparty) => counterparty.incoming > 0)
     .slice(0, 6);
@@ -105,11 +135,14 @@ export default function PaymentFlowMap({ investigation }: PaymentFlowMapProps) {
   }
 
   if (!focusAddress) {
+    const isAssetTarget = investigation.query.targetType === 'asset';
     return (
       <Card className="shadow-sm">
         <div className="border-b border-[var(--border-default)] p-4">
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">Transaction flow</h2>
-          <p className="text-xs text-[var(--text-muted)]">Transfers extracted from the selected transaction.</p>
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">{isAssetTarget ? 'Observed asset flows' : 'Transaction flow'}</h2>
+          <p className="text-xs text-[var(--text-muted)]">
+            {isAssetTarget ? 'Top account-to-account edges on this indexed asset page.' : 'Transfers extracted from the selected transaction.'}
+          </p>
         </div>
         <div className="space-y-2 p-4">
           {topEdges.map((edge) => (
@@ -136,16 +169,43 @@ export default function PaymentFlowMap({ investigation }: PaymentFlowMapProps) {
     <Card className="shadow-sm">
       <div className="flex flex-col gap-1 border-b border-[var(--border-default)] p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">Payment flow map</h2>
-          <p className="text-xs text-[var(--text-muted)]">Top counterparties in the returned sample.</p>
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">{isTwoHop ? 'Two-hop activity' : 'Payment activity'}</h2>
+          <p className="text-xs text-[var(--text-secondary)]">{isTwoHop ? 'Possible paths within the selected range.' : 'Accounts that sent or received funds in this result.'}</p>
         </div>
         <div className="text-[11px] tabular-nums text-[var(--text-tertiary)]">
-          <span className="font-medium text-[var(--text-secondary)]">{investigation.graph.nodes.length.toLocaleString()}</span> nodes ·{' '}
-          <span className="font-medium text-[var(--text-secondary)]">{investigation.graph.edges.length.toLocaleString()}</span> edges
+          <span className="font-medium text-[var(--text-secondary)]">{investigation.graph.edges.length.toLocaleString()}</span> connections
         </div>
       </div>
 
-      <div className="grid gap-4 p-4 lg:grid-cols-[1fr_auto_1fr] lg:items-start">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-default)] bg-[var(--bg-tertiary)] px-4 py-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-secondary)] text-[var(--primary-blue)] ring-1 ring-[var(--border-default)]">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3zm0 0v10m-5-3a5 5 0 0110 0" />
+            </svg>
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">Checked account</div>
+            <PaymentFlowAccountIdentity
+              address={focusAddress}
+              account={investigation.accountContext.focusAccount}
+              className="mt-0.5"
+            />
+          </div>
+        </div>
+        <div className="flex gap-2 text-xs">
+          <div className="rounded-lg bg-[var(--bg-secondary)] px-3 py-1.5 text-center ring-1 ring-[var(--border-default)]">
+            <span className="font-mono font-semibold tabular-nums text-[var(--success)]">{investigation.summary.incomingEvents}</span>
+            <span className="ml-1 text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">in</span>
+          </div>
+          <div className="rounded-lg bg-[var(--bg-secondary)] px-3 py-1.5 text-center ring-1 ring-[var(--border-default)]">
+            <span className="font-mono font-semibold tabular-nums text-[var(--error)]">{investigation.summary.outgoingEvents}</span>
+            <span className="ml-1 text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">out</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,2fr)_minmax(16rem,1fr)] lg:items-start">
         <section>
           <div className="mb-2 flex items-center gap-2">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--success-muted)] text-[var(--success)]">
@@ -156,7 +216,7 @@ export default function PaymentFlowMap({ investigation }: PaymentFlowMapProps) {
             <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">Incoming</span>
             <span className="ml-auto text-[10px] text-[var(--text-muted)]">{incoming.length}</span>
           </div>
-          <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             {incoming.length === 0 ? (
               <div className="rounded-xl border border-dashed border-[var(--border-default)] p-3 text-xs text-[var(--text-muted)]">
                 No incoming rows in this sample.
@@ -173,37 +233,6 @@ export default function PaymentFlowMap({ investigation }: PaymentFlowMapProps) {
             )}
           </div>
         </section>
-
-        <aside className="lg:w-60">
-          <div className="rounded-2xl border border-[var(--primary-blue)]/30 bg-gradient-to-b from-[var(--info-muted)] to-transparent p-4 text-center">
-            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-secondary)] text-[var(--primary-blue)]">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3zm0 0v10m-5-3a5 5 0 0110 0" />
-              </svg>
-            </div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">Focus address</div>
-            <PaymentFlowAccountIdentity
-              address={focusAddress}
-              account={investigation.accountContext.focusAccount}
-              align="center"
-              className="mt-1"
-            />
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-lg bg-[var(--bg-secondary)] px-2 py-1.5">
-                <div className="font-mono font-semibold tabular-nums text-[var(--success)]">
-                  {investigation.summary.incomingEvents}
-                </div>
-                <div className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">in</div>
-              </div>
-              <div className="rounded-lg bg-[var(--bg-secondary)] px-2 py-1.5">
-                <div className="font-mono font-semibold tabular-nums text-[var(--error)]">
-                  {investigation.summary.outgoingEvents}
-                </div>
-                <div className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">out</div>
-              </div>
-            </div>
-          </div>
-        </aside>
 
         <section>
           <div className="mb-2 flex items-center gap-2">
@@ -233,6 +262,32 @@ export default function PaymentFlowMap({ investigation }: PaymentFlowMapProps) {
           </div>
         </section>
       </div>
+
+      {isTwoHop && trace && (
+        <section className="border-t border-[var(--border-default)] p-4" aria-labelledby="candidate-paths-heading">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h3 id="candidate-paths-heading" className="text-sm font-semibold text-[var(--text-primary)]">Candidate two-hop paths</h3>
+              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-[var(--text-secondary)]">{trace.note}</p>
+            </div>
+            <div className="text-right text-[10px] tabular-nums text-[var(--text-tertiary)]">
+              <div>{trace.candidatePaths.length.toLocaleString()} paths · {trace.frontierAccounts.toLocaleString()} frontier accounts</div>
+              {trace.truncated && <div className="mt-1 font-medium text-[var(--warning)]">Bounded result · one or more branches were truncated</div>}
+            </div>
+          </div>
+          {trace.candidatePaths.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[var(--border-default)] p-4 text-xs text-[var(--text-secondary)]">
+              No asset-continuous, time-ordered two-hop candidate appears inside the selected bounds and fan-out limits.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {trace.candidatePaths.slice(0, 12).map((path) => (
+                <CandidatePathRow key={path.id} path={path} investigation={investigation} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </Card>
   );
 }

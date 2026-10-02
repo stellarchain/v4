@@ -11,7 +11,7 @@ import { isNetworkType } from '@/lib/network/config';
 import { useNetwork } from '@/contexts/NetworkContext';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { investigationCsv, investigationJson, investigationReportHtml } from '@/lib/shared/investigationExport';
-import type { InvestigationFilters, InvestigationErrors } from '@/lib/shared/investigationTypes';
+import type { InvestigationFilters, InvestigationErrors, InvestigationMode } from '@/lib/shared/investigationTypes';
 
 const FOCUS_QUERY_AFTER_CLEAR_KEY = 'stellarchain-investigator-focus-after-clear';
 
@@ -19,8 +19,8 @@ function normalizeDirection(value: string | null): PaymentFlowDirection {
   return value === 'outgoing' || value === 'incoming' ? value : 'both';
 }
 
-function targetKey(query: string): 'txHash' | 'address' {
-  return /^[a-f0-9]{64}$/i.test(query) ? 'txHash' : 'address';
+function emptyFilters(): InvestigationFilters {
+  return { ledgerFrom: '', ledgerTo: '', dateFrom: '', dateTo: '', operationType: '', depth: '1', asset: '', minAssetAmount: '' };
 }
 
 function validAsset(value: string): boolean {
@@ -34,16 +34,66 @@ function validAsset(value: string): boolean {
   return false;
 }
 
+type InvestigationTargetType = 'address' | 'transaction' | 'invalid';
+
+type InvestigationApiError = {
+  response?: {
+    status?: number;
+    data?: {
+      error?: {
+        type?: string;
+      };
+    };
+  };
+};
+
+function targetType(query: string): InvestigationTargetType {
+  if (/^[a-f0-9]{64}$/i.test(query)) return 'transaction';
+  if (StrKey.isValidEd25519PublicKey(query.toUpperCase())) return 'address';
+  return 'invalid';
+}
+
+function requestErrorMessage(error: unknown): string {
+  const apiError = error as InvestigationApiError;
+  const status = Number(apiError.response?.status);
+  const errorType = apiError.response?.data?.error?.type;
+
+  if (status === 503 && errorType === 'statistics_unavailable') {
+    return 'Payment-flow statistics are temporarily unavailable. Retry later.';
+  }
+  if (status === 400 && errorType === 'invalid_cursor') {
+    return 'This page cursor is no longer valid. Return to the latest page and retry.';
+  }
+
+  return 'Unable to read this page. Retry, or return to the latest page if the cursor is no longer valid.';
+}
+
 function validUtcDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00.000Z`);
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-function validate(query: string, filters: InvestigationFilters): InvestigationErrors {
+function normalizeMode(params: URLSearchParams, query: string, direction: PaymentFlowDirection): InvestigationMode {
+  if (targetType(query) === 'transaction') return 'advanced';
+  if (params.get('mode') === 'advanced') return 'advanced';
+  if (params.get('mode') === 'basic') return 'basic';
+  if (direction !== 'both') return 'advanced';
+  const advancedKeys: Array<keyof InvestigationFilters> = [
+    'ledgerFrom', 'ledgerTo', 'dateFrom', 'dateTo', 'operationType', 'asset', 'minAssetAmount',
+  ];
+  if (advancedKeys.some((key) => Boolean(params.get(key))) || params.get('depth') === '2') return 'advanced';
+  return 'basic';
+}
+
+function validate(query: string, filters: InvestigationFilters, mode: InvestigationMode): InvestigationErrors {
   const errors: InvestigationErrors = {};
-  if (!query || (targetKey(query) === 'address' && !StrKey.isValidEd25519PublicKey(query.toUpperCase()))) {
-    errors.query = 'Enter a valid Stellar G-address or a 64-character transaction hash.';
+  if (mode === 'basic' && targetType(query) !== 'address') {
+    errors.query = 'Enter a valid Stellar G-address.';
+    return errors;
+  }
+  if (!query || targetType(query) === 'invalid') {
+    errors.query = 'Enter a valid Stellar G-address or transaction hash.';
   }
   for (const key of ['ledgerFrom', 'ledgerTo'] as const) {
     const value = filters[key];
@@ -60,6 +110,15 @@ function validate(query: string, filters: InvestigationFilters): InvestigationEr
   }
   if (!errors.dateFrom && !errors.dateTo && filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo) {
     errors.dateTo = 'End date must be at least the start date.';
+  }
+  if (filters.depth !== '1' && filters.depth !== '2') {
+    errors.depth = 'Use one or two hops.';
+  } else if (filters.depth === '2') {
+    if (targetType(query) !== 'address') {
+      errors.depth = 'Two-hop tracing currently requires an account address.';
+    } else if (!(filters.ledgerFrom && filters.ledgerTo) && !(filters.dateFrom && filters.dateTo)) {
+      errors.depth = 'Two-hop tracing requires both ledger bounds or both UTC date bounds.';
+    }
   }
   if (filters.asset && !validAsset(filters.asset.trim())) {
     errors.asset = 'Use native:XLM or credit_alphanum4/12:CODE:ISSUER.';
@@ -81,17 +140,18 @@ export default function InvestigateClient() {
   const pathAccount = getDetailRouteValue({ pathname, searchParams, queryKey: 'address', routeParam: params.account, aliases: ['/investigate'] });
   const activeQuery = (pathAccount || searchParams.get('q') || searchParams.get('address') || searchParams.get('txHash') || '').trim();
   const activeDirection = normalizeDirection(searchParams.get('direction'));
+  const committedParams = new URLSearchParams(urlParams);
+  const activeMode = normalizeMode(committedParams, activeQuery, activeDirection);
+  const [mode, setMode] = useState<InvestigationMode>(activeMode);
   const [query, setQuery] = useState(activeQuery);
   const [direction, setDirection] = useState<PaymentFlowDirection>(activeDirection);
-  const [filters, setFilters] = useState<InvestigationFilters>({ ledgerFrom: '', ledgerTo: '', dateFrom: '', dateTo: '', operationType: '', asset: '', minAssetAmount: '' });
+  const [filters, setFilters] = useState<InvestigationFilters>(emptyFilters());
   const [fieldErrors, setFieldErrors] = useState<InvestigationErrors>({});
   const [investigation, setInvestigation] = useState<PaymentFlowInvestigationResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const request = useRef<AbortController | null>(null);
-
-  useEffect(() => { document.title = 'Investigator — StellarChain'; }, []);
 
   useEffect(() => {
     if (pathname !== '/investigate' || activeQuery) return;
@@ -108,9 +168,13 @@ export default function InvestigateClient() {
     const controller = new AbortController();
     request.current = controller;
     const committed = new URLSearchParams(urlParams);
-    const nextFilters = { ledgerFrom: committed.get('ledgerFrom') ?? '', ledgerTo: committed.get('ledgerTo') ?? '', dateFrom: committed.get('dateFrom') ?? '', dateTo: committed.get('dateTo') ?? '', operationType: committed.get('operationType') ?? '', asset: committed.get('asset') ?? '', minAssetAmount: committed.get('minAssetAmount') ?? '' };
+    const nextFilters = activeMode === 'basic'
+      ? emptyFilters()
+      : { ledgerFrom: committed.get('ledgerFrom') ?? '', ledgerTo: committed.get('ledgerTo') ?? '', dateFrom: committed.get('dateFrom') ?? '', dateTo: committed.get('dateTo') ?? '', operationType: committed.get('operationType') ?? '', depth: committed.get('depth') ?? '1', asset: committed.get('asset') ?? '', minAssetAmount: committed.get('minAssetAmount') ?? '' };
+    const nextDirection = activeMode === 'basic' ? 'both' : activeDirection;
+    setMode(activeMode);
     setQuery(activeQuery);
-    setDirection(activeDirection);
+    setDirection(nextDirection);
     setFilters(nextFilters);
     setError(null);
     setFieldErrors({});
@@ -118,7 +182,7 @@ export default function InvestigateClient() {
     setIsLoading(false);
     if (!activeQuery) return () => controller.abort();
 
-    const invalid = validate(activeQuery, nextFilters);
+    const invalid = validate(activeQuery, nextFilters, activeMode);
     if (Object.keys(invalid).length) {
       setFieldErrors(invalid);
       return () => controller.abort();
@@ -126,31 +190,36 @@ export default function InvestigateClient() {
     setIsLoading(true);
     async function load() {
       try {
+        const target = targetType(activeQuery);
         const data = await fetchPaymentFlowInvestigationData({
           network: selectedNetwork,
-          [targetKey(activeQuery)]: activeQuery,
-          direction: activeDirection, limit: 50,
+          address: target === 'address' ? activeQuery.toUpperCase() : undefined,
+          txHash: target === 'transaction' ? activeQuery.toLowerCase() : undefined,
+          direction: nextDirection, limit: 50,
           ledgerFrom: nextFilters.ledgerFrom || undefined, ledgerTo: nextFilters.ledgerTo || undefined,
           dateFrom: nextFilters.dateFrom || undefined, dateTo: nextFilters.dateTo || undefined,
           operationType: nextFilters.operationType || undefined, cursor: committed.get('cursor') || undefined,
           asset: nextFilters.asset || undefined,
           minAssetAmount: nextFilters.minAssetAmount || undefined,
+          depth: Number(nextFilters.depth),
         }, { signal: controller.signal }) as PaymentFlowInvestigationResponse;
         if (!controller.signal.aborted) setInvestigation(data);
-      } catch {
-        if (!controller.signal.aborted) setError('Unable to read this page. Retry, or return to the latest page if the cursor is no longer valid.');
+      } catch (requestError) {
+        if (!controller.signal.aborted) setError(requestErrorMessage(requestError));
       } finally {
         if (!controller.signal.aborted) setIsLoading(false);
       }
     }
     void load();
     return () => controller.abort();
-  }, [activeQuery, activeDirection, urlParams, revision, selectedNetwork]);
+  }, [activeQuery, activeDirection, activeMode, urlParams, revision, selectedNetwork]);
 
   function submitSearch() {
     if (isLoading) return;
     const normalized = query.trim();
-    const invalid = validate(normalized, filters);
+    const submittedFilters = mode === 'basic' ? emptyFilters() : filters;
+    const submittedDirection = mode === 'basic' ? 'both' : direction;
+    const invalid = validate(normalized, submittedFilters, mode);
     setFieldErrors(invalid);
     const firstError = Object.keys(invalid)[0];
     if (firstError) {
@@ -158,26 +227,62 @@ export default function InvestigateClient() {
       return;
     }
     const next = new URLSearchParams();
-    next.set('direction', direction);
-    for (const [key, value] of Object.entries(filters)) if (value.trim()) next.set(key, value.trim());
-    const key = targetKey(normalized);
-    if (key === 'txHash') next.set('txHash', normalized.toLowerCase());
-    const base = key === 'address' ? `/investigate/${normalized.toUpperCase()}` : '/investigate';
+    next.set('mode', mode);
+    next.set('direction', submittedDirection);
+    for (const [key, value] of Object.entries(submittedFilters)) if (value.trim()) next.set(key, value.trim());
+    const target = targetType(normalized);
+    if (target === 'transaction') next.set('txHash', normalized.toLowerCase());
+    const base = target === 'address' ? `/investigate/${normalized.toUpperCase()}` : '/investigate';
     const destination = `${base}?${next}`;
     if (destination === `${pathname}?${urlParams}`) setRevision((value) => value + 1);
     else router.push(destination, { scroll: false });
+  }
+
+  function changeMode(nextMode: InvestigationMode) {
+    if (nextMode === mode) return;
+    request.current?.abort();
+    setMode(nextMode);
+    setError(null);
+    setFieldErrors({});
+
+    const currentTarget = targetType(query.trim());
+    if (nextMode === 'basic') {
+      setDirection('both');
+      setFilters(emptyFilters());
+      if (currentTarget !== 'address') setQuery('');
+    }
+
+    const next = new URLSearchParams();
+    next.set('mode', nextMode);
+    next.set('direction', nextMode === 'basic' ? 'both' : direction);
+    if (nextMode === 'advanced') {
+      for (const [key, value] of Object.entries(filters)) if (value.trim()) next.set(key, value.trim());
+    } else {
+      next.set('depth', '1');
+    }
+
+    if (currentTarget === 'address') {
+      router.push(`/investigate/${query.trim().toUpperCase()}?${next}`, { scroll: false });
+      return;
+    }
+    if (nextMode === 'advanced' && currentTarget === 'transaction') {
+      next.set('txHash', query.trim().toLowerCase());
+    }
+    router.push(`/investigate?${next}`, { scroll: false });
   }
 
   function clearSearch() {
     request.current?.abort();
     setQuery('');
     setDirection('both');
-    setFilters({ ledgerFrom: '', ledgerTo: '', dateFrom: '', dateTo: '', operationType: '', asset: '', minAssetAmount: '' });
+    setFilters(emptyFilters());
     setInvestigation(null);
     setIsLoading(false);
     setError(null);
     setFieldErrors({});
-    if (pathname === '/investigate' && !urlParams) {
+    const clearedParams = new URLSearchParams();
+    clearedParams.set('mode', mode);
+    if (pathname === '/investigate' && urlParams === clearedParams.toString()) {
       document.getElementById('investigation-query')?.focus();
       return;
     }
@@ -186,7 +291,7 @@ export default function InvestigateClient() {
     } catch {
       // Navigation still clears the form when browser storage is unavailable.
     }
-    router.push('/investigate', { scroll: false });
+    router.push(`/investigate?${clearedParams}`, { scroll: false });
   }
 
   function navigatePage(cursor: string | null) {
@@ -214,8 +319,8 @@ export default function InvestigateClient() {
 
   function openSavedTarget(target: { type: 'address' | 'transaction'; value: string }) {
     const destination = target.type === 'address'
-      ? `/investigate/${target.value}?direction=both`
-      : `/investigate?direction=both&txHash=${target.value}`;
+      ? `/investigate/${target.value}?mode=basic&direction=both&depth=1`
+      : `/investigate?mode=advanced&direction=both&depth=1&txHash=${target.value}`;
     if (destination === `${pathname}?${urlParams}`) setRevision((value) => value + 1);
     else router.push(destination, { scroll: false });
   }
@@ -225,8 +330,10 @@ export default function InvestigateClient() {
   return (
     <div className="mx-auto max-w-[1400px] space-y-5 p-4 lg:p-4">
       <PaymentFlowInvestigationView
-        query={query} direction={direction} filters={filters} fieldErrors={fieldErrors}
+        mode={mode} query={query} direction={direction} filters={filters} fieldErrors={fieldErrors}
+        targetType={targetType(query)}
         investigation={investigation} isLoading={isLoading} error={error}
+        onModeChange={changeMode}
         onQueryChange={setQuery} onDirectionChange={setDirection} onFiltersChange={setFilters}
         onSubmit={submitSearch} onClear={clearSearch} onRetry={() => setRevision((value) => value + 1)}
         onPageChange={navigatePage} onExport={exportPage} isOlderPage={searchParams.has('cursor')}

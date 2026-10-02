@@ -45,7 +45,7 @@ const menuCategories: MenuCategory[] = [
     items: [
       { name: 'Top Accounts', href: '/accounts', icon: 'users', description: 'Ranked by XLM holdings' },
       { name: 'Known Accounts', href: '/known-accounts', icon: 'verified', description: 'Labeled accounts directory' },
-      { name: 'Flow account investigation', href: '/investigate', icon: 'graph', description: 'Account flow safety context' },
+      { name: 'Account Trust Checker', href: '/investigate', icon: 'graph', description: 'Review identity and payment signals' },
       { name: 'Add Label', href: '/accounts/directory/update', icon: 'verified', description: 'Submit a label for an account' },
     ],
   },

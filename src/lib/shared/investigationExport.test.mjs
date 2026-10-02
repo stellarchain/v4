@@ -13,7 +13,7 @@ describe('Investigator evidence exports', () => {
 
   const data = {
     network: 'mainnet', query: { address: 'GTEST', direction: 'both', asset: 'native:XLM', minAssetAmount: '0.0000001', dateFrom: '2026-05-15', dateTo: '2026-05-16', cursor: 'opaque' },
-    coverage: { latestObservedLedger: 105, completeHistoryVerified: false },
+    coverage: { latestObservedLedger: 105, assetIndexFirstBuiltLedger: 90, assetIndexLatestBuiltLedger: 100, completeHistoryVerified: false },
     events: [{ id: '9007199254740993', ledger: 100, operationId: '268341957822431233', txHash: 'a'.repeat(64),
       sourceAsset: { key: 'native:XLM' }, destinationAsset: { key: 'native:XLM' },
       sourceAmount: '99999999999.1234567', destinationAmount: '0.0000001', memo: '=HYPERLINK("unsafe")' }],
@@ -30,6 +30,8 @@ describe('Investigator evidence exports', () => {
     assert.match(csv, /"date_from_utc"/);
     assert.match(csv, /"2026-05-15"/);
     assert.match(csv, /"native:XLM"/);
+    assert.match(csv, /"asset_index_first_built_ledger"/);
+    assert.match(csv, /"90"/);
     assert.match(csv, /"'\=HYPERLINK/);
     assert.ok(csv.endsWith('\r\n'));
   });
@@ -42,6 +44,18 @@ describe('Investigator evidence exports', () => {
     assert.equal(exported.events.length, 1);
     assert.equal(exported.events[0].id, '9007199254740993');
     assert.ok(Date.parse(exported.exportedAt));
+  });
+
+  it('uses the asset as the report target for asset-only investigations', () => {
+    const assetOnly = {
+      ...data,
+      query: { ...data.query, address: null, txHash: null, targetType: 'asset' },
+      summary: { events: 1, transactions: 1, uniqueCounterparties: 0, uniqueAssets: 1 },
+      riskContext: { signals: [], limitations: ['Asset-index coverage may contain gaps.'] },
+    };
+
+    assert.match(investigationCsv(assetOnly), /"native:XLM"/);
+    assert.match(investigationReportHtml(assetOnly), /<dt>Target<\/dt><dd><code>native:XLM<\/code><\/dd>/);
   });
 
   it('escapes untrusted report evidence and states page scope', () => {

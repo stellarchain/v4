@@ -21,12 +21,15 @@ import {
 } from 'recharts';
 import { NetworkStatisticsChart, NetworkStatisticsCoverage, NetworkStatisticsRange } from '@/lib/stellar';
 import Card from '@/components/ui/Card';
+import SegmentedControl from '@/components/ui/SegmentedControl';
+import { chartAxisValue, chartTimeTick } from '@/lib/shared/chartDisplay';
 
 interface NetworkActivityChartProps {
   chart: NetworkStatisticsChart;
   coverage: NetworkStatisticsCoverage;
   range: NetworkStatisticsRange;
   bucketMinutes: number;
+  onRangeChange: (range: NetworkStatisticsRange) => void;
   onLoadOlder?: () => void;
   isLoadingOlder?: boolean;
 }
@@ -42,26 +45,18 @@ const SERIES = {
   tps: { label: 'TPS', color: 'var(--success)' },
 } as const;
 
-const CHART_HEIGHT = 360;
+const RANGE_OPTIONS: Array<{ label: string; value: NetworkStatisticsRange }> = [
+  { label: '24H', value: '24h' },
+  { label: '7D', value: '7d' },
+  { label: '1 month', value: '30d' },
+  { label: '1 year', value: '1y' },
+];
 
-function compactNumber(value: number): string {
-  if (Math.abs(value) >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
-  if (Math.abs(value) >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
-  if (Math.abs(value) >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
-}
-
-function formatTime(value: string, bucketMinutes: number): string {
-  const date = new Date(value);
-  if (bucketMinutes >= 1440) {
-    return date.toLocaleDateString(undefined, { year: '2-digit', month: 'short', day: 'numeric' });
-  }
-
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
+const CHART_HEIGHT = 284;
 
 function formatTimeFull(value: string): string {
   return new Date(value).toLocaleString(undefined, {
+    timeZone: 'UTC',
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -71,9 +66,15 @@ function formatTimeFull(value: string): string {
 }
 
 function formatBucketSize(minutes: number): string {
-  if (minutes >= 1440 && minutes % 1440 === 0) return `${minutes / 1440}d`;
-  if (minutes >= 60 && minutes % 60 === 0) return `${minutes / 60}h`;
-  return `${minutes}m`;
+  if (minutes >= 1440 && minutes % 1440 === 0) {
+    const days = minutes / 1440;
+    return `${days} ${days === 1 ? 'day' : 'days'}`;
+  }
+  if (minutes >= 60 && minutes % 60 === 0) {
+    const hours = minutes / 60;
+    return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+  }
+  return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
 }
 
 function getInitialRange(pointCount: number, bucketMinutes: number, range: NetworkStatisticsRange): ChartRange {
@@ -204,6 +205,7 @@ export default function NetworkActivityChart({
   coverage,
   range,
   bucketMinutes,
+  onRangeChange,
   onLoadOlder,
   isLoadingOlder = false,
 }: NetworkActivityChartProps) {
@@ -380,22 +382,24 @@ export default function NetworkActivityChart({
   };
 
   return (
-    <Card className="p-5 shadow-sm min-w-0 overflow-hidden">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-5">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
-            {chart.title}
-          </h2>
-          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-            Transactions and operations per bucket, with TPS as throughput.
-          </p>
-          <div className="flex items-center gap-4 mt-3" role="list" aria-label="Series legend">
-            <LegendDot color={SERIES.transactions.color} label={SERIES.transactions.label} kind="bar" />
-            <LegendDot color={SERIES.operations.color} label={SERIES.operations.label} kind="bar" />
-            <LegendDot color={SERIES.tps.color} label={SERIES.tps.label} kind="line" />
+    <Card className="min-w-0 overflow-hidden p-0 shadow-sm">
+      <div className="flex flex-col gap-4 p-5 pb-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--info-muted)] text-[var(--primary-blue)]">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 19V9m5 10V5m5 14v-7m5 7V3M2 21h20" />
+            </svg>
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)]">
+              {chart.title}
+            </h2>
+            <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-secondary)]">
+              Transactions and operations per bucket, with TPS as throughput.
+            </p>
           </div>
         </div>
-        <div className="flex flex-col items-start sm:items-end gap-2">
+        <div className="flex flex-col items-start gap-2 sm:items-end">
           {hasData && (
             <div className="inline-flex items-center gap-1.5">
               {isZoomed && (
@@ -415,34 +419,35 @@ export default function NetworkActivityChart({
                 <button
                   type="button"
                   onClick={showOldest}
-                  className="rounded-md px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+                  disabled={visibleRange.startIndex === 0 && !coverage.hasMore}
+                  className="rounded-md px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Oldest
                 </button>
                 <button
                   type="button"
                   onClick={resetZoom}
-                  className="rounded-md px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+                  disabled={!isZoomed}
+                  className="rounded-md px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Latest
                 </button>
               </div>
             </div>
           )}
-          <div className="text-[11px] text-[var(--text-secondary)] tabular-nums">
-            <span className="font-medium text-[var(--text-secondary)]">
-              {visibleBucketCount.toLocaleString()}
-            </span>
-            <span className="mx-1 text-[var(--text-tertiary)]">/</span>
-            <span>{coverage.bucketCount.toLocaleString()}</span>
-            <span className="ml-1.5">{formatBucketSize(bucketMinutes)} buckets</span>
-          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end border-y border-[var(--border-subtle)] bg-[var(--bg-primary)]/35 px-5 py-3.5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <span className="text-xs font-medium text-[var(--text-secondary)]">Historical range</span>
+          <SegmentedControl ariaLabel="Historical range" options={RANGE_OPTIONS} value={range} onChange={onRangeChange} />
         </div>
       </div>
 
       <div
         ref={chartShellRef}
-        className={`relative h-[360px] min-w-0 w-full select-none ${hasData ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+        className={`relative mx-4 h-[300px] min-w-0 w-[calc(100%-2rem)] select-none overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/35 px-1 pt-2 sm:mx-5 sm:w-[calc(100%-2.5rem)] ${hasData ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
         role="img"
         aria-label={ariaLabel}
         onPointerDown={handlePointerDown}
@@ -482,14 +487,6 @@ export default function NetworkActivityChart({
               margin={{ top: 8, right: 12, left: 0, bottom: 8 }}
             >
               <defs>
-                <linearGradient id={`tx-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={SERIES.transactions.color} stopOpacity={0.95} />
-                  <stop offset="100%" stopColor={SERIES.transactions.color} stopOpacity={0.55} />
-                </linearGradient>
-                <linearGradient id={`ops-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={SERIES.operations.color} stopOpacity={0.85} />
-                  <stop offset="100%" stopColor={SERIES.operations.color} stopOpacity={0.4} />
-                </linearGradient>
                 <linearGradient id={`tps-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={SERIES.tps.color} stopOpacity={0.22} />
                   <stop offset="100%" stopColor={SERIES.tps.color} stopOpacity={0} />
@@ -501,16 +498,16 @@ export default function NetworkActivityChart({
                 tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }}
                 tickLine={false}
                 axisLine={{ stroke: 'var(--border-default)' }}
-                tickFormatter={(value) => formatTime(String(value), bucketMinutes)}
-                minTickGap={42}
+                tickFormatter={(value) => chartTimeTick(String(value), bucketMinutes)}
+                minTickGap={48}
               />
               <YAxis
                 yAxisId="left"
                 tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={compactNumber}
-                width={48}
+                tickFormatter={(value) => chartAxisValue(Number(value))}
+                width={62}
               />
               <YAxis
                 yAxisId="right"
@@ -518,8 +515,8 @@ export default function NetworkActivityChart({
                 tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(value) => compactNumber(Number(value))}
-                width={42}
+                tickFormatter={(value) => chartAxisValue(Number(value))}
+                width={54}
               />
               <Tooltip
                 cursor={isDragging ? false : { fill: 'var(--bg-tertiary)', opacity: 0.4 }}
@@ -530,7 +527,8 @@ export default function NetworkActivityChart({
                 yAxisId="left"
                 dataKey="transactions"
                 name={SERIES.transactions.label}
-                fill={`url(#tx-${gradientId})`}
+                fill={SERIES.transactions.color}
+                fillOpacity={0.72}
                 radius={[3, 3, 0, 0]}
                 maxBarSize={18}
                 isAnimationActive={false}
@@ -539,7 +537,8 @@ export default function NetworkActivityChart({
                 yAxisId="left"
                 dataKey="operations"
                 name={SERIES.operations.label}
-                fill={`url(#ops-${gradientId})`}
+                fill={SERIES.operations.color}
+                fillOpacity={0.62}
                 radius={[3, 3, 0, 0]}
                 maxBarSize={18}
                 isAnimationActive={false}
@@ -561,7 +560,7 @@ export default function NetworkActivityChart({
                 dataKey="tps"
                 name={SERIES.tps.label}
                 stroke={SERIES.tps.color}
-                strokeWidth={2}
+                strokeWidth={1.75}
                 strokeLinecap="round"
                 dot={false}
                 activeDot={{ r: 4, strokeWidth: 2, stroke: 'var(--bg-secondary)', fill: SERIES.tps.color }}
@@ -573,13 +572,41 @@ export default function NetworkActivityChart({
       </div>
 
       {hasData && (
-        <div className="mt-3 flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
-          <span>Drag to pan · Shift + wheel to scroll</span>
-          <span className="hidden sm:inline tabular-nums">
-            {coverage.firstBucket && coverage.lastBucket
-              ? `${formatTimeFull(coverage.firstBucket)} – ${formatTimeFull(coverage.lastBucket)}`
-              : null}
-          </span>
+        <div className="mt-4 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/35 px-5 py-3">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2" role="list" aria-label="Series legend">
+            <LegendDot color={SERIES.transactions.color} label={SERIES.transactions.label} kind="bar" />
+            <LegendDot color={SERIES.operations.color} label={SERIES.operations.label} kind="bar" />
+            <LegendDot color={SERIES.tps.color} label={SERIES.tps.label} kind="line" />
+          </div>
+          <div className="mt-3 grid gap-2 border-t border-[var(--border-subtle)] pt-3 text-[11px] text-[var(--text-secondary)] sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+            <span className="inline-flex items-center gap-2">
+              <svg className="h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 11h10M7 7h6m-6 8h8m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              Times in UTC · Drag to pan · Shift + wheel to scroll
+            </span>
+            <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-[var(--text-tertiary)] sm:justify-center">
+              <div className="inline-flex items-center gap-1.5">
+                <dt>Bucket</dt>
+                <dd className="font-semibold text-[var(--text-secondary)]">{formatBucketSize(bucketMinutes)}</dd>
+              </div>
+              <div className="inline-flex items-center gap-1.5">
+                <dt>Indexed</dt>
+                <dd className="font-mono font-semibold tabular-nums text-[var(--text-secondary)]">{coverage.bucketCount.toLocaleString()}</dd>
+              </div>
+              {visibleBucketCount !== coverage.bucketCount && (
+                <div className="inline-flex items-center gap-1.5">
+                  <dt>Visible</dt>
+                  <dd className="font-mono font-semibold tabular-nums text-[var(--text-secondary)]">{visibleBucketCount.toLocaleString()}</dd>
+                </div>
+              )}
+            </dl>
+            <span className="hidden text-right tabular-nums sm:inline">
+              {coverage.firstBucket && coverage.lastBucket
+                ? `${formatTimeFull(coverage.firstBucket)} – ${formatTimeFull(coverage.lastBucket)} UTC`
+                : null}
+            </span>
+          </div>
         </div>
       )}
     </Card>

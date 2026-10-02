@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import StatisticsView from '@/components/StatisticsView';
 import Loading from '@/components/ui/Loading';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
 import { fetchNetworkStatisticsData } from '@/services/api';
 import { NetworkStatisticsRange, NetworkStatisticsResponse } from '@/lib/stellar';
 
@@ -29,8 +31,17 @@ export default function StatisticsPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [selectedRange, setSelectedRange] = useState<NetworkStatisticsRange>('7d');
+  const [loadedRange, setLoadedRange] = useState<NetworkStatisticsRange | null>(null);
+  const [revision, setRevision] = useState(0);
   const hasLoadedRef = useRef(false);
   const inflightOlderRef = useRef(false);
+  const rangeGenerationRef = useRef(0);
+
+  function changeRange(range: NetworkStatisticsRange) {
+    if (range === selectedRange) return;
+    rangeGenerationRef.current += 1;
+    setSelectedRange(range);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -51,10 +62,11 @@ export default function StatisticsPage() {
         if (cancelled) return;
 
         setStats(statistics);
+        setLoadedRange(selectedRange);
         hasLoadedRef.current = true;
-      } catch (err) {
+      } catch {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : 'Failed to load statistics');
+        setError('Statistics could not be loaded. Try again.');
       } finally {
         if (cancelled) return;
         setIsLoading(false);
@@ -67,7 +79,7 @@ export default function StatisticsPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedRange]);
+  }, [selectedRange, revision]);
 
   const loadOlder = useCallback(async () => {
     if (inflightOlderRef.current) return;
@@ -75,6 +87,7 @@ export default function StatisticsPage() {
     if (!current || !current.coverage.hasMore) return;
     const firstBucket = current.coverage.firstBucket;
     if (!firstBucket) return;
+    const requestGeneration = rangeGenerationRef.current;
 
     inflightOlderRef.current = true;
     setIsLoadingOlder(true);
@@ -87,6 +100,8 @@ export default function StatisticsPage() {
         before: firstBucket,
       }) as NetworkStatisticsResponse;
 
+      if (rangeGenerationRef.current !== requestGeneration) return;
+
       if (!older.chart.points.length) {
         // Nothing new to merge; mark as no more so we don't loop.
         setStats((previous) => previous
@@ -96,6 +111,7 @@ export default function StatisticsPage() {
       }
 
       setStats((previous) => {
+        if (rangeGenerationRef.current !== requestGeneration) return previous;
         if (!previous) return older;
         const seen = new Set(previous.chart.points.map((p) => p.bucketStart));
         const merged = [
@@ -125,17 +141,19 @@ export default function StatisticsPage() {
     }
   }, [stats, selectedRange]);
 
-  if (isLoading) {
+  if (isLoading || (!error && loadedRange !== selectedRange)) {
     return <Loading title="Loading statistics" description="Fetching network statistics." />;
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-red-500">Error: {error}</p>
-        </div>
-      </div>
+      <main className="mx-auto max-w-[1400px] p-4">
+        <Card variant="bordered" className="p-6">
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">Statistics</h1>
+          <p role="alert" className="mt-2 text-sm text-[var(--text-secondary)]">{error}</p>
+          <Button type="button" onClick={() => setRevision((value) => value + 1)} className="mt-4">Retry</Button>
+        </Card>
+      </main>
     );
   }
 
@@ -148,7 +166,7 @@ export default function StatisticsPage() {
       <StatisticsView
         stats={stats}
         selectedRange={selectedRange}
-        onRangeChange={setSelectedRange}
+        onRangeChange={changeRange}
         isRefreshing={isRefreshing}
         onLoadOlder={loadOlder}
         isLoadingOlder={isLoadingOlder}

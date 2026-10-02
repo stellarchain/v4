@@ -2,48 +2,138 @@
 
 import Link from 'next/link';
 import type { PaymentFlowEvent } from '@/lib/stellar';
+import { shortenAddress } from '@/lib/stellar';
 import Card from '@/components/ui/Card';
+import InfoTooltip from '@/components/InfoTooltip';
+import CompactAmount from '@/components/scam-flow/CompactAmount';
 
-export default function PaymentFlowEvidenceTable({ events }: { events: PaymentFlowEvent[] }) {
-  const groups = new Map<string, PaymentFlowEvent[]>();
-  for (const event of events) {
-    const group = groups.get(event.txHash) ?? [];
-    group.push(event);
-    groups.set(event.txHash, group);
+const tableHeaderClass = 'px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] whitespace-nowrap';
+
+function formatAsset(eventAsset: PaymentFlowEvent['sourceAsset']): string {
+  return eventAsset.display || eventAsset.code || eventAsset.key;
+}
+
+function formatEventDate(value: string | null): string {
+  if (!value) return 'Unavailable';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unavailable';
+
+  return date.toLocaleString('en-GB', {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+function AccountLink({ address }: { address: string | null }) {
+  if (!address) return <span className="text-[var(--text-muted)]">Unknown</span>;
+
+  return (
+    <Link
+      href={`/account/${address}`}
+      aria-label={`Open account ${address}`}
+      title={address}
+      className="rounded font-mono text-[12px] text-[var(--text-secondary)] hover:text-sky-600 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-blue)]"
+    >
+      {shortenAddress(address, 5)}
+    </Link>
+  );
+}
+
+function EventAmount({ event }: { event: PaymentFlowEvent }) {
+  const isSameAmount = event.sourceAmount === event.destinationAmount
+    && event.sourceAsset.key === event.destinationAsset.key;
+
+  if (isSameAmount) {
+    return <CompactAmount value={event.sourceAmount} asset={formatAsset(event.sourceAsset)} />;
   }
 
   return (
-    <Card>
-      <div className="border-b border-[var(--border-default)] p-4">
-        <h2 id="investigation-evidence-title" className="font-semibold text-[var(--text-primary)]">Transaction evidence</h2>
-        <p className="mt-1 text-xs text-[var(--text-secondary)]">Grouped within this page only; a transaction may continue on another page. Scroll horizontally for all fields.</p>
-      </div>
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <CompactAmount value={event.sourceAmount} asset={formatAsset(event.sourceAsset)} />
+      <span className="text-[var(--text-muted)]" aria-hidden="true">→</span>
+      <CompactAmount value={event.destinationAmount} asset={formatAsset(event.destinationAsset)} />
+    </span>
+  );
+}
+
+export default function PaymentFlowEvidenceTable({ events }: { events: PaymentFlowEvent[] }) {
+  return (
+    <Card className="overflow-hidden shadow-sm">
       {events.length === 0 ? (
-        <p role="status" className="p-6 text-sm text-[var(--text-secondary)]">No indexed payment-flow events match these filters. This does not establish that the account has no activity.</p>
+        <p role="status" className="p-6 text-sm text-[var(--text-secondary)]">No indexed payment-flow events match these filters. Other activity may exist outside this result.</p>
       ) : (
-        <div role="region" aria-labelledby="investigation-evidence-title" tabIndex={0} className="max-h-[680px] overflow-auto focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]">
-          <table className="w-full min-w-[1050px] text-left text-xs text-[var(--text-secondary)]">
-            <caption className="sr-only">Payment-flow evidence for the current page. Exact amounts and UTC times.</caption>
-            <thead className="bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
-              <tr>{['Transaction / UTC time', 'Operation', 'From → To', 'Source amount / asset', 'Destination amount / asset'].map((label) => <th scope="col" key={label} className="p-3 font-semibold">{label}</th>)}</tr>
+        <div
+          role="region"
+          aria-label="Individual payment events"
+          tabIndex={0}
+          className="max-h-[680px] overflow-auto focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]"
+        >
+          <table className="w-full min-w-[1120px] text-left">
+            <caption className="sr-only">Individual payment-flow events for the current result page.</caption>
+            <thead className="sticky top-0 z-10">
+              <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+                <th scope="col" className={`${tableHeaderClass} pl-4`}>Transaction</th>
+                <th scope="col" className={tableHeaderClass}>Method</th>
+                <th scope="col" className={`${tableHeaderClass} text-right`}>Ledger</th>
+                <th scope="col" className={tableHeaderClass}>Date · UTC</th>
+                <th scope="col" className={tableHeaderClass}>From</th>
+                <th scope="col" className="w-8 px-1 py-3"><span className="sr-only">Flow direction</span></th>
+                <th scope="col" className={tableHeaderClass}>To</th>
+                <th scope="col" className={`${tableHeaderClass} pr-4 text-right`}>Amount</th>
+              </tr>
             </thead>
-            {[...groups].map(([hash, rows]) => (
-              <tbody key={hash} className="border-t border-[var(--border-default)]">
-                {rows.map((event, index) => (
-                  <tr key={event.id} className="align-top hover:bg-[var(--bg-tertiary)]">
-                    {index === 0 && <th scope="rowgroup" rowSpan={rows.length} className="w-64 p-3 text-left font-normal">
-                      <Link href={`/tx/${hash}`} className="break-all font-mono text-[var(--primary-blue)] underline focus-visible:outline-2">{hash}</Link>
-                      <p className="mt-2">{event.closedAt ?? 'Unknown time'}</p>
-                      <p>Ledger {event.ledger}</p>
-                    </th>}
-                    <td className="p-3"><p>{event.operationType.replaceAll('_', ' ')}</p><p className="mt-1 font-mono">{event.operationId}</p></td>
-                    <td className="max-w-64 break-all p-3 font-mono"><p>{event.fromAddress ?? 'Unknown'}</p><p className="my-1" aria-hidden>↓</p><p>{event.toAddress ?? 'Unknown'}</p></td>
-                    <td className="max-w-52 break-all p-3 font-mono"><p>{event.sourceAmount ?? 'Unknown'}</p><p className="mt-1">{event.sourceAsset.key}</p></td>
-                    <td className="max-w-52 break-all p-3 font-mono"><p>{event.destinationAmount ?? 'Unknown'}</p><p className="mt-1">{event.destinationAsset.key}</p></td>
-                  </tr>
-                ))}
-              </tbody>
-            ))}
+            <tbody className="divide-y divide-[var(--border-subtle)]">
+              {events.map((event) => (
+                <tr key={event.id} className="transition-colors hover:bg-sky-50/30">
+                  <td className="py-3 pl-4 pr-3">
+                    <Link
+                      href={`/tx/${event.txHash}`}
+                      aria-label={`Open transaction ${event.txHash}`}
+                      title={event.txHash}
+                      className="rounded font-mono text-[12px] text-sky-600 hover:text-sky-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-blue)]"
+                    >
+                      {shortenAddress(event.txHash, 5)}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-3">
+                    <span className="inline-flex items-center gap-0.5">
+                      <span className="rounded border border-[var(--border-default)] bg-[var(--bg-tertiary)] px-2 py-0.5 text-[10px] font-medium capitalize text-[var(--text-secondary)]">
+                        {event.operationType.replaceAll('_', ' ')}
+                      </span>
+                      <InfoTooltip
+                        ariaLabel="Show operation ID"
+                        align="start"
+                        content={<span><span className="block font-semibold">Operation ID</span><span className="mt-1 block break-all font-mono">{event.operationId}</span></span>}
+                      />
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <Link href={`/ledger/${event.ledger}`} className="font-mono text-[12px] text-sky-600 hover:underline focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]">
+                      {event.ledger.toLocaleString()}
+                    </Link>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3 text-[12px] text-[var(--text-secondary)]">{formatEventDate(event.closedAt)}</td>
+                  <td className="px-3 py-3"><AccountLink address={event.fromAddress} /></td>
+                  <td className="px-1 py-3 text-center">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-500">
+                      <svg className="h-3 w-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </span>
+                  </td>
+                  <td className="px-3 py-3"><AccountLink address={event.toAddress} /></td>
+                  <td className="py-3 pl-3 pr-4 text-right font-mono text-[12px] tabular-nums text-[var(--text-primary)]">
+                    <EventAmount event={event} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
       )}
