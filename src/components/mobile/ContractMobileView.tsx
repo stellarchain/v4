@@ -193,7 +193,7 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
   const isVault = contract.type === 'vault';
   const sectionLoading = contract._loading || {};
   const isSac = Boolean(contract.isSAC || contract.tokenMetadata?.isSAC);
-  const tokenDecimals = contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7;
+  const tokenDecimals = isSac ? 7 : (contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7);
   const totalOperationsCount = Math.max(
     Number(contract.totalOperations ?? 0),
     Number(contract.totalInvokes ?? 0),
@@ -226,9 +226,9 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
   const getReconciliationBadge = (status: SacMarketReconciliation['status']) => {
     switch (status) {
       case 'matched':
-        return { label: 'Matches Asset Market', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+        return { label: 'Equal observed values', className: 'border-slate-200 bg-slate-50 text-slate-700' };
       case 'differs':
-        return { label: 'Differs from Asset Market', className: 'border-amber-200 bg-amber-50 text-amber-700' };
+        return { label: 'Different observed values', className: 'border-slate-200 bg-slate-50 text-slate-700' };
       case 'not_enough_indexed_data':
         return { label: 'Not enough indexed data', className: 'border-slate-200 bg-slate-50 text-slate-600' };
       default:
@@ -588,7 +588,7 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                 <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-bold text-[var(--text-primary)]">SAC Balance Reconciliation</div>
+                      <div className="text-sm font-bold text-[var(--text-primary)]">SAC balance comparison</div>
                       <div className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">{reconciliation.assetKey}</div>
                     </div>
                     <span className={`rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${getReconciliationBadge(reconciliation.status).className}`}>
@@ -607,7 +607,7 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                       </div>
                     </div>
                     <div className="rounded-xl bg-[var(--bg-tertiary)] p-3">
-                      <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Difference</div>
+                      <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Indexed − market</div>
                       <div className="mt-1 font-mono font-semibold text-[var(--text-primary)]">
                         {reconciliation.differenceRaw ? formatRawAmount(reconciliation.differenceRaw) : 'N/A'}
                       </div>
@@ -619,6 +619,7 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                       </div>
                     </div>
                   </div>
+                  <p className="mt-3 text-xs text-[var(--text-secondary)]">Indexed Soroban holder balances and total Horizon asset supply have different scopes and update times. Equality is not expected; a difference is not a safety verdict.</p>
                 </div>
               )}
 
@@ -1382,10 +1383,11 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                 {[
                   { label: 'Contract ID', value: contract.id, mono: true },
                   { label: 'Type', value: contract.type.charAt(0).toUpperCase() + contract.type.slice(1) },
-                  { label: 'Verified', value: contract.isVerified ? 'Yes' : 'No' },
+                  { label: 'SEP-55 attested', value: contract.isVerified ? 'Yes' : 'No' },
+                  { label: 'Registry metadata verified', value: contract.verifiedContract?.verified ? 'Yes' : 'No' },
                   { label: 'Total Operations', value: totalOperationsCount.toLocaleString() },
                   ...(contract.verification ? [
-                    { label: 'Build Verified', value: contract.verification.isVerified ? 'Yes' : 'No' },
+                    { label: 'Decompiled code', value: contract.verification.sourceAvailable ? 'Available' : 'Unavailable' },
                     ...(contract.verification.wasmHash ? [{ label: 'WASM Hash', value: contract.verification.wasmHash, mono: true }] : []),
                   ] : []),
                   ...(isToken ? [
@@ -1442,8 +1444,8 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
           {activeTab === 'code' && (
             <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
               <div className="p-4 border-b border-[var(--border-subtle)]">
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Source Code</h3>
-                <p className="text-xs text-[var(--text-tertiary)] mt-1">Contract source code</p>
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Indexed code</h3>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">May be decompiled output; availability alone does not verify provenance.</p>
               </div>
               <div className="p-4">
                 {sourceCode ? (

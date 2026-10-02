@@ -1,17 +1,17 @@
 'use client';
 
-import { FormEvent, ReactNode, useRef } from 'react';
+import { FormEvent, ReactNode, useRef, useState } from 'react';
 import type { InvestigationFilters, InvestigationErrors } from '@/lib/shared/investigationTypes';
 import {
   PaymentFlowDirection,
   PaymentFlowInvestigationResponse,
-  PaymentFlowRiskLevel,
   PaymentFlowRiskSignal,
 } from '@/lib/stellar';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import PaymentFlowEvidenceTable from '@/components/scam-flow/PaymentFlowEvidenceTable';
+import PaymentFlowGroupsTable from '@/components/scam-flow/PaymentFlowGroupsTable';
 import PaymentFlowAccountIdentity from '@/components/scam-flow/PaymentFlowAccountIdentity';
 import PaymentFlowMap from '@/components/scam-flow/PaymentFlowMap';
 import PaymentFlowTimeline from '@/components/scam-flow/PaymentFlowTimeline';
@@ -31,7 +31,7 @@ interface PaymentFlowInvestigationViewProps {
   onClear: () => void;
   onRetry: () => void;
   onPageChange: (cursor: string | null) => void;
-  onExport: (format: 'json' | 'csv') => void;
+  onExport: (format: 'json' | 'csv' | 'html') => void;
   isOlderPage: boolean;
 }
 
@@ -41,19 +41,8 @@ const DIRECTION_OPTIONS: Array<{ label: string; value: PaymentFlowDirection }> =
   { label: 'Outgoing', value: 'outgoing' },
 ];
 
-type RiskTone = { label: string; variant: 'neutral' | 'info' | 'success' | 'warning' | 'error'; color: string };
-
-function riskTone(level: PaymentFlowRiskLevel): RiskTone {
-  if (level === 'elevated') return { label: 'Elevated review', variant: 'error', color: 'var(--error)' };
-  if (level === 'review') return { label: 'Needs review', variant: 'warning', color: 'var(--warning)' };
-  if (level === 'context') return { label: 'Context only', variant: 'info', color: 'var(--info)' };
-  return { label: 'Limited data', variant: 'neutral', color: 'var(--text-tertiary)' };
-}
-
-function signalVariant(severity: PaymentFlowRiskSignal['severity']): 'info' | 'warning' | 'error' {
-  if (severity === 'high') return 'error';
-  if (severity === 'medium') return 'warning';
-  return 'info';
+function signalLabel(severity: PaymentFlowRiskSignal['severity']): string {
+  return severity === 'info' ? 'Context' : 'Pattern';
 }
 
 function formatDate(value: string | null | undefined): string {
@@ -127,24 +116,6 @@ function metricSpecs(investigation: PaymentFlowInvestigationResponse): MetricSpe
   ];
 }
 
-function RiskMeter({ score, color }: { score: number; color: string }) {
-  const clamped = Math.max(0, Math.min(100, score));
-  return (
-    <div className="w-full">
-      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-        <div
-          className="absolute inset-y-0 left-0 rounded-full transition-[width]"
-          style={{ width: `${clamped}%`, background: color }}
-        />
-      </div>
-      <div className="mt-1 flex justify-between text-[10px] text-[var(--text-muted)]">
-        <span>Low</span>
-        <span>Elevated</span>
-      </div>
-    </div>
-  );
-}
-
 export default function PaymentFlowInvestigationView({
   query,
   direction,
@@ -157,12 +128,12 @@ export default function PaymentFlowInvestigationView({
   filters, fieldErrors, onFiltersChange, onClear, onRetry, onPageChange, onExport, isOlderPage,
 }: PaymentFlowInvestigationViewProps) {
   const composing = useRef(false);
+  const [flowView, setFlowView] = useState<'grouped' | 'events'>('grouped');
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (composing.current) return;
     onSubmit();
   };
-  const tone = investigation ? riskTone(investigation.riskContext.level) : null;
   const canSubmit = query.trim() !== '' && !isLoading;
 
   return (
@@ -178,12 +149,13 @@ export default function PaymentFlowInvestigationView({
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold tracking-tight text-[var(--text-primary)]">Flow account investigation</h1>
               <Badge variant="info">Payment flow</Badge>
-              {tone && <Badge variant={tone.variant}>{tone.label}</Badge>}
             </div>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
               {investigation
-                ? `Current page: ${formatDate(investigation.coverage.firstClosedAt)} – ${formatDate(investigation.coverage.lastClosedAt)}`
-                : 'Safety context from indexed Stellar payment-flow history.'}
+                ? investigation.coverage.rowsReturned > 0
+                  ? `Current page: ${formatDate(investigation.coverage.firstClosedAt)} – ${formatDate(investigation.coverage.lastClosedAt)}`
+                  : 'No indexed payment-flow events match these filters.'
+                : 'Page-scoped evidence from indexed Stellar payment-flow history.'}
             </p>
           </div>
         </div>
@@ -287,6 +259,44 @@ export default function PaymentFlowInvestigationView({
               </label>
             ))}
           </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {(['dateFrom', 'dateTo'] as const).map((key) => (
+              <label key={key} htmlFor={`investigation-${key}`} className="space-y-1 text-xs text-[var(--text-secondary)]">
+                <span>{key === 'dateFrom' ? 'From date (UTC, inclusive)' : 'To date (UTC, inclusive)'}</span>
+                <input id={`investigation-${key}`} type="text" inputMode="numeric" placeholder="YYYY-MM-DD" value={filters[key]}
+                  onChange={(event) => onFiltersChange({ ...filters, [key]: event.target.value })}
+                  aria-invalid={Boolean(fieldErrors[key])} aria-describedby={fieldErrors[key] ? `investigation-${key}-error` : 'investigation-date-help'}
+                  className="block h-10 w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 font-mono focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]" />
+                {fieldErrors[key] && <span id={`investigation-${key}-error`} role="alert" className="block text-[var(--error)]">{fieldErrors[key]}</span>}
+              </label>
+            ))}
+          </div>
+          <p id="investigation-date-help" className="text-xs text-[var(--text-secondary)]">Dates use UTC ledger close time. Both selected days are included.</p>
+          <label className="space-y-1 text-xs text-[var(--text-secondary)]" htmlFor="investigation-asset">
+            <span>Asset (source or destination)</span>
+            <input id="investigation-asset" type="text" value={filters.asset}
+              onChange={(event) => onFiltersChange({ ...filters, asset: event.target.value })}
+              placeholder="native:XLM or credit_alphanum4:USDC:G…"
+              spellCheck={false} autoComplete="off"
+              aria-invalid={Boolean(fieldErrors.asset)}
+              aria-describedby={fieldErrors.asset ? 'investigation-asset-error' : 'investigation-asset-help'}
+              className="block h-10 w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 font-mono text-xs focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]" />
+            {fieldErrors.asset
+              ? <span id="investigation-asset-error" role="alert" className="block text-[var(--error)]">{fieldErrors.asset}</span>
+              : <span id="investigation-asset-help" className="block text-[var(--text-secondary)]">Use the exact asset key shown in evidence. Stellar asset codes are case-sensitive.</span>}
+          </label>
+          <label className="space-y-1 text-xs text-[var(--text-secondary)]" htmlFor="investigation-minAssetAmount">
+            <span>Minimum matching asset amount (hide dust)</span>
+            <input id="investigation-minAssetAmount" type="text" inputMode="decimal" value={filters.minAssetAmount}
+              onChange={(event) => onFiltersChange({ ...filters, minAssetAmount: event.target.value })}
+              placeholder="0.0000001" autoComplete="off"
+              aria-invalid={Boolean(fieldErrors.minAssetAmount)}
+              aria-describedby={fieldErrors.minAssetAmount ? 'investigation-minAssetAmount-error' : 'investigation-minAssetAmount-help'}
+              className="block h-10 w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 font-mono text-xs focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]" />
+            {fieldErrors.minAssetAmount
+              ? <span id="investigation-minAssetAmount-error" role="alert" className="block text-[var(--error)]">{fieldErrors.minAssetAmount}</span>
+              : <span id="investigation-minAssetAmount-help" className="block text-[var(--text-secondary)]">Requires the asset above. An event passes if its source or destination amount in that asset meets the minimum; unknown amounts are excluded.</span>}
+          </label>
           <p className="text-xs text-[var(--text-secondary)]">Choose filters, then Investigate. Results, graph and exports describe one page, not the complete account history.</p>
 
           {error && (
@@ -355,6 +365,7 @@ export default function PaymentFlowInvestigationView({
               <div className="flex flex-wrap gap-2">
                 <Button type="button" onClick={() => onExport('json')} className="text-xs">Export page JSON</Button>
                 <Button type="button" onClick={() => onExport('csv')} disabled={!investigation.events.length} className="text-xs">Export page CSV</Button>
+                <Button type="button" onClick={() => onExport('html')} className="text-xs">Export report HTML</Button>
                 <Button type="button" onClick={() => onPageChange(null)} disabled={!isOlderPage} className="text-xs">Latest page</Button>
                 <Button type="button" onClick={() => onPageChange(investigation.coverage.nextCursor ?? null)} disabled={!investigation.coverage.nextCursor} className="text-xs">Older events</Button>
               </div>
@@ -393,24 +404,10 @@ export default function PaymentFlowInvestigationView({
               <div className="border-b border-[var(--border-default)] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="text-base font-semibold text-[var(--text-primary)]">Safety context</h2>
-                    <p className="text-xs text-[var(--text-muted)]">Heuristic signals for the returned sample.</p>
+                    <h2 className="text-base font-semibold text-[var(--text-primary)]">Observed patterns</h2>
+                    <p className="text-xs text-[var(--text-secondary)]">Based only on the returned page. These signals are not a fraud or safety verdict and may change with filters or pagination.</p>
                   </div>
-                  {tone && (
-                    <div className="text-right">
-                      <div className="font-mono text-xl font-bold tabular-nums" style={{ color: tone.color }}>
-                        {investigation.riskContext.score}
-                        <span className="text-[10px] font-medium text-[var(--text-muted)]">/100</span>
-                      </div>
-                      <Badge variant={tone.variant} className="mt-0.5">{tone.label}</Badge>
-                    </div>
-                  )}
                 </div>
-                {tone && (
-                  <div className="mt-3">
-                    <RiskMeter score={investigation.riskContext.score} color={tone.color} />
-                  </div>
-                )}
               </div>
 
               <div className="border-b border-[var(--border-default)] p-4">
@@ -453,7 +450,6 @@ export default function PaymentFlowInvestigationView({
                     <PaymentFlowAccountIdentity
                       address={investigation.accountContext.focusAccount.address}
                       account={investigation.accountContext.focusAccount}
-                      showActivity
                     />
                   </div>
                 )}
@@ -471,7 +467,7 @@ export default function PaymentFlowInvestigationView({
                       className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)] p-3"
                     >
                       <div className="mb-1 flex items-center gap-2">
-                        <Badge variant={signalVariant(signal.severity)}>{signal.severity}</Badge>
+                        <Badge variant="info">{signalLabel(signal.severity)}</Badge>
                         <h3 className="text-sm font-medium text-[var(--text-primary)]">{signal.label}</h3>
                       </div>
                       <p className="text-xs leading-relaxed text-[var(--text-muted)]">{signal.description}</p>
@@ -512,7 +508,21 @@ export default function PaymentFlowInvestigationView({
             </Card>
           </div>
 
-          <PaymentFlowEvidenceTable events={investigation.events} />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--text-primary)]">Payment-flow evidence</h2>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">Both views use the same returned page; switching views does not change filters or export scope.</p>
+            </div>
+            <div className="inline-flex rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-0.5" role="group" aria-label="Evidence view">
+              <button type="button" aria-pressed={flowView === 'grouped'} onClick={() => setFlowView('grouped')}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-blue)] ${flowView === 'grouped' ? 'bg-[var(--primary-blue)] text-white' : 'text-[var(--text-secondary)]'}`}>Grouped flows</button>
+              <button type="button" aria-pressed={flowView === 'events'} onClick={() => setFlowView('events')}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-blue)] ${flowView === 'events' ? 'bg-[var(--primary-blue)] text-white' : 'text-[var(--text-secondary)]'}`}>Individual events</button>
+            </div>
+          </div>
+          {flowView === 'grouped'
+            ? <PaymentFlowGroupsTable groups={investigation.flowGroups} />
+            : <PaymentFlowEvidenceTable events={investigation.events} />}
           <details className="text-sm text-[var(--text-secondary)]">
             <summary className="cursor-pointer py-3 focus-visible:outline-2">Event timeline for this page</summary>
             <PaymentFlowTimeline events={investigation.events} />

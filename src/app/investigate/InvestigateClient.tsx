@@ -6,9 +6,14 @@ import { StrKey } from '@stellar/stellar-sdk';
 import type { PaymentFlowDirection, PaymentFlowInvestigationResponse } from '@/lib/stellar';
 import { fetchPaymentFlowInvestigationData } from '@/services/api';
 import PaymentFlowInvestigationView from '@/components/scam-flow/PaymentFlowInvestigationView';
+import InvestigationCaseQueue from '@/components/scam-flow/InvestigationCaseQueue';
+import { isNetworkType } from '@/lib/network/config';
+import { useNetwork } from '@/contexts/NetworkContext';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
-import { investigationCsv, investigationJson } from '@/lib/shared/investigationExport';
+import { investigationCsv, investigationJson, investigationReportHtml } from '@/lib/shared/investigationExport';
 import type { InvestigationFilters, InvestigationErrors } from '@/lib/shared/investigationTypes';
+
+const FOCUS_QUERY_AFTER_CLEAR_KEY = 'stellarchain-investigator-focus-after-clear';
 
 function normalizeDirection(value: string | null): PaymentFlowDirection {
   return value === 'outgoing' || value === 'incoming' ? value : 'both';
@@ -16,6 +21,23 @@ function normalizeDirection(value: string | null): PaymentFlowDirection {
 
 function targetKey(query: string): 'txHash' | 'address' {
   return /^[a-f0-9]{64}$/i.test(query) ? 'txHash' : 'address';
+}
+
+function validAsset(value: string): boolean {
+  if (value === 'native:XLM') return true;
+  const parts = value.split(':');
+  if (parts.length !== 3) return false;
+  const [type, code, issuer] = parts;
+  if (!StrKey.isValidEd25519PublicKey(issuer)) return false;
+  if (type === 'credit_alphanum4') return /^[A-Za-z0-9]{1,4}$/.test(code);
+  if (type === 'credit_alphanum12') return /^[A-Za-z0-9]{5,12}$/.test(code);
+  return false;
+}
+
+function validUtcDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 function validate(query: string, filters: InvestigationFilters): InvestigationErrors {
@@ -33,11 +55,25 @@ function validate(query: string, filters: InvestigationFilters): InvestigationEr
     && Number(filters.ledgerFrom) > Number(filters.ledgerTo)) {
     errors.ledgerTo = 'End ledger must be at least the start ledger.';
   }
+  for (const key of ['dateFrom', 'dateTo'] as const) {
+    if (filters[key] && !validUtcDate(filters[key])) errors[key] = 'Use a valid UTC date in YYYY-MM-DD format.';
+  }
+  if (!errors.dateFrom && !errors.dateTo && filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo) {
+    errors.dateTo = 'End date must be at least the start date.';
+  }
+  if (filters.asset && !validAsset(filters.asset.trim())) {
+    errors.asset = 'Use native:XLM or credit_alphanum4/12:CODE:ISSUER.';
+  }
+  if (filters.minAssetAmount && (!filters.asset.trim() || !/^(?:[0-9]{1,20})(?:\.[0-9]{1,14})?$/.test(filters.minAssetAmount.trim())
+    || !/[1-9]/.test(filters.minAssetAmount))) {
+    errors.minAssetAmount = 'Choose an asset and enter a positive amount (up to 14 decimal places).';
+  }
   return errors;
 }
 
 export default function InvestigateClient() {
   const router = useRouter();
+  const { network: selectedNetwork } = useNetwork();
   const searchParams = useSearchParams();
   const params = useParams<{ account?: string }>();
   const pathname = usePathname();
@@ -47,7 +83,7 @@ export default function InvestigateClient() {
   const activeDirection = normalizeDirection(searchParams.get('direction'));
   const [query, setQuery] = useState(activeQuery);
   const [direction, setDirection] = useState<PaymentFlowDirection>(activeDirection);
-  const [filters, setFilters] = useState<InvestigationFilters>({ ledgerFrom: '', ledgerTo: '', operationType: '' });
+  const [filters, setFilters] = useState<InvestigationFilters>({ ledgerFrom: '', ledgerTo: '', dateFrom: '', dateTo: '', operationType: '', asset: '', minAssetAmount: '' });
   const [fieldErrors, setFieldErrors] = useState<InvestigationErrors>({});
   const [investigation, setInvestigation] = useState<PaymentFlowInvestigationResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,10 +94,21 @@ export default function InvestigateClient() {
   useEffect(() => { document.title = 'Investigator — StellarChain'; }, []);
 
   useEffect(() => {
+    if (pathname !== '/investigate' || activeQuery) return;
+    try {
+      if (window.sessionStorage.getItem(FOCUS_QUERY_AFTER_CLEAR_KEY) !== '1') return;
+      window.sessionStorage.removeItem(FOCUS_QUERY_AFTER_CLEAR_KEY);
+    } catch {
+      return;
+    }
+    document.getElementById('investigation-query')?.focus();
+  }, [activeQuery, pathname, urlParams]);
+
+  useEffect(() => {
     const controller = new AbortController();
     request.current = controller;
     const committed = new URLSearchParams(urlParams);
-    const nextFilters = { ledgerFrom: committed.get('ledgerFrom') ?? '', ledgerTo: committed.get('ledgerTo') ?? '', operationType: committed.get('operationType') ?? '' };
+    const nextFilters = { ledgerFrom: committed.get('ledgerFrom') ?? '', ledgerTo: committed.get('ledgerTo') ?? '', dateFrom: committed.get('dateFrom') ?? '', dateTo: committed.get('dateTo') ?? '', operationType: committed.get('operationType') ?? '', asset: committed.get('asset') ?? '', minAssetAmount: committed.get('minAssetAmount') ?? '' };
     setQuery(activeQuery);
     setDirection(activeDirection);
     setFilters(nextFilters);
@@ -80,10 +127,14 @@ export default function InvestigateClient() {
     async function load() {
       try {
         const data = await fetchPaymentFlowInvestigationData({
+          network: selectedNetwork,
           [targetKey(activeQuery)]: activeQuery,
           direction: activeDirection, limit: 50,
           ledgerFrom: nextFilters.ledgerFrom || undefined, ledgerTo: nextFilters.ledgerTo || undefined,
+          dateFrom: nextFilters.dateFrom || undefined, dateTo: nextFilters.dateTo || undefined,
           operationType: nextFilters.operationType || undefined, cursor: committed.get('cursor') || undefined,
+          asset: nextFilters.asset || undefined,
+          minAssetAmount: nextFilters.minAssetAmount || undefined,
         }, { signal: controller.signal }) as PaymentFlowInvestigationResponse;
         if (!controller.signal.aborted) setInvestigation(data);
       } catch {
@@ -94,7 +145,7 @@ export default function InvestigateClient() {
     }
     void load();
     return () => controller.abort();
-  }, [activeQuery, activeDirection, urlParams, revision]);
+  }, [activeQuery, activeDirection, urlParams, revision, selectedNetwork]);
 
   function submitSearch() {
     if (isLoading) return;
@@ -108,7 +159,7 @@ export default function InvestigateClient() {
     }
     const next = new URLSearchParams();
     next.set('direction', direction);
-    for (const [key, value] of Object.entries(filters)) if (value) next.set(key, value);
+    for (const [key, value] of Object.entries(filters)) if (value.trim()) next.set(key, value.trim());
     const key = targetKey(normalized);
     if (key === 'txHash') next.set('txHash', normalized.toLowerCase());
     const base = key === 'address' ? `/investigate/${normalized.toUpperCase()}` : '/investigate';
@@ -121,13 +172,21 @@ export default function InvestigateClient() {
     request.current?.abort();
     setQuery('');
     setDirection('both');
-    setFilters({ ledgerFrom: '', ledgerTo: '', operationType: '' });
+    setFilters({ ledgerFrom: '', ledgerTo: '', dateFrom: '', dateTo: '', operationType: '', asset: '', minAssetAmount: '' });
     setInvestigation(null);
     setIsLoading(false);
     setError(null);
     setFieldErrors({});
+    if (pathname === '/investigate' && !urlParams) {
+      document.getElementById('investigation-query')?.focus();
+      return;
+    }
+    try {
+      window.sessionStorage.setItem(FOCUS_QUERY_AFTER_CLEAR_KEY, '1');
+    } catch {
+      // Navigation still clears the form when browser storage is unavailable.
+    }
     router.push('/investigate', { scroll: false });
-    document.getElementById('investigation-query')?.focus();
   }
 
   function navigatePage(cursor: string | null) {
@@ -138,10 +197,12 @@ export default function InvestigateClient() {
     router.push(`${pathname}?${next}`, { scroll: false });
   }
 
-  function exportPage(format: 'json' | 'csv') {
+  function exportPage(format: 'json' | 'csv' | 'html') {
     if (!investigation || isLoading) return;
-    const content = format === 'json' ? investigationJson(investigation) : investigationCsv(investigation);
-    const url = URL.createObjectURL(new Blob([content], { type: format === 'json' ? 'application/json' : 'text/csv;charset=utf-8' }));
+    const content = format === 'json' ? investigationJson(investigation)
+      : format === 'html' ? investigationReportHtml(investigation) : investigationCsv(investigation);
+    const mimeType = format === 'json' ? 'application/json' : format === 'html' ? 'text/html;charset=utf-8' : 'text/csv;charset=utf-8';
+    const url = URL.createObjectURL(new Blob([content], { type: mimeType }));
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = `stellarchain-investigation-page.${format}`;
@@ -151,8 +212,18 @@ export default function InvestigateClient() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  function openSavedTarget(target: { type: 'address' | 'transaction'; value: string }) {
+    const destination = target.type === 'address'
+      ? `/investigate/${target.value}?direction=both`
+      : `/investigate?direction=both&txHash=${target.value}`;
+    if (destination === `${pathname}?${urlParams}`) setRevision((value) => value + 1);
+    else router.push(destination, { scroll: false });
+  }
+
+  const queueNetwork = investigation && isNetworkType(investigation.network) ? investigation.network : selectedNetwork;
+
   return (
-    <div className="mx-auto max-w-[1400px] p-4 lg:p-4">
+    <div className="mx-auto max-w-[1400px] space-y-5 p-4 lg:p-4">
       <PaymentFlowInvestigationView
         query={query} direction={direction} filters={filters} fieldErrors={fieldErrors}
         investigation={investigation} isLoading={isLoading} error={error}
@@ -160,6 +231,7 @@ export default function InvestigateClient() {
         onSubmit={submitSearch} onClear={clearSearch} onRetry={() => setRevision((value) => value + 1)}
         onPageChange={navigatePage} onExport={exportPage} isOlderPage={searchParams.has('cursor')}
       />
+      <InvestigationCaseQueue network={queueNetwork} target={investigation?.query.address ?? investigation?.query.txHash ?? null} onOpen={openSavedTarget} />
     </div>
   );
 }

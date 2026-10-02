@@ -42,12 +42,11 @@ function CounterpartyRow({
     : flowValueLabel(counterparty.nativeSent, counterparty.assets);
 
   return (
-    <Link
-      href={`/account/${counterparty.address}`}
-      className="block rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)] p-3 transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--bg-secondary)]"
-    >
+    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)] p-3">
       <div className="flex items-center justify-between gap-2">
-        <PaymentFlowAccountIdentity address={counterparty.address} account={counterparty.account} compact link={false} />
+        <Link href={`/account/${counterparty.address}`} className="min-w-0 rounded text-[var(--primary-blue)] hover:underline focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]">
+          <PaymentFlowAccountIdentity address={counterparty.address} account={counterparty.account} link={false} />
+        </Link>
         <span
           className="inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums"
           style={{ color: accentColor }}
@@ -61,10 +60,15 @@ function CounterpartyRow({
           style={{ width: `${widthPct}%`, background: accentColor }}
         />
       </div>
-      <p className="mt-1.5 text-[10px] text-[var(--text-tertiary)]">
-        {events} {isIncoming ? 'incoming' : 'outgoing'} {events === 1 ? 'event' : 'events'}
-      </p>
-    </Link>
+      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-[10px]">
+        <p className="text-[var(--text-secondary)]">
+          {events} {isIncoming ? 'incoming' : 'outgoing'} {events === 1 ? 'event' : 'events'} on this page
+        </p>
+        <Link href={`/investigate/${counterparty.address}?direction=both`} className="inline-flex min-h-8 items-center rounded px-1 text-xs font-medium text-[var(--primary-blue)] underline hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]">
+          Investigate address ↗
+        </Link>
+      </div>
+    </div>
   );
 }
 
@@ -90,9 +94,9 @@ export default function PaymentFlowMap({ investigation }: PaymentFlowMapProps) {
             </svg>
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">No indexed flow found</h2>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">
-              The target is not present in the currently collected payment-flow dataset.
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">No matching indexed flow</h2>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">
+              No collected payment-flow events match this target and these filters. Other activity may exist outside the indexed history or selected range.
             </p>
           </div>
         </div>
@@ -113,14 +117,14 @@ export default function PaymentFlowMap({ investigation }: PaymentFlowMapProps) {
               key={`${edge.source}-${edge.target}`}
               className="grid items-center gap-2 rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)] p-3 text-xs md:grid-cols-[1fr_auto_1fr]"
             >
-              <PaymentFlowAccountIdentity address={edge.source} account={investigation.accounts[edge.source] ?? null} compact />
+              <PaymentFlowAccountIdentity address={edge.source} account={investigation.accounts[edge.source] ?? null} />
               <span className="inline-flex items-center gap-1.5 text-[var(--text-tertiary)]">
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
                 {edge.count} {edge.count === 1 ? 'transfer' : 'transfers'}
               </span>
-              <PaymentFlowAccountIdentity address={edge.target} account={investigation.accounts[edge.target] ?? null} align="right" compact />
+              <PaymentFlowAccountIdentity address={edge.target} account={investigation.accounts[edge.target] ?? null} align="right" />
             </div>
           ))}
         </div>
@@ -182,7 +186,6 @@ export default function PaymentFlowMap({ investigation }: PaymentFlowMapProps) {
               address={focusAddress}
               account={investigation.accountContext.focusAccount}
               align="center"
-              showActivity
               className="mt-1"
             />
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">

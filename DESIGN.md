@@ -61,6 +61,8 @@ Reuse shared `ui/Card`, `ui/Button`, `ui/Badge`, `PaymentFlowMap`, `PaymentFlowA
 
 Inline outline SVGs remain the established icon style. Motion communicates loading only and respects reduced-motion preferences for new controls. Coverage and page scope accompany graph, summary and exports. Dates in new evidence surfaces use explicit UTC, amounts remain exact strings.
 
+Historical chart pages reuse this explorer palette and Card/Button controls. An area chart is orientation only; an adjacent horizontally scrollable table is the canonical exact-value view. Metric families are grouped in the index, while pagination and bucket controls retain the same shape and focus treatment as Investigator.
+
 ## Do's and Don'ts
 
 - Do preserve the existing light/dark variable mapping and shared component owners.

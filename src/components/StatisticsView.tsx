@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { NetworkStatisticsRange, NetworkStatisticsResponse } from '@/lib/stellar';
 import StatCard from '@/components/StatCard';
 import NetworkActivityChart from '@/components/NetworkActivityChart';
@@ -65,6 +66,7 @@ export default function StatisticsView({
             </p>
           </div>
         </div>
+        <Link href="/chart" className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-2 text-xs font-medium text-[var(--primary-blue)] hover:border-[var(--primary-blue)] focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]">Browse metric charts</Link>
         <div className="inline-flex rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-0.5 self-start lg:self-auto">
           {RANGE_OPTIONS.map((option) => {
             const active = selectedRange === option.value;
@@ -118,7 +120,8 @@ export default function StatisticsView({
       ))}
 
       <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed text-center">
-        Data sourced from horizon_statistics. Range ends at the latest collected bucket; backfill progress is reflected as new chunks are written.
+        Data sourced from horizon_statistics. Range ends at the latest collected bucket; backfill progress is reflected as new chunks are written.{' '}
+        <Link href="/chart/active-addresses" className="text-[var(--primary-blue)] underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-[var(--primary-blue)]">Active transaction sources</Link> are available per five-minute bucket, not as unique accounts across this range.
       </p>
     </div>
   );

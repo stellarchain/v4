@@ -118,7 +118,7 @@ export default function PaymentFlowTimeline({ events }: PaymentFlowTimelineProps
 
                   <div className="grid gap-2 text-xs md:grid-cols-[1fr_auto_1fr] md:items-center">
                     {event.fromAddress ? (
-                      <PaymentFlowAccountIdentity address={event.fromAddress} account={event.fromAccount} compact />
+                      <PaymentFlowAccountIdentity address={event.fromAddress} account={event.fromAccount} />
                     ) : (
                       <span className="min-w-0 font-mono text-[var(--text-muted)]">unknown</span>
                     )}
@@ -145,7 +145,7 @@ export default function PaymentFlowTimeline({ events }: PaymentFlowTimelineProps
                       </svg>
                     </div>
                     {event.toAddress ? (
-                      <PaymentFlowAccountIdentity address={event.toAddress} account={event.toAccount} align="right" compact />
+                      <PaymentFlowAccountIdentity address={event.toAddress} account={event.toAccount} align="right" />
                     ) : (
                       <span className="min-w-0 font-mono text-[var(--text-muted)] md:text-right">unknown</span>
                     )}
@@ -156,7 +156,7 @@ export default function PaymentFlowTimeline({ events }: PaymentFlowTimelineProps
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
                         Source
                       </span>
-                      <PaymentFlowAccountIdentity address={event.sourceAccount} account={event.sourceAccountMetadata} compact />
+                      <PaymentFlowAccountIdentity address={event.sourceAccount} account={event.sourceAccountMetadata} />
                     </div>
                   )}
 

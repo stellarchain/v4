@@ -648,6 +648,21 @@ export interface PaymentFlowGraphEdge {
   latestClosedAt: string | null;
 }
 
+export interface PaymentFlowGroup {
+  fromAddress: string | null;
+  toAddress: string | null;
+  direction: 'incoming' | 'outgoing' | 'related';
+  sourceAsset: PaymentFlowAssetRef;
+  destinationAsset: PaymentFlowAssetRef;
+  events: number;
+  sourceAmountTotal: string | null;
+  destinationAmountTotal: string | null;
+  firstLedger: number;
+  lastLedger: number;
+  firstClosedAt: string | null;
+  lastClosedAt: string | null;
+}
+
 export interface PaymentFlowInvestigationResponse {
   network: string;
   query: {
@@ -655,10 +670,14 @@ export interface PaymentFlowInvestigationResponse {
     txHash: string | null;
     ledgerFrom: number | null;
     ledgerTo: number | null;
+    dateFrom?: string | null;
+    dateTo?: string | null;
     direction: PaymentFlowDirection;
     limit: number;
     cursor?: string | null;
     operationType?: string | null;
+    asset?: string | null;
+    minAssetAmount?: string | null;
   };
   coverage: {
     rowsReturned: number;
@@ -710,6 +729,7 @@ export interface PaymentFlowInvestigationResponse {
     edges: PaymentFlowGraphEdge[];
   };
   counterparties: PaymentFlowCounterparty[];
+  flowGroups?: PaymentFlowGroup[];
   events: PaymentFlowEvent[];
 }
 
@@ -1033,6 +1053,7 @@ export interface ContractAccessControl {
 
 export interface ContractVerification {
   isVerified: boolean;
+  sourceAvailable?: boolean;
   sourceRepo?: string;
   commitHash?: string;
   wasmHash?: string;
