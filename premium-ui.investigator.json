@@ -1,0 +1,7 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["src/app/investigate", "src/components/scam-flow", "src/app/chart", "src/app/contract/[id]", "src/components/desktop/ContractDesktopView.tsx", "src/components/mobile/ContractMobileView.tsx", "src/components/StatisticsView.tsx"],
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": ["Form", "Select/Listbox", "Scrollbar"],
+  "ownership": { "Select/Listbox": "native" }
+}

@@ -52,7 +52,7 @@ export default function DesktopNavbar() {
     const accountsItems: MenuItem[] = [
         { name: 'Top Accounts', href: '/accounts', description: 'Ranked by XLM holdings' },
         { name: 'Known Accounts', href: '/accounts/directory', description: 'Labeled accounts directory' },
-        { name: 'Flow account investigation', href: '/investigate', description: 'Account flow safety context' },
+        { name: 'Account Trust Checker', href: '/investigate', description: 'Review identity and payment signals' },
         { name: 'Add Label', href: '/accounts/directory/update', description: 'Submit a label for an account' },
     ];
 

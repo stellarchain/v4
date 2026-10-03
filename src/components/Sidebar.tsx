@@ -10,7 +10,7 @@ const navItems = [
   { name: 'Statistics', href: '/statistics', icon: 'stats' },
   { name: 'Smart Contracts', href: '/contracts', icon: 'contract' },
   { name: 'Wallet Tracker', href: '/graph', icon: 'account_balance_wallet' },
-  { name: 'Flow account investigation', href: '/investigate', icon: 'analytics' },
+  { name: 'Account Trust Checker', href: '/investigate', icon: 'analytics' },
 ];
 
 // Inline icons to match the design style (Material Symbols look-alike)

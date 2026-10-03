@@ -87,6 +87,7 @@ export type {
   PaymentFlowCounterparty,
   PaymentFlowDirection,
   PaymentFlowEvent,
+  PaymentFlowGroup,
   PaymentFlowGraphEdge,
   PaymentFlowGraphNode,
   PaymentFlowInvestigationResponse,

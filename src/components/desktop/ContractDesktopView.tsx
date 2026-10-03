@@ -171,7 +171,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
   const isVault = contract.type === 'vault';
   const sectionLoading = contract._loading || {};
   const isSac = Boolean(contract.isSAC || contract.tokenMetadata?.isSAC);
-  const tokenDecimals = contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7;
+  const tokenDecimals = isSac ? 7 : (contract.tokenMetadata?.decimals ?? contract.verifiedContract?.decimals ?? 7);
   const totalOperationsCount = Math.max(
     Number(contract.totalOperations ?? 0),
     Number(contract.totalInvokes ?? 0),
@@ -204,9 +204,9 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
   const getReconciliationBadge = (status: SacMarketReconciliation['status']) => {
     switch (status) {
       case 'matched':
-        return { label: 'Matches Asset Market', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+        return { label: 'Equal observed values', className: 'border-slate-200 bg-slate-50 text-slate-700' };
       case 'differs':
-        return { label: 'Differs from Asset Market', className: 'border-amber-200 bg-amber-50 text-amber-700' };
+        return { label: 'Different observed values', className: 'border-slate-200 bg-slate-50 text-slate-700' };
       case 'not_enough_indexed_data':
         return { label: 'Not enough indexed data', className: 'border-slate-200 bg-slate-50 text-slate-600' };
       default:
@@ -389,10 +389,20 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                       <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Verified
+                      SEP-55 attested
                     </span>
                   )}
-                  {contract.verification?.isVerified && (
+                  {contract.verifiedContract?.verified && (
+                    <span className="inline-flex items-center rounded-full border border-[var(--border-default)] bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
+                      Registry metadata verified
+                    </span>
+                  )}
+                  {contract.verification?.sourceAvailable && !contract.verification.isVerified && (
+                    <span className="inline-flex items-center rounded-full border border-[var(--border-default)] bg-[var(--bg-tertiary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
+                      Decompiled code available
+                    </span>
+                  )}
+                  {contract.verification?.isVerified && sourceRepo && (
                     <a
                       href={sourceRepo}
                       target="_blank"
@@ -402,7 +412,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                       <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                       </svg>
-                      Source
+                      Source repo
                     </a>
                   )}
                   {isToken && (
@@ -592,7 +602,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                         </span>
                         <div className="min-w-0">
-                          <h3 className="text-sm font-bold text-[var(--text-primary)]">SAC Balance Reconciliation</h3>
+                          <h3 className="text-sm font-bold text-[var(--text-primary)]">SAC balance comparison</h3>
                           <div className="mt-0.5 truncate text-xs text-[var(--text-tertiary)]">{reconciliation.assetKey}</div>
                         </div>
                       </div>
@@ -612,7 +622,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                         </div>
                       </div>
                       <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Difference</div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Indexed − market</div>
                         <div className="mt-1 font-mono text-sm font-semibold text-[var(--text-primary)]">
                           {reconciliation.differenceRaw ? formatRawAmount(reconciliation.differenceRaw) : 'N/A'}
                         </div>
@@ -624,6 +634,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                         </div>
                       </div>
                     </div>
+                    <p className="mt-3 text-xs text-[var(--text-secondary)]">These are different scopes and may have different update times: indexed Soroban holder balances versus total asset supply from Horizon. Equality is not expected, and a difference is not a safety verdict.</p>
                   </div>
                 )}
 
@@ -1661,8 +1672,8 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
             {activeTab === 'code' && (
               <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
                 <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
-                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">Source Code</h3>
-                  <p className="text-xs text-[var(--text-tertiary)]">Contract source code</p>
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">Indexed code</h3>
+                  <p className="text-xs text-[var(--text-secondary)]">May be decompiled output; code availability alone does not verify source provenance.</p>
                 </div>
                 <div className="p-4">
                   {sourceCode ? (
@@ -1714,10 +1725,14 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                   <span className="text-[11px] font-semibold text-[var(--text-secondary)] capitalize">{contract.type}</span>
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
-                  <span className="text-[11px] text-[var(--text-tertiary)]">Verified</span>
+                  <span className="text-[11px] text-[var(--text-tertiary)]">SEP-55 attested</span>
                   <span className={`text-[11px] font-semibold ${contract.isVerified ? 'text-emerald-600' : 'text-[var(--text-muted)]'}`}>
                     {contract.isVerified ? 'Yes' : 'No'}
                   </span>
+                </div>
+                <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                  <span className="text-[11px] text-[var(--text-tertiary)]">Registry metadata verified</span>
+                  <span className="text-[11px] text-[var(--text-secondary)]">{contract.verifiedContract?.verified ? 'Yes' : 'No'}</span>
                 </div>
                 {isToken && (
                   <>
@@ -1829,7 +1844,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   </span>
-                  Build Verification
+                  Build provenance
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
@@ -1840,17 +1855,22 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
-                          Verified
+                          SEP-55 attested
                         </>
                       ) : (
                         <>
                           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                           </svg>
-                          Not Verified
+                          No SEP-55 attestation
                         </>
                       )}
                     </span>
+                  </div>
+                  <p className="text-xs text-[var(--text-secondary)]">Decompiled code availability is separate from build attestation. Neither indicates an audit or a safety verdict. SEP-58 rebuild verification is not shown without a completed rebuild.</p>
+                  <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
+                    <span className="text-[11px] text-[var(--text-tertiary)]">Decompiled code</span>
+                    <span className="text-[11px] text-[var(--text-secondary)]">{contract.verification.sourceAvailable ? 'Available' : 'Unavailable'}</span>
                   </div>
                   {contract.verification.sourceRepo && (
                     <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
