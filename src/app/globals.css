@@ -635,6 +635,22 @@ input:focus-visible {
   fill-opacity: 0.04;
 }
 
+/* Recharts focuses an internal SVG group after pointer interaction. Suppress
+   that browser-owned full-plot outline while retaining a deliberate keyboard ring. */
+.interactive-chart .recharts-surface:focus:not(:focus-visible),
+.interactive-chart .recharts-surface g[tabindex="-1"]:focus {
+  outline: none !important;
+}
+
+.interactive-chart .recharts-surface:focus-visible {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: -2px;
+}
+
+.interactive-chart:has(.recharts-surface g[tabindex="-1"]:focus-visible) {
+  box-shadow: inset 0 0 0 2px var(--primary-blue);
+}
+
 @media (max-width: 768px) {
   #sentry-feedback {
     --inset: auto 0 60px auto;
