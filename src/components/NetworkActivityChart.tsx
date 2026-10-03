@@ -452,7 +452,11 @@ export default function NetworkActivityChart({
       </div>
 
       <span className="sr-only" role="status" aria-live="polite">
-        {isRefreshing ? 'Updating network activity chart.' : ''}
+        {isRefreshing
+          ? 'Updating network activity chart.'
+          : isLoadingOlder
+            ? 'Loading earlier network activity history.'
+            : ''}
       </span>
       {!isRefreshing && refreshError && (
         <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-lg border border-[var(--warning)]/25 bg-[var(--warning-muted)] px-3 py-2 text-xs text-[var(--text-primary)] shadow-sm sm:mx-5" role="alert">
@@ -471,10 +475,10 @@ export default function NetworkActivityChart({
 
       <div
         ref={chartShellRef}
-        className={`relative mx-4 h-[300px] min-w-0 w-[calc(100%-2rem)] select-none overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/35 px-1 pt-2 sm:mx-5 sm:w-[calc(100%-2.5rem)] ${hasData ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+        className={`network-activity-chart relative mx-4 h-[300px] min-w-0 w-[calc(100%-2rem)] select-none overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/35 px-1 pt-2 sm:mx-5 sm:w-[calc(100%-2.5rem)] ${hasData ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
         role="img"
         aria-label={ariaLabel}
-        aria-busy={isRefreshing}
+        aria-busy={isRefreshing || isLoadingOlder}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={stopDragging}
@@ -490,10 +494,15 @@ export default function NetworkActivityChart({
             </div>
           </div>
         )}
-        {isLoadingOlder && (
-          <div className="pointer-events-none absolute left-12 top-2 z-10 inline-flex items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)] shadow-sm">
-            <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-[var(--primary-blue)] border-t-transparent" />
-            Loading older
+        {!isRefreshing && isLoadingOlder && (
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[var(--bg-primary)]/55 backdrop-blur-[1px]">
+            <div className="inline-flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] px-4 py-3 shadow-lg">
+              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[var(--primary-blue)] border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-[var(--text-primary)]">Loading earlier history</p>
+                <p className="mt-0.5 text-[10px] text-[var(--text-secondary)]">Keeping your current chart position.</p>
+              </div>
+            </div>
           </div>
         )}
         {!hasData ? (
