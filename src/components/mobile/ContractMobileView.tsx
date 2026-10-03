@@ -12,6 +12,8 @@ import type { NFTInfo, VaultInfo } from '@/lib/soroban/contractExtensions';
 import { ParsedEvent, EventSummary, formatEventAmount, isTransferEventData, isCustomEventData, CustomEventData } from '@/lib/soroban/events';
 import type { ContractStorageResult } from '@/lib/soroban/storage';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
+import SacBalanceComparison from '@/components/contract/SacBalanceComparison';
+import type { SacMarketReconciliationData } from '@/components/contract/SacBalanceComparison';
 
 interface Operation {
   id: string;
@@ -65,15 +67,6 @@ interface ContractBalanceSummary {
   hasMore: boolean;
 }
 
-interface SacMarketReconciliation {
-  assetKey: string;
-  indexedBalanceRaw: string | null;
-  assetMarketSupplyRaw: string | null;
-  differenceRaw: string | null;
-  lastMarketUpdate?: string;
-  status: 'matched' | 'differs' | 'not_enough_indexed_data' | 'market_unavailable';
-}
-
 interface ContractData {
   id: string;
   account: any | null;
@@ -111,7 +104,7 @@ interface ContractData {
   holderBalances?: ContractHolderBalance[];
   tokenHolderBalances?: ContractTokenHolderBalance[];
   tokenBalanceSummary?: ContractBalanceSummary | null;
-  sacMarketReconciliation?: SacMarketReconciliation | null;
+  sacMarketReconciliation?: SacMarketReconciliationData | null;
   selectedBalanceToken?: string;
   // API data fields
   totalTransactions?: number;
@@ -221,19 +214,6 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
     const formattedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
     return `${negative ? '-' : ''}${formattedWhole}${fraction ? `.${fraction}` : ''}`;
-  };
-
-  const getReconciliationBadge = (status: SacMarketReconciliation['status']) => {
-    switch (status) {
-      case 'matched':
-        return { label: 'Equal observed values', className: 'border-slate-200 bg-slate-50 text-slate-700' };
-      case 'differs':
-        return { label: 'Different observed values', className: 'border-slate-200 bg-slate-50 text-slate-700' };
-      case 'not_enough_indexed_data':
-        return { label: 'Not enough indexed data', className: 'border-slate-200 bg-slate-50 text-slate-600' };
-      default:
-        return { label: 'Asset Market unavailable', className: 'border-rose-200 bg-rose-50 text-rose-700' };
-    }
   };
 
   const changeTab = (tabId: 'overview' | 'operations' | 'details' | 'history' | 'interface' | 'code') => {
@@ -585,42 +565,12 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
             <div className="space-y-4">
               {/* SAC Balance Reconciliation */}
               {isToken && reconciliation && (
-                <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-bold text-[var(--text-primary)]">SAC balance comparison</div>
-                      <div className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">{reconciliation.assetKey}</div>
-                    </div>
-                    <span className={`rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${getReconciliationBadge(reconciliation.status).className}`}>
-                      {getReconciliationBadge(reconciliation.status).label}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-xl bg-[var(--bg-tertiary)] p-3">
-                      <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Indexed Soroban balance</div>
-                      <div className="mt-1 font-mono font-semibold text-[var(--text-primary)]">{formatRawAmount(reconciliation.indexedBalanceRaw)}</div>
-                    </div>
-                    <div className="rounded-xl bg-[var(--bg-tertiary)] p-3">
-                      <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Asset Market supply</div>
-                      <div className="mt-1 font-mono font-semibold text-[var(--text-primary)]">
-                        {reconciliation.assetMarketSupplyRaw ? formatRawAmount(reconciliation.assetMarketSupplyRaw) : 'Unavailable'}
-                      </div>
-                    </div>
-                    <div className="rounded-xl bg-[var(--bg-tertiary)] p-3">
-                      <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Indexed − market</div>
-                      <div className="mt-1 font-mono font-semibold text-[var(--text-primary)]">
-                        {reconciliation.differenceRaw ? formatRawAmount(reconciliation.differenceRaw) : 'N/A'}
-                      </div>
-                    </div>
-                    <div className="rounded-xl bg-[var(--bg-tertiary)] p-3">
-                      <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Last market update</div>
-                      <div className="mt-1 font-semibold text-[var(--text-primary)]">
-                        {reconciliation.lastMarketUpdate ? timeAgo(reconciliation.lastMarketUpdate) : 'N/A'}
-                      </div>
-                    </div>
-                  </div>
-                  <p className="mt-3 text-xs text-[var(--text-secondary)]">Indexed Soroban holder balances and total Horizon asset supply have different scopes and update times. Equality is not expected; a difference is not a safety verdict.</p>
-                </div>
+                <SacBalanceComparison
+                  reconciliation={reconciliation}
+                  decimals={tokenDecimals}
+                  symbol={tokenInfo?.symbol}
+                  lastUpdatedLabel={reconciliation.lastMarketUpdate ? timeAgo(reconciliation.lastMarketUpdate) : 'Unavailable'}
+                />
               )}
 
               {/* Token Holders */}

@@ -129,4 +129,11 @@ Use this checklist before submitting changes:
   `NEXT_PUBLIC_SENTRY_DSN` for the browser bundle, and `SENTRY_URL` when using
   a self-hosted Sentry endpoint. If DSNs are omitted, Sentry initialization is
   skipped.
+- Optional Coinzilla native advertising is disabled by default. A live homepage
+  placement requires both `NEXT_PUBLIC_COINZILLA_ENABLED=true` and a valid
+  `NEXT_PUBLIC_COINZILLA_HOME_ZONE_ID`; the provider script loads only after the
+  visitor accepts optional cookies.
+- `NEXT_PUBLIC_COINZILLA_PREVIEW=true` shows the reserved homepage placement in
+  local development without contacting Coinzilla. Production builds ignore the
+  preview flag.
 - If new env vars are introduced, update this README and document defaults/fallbacks.
