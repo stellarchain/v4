@@ -6,6 +6,7 @@ import { Horizon } from '@stellar/stellar-sdk';
 import { normalizeTransactions } from '@/lib/stellar';
 import type { Ledger, Transaction, Operation, NetworkStats } from '@/lib/stellar';
 import DesktopHomePage from '@/components/desktop/DesktopHomePage';
+import CoinzillaNativeAd from '@/components/ads/CoinzillaNativeAd';
 import StatsSection from '@/components/mobile/sections/StatsSection';
 import TransactionsSection from '@/components/mobile/sections/TransactionsSection';
 import { fetchMarketOverviewData, fetchStellarCoinData } from '@/services/api';
@@ -63,6 +64,11 @@ const HOME_INTERNAL_LINKS = [
   { href: '/news', label: 'News' },
 ] as const;
 const HOME_CHANGELOGS = [
+  {
+    version: 'v4.8.0',
+    date: '2026-10-03',
+    summary: 'Added Account Trust Checker with Basic and Advanced investigation, rebuilt Statistics with interactive historical charts and exports, and prepared a consent-gated Coinzilla ad slot.',
+  },
   {
     version: 'v4.7.2',
     date: '2026-03-01',
@@ -364,6 +370,7 @@ export default function HomePage() {
             loading={isLoading}
           />
         </div>
+        <CoinzillaNativeAd />
       </div>
 
       <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-primary)] pb-24 pt-5 md:pb-8">

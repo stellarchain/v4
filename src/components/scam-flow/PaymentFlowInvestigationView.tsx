@@ -182,6 +182,7 @@ export default function PaymentFlowInvestigationView({
     focusAccount,
     investigation?.accountContext.metadataUnavailable ?? false
   );
+  const publicDirectoryLabel = focusAccount?.label?.trim() || null;
   const trustIconClassName = trustAssessment.status === 'trusted'
     ? 'border-[var(--success)]/20 bg-[var(--success-muted)] text-[var(--success)]'
     : trustAssessment.status === 'untrusted'
@@ -524,7 +525,7 @@ export default function PaymentFlowInvestigationView({
                   </div>
                   <div className="min-w-0">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Account trust assessment</div>
-                    <div className="mt-0.5 flex items-center gap-1">
+                    <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5">
                       <h2 className={`text-lg font-semibold tracking-tight ${trustHeadingClassName}`}>{trustAssessment.label}</h2>
                       <InfoTooltip
                         ariaLabel="About this trust assessment"
@@ -533,6 +534,11 @@ export default function PaymentFlowInvestigationView({
                         align="start"
                         className="-my-1"
                       />
+                      {publicDirectoryLabel && (
+                        <Badge className="max-w-full whitespace-normal break-words text-left leading-4">
+                          Public label: {publicDirectoryLabel}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
