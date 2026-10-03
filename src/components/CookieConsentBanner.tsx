@@ -2,19 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
-
-const COOKIE_CONSENT_KEY = 'stellarchain-cookie-consent';
+import { persistCookieConsent, readCookieConsent } from '@/lib/privacy/cookieConsent';
 
 export default function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const savedConsent = localStorage.getItem(COOKIE_CONSENT_KEY);
+    const savedConsent = readCookieConsent();
     setVisible(!savedConsent);
   }, []);
 
   const handleConsent = (value: 'accepted' | 'declined') => {
-    localStorage.setItem(COOKIE_CONSENT_KEY, value);
+    persistCookieConsent(value);
     setVisible(false);
   };
 
