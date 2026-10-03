@@ -499,7 +499,7 @@ export default function ChartMetricClient() {
               onLostPointerCapture={cancelChartDrag}
               onWheel={handleChartWheel}
               onKeyDown={handleChartKeyDown}
-              className={`relative h-64 touch-pan-y select-none overflow-hidden overscroll-contain rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-blue)] sm:h-80 ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+              className={`interactive-chart relative h-64 touch-pan-y select-none overflow-hidden overscroll-contain rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-blue)] sm:h-80 ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
             >
               <div className="h-full w-full" role="img" aria-label={`${metric.label} trend. Exact values for the current CSV page are available from the export.`}>
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>

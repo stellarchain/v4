@@ -637,17 +637,17 @@ input:focus-visible {
 
 /* Recharts focuses an internal SVG group after pointer interaction. Suppress
    that browser-owned full-plot outline while retaining a deliberate keyboard ring. */
-.network-activity-chart .recharts-surface:focus:not(:focus-visible),
-.network-activity-chart .recharts-surface g[tabindex="-1"]:focus {
+.interactive-chart .recharts-surface:focus:not(:focus-visible),
+.interactive-chart .recharts-surface g[tabindex="-1"]:focus {
   outline: none !important;
 }
 
-.network-activity-chart .recharts-surface:focus-visible {
+.interactive-chart .recharts-surface:focus-visible {
   outline: 2px solid var(--primary-blue);
   outline-offset: -2px;
 }
 
-.network-activity-chart:has(.recharts-surface g[tabindex="-1"]:focus-visible) {
+.interactive-chart:has(.recharts-surface g[tabindex="-1"]:focus-visible) {
   box-shadow: inset 0 0 0 2px var(--primary-blue);
 }
 

@@ -475,7 +475,7 @@ export default function NetworkActivityChart({
 
       <div
         ref={chartShellRef}
-        className={`network-activity-chart relative mx-4 h-[300px] min-w-0 w-[calc(100%-2rem)] select-none overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/35 px-1 pt-2 sm:mx-5 sm:w-[calc(100%-2.5rem)] ${hasData ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+        className={`interactive-chart relative mx-4 h-[300px] min-w-0 w-[calc(100%-2rem)] select-none overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)]/35 px-1 pt-2 sm:mx-5 sm:w-[calc(100%-2.5rem)] ${hasData ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
         role="img"
         aria-label={ariaLabel}
         aria-busy={isRefreshing || isLoadingOlder}
