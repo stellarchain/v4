@@ -112,6 +112,7 @@ export default function RootLayout({
   return (
     <html lang='en' suppressHydrationWarning>
       <head>
+        <meta name='coinzilla' content='0b3fc4a0eeb5f30b0f571139b31d17e6' />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script
           data-host='https://stats.co'
