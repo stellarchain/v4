@@ -51,8 +51,8 @@ const SERIES = {
 const RANGE_OPTIONS: Array<{ label: string; value: NetworkStatisticsRange }> = [
   { label: '24H', value: '24h' },
   { label: '7D', value: '7d' },
-  { label: '1 month', value: '30d' },
-  { label: '1 year', value: '1y' },
+  { label: '1M', value: '30d' },
+  { label: '1Y', value: '1y' },
 ];
 
 const CHART_HEIGHT = 284;

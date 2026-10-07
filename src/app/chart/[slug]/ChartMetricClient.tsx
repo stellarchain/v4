@@ -12,36 +12,9 @@ import { CHART_METRICS, chartMetric } from '@/lib/shared/chartCatalog';
 import { chartAxisValue, chartTimeTick } from '@/lib/shared/chartDisplay';
 import { chartPageCsv } from '@/lib/shared/chartExport';
 import { chartSeries } from '@/lib/shared/chartSeries';
+import { CHART_PAGE_SIZE, CHART_YEAR_DAYS, loadChartYearHistory, type ChartMetricPoint as MetricPoint, type ChartMetricCollection as MetricCollection, type OlderHistoryCursor } from '@/lib/shared/chartHistory';
 import { fetchNetworkMetricCollectionData } from '@/services/api';
 import { useNetwork } from '@/contexts/NetworkContext';
-
-interface MetricPoint {
-  metricKey: string;
-  source: string;
-  bucketStart: string;
-  bucketEnd: string;
-  valueDecimal: string;
-}
-
-interface MetricCollection {
-  totalItems: number;
-  member: MetricPoint[];
-  view: { next?: string; previous?: string };
-  window: {
-    start: string;
-    end: string;
-    olderBefore: string | null;
-    newerBefore: string | null;
-    isLatest: boolean;
-  } | null;
-}
-
-interface OlderHistoryCursor {
-  page: number;
-  before: string | null;
-  hasNextPage: boolean;
-  olderBefore: string | null;
-}
 
 interface ChartDragState {
   pointerId: number;
@@ -55,14 +28,17 @@ interface HistoricalChartTooltipItem {
   value?: number | string;
 }
 
-const CHART_PAGE_SIZE = 50;
 const CHART_POINT_WIDTH = 32;
 const CHART_MIN_VISIBLE_POINTS = 12;
 const CHART_EDGE_LOAD_THRESHOLD = 3;
 const CHART_BUCKET_OPTIONS: Array<SegmentedControlOption<number>> = [
-  { label: '5 minutes', value: 5 },
-  { label: '1 hour', value: 60 },
-  { label: '1 day', value: 1440 },
+  { label: '5m', value: 5 },
+  { label: '1h', value: 60 },
+  { label: '1D', value: 1440 },
+];
+const CHART_RANGE_OPTIONS: Array<SegmentedControlOption<'30d' | '1y'>> = [
+  { label: '1M', value: '30d' },
+  { label: '1Y', value: '1y' },
 ];
 
 function positivePage(value: string | null): number {
@@ -181,8 +157,9 @@ export default function ChartMetricClient() {
   const pathname = usePathname();
   const router = useRouter();
   const metric = chartMetric(params.slug);
-  const page = positivePage(searchParams.get('page'));
-  const bucketMinutes = metric?.key === 'active-addresses' ? 5 : bucketSize(searchParams.get('bucketMinutes'));
+  const range = metric?.key !== 'active-addresses' && searchParams.get('range') === '1y' ? '1y' : '30d';
+  const page = range === '1y' ? 1 : positivePage(searchParams.get('page'));
+  const bucketMinutes = metric?.key === 'active-addresses' ? 5 : range === '1y' ? 1440 : bucketSize(searchParams.get('bucketMinutes'));
   const before = searchParams.get('before');
   const [dataset, setDataset] = useState<MetricCollection | null>(null);
   const [loading, setLoading] = useState(true);
@@ -203,7 +180,7 @@ export default function ChartMetricClient() {
   const historyLoadingRef = useRef(false);
   const dragStateRef = useRef<ChartDragState | null>(null);
   const { network } = useNetwork();
-  const requestKey = JSON.stringify([metric?.key ?? null, network, bucketMinutes, page, before, revision]);
+  const requestKey = JSON.stringify([metric?.key ?? null, network, bucketMinutes, range, page, before, revision]);
   const requestKeyRef = useRef(requestKey);
   requestKeyRef.current = requestKey;
   const activeDataset = resolvedKey === requestKey ? dataset : null;
@@ -221,6 +198,7 @@ export default function ChartMetricClient() {
 
   useEffect(() => {
     if (!metric) return;
+    const metricKey = metric.key;
     const controller = new AbortController();
     historyAbortRef.current?.abort();
     historyAbortRef.current = null;
@@ -238,17 +216,17 @@ export default function ChartMetricClient() {
     setResolvedKey(requestKey);
     async function load() {
       try {
-        const result = await fetchNetworkMetricCollectionData({ metricKey: metric?.key, bucketMinutes, page, itemsPerPage: CHART_PAGE_SIZE, network, windowDays: 30, ...(before ? { before } : {}) }, { signal: controller.signal }) as MetricCollection;
+        const result = await fetchNetworkMetricCollectionData({ metricKey, bucketMinutes, page, itemsPerPage: CHART_PAGE_SIZE, network, windowDays: 30, ...(before ? { before } : {}) }, { signal: controller.signal }) as MetricCollection;
+        const history = range === '1y'
+          ? await loadChartYearHistory(result, before, controller.signal, async (request) => (
+            await fetchNetworkMetricCollectionData({ metricKey, bucketMinutes, itemsPerPage: CHART_PAGE_SIZE, network, ...request }, { signal: controller.signal }) as MetricCollection
+          ))
+          : { points: result.member, cursor: { page, before, hasNextPage: Boolean(result.view.next), olderBefore: result.window?.olderBefore ?? null } };
         if (!controller.signal.aborted) {
           setDataset(result);
-          setChartPoints(result.member);
-          chartPointsRef.current = result.member;
-          setOlderCursor({
-            page,
-            before,
-            hasNextPage: Boolean(result.view.next),
-            olderBefore: result.window?.olderBefore ?? null,
-          });
+          setChartPoints(history.points);
+          chartPointsRef.current = history.points;
+          setOlderCursor(history.cursor);
         }
       } catch {
         if (!controller.signal.aborted) setError('Historical metric data could not be loaded. Retry this page.');
@@ -258,21 +236,21 @@ export default function ChartMetricClient() {
     }
     void load();
     return () => controller.abort();
-  }, [metric, bucketMinutes, page, network, before, revision, requestKey]);
+  }, [metric, bucketMinutes, range, page, network, before, revision, requestKey]);
 
   useEffect(() => {
     const viewport = chartViewportRef.current;
     if (!viewport || !activeDataset || metric?.showTrend === false) return;
     function updateVisiblePointCount() {
       if (!viewport) return;
-      const nextCount = Math.max(CHART_MIN_VISIBLE_POINTS, Math.min(CHART_PAGE_SIZE, Math.floor(viewport.clientWidth / CHART_POINT_WIDTH)));
+      const nextCount = range === '1y' ? CHART_YEAR_DAYS : Math.max(CHART_MIN_VISIBLE_POINTS, Math.min(CHART_PAGE_SIZE, Math.floor(viewport.clientWidth / CHART_POINT_WIDTH)));
       setVisiblePointCount(nextCount);
     }
     updateVisiblePointCount();
     const observer = new ResizeObserver(updateVisiblePointCount);
     observer.observe(viewport);
     return () => observer.disconnect();
-  }, [activeDataset, metric?.showTrend]);
+  }, [activeDataset, metric?.showTrend, range]);
 
   useEffect(() => {
     setViewportStart(Number.MAX_SAFE_INTEGER);
@@ -393,10 +371,11 @@ export default function ChartMetricClient() {
     }
   }
 
-  function navigate(nextPage: number, nextBucket = bucketMinutes, nextBefore: string | null = before) {
+  function navigate(nextPage: number, nextBucket = bucketMinutes, nextBefore: string | null = before, nextRange = range) {
     const query = new URLSearchParams();
     query.set('bucketMinutes', String(nextBucket));
     query.set('page', String(nextPage));
+    if (nextRange === '1y') query.set('range', nextRange);
     if (nextBefore) query.set('before', nextBefore);
     router.push(`${pathname}?${query}`, { scroll: false });
   }
@@ -432,7 +411,9 @@ export default function ChartMetricClient() {
   const loadedEnd = loadedChartRows[loadedChartRows.length - 1]?.bucketEnd;
   const chartLineGradientId = `chart-line-${metric.key}`;
   const chartAreaGradientId = `chart-area-${metric.key}`;
-  const bucketOptions = metric.key === 'active-addresses' ? CHART_BUCKET_OPTIONS.slice(0, 1) : CHART_BUCKET_OPTIONS;
+  const bucketOptions = metric.key === 'active-addresses'
+    ? CHART_BUCKET_OPTIONS.slice(0, 1)
+    : CHART_BUCKET_OPTIONS.map((option) => ({ ...option, disabled: range === '1y' && option.value !== 1440 }));
   const relatedMetrics = CHART_METRICS.filter((candidate) => candidate.group === metric.group && candidate.key !== metric.key);
 
   return (
@@ -465,10 +446,17 @@ export default function ChartMetricClient() {
                 {sources.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </>}
-            <SegmentedControl ariaLabel="Bucket size" options={bucketOptions} value={bucketMinutes} onChange={(value) => navigate(1, value, null)} />
+            {metric.key !== 'active-addresses' && <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-[var(--text-secondary)]">Historical range</span>
+              <SegmentedControl ariaLabel="Historical range" options={CHART_RANGE_OPTIONS} value={range} onChange={(value) => navigate(1, value === '1y' ? 1440 : bucketMinutes, null, value)} />
+            </div>}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-[var(--text-secondary)]">Bucket size</span>
+              <SegmentedControl ariaLabel="Bucket size" options={bucketOptions} value={bucketMinutes} onChange={(value) => navigate(1, value, null)} />
+            </div>
           </div>
         </div>
-        {activeLoading && <div className="relative h-64 sm:h-80"><ChartLoadingOverlay label="Loading metric buckets…" /></div>}
+        {activeLoading && <div className="relative h-64 sm:h-80"><ChartLoadingOverlay label={range === '1y' ? 'Loading one year of daily metric buckets…' : 'Loading metric buckets…'} /></div>}
         {activeError && <div className="flex flex-wrap items-center gap-3 p-4 text-sm text-[var(--error)]"><span role="alert">{activeError}</span><Button type="button" onClick={() => setRevision((value) => value + 1)}>Retry</Button><Button type="button" onClick={() => navigate(1, bucketMinutes, null)}>Latest window</Button></div>}
         {activeDataset && !activeLoading && <div className="p-4">
           <div className="min-w-0">
@@ -479,7 +467,7 @@ export default function ChartMetricClient() {
                 ariaLabel="About loaded chart history"
                 direction="bottom"
                 align="start"
-                content={`The chart starts with the current API page and appends older buckets as you pan left. Each request contains up to ${CHART_PAGE_SIZE} grouped rows across all datasets; the selected dataset may therefore add fewer buckets.`}
+                content={range === '1y' ? `The chart loads up to ${CHART_YEAR_DAYS} days ending at the latest indexed bucket or the selected historical boundary, using daily buckets and bounded API windows. The dates show available data, which may cover less than a year. CSV export remains the current API page only.` : `The chart starts with the current API page and appends older buckets as you pan left. Each request contains up to ${CHART_PAGE_SIZE} grouped rows across all datasets; the selected dataset may therefore add fewer buckets.`}
               />
             </div>
             {visibleGaps > 0 && <p className="mt-2 text-xs text-[var(--text-secondary)]">{visibleGaps} {visibleGaps === 1 ? 'gap' : 'gaps'} between shown buckets. The line stops at each gap; other pages may contain more.</p>}
@@ -544,6 +532,7 @@ export default function ChartMetricClient() {
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:justify-end">
                 <span><strong className="font-semibold text-[var(--text-secondary)]">Bucket</strong> {bucketLabel(bucketMinutes)}</span>
+                {metric.key !== 'active-addresses' && <span><strong className="font-semibold text-[var(--text-secondary)]">Range</strong> {range === '1y' ? '1Y' : '1M'}</span>}
                 <span><strong className="font-semibold text-[var(--text-secondary)]">Loaded</strong> {loadedChartRows.length.toLocaleString()}</span>
                 <span><strong className="font-semibold text-[var(--text-secondary)]">Visible</strong> {visibleChartRows.length.toLocaleString()}</span>
                 <span><strong className="font-semibold text-[var(--text-secondary)]">CSV</strong> page {page} · {rows.length.toLocaleString()} rows</span>
@@ -574,7 +563,7 @@ export default function ChartMetricClient() {
           </div>
           <div className="grid gap-2 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]/35 p-3 sm:grid-cols-2 lg:grid-cols-3">
             {relatedMetrics.map((candidate) => (
-              <Link key={candidate.key} href={`/chart/${candidate.key}`} className="group flex min-h-16 items-center gap-3 rounded-xl border border-transparent bg-[var(--bg-secondary)] p-3 transition-colors hover:border-[var(--border-default)] hover:bg-[var(--bg-tertiary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-blue)]">
+              <Link key={candidate.key} href={`/chart/${candidate.key}${range === '1y' ? '?range=1y' : ''}`} className="group flex min-h-16 items-center gap-3 rounded-xl border border-transparent bg-[var(--bg-secondary)] p-3 transition-colors hover:border-[var(--border-default)] hover:bg-[var(--bg-tertiary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-blue)]">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--info-muted)] text-[var(--primary-blue)] transition-colors group-hover:bg-[var(--bg-secondary)]" aria-hidden="true">
                   <RelatedChartIcon />
                 </span>

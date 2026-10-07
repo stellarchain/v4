@@ -125,7 +125,8 @@ export default function StatisticsView({
               {section.cards.map((card) => {
                 const metric = chartMetric(card.metricKey);
                 const chartBucketMinutes = card.metricKey === 'active-addresses' ? 5 : stats.bucketMinutes;
-                const href = metric ? `/chart/${metric.key}?bucketMinutes=${chartBucketMinutes}` : undefined;
+                const chartRange = selectedRange === '1y' && card.metricKey !== 'active-addresses' ? '&range=1y' : '';
+                const href = metric ? `/chart/${metric.key}?bucketMinutes=${chartBucketMinutes}${chartRange}` : undefined;
                 return <StatCard key={card.metricKey} stat={card} href={href} />;
               })}
             </div>
