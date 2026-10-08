@@ -142,4 +142,9 @@ Use this checklist before submitting changes:
   than 334px omit this fixed-size banner to avoid overflow. The shared loader
   loads once, supports client navigation, and hides the placement on load failure.
   Sevio's authorized sellers file is served from `public/ads.txt`.
+- `/getting-started`, `/wallets` and `/learn` share an optional ad placement after
+  their instructional content, outside the wallet-address form. Dedicated guide
+  zones in `src/lib/ads/sevio.ts` use 728×90 on desktop and 320×100 on mobile,
+  with the same optional-cookie consent and responsive fit rules as homepage
+  banners. The wallet companion only inspects public account data.
 - If new env vars are introduced, update this README and document defaults/fallbacks.
