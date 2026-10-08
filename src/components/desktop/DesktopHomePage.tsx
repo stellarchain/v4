@@ -25,6 +25,8 @@ import { getRouteFromSearchQuery } from '@/lib/searchRouting';
 import GliderTabs from '@/components/ui/GliderTabs';
 import { assetRoute } from '@/lib/shared/routes';
 import InlineSkeleton from '@/components/ui/InlineSkeleton';
+import SevioBannerAd from '@/components/ads/SevioBannerAd';
+import { SEVIO_HOME_BANNER } from '@/lib/ads/sevio';
 
 interface XLMMarketData {
     price: number;
@@ -768,6 +770,7 @@ export default function DesktopHomePage({
                 <div className="max-w-[1400px] mx-auto px-4 space-y-3">
                     <TransactionFlowAnimation operations={operations} ledgers={liveLedgers} height={240} currentLedger={liveStats.ledger_count} ledgerProgress={ledgerProgress} />
                     <TPSChart liveLedgers={liveLedgers} />
+                    <SevioBannerAd config={SEVIO_HOME_BANNER} placement="desktop" />
                 </div>
             </section>
 

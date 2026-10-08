@@ -12,6 +12,8 @@ import { AssetDetails, AssetHolder, AssetTrade, AccountLabel, TradingPair, short
 import { getXLMHoldersAction } from '@/lib/helpers';
 import RiskWarningRow from '@/components/RiskWarningRow';
 import RiskAwareLink from '@/components/RiskAwareLink';
+import SevioBannerAd from '@/components/ads/SevioBannerAd';
+import { SEVIO_ASSET_BANNER } from '@/lib/ads/sevio';
 
 interface AssetDesktopViewProps {
   asset: AssetDetails;
@@ -496,6 +498,8 @@ export default function AssetDesktopView({ asset, rank }: AssetDesktopViewProps)
                 </div>
               </div>
             )}
+
+            <SevioBannerAd key={`${asset.code}-${asset.issuer || 'native'}`} config={SEVIO_ASSET_BANNER} placement="desktop" />
 
             {/* Converter */}
             <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm p-3">

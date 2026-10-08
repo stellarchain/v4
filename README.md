@@ -129,11 +129,17 @@ Use this checklist before submitting changes:
   `NEXT_PUBLIC_SENTRY_DSN` for the browser bundle, and `SENTRY_URL` when using
   a self-hosted Sentry endpoint. If DSNs are omitted, Sentry initialization is
   skipped.
-- Optional Coinzilla native advertising is disabled by default. A live homepage
-  placement requires both `NEXT_PUBLIC_COINZILLA_ENABLED=true` and a valid
-  `NEXT_PUBLIC_COINZILLA_HOME_ZONE_ID`; the provider script loads only after the
-  visitor accepts optional cookies.
-- `NEXT_PUBLIC_COINZILLA_PREVIEW=true` shows the reserved homepage placement in
-  local development without contacting Coinzilla. Production builds ignore the
-  preview flag.
+- The homepage uses the configured Sevio 728×90 banner between TPS and Live
+  Activity on desktop, after optional-cookie acceptance. It requires at least
+  786px of viewport width to fit its container. Mobile uses a separate 320×100
+  zone between network statistics and transactions, from 354px viewport width.
+  This replaces the legacy Coinzilla native slot; its enable/preview environment
+  variables no longer control homepage advertising.
+- Asset pages use the configured Sevio 300×250 banner from `src/lib/ads/sevio.ts`.
+  It appears below asset links in the desktop sidebar and between the chart and
+  order book in the mobile Overview tab, only after optional-cookie acceptance.
+  Only the visible device placement registers a zone. Mobile screens narrower
+  than 334px omit this fixed-size banner to avoid overflow. The shared loader
+  loads once, supports client navigation, and hides the placement on load failure.
+  Sevio's authorized sellers file is served from `public/ads.txt`.
 - If new env vars are introduced, update this README and document defaults/fallbacks.
