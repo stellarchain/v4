@@ -6,7 +6,8 @@ import { Horizon } from '@stellar/stellar-sdk';
 import { normalizeTransactions } from '@/lib/stellar';
 import type { Ledger, Transaction, Operation, NetworkStats } from '@/lib/stellar';
 import DesktopHomePage from '@/components/desktop/DesktopHomePage';
-import CoinzillaNativeAd from '@/components/ads/CoinzillaNativeAd';
+import SevioBannerAd from '@/components/ads/SevioBannerAd';
+import { SEVIO_HOME_MOBILE_BANNER } from '@/lib/ads/sevio';
 import StatsSection from '@/components/mobile/sections/StatsSection';
 import TransactionsSection from '@/components/mobile/sections/TransactionsSection';
 import { fetchMarketOverviewData, fetchStellarCoinData } from '@/services/api';
@@ -354,6 +355,9 @@ export default function HomePage() {
             marketOverview={marketOverview}
             loading={isLoading}
           />
+          <div className="px-3">
+            <SevioBannerAd config={SEVIO_HOME_MOBILE_BANNER} placement="mobile" />
+          </div>
           <TransactionsSection transactions={transactions} />
         </div>
 
@@ -370,7 +374,6 @@ export default function HomePage() {
             loading={isLoading}
           />
         </div>
-        <CoinzillaNativeAd />
       </div>
 
       <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-primary)] pb-24 pt-5 md:pb-8">

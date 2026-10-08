@@ -11,6 +11,8 @@ import GliderTabs from '@/components/ui/GliderTabs';
 import Badge from '@/components/ui/Badge';
 import RiskWarningRow from '@/components/RiskWarningRow';
 import RiskAwareLink from '@/components/RiskAwareLink';
+import SevioBannerAd from '@/components/ads/SevioBannerAd';
+import { SEVIO_ASSET_BANNER } from '@/lib/ads/sevio';
 
 interface AssetMobileViewProps {
   asset: AssetDetails;
@@ -1086,6 +1088,8 @@ export default function AssetMobileView({ asset, rank }: AssetMobileViewProps) {
             )}
           </div>
         </div>
+
+        <SevioBannerAd key={`${asset.code}-${asset.issuer || 'native'}`} config={SEVIO_ASSET_BANNER} placement="mobile" />
 
         {/* Order Book Section */}
         <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] overflow-hidden">
