@@ -72,9 +72,9 @@ export default function WalletsPage() {
 
       <Card variant="bordered" className="p-5 md:p-6">
         <h2 className="text-lg font-semibold text-[var(--text-primary)]">Need a wallet?</h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">Freighter is a Stellar wallet with browser and mobile options. Set up and manage your wallet through its official site; then return here with your public address.</p>
-        <a href="https://freighter.app/" target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center rounded-xl px-3 py-2 text-sm font-semibold text-[var(--info)] transition-colors hover:bg-[var(--info-muted)]">Visit Freighter <span className="sr-only"> (opens in a new tab)</span> ↗</a>
-        <p className="mt-2 text-xs leading-5 text-[var(--text-secondary)]">This is an independent wallet resource, not a paid placement or a listed advertising partner.</p>
+        <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">StellarKey is a Stellar wallet. Set up and manage your wallet through its official site; then return here with your public address.</p>
+        <a href="https://stellarkey.io/" target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center rounded-xl px-3 py-2 text-sm font-semibold text-[var(--info)] transition-colors hover:bg-[var(--info-muted)]">Visit StellarKey <span className="sr-only"> (opens in a new tab)</span> ↗</a>
+        <p className="mt-2 text-xs leading-5 text-[var(--text-secondary)]">This wallet resource is not a paid placement or a listed advertising partner.</p>
       </Card>
     </GuideLayout>
   );
