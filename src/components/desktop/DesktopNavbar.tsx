@@ -59,6 +59,10 @@ export default function DesktopNavbar() {
     const newsItems: MenuItem[] = [
         { name: 'News', href: '/news', description: 'Latest ecosystem updates' },
         { name: 'Projects', href: '/projects', description: 'SCF-funded projects directory' },
+        { name: 'Partners', href: '/partners', description: 'Advertising integrations and disclosures' },
+        { name: 'Getting started', href: '/getting-started', description: 'First steps in the explorer' },
+        { name: 'Wallet companion', href: '/wallets', description: 'Inspect your public wallet account' },
+        { name: 'Learn', href: '/learn', description: 'Understand Stellar data and history' },
     ];
 
     const navItems = [

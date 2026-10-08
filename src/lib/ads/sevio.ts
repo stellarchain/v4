@@ -43,6 +43,16 @@ export const SEVIO_HOME_MOBILE_BANNER: SevioBannerConfig = {
   height: 100,
 };
 
+export const SEVIO_GUIDE_DESKTOP_BANNER: SevioBannerConfig = {
+  ...SEVIO_HOME_BANNER,
+  zone: '36293396-9ca3-4dac-b244-1f5d7012828e',
+};
+
+export const SEVIO_GUIDE_MOBILE_BANNER: SevioBannerConfig = {
+  ...SEVIO_HOME_MOBILE_BANNER,
+  zone: '16d6ea63-8f8d-443b-81f3-97a93dfa61bb',
+};
+
 const SCRIPT_ID = 'sevio-ads-loader';
 const SCRIPT_URL = 'https://cdn.adx.ws/scripts/loader.js';
 let scriptPromise: Promise<void> | null = null;

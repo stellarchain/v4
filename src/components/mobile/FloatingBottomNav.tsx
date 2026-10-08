@@ -63,6 +63,10 @@ const getMenuCategories = (): MenuCategory[] => [
     items: [
       { name: 'News', href: '/news', icon: 'news', description: 'Latest ecosystem updates' },
       { name: 'Projects', href: '/projects', icon: 'projects', description: 'SCF-funded projects directory' },
+      { name: 'Partners', href: '/partners', icon: 'projects', description: 'Advertising integrations and disclosures' },
+      { name: 'Getting started', href: '/getting-started', icon: 'projects', description: 'First steps in the explorer' },
+      { name: 'Wallet companion', href: '/wallets', icon: 'users', description: 'Inspect your public wallet account' },
+      { name: 'Learn', href: '/learn', icon: 'projects', description: 'Understand Stellar data and history' },
     ],
   },
 ];

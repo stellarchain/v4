@@ -62,6 +62,10 @@ const HOME_INTERNAL_LINKS = [
   { href: '/liquidity-pools', label: 'Liquidity Pools' },
   { href: '/assets', label: 'Assets' },
   { href: '/projects', label: 'Projects' },
+  { href: '/partners', label: 'Partners' },
+  { href: '/getting-started', label: 'Getting started' },
+  { href: '/wallets', label: 'Wallet companion' },
+  { href: '/learn', label: 'Learn' },
   { href: '/news', label: 'News' },
 ] as const;
 const HOME_CHANGELOGS = [
