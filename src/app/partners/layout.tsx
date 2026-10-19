@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 
 export const metadata: Metadata = {
   title: 'Partners',
-  description: 'StellarChain advertising integrations, placement details, and disclosure rules.',
+  description:
+    'Stellar wallets, exchanges, ramps, infrastructure and developer tools, with commercial disclosures and region/network notes.',
   alternates: { canonical: '/partners' },
 };
 

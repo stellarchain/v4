@@ -1,5 +1,10 @@
 export const COOKIE_CONSENT_KEY = 'stellarchain-cookie-consent';
 export const COOKIE_CONSENT_EVENT = 'stellarchain:cookie-consent';
+export const COOKIE_PREFERENCES_EVENT = 'stellarchain:cookie-preferences';
+
+export function openCookiePreferences(): void {
+  window.dispatchEvent(new Event(COOKIE_PREFERENCES_EVENT));
+}
 
 export type CookieConsentValue = 'accepted' | 'declined' | null;
 

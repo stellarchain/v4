@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
-import { persistCookieConsent, readCookieConsent } from '@/lib/privacy/cookieConsent';
+import { COOKIE_PREFERENCES_EVENT, persistCookieConsent, readCookieConsent } from '@/lib/privacy/cookieConsent';
 
 export default function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
@@ -10,6 +10,9 @@ export default function CookieConsentBanner() {
   useEffect(() => {
     const savedConsent = readCookieConsent();
     setVisible(!savedConsent);
+    function showPreferences() { setVisible(true); }
+    window.addEventListener(COOKIE_PREFERENCES_EVENT, showPreferences);
+    return () => window.removeEventListener(COOKIE_PREFERENCES_EVENT, showPreferences);
   }, []);
 
   const handleConsent = (value: 'accepted' | 'declined') => {
@@ -29,7 +32,7 @@ export default function CookieConsentBanner() {
       aria-label='Cookie consent'
     >
       <p className='text-xs leading-5 text-[var(--text-secondary)]'>
-        We use cookies to improve your experience. Choose whether to allow optional cookies.
+        Optional cookies enable advertising and aggregate partner-link click counts. You can browse the explorer without them.
       </p>
       <div className='mt-3 flex items-center gap-2'>
         <Button
