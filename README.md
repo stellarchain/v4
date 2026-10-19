@@ -148,3 +148,12 @@ Use this checklist before submitting changes:
   with the same optional-cookie consent and responsive fit rules as homepage
   banners. The wallet companion only inspects public account data.
 - If new env vars are introduced, update this README and document defaults/fallbacks.
+# Partner discovery
+
+`/partners` provides category pages for wallets, exchanges, ramps, infrastructure,
+developer tools and advertising. `/partners/admin` manages listings and downloads daily UTC
+click totals as CSV. It uses the API selected by `NEXT_PUBLIC_API_BASE_URL`; the admin token
+is entered at runtime and kept only in tab memory. Configure backend-only `PARTNER_ADMIN_TOKEN`
+and persistent `PARTNER_STORAGE_DIR` as described in the [partner runbook](../v4-api/docs/partners.md).
+No extra public environment variables are required. Existing optional-cookie consent gates
+first-party counting and tracking destinations, including DNT/GPC opt-out.
