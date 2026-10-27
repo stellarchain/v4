@@ -11,7 +11,7 @@ import { SEVIO_HOME_MOBILE_BANNER } from '@/lib/ads/sevio';
 import StatsSection from '@/components/mobile/sections/StatsSection';
 import TransactionsSection from '@/components/mobile/sections/TransactionsSection';
 import { fetchMarketOverviewData, fetchStellarCoinData } from '@/services/api';
-import { createHorizonServer } from '@/services/horizon';
+import { createHistoryServer, createHorizonServer } from '@/services/horizon';
 
 interface MarketAsset {
   rank: number;
@@ -168,6 +168,7 @@ export default function HomePage() {
       });
 
       try {
+        const historyServer = createHistoryServer();
         const server = createHorizonServer();
         const stellarCoinDataPromise = fetchStellarCoinData().catch((coinError) => {
           console.warn('Homepage coin data fetch failed, continuing with core network data:', coinError);
@@ -187,8 +188,8 @@ export default function HomePage() {
           stellarChainData,
           marketOverviewData
         ] = await Promise.all([
-          safeRequest(server.ledgers().order('desc').limit(8).call(), emptyCollectionPage<Horizon.ServerApi.LedgerRecord>(), 'ledgers'),
-          safeRequest(server.transactions().order('desc').limit(8).call(), emptyCollectionPage<Horizon.ServerApi.TransactionRecord>(), 'transactions'),
+          safeRequest(historyServer.ledgers().order('desc').limit(8).call(), emptyCollectionPage<Horizon.ServerApi.LedgerRecord>(), 'ledgers'),
+          safeRequest(historyServer.transactions().order('desc').limit(8).call(), emptyCollectionPage<Horizon.ServerApi.TransactionRecord>(), 'transactions'),
           safeRequest(server.operations().order('desc').limit(30).call(), emptyCollectionPage<Horizon.ServerApi.OperationRecord>(), 'operations'),
           safeRequest(server.payments().order('desc').limit(20).call(), emptyCollectionPage<Horizon.ServerApi.PaymentOperationRecord>(), 'payments'),
           stellarCoinDataPromise,

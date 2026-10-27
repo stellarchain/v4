@@ -10,7 +10,7 @@ import LedgerMobileView from '@/components/mobile/LedgerMobileView';
 import LedgerDesktopView from '@/components/desktop/LedgerDesktopView';
 import Loading from '@/components/ui/Loading';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
-import { createHorizonServer } from '@/services/horizon';
+import { createHistoryServer } from '@/services/horizon';
 import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
 import { redirectToNetwork } from '@/lib/network/navigation';
 
@@ -40,7 +40,7 @@ export default function LedgerPage() {
   const isLoading = !errorMessage && (!ledger || ledger.sequence !== sequenceNum);
 
   const loadLedgerData = async (targetSequence: number) => {
-    const server = createHorizonServer();
+    const server = createHistoryServer();
     const [ledgerResponse, transactionsResponse, operationsResponse] = await Promise.all([
       server.ledgers().ledger(targetSequence).call(),
       server.transactions().forLedger(targetSequence).order('desc').limit(10).call(),
@@ -70,7 +70,7 @@ export default function LedgerPage() {
     const checks = await Promise.all(
       otherNetworks.map(async (network) => {
         try {
-          await createHorizonServer(network).ledgers().ledger(targetSequence).call();
+          await createHistoryServer(network).ledgers().ledger(targetSequence).call();
           return network;
         } catch {
           return null;

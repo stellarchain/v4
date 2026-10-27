@@ -1,7 +1,7 @@
 // Stellar Horizon API Service Layer
 import { xdr, Address, Asset, Horizon } from '@stellar/stellar-sdk';
 import { apiEndpoints, getApiData, getApiV1Data } from '@/services/api';
-import { createHorizonServer, getHorizonBaseUrl } from '@/services/horizon';
+import { createHistoryServer, createHorizonServer, getHorizonBaseUrl } from '@/services/horizon';
 import { DEFAULT_NETWORK, NETWORK_COOKIE_NAME, isNetworkType, type NetworkType } from '../network/config';
 import { getCurrentNetwork, setCurrentNetwork } from '../network/state';
 import { mapHorizonAssetRecordToIssuedAsset } from '../shared/issuedAssets';
@@ -357,7 +357,7 @@ async function getLedgerTransactions(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<Transaction>> {
-  const builder = getHorizonServer().transactions().forLedger(sequence).limit(limit).order(order);
+  const builder = createHistoryServer().transactions().forLedger(sequence).limit(limit).order(order);
   if (cursor) builder.cursor(cursor);
   const response = await builder.call();
   return response as unknown as PaginatedResponse<Transaction>;
@@ -401,7 +401,7 @@ export async function getLedgerOperations(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<Operation>> {
-  const builder = getHorizonServer().operations().forLedger(sequence).limit(limit).order(order);
+  const builder = createHistoryServer().operations().forLedger(sequence).limit(limit).order(order);
   if (cursor) builder.cursor(cursor);
   const response = await builder.call();
   return response as unknown as PaginatedResponse<Operation>;
@@ -414,7 +414,7 @@ export async function getTransactions(
   cursor?: string,
   includeFailed?: boolean
 ): Promise<PaginatedResponse<Transaction>> {
-  const builder = getHorizonServer().transactions().limit(limit).order(order);
+  const builder = createHistoryServer().transactions().limit(limit).order(order);
   if (typeof includeFailed === 'boolean') builder.includeFailed(includeFailed);
   if (cursor) builder.cursor(cursor);
   const response = await builder.call();
@@ -426,7 +426,7 @@ export async function getTransactionOperations(
   limit: number = 10,
   order: 'asc' | 'desc' = 'desc'
 ): Promise<PaginatedResponse<Operation>> {
-  const response = await getHorizonServer()
+  const response = await createHistoryServer()
     .operations()
     .forTransaction(hash)
     .limit(limit)
@@ -453,7 +453,7 @@ export async function getLedgers(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
 ): Promise<PaginatedResponse<Ledger>> {
-  const builder = getHorizonServer().ledgers().limit(limit).order(order);
+  const builder = createHistoryServer().ledgers().limit(limit).order(order);
   if (cursor) builder.cursor(cursor);
   const response = await builder.call();
   return response as unknown as PaginatedResponse<Ledger>;
@@ -477,7 +477,7 @@ export async function getTransactionEffects(
   limit: number = 10,
   order: 'asc' | 'desc' = 'desc'
 ): Promise<PaginatedResponse<Effect>> {
-  const response = await getHorizonServer()
+  const response = await createHistoryServer()
     .effects()
     .forTransaction(hash)
     .limit(limit)
