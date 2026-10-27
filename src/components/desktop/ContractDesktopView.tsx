@@ -1,9 +1,11 @@
 'use client';
 
+import ContractWasmPanel from '@/components/contract/ContractWasmPanel';
+import ContractSourcePanel from '@/components/contract/ContractSourcePanel';
+import SacContractInfo from '@/components/contract/SacContractInfo';
+
 import { useState } from 'react';
 import Link from 'next/link';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { shortenAddress, timeAgo, getOperationTypeLabel, ContractInvocation } from '@/lib/stellar';
 import type { TokenRegistryEntry, ContractVerification } from '@/lib/shared/interfaces';
 import type { ContractMetadataResult, ContractAccessControlResult } from '@/lib/soroban/contractMetadata';
@@ -116,6 +118,8 @@ interface ContractData {
   sourceCodeVerified?: boolean;
   assetIssuer?: string;
   isSAC?: boolean;
+  sacAdmin?: string;
+  functionNames?: string[];
   _loading?: {
     events?: boolean;
     invocations?: boolean;
@@ -140,7 +144,6 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
   const [expandedStorageRows, setExpandedStorageRows] = useState<Set<number>>(new Set());
   const [copied, setCopied] = useState(false);
   const [copiedWasm, setCopiedWasm] = useState(false);
-  const sourceCode = contract.contractCode || null;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(contract.id);
@@ -563,8 +566,8 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                     label: 'Storage',
                     count: sectionLoading.storage ? undefined : contract.storage?.totalEntries ?? 0,
                   },
-                // Only show Code tab for actual contracts (not tokens)
-                ...(contract.type === 'contract' ? [{ id: 'code' as const, label: 'WASM' }] : []),
+                // SAC executes in the host and has no WASM module.
+                ...(!isSac ? [{ id: 'code' as const, label: 'WASM' }] : []),
               ]}
               activeId={activeTab as 'overview' | 'history' | 'events' | 'storage' | 'code'}
               onChange={handleTabChange}
@@ -573,6 +576,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
             {/* Tab Content */}
             {activeTab === 'overview' && (
               <div className="space-y-4">
+              {isSac && <SacContractInfo issuer={contract.assetIssuer} admin={contract.sacAdmin} functions={contract.functionNames} />}
                 {/* SAC Balance Reconciliation */}
                 {isToken && reconciliation && (
                   <SacBalanceComparison
@@ -1613,44 +1617,13 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
               </div>
             )}
 
-            {/* Code Tab */}
-            {activeTab === 'code' && (
-              <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-sm">
-                <div className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
-                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">Indexed code</h3>
-                  <p className="text-xs text-[var(--text-secondary)]">May be decompiled output; code availability alone does not verify source provenance.</p>
-                </div>
-                <div className="p-4">
-                  {sourceCode ? (
-                    <div className="w-full overflow-hidden">
-                      <SyntaxHighlighter
-                        language="rust"
-                        style={vscDarkPlus}
-                        customStyle={{
-                          margin: 0,
-                          borderRadius: '0.5rem',
-                          fontSize: '0.75rem',
-                          maxHeight: '600px',
-                          maxWidth: '100%',
-                          width: '100%',
-                          border: '1px solid var(--border-subtle)',
-                          overflow: 'auto',
-                        }}
-                        showLineNumbers
-                        wrapLines={false}
-                        wrapLongLines={false}
-                      >
-                        {sourceCode}
-                      </SyntaxHighlighter>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-sm text-[var(--text-muted)]">
-                      No source code available
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+          {/* WASM and source are loaded only while this tab is open. */}
+          {activeTab === 'code' && !isSac && (
+            <div>
+              <ContractWasmPanel contractId={contract.id} wasmHash={contract.wasmId || contract.verification?.wasmHash} />
+              <ContractSourcePanel contractId={contract.id} wasmHash={contract.wasmId || contract.verification?.wasmHash} indexedSource={contract.contractCode} />
+            </div>
+          )}
 
           </div>
 
@@ -1814,7 +1787,7 @@ export default function ContractDesktopView({ contract, operations, onTabChange,
                   </div>
                   <p className="text-xs text-[var(--text-secondary)]">Decompiled code availability is separate from build attestation. Neither indicates an audit or a safety verdict. SEP-58 rebuild verification is not shown without a completed rebuild.</p>
                   <div className="flex justify-between items-center py-1 border-b border-[var(--border-subtle)]">
-                    <span className="text-[11px] text-[var(--text-tertiary)]">Decompiled code</span>
+                    <span className="text-[11px] text-[var(--text-tertiary)]">Indexed decompiled code</span>
                     <span className="text-[11px] text-[var(--text-secondary)]">{contract.verification.sourceAvailable ? 'Available' : 'Unavailable'}</span>
                   </div>
                   {contract.verification.sourceRepo && (
