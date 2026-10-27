@@ -1,5 +1,8 @@
 'use client';
 
+import TransactionOfferSummary from '@/components/TransactionOfferSummary';
+import { getOfferPresentation } from '@/lib/shared/offerPresentation';
+
 import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -147,6 +150,8 @@ export default function TransactionDesktopView({ transaction, operations, effect
   const isSwap = operations.some(op => op.type === 'path_payment_strict_send' || op.type === 'path_payment_strict_receive');
   const paymentOps = operations.filter(op => op.type === 'payment' || op.type === 'create_account');
   const isMultiSend = paymentOps.length > 1;
+  const offerOperations = operations.filter((operation) => ['manage_buy_offer', 'manage_sell_offer', 'create_passive_sell_offer'].includes(operation.type));
+  const isOfferTransaction = offerOperations.length > 0 && offerOperations.length === operations.length;
 
   const primaryOp = operations.find(op => ['payment', 'create_account', 'path_payment_strict_send', 'path_payment_strict_receive'].includes(op.type)) || operations[0];
   let destination = transaction.source_account;
@@ -165,6 +170,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
   let typeLabel = 'Transaction';
   if (isSwap) typeLabel = 'Swap';
   else if (isMultiSend) typeLabel = paymentOps.length > 10 ? 'Bulk Send' : 'Multi Send';
+  else if (isOfferTransaction) typeLabel = 'Manage Offer';
   else if (isContractCall) {
     const fname = decodeContractFunctionName(contractOp!);
     typeLabel = fname === 'Contract Call' ? 'Contract' : fname;
@@ -316,6 +322,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
   };
 
   const selectedOp = filteredOperations[selectedOpIndex];
+  const selectedOffer = selectedOp && offerOperations.some((operation) => operation.id === selectedOp.id) ? getOfferPresentation(selectedOp) : null;
   const selectedEffect = effects[selectedEffectIndex];
 
   const getOpInfo = (op: Operation) => {
@@ -411,7 +418,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
         </div>
 
         {/* From/To or Contract Interaction */}
-        {isContractCall && displayAmount === 0 ? (
+        {isOfferTransaction ? <TransactionOfferSummary operations={offerOperations} /> : isContractCall && displayAmount === 0 ? (
           /* Contract Interaction Layout */
           <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)] p-4">
             <div className="flex items-center gap-3 mb-4">
@@ -837,7 +844,7 @@ export default function TransactionDesktopView({ transaction, operations, effect
                   <div className="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 flex items-center justify-between">
                     <div>
                       <div className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-widest mb-1">Amount</div>
-                      <div className="text-xl font-bold text-emerald-600">{formatTokenAmount(selectedOp.amount || (selectedOp as any).starting_balance)} <span className="text-sm">{selectedOp.asset_type === 'native' ? 'XLM' : (selectedOp.asset_code || 'XLM')}</span></div>
+                      <div className="text-xl font-bold text-emerald-600">{formatTokenAmount(selectedOp.amount || (selectedOp as any).starting_balance)} <span className="text-sm">{selectedOffer?.amountAsset ?? (selectedOp.asset_type === 'native' ? 'XLM' : (selectedOp.asset_code || 'XLM'))}</span></div>
                     </div>
                     {selectedOp.asset_issuer && (
                       <Link href={addressRoute(selectedOp.asset_issuer)} className="bg-[var(--bg-secondary)] px-3 py-1.5 rounded-lg border border-emerald-100 dark:border-[var(--border-subtle)] text-[10px] hover:border-sky-200 dark:hover:border-sky-800 transition-colors">

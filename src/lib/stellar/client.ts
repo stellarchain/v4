@@ -22,6 +22,7 @@ import {
 } from '../shared/assetTradingPairs';
 
 import type {
+  AccountHistoryPage,
   Ledger,
   TransactionDisplayInfo,
   Transaction,
@@ -492,12 +493,8 @@ export async function getAccountOperations(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string,
   includeFailed?: boolean
-): Promise<PaginatedResponse<Operation>> {
-  const builder = getHorizonServer().operations().forAccount(accountId).limit(limit).order(order);
-  if (typeof includeFailed === 'boolean') builder.includeFailed(includeFailed);
-  if (cursor) builder.cursor(cursor);
-  const response = await builder.call();
-  return response as unknown as PaginatedResponse<Operation>;
+): Promise<AccountHistoryPage<Operation>> {
+  return getApiV1Data(apiEndpoints.v1.accountOperations(accountId, { limit, order, cursor, include_failed: includeFailed }));
 }
 
 export async function getAccountTransactions(
@@ -506,12 +503,9 @@ export async function getAccountTransactions(
   order: 'asc' | 'desc' = 'desc',
   cursor?: string,
   includeFailed?: boolean
-): Promise<PaginatedResponse<Transaction>> {
-  const builder = getHorizonServer().transactions().forAccount(accountId).limit(limit).order(order);
-  if (typeof includeFailed === 'boolean') builder.includeFailed(includeFailed);
-  if (cursor) builder.cursor(cursor);
-  const response = await builder.call();
-  return response as unknown as PaginatedResponse<Transaction>;
+): Promise<AccountHistoryPage<Transaction>> {
+  const response = await getApiV1Data(apiEndpoints.v1.accountTransactions(accountId, { limit, order, cursor, include_failed: includeFailed }));
+  return { ...response, records: normalizeTransactions(response.records || []) };
 }
 
 export async function getAccountEffects(
@@ -519,11 +513,8 @@ export async function getAccountEffects(
   limit: number = 50,
   order: 'asc' | 'desc' = 'desc',
   cursor?: string
-): Promise<PaginatedResponse<Effect>> {
-  const builder = getHorizonServer().effects().forAccount(accountId).limit(limit).order(order);
-  if (cursor) builder.cursor(cursor);
-  const response = await builder.call();
-  return response as unknown as PaginatedResponse<Effect>;
+): Promise<AccountHistoryPage<Effect>> {
+  return getApiV1Data(apiEndpoints.v1.accountEffects(accountId, { limit, order, cursor }));
 }
 
 // Helper to extract display info from operations

@@ -265,6 +265,8 @@ type ContractStorageEntryRecord = {
   entryXdr?: string;
   entryDecoded?: {
     key?: string;
+    valueXdr?: string;
+    durability?: 'temporary' | 'persistent' | 'instance';
     xdr?: string;
     hasContractData?: boolean;
     liveUntilLedgerSeq?: number;
@@ -546,13 +548,14 @@ async function fetchContractStorage(contractId: string, totalStorageEntries?: nu
     const xdrPayload = item.entryXdr || item.entryDecoded?.xdr || '';
 
     const keyFromScVal = decodeStorageScVal(key);
+    const valueFromScVal = decodeStorageScVal(item.entryDecoded?.valueXdr);
     const decodedFromEntry = decodeStorageEntryXdr(xdrPayload);
 
     const keyDisplay = decodedFromEntry.keyDisplay || keyFromScVal.display || key || `Entry #${index + 1}`;
     const keyType = decodedFromEntry.keyType || keyFromScVal.type || 'ScVal';
-    const valueDisplay = decodedFromEntry.valueDisplay || `Storage entry (ledger ${item.lastModifiedLedgerSeq || item.entryDecoded?.lastModifiedLedgerSeq || 'N/A'})`;
-    const valueType = decodedFromEntry.valueType || 'ContractData';
-    const durability = decodedFromEntry.durability || 'persistent';
+    const valueDisplay = decodedFromEntry.valueDisplay || valueFromScVal.display || `Storage entry (ledger ${item.lastModifiedLedgerSeq || item.entryDecoded?.lastModifiedLedgerSeq || 'N/A'})`;
+    const valueType = decodedFromEntry.valueType || valueFromScVal.type || 'ContractData';
+    const durability = item.entryDecoded?.durability || decodedFromEntry.durability || 'persistent';
     const ttl = item.entryDecoded?.ttlLedgersRemaining;
     const expirationLedger = item.liveUntilLedgerSeq || item.entryDecoded?.liveUntilLedgerSeq;
 
@@ -560,7 +563,7 @@ async function fetchContractStorage(contractId: string, totalStorageEntries?: nu
       key,
       keyDisplay,
       keyType,
-      value: xdrPayload,
+      value: xdrPayload || item.entryDecoded?.valueXdr || '',
       valueDisplay,
       valueType,
       durability,
