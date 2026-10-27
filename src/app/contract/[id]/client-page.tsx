@@ -133,6 +133,8 @@ interface APIContractData {
   totalStorageEntries?: number;
   totalInvokes?: number;
   isSac?: boolean | null;
+  nativeMetadata?: { admin?: string; decimals?: number; name?: string; symbol?: string } | null;
+  functions?: unknown;
   verifiedMetadata?: {
     displayName?: string;
     metadataType?: string;
@@ -949,6 +951,28 @@ function isContractNotFoundError(error: unknown): boolean {
   return status === 404 || title.includes('not found') || message.includes('not found');
 }
 
+function contractSpecFromOrion(value: unknown): ContractSpecResult | null {
+  const functions = Array.isArray(value) ? value : (value as { member?: unknown[] } | null)?.member;
+  if (!Array.isArray(functions)) return null;
+  const mapped = functions.flatMap((fn) => {
+    if (typeof fn?.name !== 'string' || !Array.isArray(fn.args) || typeof fn.return_type !== 'string') return [];
+    if (!fn.args.every((arg: { name?: unknown; type?: unknown }) => typeof arg?.name === 'string' && typeof arg.type === 'string')) return [];
+    return [{ name: fn.name, doc: typeof fn.doc === 'string' ? fn.doc : '',
+      inputs: fn.args.map((arg: { name: string; type: string }) => ({ name: arg.name, type: { type: arg.type }, doc: '' })),
+      outputs: fn.return_type === 'void' ? [] : [{ type: fn.return_type }],
+    }];
+  });
+  return mapped.length ? { functions: mapped, udts: [] } : null;
+}
+
+function contractFunctionNames(value: unknown): string[] {
+  const functions = Array.isArray(value) ? value : (value as { member?: unknown[] } | null)?.member;
+  if (!Array.isArray(functions)) return [];
+  return [...new Set(functions.flatMap((item) =>
+    typeof item?.name === 'string' && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(item.name) ? [item.name] : []
+  ))];
+}
+
 function emptyContractData(contractId: string): FullContractData {
   return {
     id: contractId,
@@ -1083,7 +1107,7 @@ export default function ContractPage() {
           eventSummary: mapEventSummary(apiData, []),
           invocations: [],
           storage: mapStorage(id, apiData),
-          spec: null,
+          spec: contractSpecFromOrion(apiData.functions),
           verification: buildVerification(apiData),
           contractMetadata: null,
         });
@@ -1507,6 +1531,8 @@ export default function ContractPage() {
     sourceCodeVerified: baseData.apiContractData?.sourceCodeVerified,
     assetIssuer: baseData.apiContractData?.assetIssuer || undefined,
     isSAC: isSacContract(baseData.apiContractData),
+    sacAdmin: baseData.apiContractData?.nativeMetadata?.admin,
+    functionNames: contractFunctionNames(baseData.apiContractData?.functions),
     totalOperations,
     holderBalances,
     tokenHolderBalances,

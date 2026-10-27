@@ -1,9 +1,11 @@
 'use client';
 
+import ContractWasmPanel from '@/components/contract/ContractWasmPanel';
+import ContractSourcePanel from '@/components/contract/ContractSourcePanel';
+import SacContractInfo from '@/components/contract/SacContractInfo';
+
 import { useState } from 'react';
 import Link from 'next/link';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { shortenAddress, timeAgo, ContractInvocation } from '@/lib/stellar';
 import GliderTabs from '@/components/ui/GliderTabs';
 import type { TokenRegistryEntry, ContractVerification } from '@/lib/shared/interfaces';
@@ -116,6 +118,8 @@ interface ContractData {
   sourceCodeVerified?: boolean;
   assetIssuer?: string;
   isSAC?: boolean;
+  sacAdmin?: string;
+  functionNames?: string[];
   _loading?: {
     events?: boolean;
     invocations?: boolean;
@@ -140,7 +144,6 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
   const [copied, setCopied] = useState(false);
   const [copiedName, setCopiedName] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const sourceCode = contract.contractCode || null;
 
   // Primary color for consistency with other pages
   const primaryColor = '#0F4C81';
@@ -314,7 +317,7 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
       label: 'Events',
       count: contract.eventSummary?.totalEvents ?? 0,
     },
-    { id: 'code', label: 'WASM', hide: contract.type !== 'contract' },
+    { id: 'code', label: 'WASM', hide: isSac },
     { id: 'interface', label: 'Interface' },
     { id: 'details', label: 'Details' },
   ];
@@ -563,6 +566,7 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
             <div className="space-y-4">
+              {isSac && <SacContractInfo issuer={contract.assetIssuer} admin={contract.sacAdmin} functions={contract.functionNames} />}
               {/* SAC Balance Reconciliation */}
               {isToken && reconciliation && (
                 <SacBalanceComparison
@@ -1236,11 +1240,11 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
 
                   <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-tertiary)]">
                     <span className="font-bold text-[var(--text-muted)] text-[11px] uppercase tracking-wider">Contract Interface</span>
-                    <span className="text-[10px] text-[var(--text-muted)] font-medium px-2 py-0.5 rounded bg-[var(--bg-primary)]">Rust / WASM</span>
+                    <span className="text-[10px] text-[var(--text-muted)] font-medium px-2 py-0.5 rounded bg-[var(--bg-primary)]">{isSac ? 'Built-in SAC' : 'Contract spec'}</span>
                   </div>
                   <div className="p-4 overflow-x-auto custom-scrollbar">
                     <pre id="contract-interface-code" className="whitespace-pre font-mono text-[11px] leading-relaxed">
-                      <span className="text-[var(--text-tertiary)] italic block mb-4">// Protocol version: 20 (Soroban)</span>
+                      <span className="text-[var(--text-tertiary)] italic block mb-4">// Contract interface</span>
                       {contract.spec.functions.map((fn, idx) => (
                         <div key={idx} className="mb-4 last:mb-0 group/fn">
                           {fn.doc && (
@@ -1337,7 +1341,7 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
                   { label: 'Registry metadata verified', value: contract.verifiedContract?.verified ? 'Yes' : 'No' },
                   { label: 'Total Operations', value: totalOperationsCount.toLocaleString() },
                   ...(contract.verification ? [
-                    { label: 'Decompiled code', value: contract.verification.sourceAvailable ? 'Available' : 'Unavailable' },
+                    { label: 'Indexed decompiled code', value: contract.verification.sourceAvailable ? 'Available' : 'Unavailable' },
                     ...(contract.verification.wasmHash ? [{ label: 'WASM Hash', value: contract.verification.wasmHash, mono: true }] : []),
                   ] : []),
                   ...(isToken ? [
@@ -1390,42 +1394,11 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
             </div>
           )}
 
-          {/* CODE TAB */}
-          {activeTab === 'code' && (
-            <div className="bg-[var(--bg-secondary)] rounded-2xl shadow-sm border border-[var(--border-default)]">
-              <div className="p-4 border-b border-[var(--border-subtle)]">
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Indexed code</h3>
-                <p className="text-xs text-[var(--text-secondary)] mt-1">May be decompiled output; availability alone does not verify provenance.</p>
-              </div>
-              <div className="p-4">
-                {sourceCode ? (
-                  <div className="w-full overflow-hidden">
-                    <SyntaxHighlighter
-                      language="rust"
-                      style={vscDarkPlus}
-                      customStyle={{
-                        margin: 0,
-                        borderRadius: '0.5rem',
-                        fontSize: '10px',
-                        maxHeight: '500px',
-                        maxWidth: '100%',
-                        width: '100%',
-                        border: '1px solid var(--border-subtle)',
-                        overflow: 'auto',
-                      }}
-                      showLineNumbers
-                      wrapLines={false}
-                      wrapLongLines={false}
-                    >
-                      {sourceCode}
-                    </SyntaxHighlighter>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-sm text-[var(--text-muted)]">
-                    No source code available
-                  </div>
-                )}
-              </div>
+          {/* WASM and source are loaded only while this tab is open. */}
+          {activeTab === 'code' && !isSac && (
+            <div>
+              <ContractWasmPanel contractId={contract.id} wasmHash={contract.wasmId || contract.verification?.wasmHash} />
+              <ContractSourcePanel contractId={contract.id} wasmHash={contract.wasmId || contract.verification?.wasmHash} indexedSource={contract.contractCode} />
             </div>
           )}
         </div>
