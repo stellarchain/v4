@@ -176,6 +176,11 @@ export interface AssetDetails extends MarketAsset {
   volume_history: [number, number][];
 }
 
+export interface AccountHistoryPagination {
+  hasMore: boolean;
+  nextCursor: string | null;
+}
+
 export interface AccountHistoryPage<T> {
   records: T[];
   meta: { source: string; network: string; hasMore: boolean; nextCursor: string | null };

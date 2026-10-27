@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import type { AccountHistoryPagination } from '@/lib/shared/interfaces';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Transaction,
@@ -118,6 +119,8 @@ interface AccountMobileViewProps {
   account: AccountData | null;
   accountId: string;
   transactions: Transaction[];
+  transactionsPagination?: AccountHistoryPagination | null;
+  operationsPagination?: AccountHistoryPagination | null;
   operations: Operation[];
   xlmPrice: number;
   accountLabels?: Record<string, AccountLabel>;
@@ -228,7 +231,7 @@ function AccountStatusIcons({ labelText, verified, size = 'sm' }: { labelText?: 
   );
 }
 
-export default function AccountMobileView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false, issuedAssets = [], loadingIssuedAssets = false, showIssuedAssetsTab = false, balanceAssetDetails = {} }: AccountMobileViewProps) {
+export default function AccountMobileView({ account, accountId, transactions, operationsPagination, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false, issuedAssets = [], loadingIssuedAssets = false, showIssuedAssetsTab = false, balanceAssetDetails = {} }: AccountMobileViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -236,7 +239,7 @@ export default function AccountMobileView({ account, accountId, transactions, op
 
   // Read initial tab from URL params
   const requestedInitialTab = (searchParams.get('tab') as AccountMobileTab) || 'assets';
-  const initialTab = requestedInitialTab === 'issued' && !showIssuedAssetsTab ? 'assets' : requestedInitialTab;
+  const initialTab = ['transactions', 'operations'].includes(requestedInitialTab) ? 'activity' : (requestedInitialTab === 'issued' && !showIssuedAssetsTab ? 'assets' : requestedInitialTab);
   const [activeTab, setActiveTab] = useState<AccountMobileTab>(initialTab);
   const mobileTabs = [
     { id: 'assets' as const, label: 'Assets' },
@@ -341,9 +344,10 @@ export default function AccountMobileView({ account, accountId, transactions, op
   // Operations state for infinite scroll
   const [allOperations, setAllOperations] = useState<Operation[]>(initialOperations);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMoreToFetch, setHasMoreToFetch] = useState(initialOperations.length >= 100);
+  const [operationsPageError, setOperationsPageError] = useState(false);
+  const [hasMoreToFetch, setHasMoreToFetch] = useState(operationsPagination?.hasMore ?? initialOperations.length >= 100);
   const [lastCursor, setLastCursor] = useState<string | null>(
-    initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
+    operationsPagination ? operationsPagination.nextCursor : (initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null)
   );
 
   // Sync operations state when initialOperations prop changes (e.g., page revalidation, navigation)
@@ -353,11 +357,12 @@ export default function AccountMobileView({ account, accountId, transactions, op
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
     setAllOperations(sortedOps);
-    setHasMoreToFetch(initialOperations.length >= 100);
+    setOperationsPageError(false);
+    setHasMoreToFetch(operationsPagination?.hasMore ?? initialOperations.length >= 100);
     setLastCursor(
-      initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
+      operationsPagination ? operationsPagination.nextCursor : (initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null)
     );
-  }, [initialOperations]);
+  }, [initialOperations, operationsPagination]);
 
   useEffect(() => {
     fetchedBalancePriceKeys.current.clear();
@@ -585,6 +590,7 @@ export default function AccountMobileView({ account, accountId, transactions, op
     if (!hasMoreToFetch || loadingMore || !lastCursor) return;
 
     setLoadingMore(true);
+    setOperationsPageError(false);
     try {
       const data = await getAccountOperations(accountId, 100, 'desc', lastCursor);
       const newOps = data.records || [];
@@ -595,12 +601,13 @@ export default function AccountMobileView({ account, accountId, transactions, op
           const uniqueNew = newOps.filter((op: Operation) => !existing.has(op.id));
           return [...prev, ...uniqueNew];
         });
-        setLastCursor(newOps[newOps.length - 1].paging_token);
-        setHasMoreToFetch(newOps.length >= 100);
+        setLastCursor(data.meta.nextCursor);
+        setHasMoreToFetch(data.meta.hasMore);
       } else {
         setHasMoreToFetch(false);
       }
     } catch (error) {
+      setOperationsPageError(true);
       console.error('Failed to load more operations:', error);
     } finally {
       setLoadingMore(false);
@@ -610,7 +617,7 @@ export default function AccountMobileView({ account, accountId, transactions, op
   // Intersection Observer for infinite scroll
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || activeTab !== 'activity') return;
+    if (!sentinel || activeTab !== 'activity' || operationsPageError) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -631,7 +638,7 @@ export default function AccountMobileView({ account, accountId, transactions, op
     return () => {
       observer.disconnect();
     };
-  }, [activeTab, hasMoreToFetch, loadingMore, fetchMoreOperations]);
+  }, [activeTab, hasMoreToFetch, loadingMore, fetchMoreOperations, operationsPageError]);
 
   // Reset scroll position when filter changes
   useEffect(() => {
@@ -1557,7 +1564,7 @@ export default function AccountMobileView({ account, accountId, transactions, op
                       onClick={fetchMoreOperations}
                       className="w-full py-3 text-xs font-semibold text-[var(--primary-blue)] bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] shadow-sm active:bg-[var(--bg-tertiary)] transition-colors"
                     >
-                      Load more activity
+                      {operationsPageError ? 'Retry activity' : 'Load more activity'}
                     </button>
                   )}
 

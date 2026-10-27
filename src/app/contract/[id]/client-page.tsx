@@ -126,6 +126,10 @@ interface APIContractData {
   sep55AttestationUrl?: string | null;
   source?: { sourceCodeAvailable?: boolean; type?: string | null } | null;
   createdAt: string;
+  firstSeenAt?: string | null;
+  lastSeenAt?: string | null;
+  archived?: boolean | null;
+  wasmSizeBytes?: number | null;
   totalTransactions: number;
   totalOperations?: number;
   totalEvents?: number;
@@ -1526,6 +1530,10 @@ export default function ContractPage() {
     totalTransactions: baseData.apiContractData?.totalTransactions,
     totalInvokes,
     createdAt: baseData.apiContractData?.createdAt,
+    firstSeenAt: baseData.apiContractData?.firstSeenAt,
+    lastSeenAt: baseData.apiContractData?.lastSeenAt,
+    archived: baseData.apiContractData?.archived,
+    wasmSizeBytes: baseData.apiContractData?.wasmSizeBytes,
     wasmId: baseData.apiContractData?.wasmId || undefined,
     contractCode: baseData.apiContractData?.sourceCode || baseData.apiContractData?.contractCode || undefined,
     sourceCodeVerified: baseData.apiContractData?.sourceCodeVerified,
