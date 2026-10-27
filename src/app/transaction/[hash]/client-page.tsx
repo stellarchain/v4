@@ -12,6 +12,7 @@ import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import { createHistoryServer } from '@/services/horizon';
 import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
 import { redirectToNetwork } from '@/lib/network/navigation';
+import TransactionLoading from './loading';
 
 // Extract all unique account addresses from transaction data
 function extractAccountAddresses(
@@ -74,6 +75,8 @@ export default function TransactionPage() {
   const [operations, setOperations] = useState<Operation[]>([]);
   const [effects, setEffects] = useState<Effect[]>([]);
   const [accountLabels, setAccountLabels] = useState<Record<string, AccountLabel>>({});
+  const [detailsUnavailable, setDetailsUnavailable] = useState(false);
+  const [retryVersion, setRetryVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [checkingOtherNetworks, setCheckingOtherNetworks] = useState(false);
   const [availableNetworks, setAvailableNetworks] = useState<NetworkType[]>([]);
@@ -89,16 +92,18 @@ export default function TransactionPage() {
 
   const loadTransactionData = async (txHash: string) => {
     const server = createHistoryServer();
-    const [txResponse, operationsResponse, effectsResponse] = await Promise.all([
+    const [txResult, operationsResult, effectsResult] = await Promise.allSettled([
       server.transactions().transaction(txHash).call(),
       server.operations().forTransaction(txHash).limit(200).call(),
       server.effects().forTransaction(txHash).limit(200).call(),
     ]);
+    if (txResult.status === 'rejected') throw txResult.reason;
 
     return {
-      transaction: normalizeTransactions([txResponse])[0],
-      operations: (operationsResponse.records || []) as unknown as Operation[],
-      effects: (effectsResponse.records || []) as unknown as Effect[],
+      transaction: normalizeTransactions([txResult.value])[0],
+      operations: (operationsResult.status === 'fulfilled' ? operationsResult.value.records || [] : []) as unknown as Operation[],
+      effects: (effectsResult.status === 'fulfilled' ? effectsResult.value.records || [] : []) as unknown as Effect[],
+      detailsUnavailable: operationsResult.status === 'rejected' || effectsResult.status === 'rejected',
     };
   };
 
@@ -128,6 +133,7 @@ export default function TransactionPage() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const run = async () => {
       if (!hash) {
         setError('Missing transaction hash.');
@@ -136,12 +142,19 @@ export default function TransactionPage() {
 
       try {
         setError(null);
+        setTransaction(null);
+        setOperations([]);
+        setEffects([]);
+        setAccountLabels({});
+        setDetailsUnavailable(false);
         setAvailableNetworks([]);
         setCheckingOtherNetworks(false);
-        const { transaction: txResult, operations: ops, effects: effs } = await loadTransactionData(hash);
+        const { transaction: txResult, operations: ops, effects: effs, detailsUnavailable: unavailable } = await loadTransactionData(hash);
+        if (cancelled) return;
         setTransaction(txResult);
         setOperations(ops);
         setEffects(effs);
+        setDetailsUnavailable(unavailable);
 
         // Extract account addresses and fetch labels
         const accountAddresses = extractAccountAddresses(
@@ -149,7 +162,8 @@ export default function TransactionPage() {
           ops,
           effs
         );
-        const labelsMap = await getAccountLabels(accountAddresses);
+        const labelsMap = await getAccountLabels(accountAddresses).catch(() => new Map<string, AccountLabel>());
+        if (cancelled) return;
 
         // Convert Map to plain object for serialization to client components
         const labels: Record<string, AccountLabel> = {};
@@ -158,10 +172,12 @@ export default function TransactionPage() {
         });
         setAccountLabels(labels);
       } catch (err) {
+        if (cancelled) return;
         setError(err instanceof Error ? err.message : 'Failed to load transaction.');
         if (hash && isTransactionNotFoundError(err)) {
           setCheckingOtherNetworks(true);
           const networksWithTx = await checkOtherNetworksForTransaction(hash, activeNetwork);
+          if (cancelled) return;
           setAvailableNetworks(networksWithTx);
           setCheckingOtherNetworks(false);
         }
@@ -169,7 +185,8 @@ export default function TransactionPage() {
     };
 
     void run();
-  }, [hash, activeNetwork, checkOtherNetworksForTransaction]);
+    return () => { cancelled = true; };
+  }, [hash, activeNetwork, checkOtherNetworksForTransaction, retryVersion]);
 
   if (!isLoading && (error || !transaction)) {
     const hasNetworkMatch = availableNetworks.length > 0;
@@ -224,31 +241,16 @@ export default function TransactionPage() {
     );
   }
 
-  const transactionData: Transaction = transaction || {
-    id: '',
-    paging_token: '',
-    hash: hash || ''.padEnd(64, '0'),
-    source_account: ''.padEnd(56, 'G'),
-    source_account_sequence: '',
-    fee_account: ''.padEnd(56, 'G'),
-    successful: false,
-    created_at: new Date(0).toISOString(),
-    ledger: 0,
-    ledger_attr: 0,
-    operation_count: 0,
-    fee_charged: '0',
-    max_fee: '0',
-    memo: '',
-    memo_type: 'none',
-    signatures: [],
-    envelope_xdr: '',
-    result_xdr: '',
-    result_meta_xdr: '',
-    fee_meta_xdr: '',
-  };
+  if (!transaction) return <TransactionLoading />;
+
+  const transactionData = transaction;
 
   return (
     <>
+      {detailsUnavailable && <div role="alert" className="mx-auto max-w-[1400px] px-4 py-3 text-sm text-[var(--text-primary)]">
+        Some transaction details are temporarily unavailable.
+        <button type="button" className="ml-3 rounded-lg border border-[var(--border-default)] px-3 py-2 focus-visible:outline-2" onClick={() => setRetryVersion((value) => value + 1)}>Retry</button>
+      </div>}
       <div className="md:hidden">
         <TransactionMobileView
           transaction={transactionData}

@@ -2,13 +2,12 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
-import { Horizon } from '@stellar/stellar-sdk';
-import { normalizeTransactions, getXLMUSDPriceFromHorizon, getAccountLabels, getAssetDetails, getIssuedAssetsByIssuer } from '@/lib/stellar';
+import { Horizon, StrKey } from '@stellar/stellar-sdk';
+import { normalizeTransactions, getXLMUSDPriceFromHorizon, getAccountLabels, getAssetDetails, getIssuedAssetsByIssuer, getAccountTransactions, getAccountOperations } from '@/lib/stellar';
 import type { AccountLabel, AssetDetails, MarketAsset, Transaction, Operation } from '@/lib/stellar';
 import Link from 'next/link';
 import AccountMobileView from '@/components/mobile/AccountMobileView';
 import AccountDesktopView from '@/components/desktop/AccountDesktopView';
-import { createHorizonServer } from '@/services/horizon';
 import { apiEndpoints, getApiV1Data } from '@/services/api';
 import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
 import { redirectToNetwork } from '@/lib/network/navigation';
@@ -16,6 +15,8 @@ import { buildIssuedAssetsFilters, shouldShowIssuedAssetsTab } from '@/lib/share
 import { buildBalanceAssetKey, runBalanceAssetRequests } from '@/lib/shared/assetBalancePresentation';
 
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
+import AccountLoading from './loading';
+import AccountHistoryView from '@/components/account/AccountHistoryView';
 
 
 type Account = Horizon.ServerApi.AccountRecord;
@@ -37,6 +38,8 @@ type AccountMeta = {
     lastTransactionAt?: string;
   };
   stellarData?: {
+    horizon?: Account | null;
+    stateAvailable?: boolean;
     activity24h?: {
       totalTransactions?: number;
       paymentOperations?: number;
@@ -130,6 +133,7 @@ export default function AccountPage() {
     aliases: ['/account', '/accounts', '/address'],
   });
   const [account, setAccount] = useState<Account | null>(null);
+  const requestGeneration = useRef(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [operations, setOperations] = useState<Operation[]>([]);
   const [xlmPrice, setXlmPrice] = useState(0.10);
@@ -139,6 +143,7 @@ export default function AccountPage() {
   const [accountMeta, setAccountMeta] = useState<AccountMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<'transactions' | 'operations' | null>(null);
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
 
   // Track which tab data has been fetched
@@ -156,7 +161,7 @@ export default function AccountPage() {
 
   const isLikelyStellarAccount = useCallback((value: string) => {
     const normalized = String(value || '').trim();
-    return normalized.length === 56 && normalized.startsWith('G');
+    return StrKey.isValidEd25519PublicKey(normalized);
   }, []);
 
   const checkOtherNetworksForAccount = useCallback(async (accountId: string, currentNetwork: NetworkType) => {
@@ -171,7 +176,7 @@ export default function AccountPage() {
     const checks = await Promise.all(
       otherNetworks.map(async (network) => {
         try {
-          await createHorizonServer(network).accounts().accountId(accountId).call();
+          await getApiV1Data(apiEndpoints.v1.accountById(accountId, { network }));
           return network;
         } catch {
           return null;
@@ -197,6 +202,8 @@ export default function AccountPage() {
 
   // Initial load: only account data + XLM price
   useEffect(() => {
+    let cancelled = false;
+    ++requestGeneration.current;
     const fetchAccountData = async () => {
       try {
         setLoading(true);
@@ -207,24 +214,29 @@ export default function AccountPage() {
           setError('Account not found or invalid account ID');
           return;
         }
-        const server = createHorizonServer();
+        const accountMetaResponse = await getApiV1Data(apiEndpoints.v1.accountById(id)).catch((lookupError: unknown) => {
+          const status = Number((lookupError as { response?: { status?: number } })?.response?.status);
+          if (status === 404 || status === 503) return null;
+          throw lookupError;
+        });
+        if (cancelled) return;
+        setAccount((accountMetaResponse as AccountMeta | null)?.stellarData?.horizon ?? null);
 
-        const issuedAssetFilters = buildIssuedAssetsFilters(id);
-        const [accountResponse, priceData, accountMetaResponse, issuedAssetsResponse] = await Promise.all([
-          server.accounts().accountId(id).call(),
-          getXLMUSDPriceFromHorizon(),
-          getApiV1Data(apiEndpoints.v1.accountById(id)).catch(() => null),
-          getIssuedAssetsByIssuer(issuedAssetFilters.issuer, issuedAssetFilters.page, issuedAssetFilters.itemsPerPage).catch(() => []),
-        ]);
+        // Auxiliary prices and issuer metadata must not delay account/history access.
+        void (async () => {
+          const issuedAssetFilters = buildIssuedAssetsFilters(id);
+          const [priceData, issuedAssetsResponse] = await Promise.all([
+            getXLMUSDPriceFromHorizon().catch(() => 0),
+            getIssuedAssetsByIssuer(issuedAssetFilters.issuer, issuedAssetFilters.page, issuedAssetFilters.itemsPerPage).catch(() => []),
+          ]);
+          if (cancelled) return;
+          setXlmPrice(priceData);
+          setIssuedAssets(issuedAssetsResponse);
+          setIssuedAssetsFetched(true);
+        })();
 
-        const accountData = accountResponse as unknown as Account;
-
-        setAccount(accountData);
-        setXlmPrice(priceData);
-        setIssuedAssets(issuedAssetsResponse);
-        setIssuedAssetsFetched(true);
-
-        const accountMetaRecord = accountMetaResponse as AccountMeta | null;
+        const accountMetaRecord = accountMetaResponse as (AccountMeta & { metrics?: AccountMeta['accountMetric'] }) | null;
+        if (accountMetaRecord && !accountMetaRecord.accountMetric) accountMetaRecord.accountMetric = accountMetaRecord.metrics;
         setAccountMeta(accountMetaRecord);
 
         setCurrentAccountLabel(
@@ -243,10 +255,12 @@ export default function AccountPage() {
           lastTransactionAt: accountMetaRecord?.accountMetric?.lastTransactionAt || undefined,
         });
       } catch (e) {
-        setError('Account not found or invalid account ID');
+        if (cancelled) return;
+        setError(isExpectedAccountLookupError(e) ? 'Account not found or invalid account ID' : 'Account data is temporarily unavailable. Please retry.');
         if (isLikelyStellarAccount(id)) {
           setCheckingOtherNetworks(true);
           const networksWithAccount = await checkOtherNetworksForAccount(id, activeNetwork);
+          if (cancelled) return;
           setAvailableNetworks(networksWithAccount);
           setCheckingOtherNetworks(false);
         }
@@ -254,13 +268,18 @@ export default function AccountPage() {
           console.error('Error fetching account data:', e);
         }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     if (id) {
       // Reset state for new account
+      setAccount(null);
+      setHistoryError(null);
       setTransactionsFetched(false);
+      setLoadingTransactions(false);
+      setLoadingOperations(false);
+      setLoadingIssuedAssets(false);
       setOperationsFetched(false);
       setIssuedAssetsFetched(false);
       setTransactions([]);
@@ -273,8 +292,12 @@ export default function AccountPage() {
       setAccountMeta(null);
       setAvailableNetworks([]);
       setCheckingOtherNetworks(false);
-      fetchAccountData();
+      void fetchAccountData();
+    } else {
+      setError('Missing account address.');
+      setLoading(false);
     }
+    return () => { cancelled = true; };
   }, [id, activeNetwork, isLikelyStellarAccount, checkOtherNetworksForAccount]);
 
   useEffect(() => {
@@ -340,16 +363,20 @@ export default function AccountPage() {
   const fetchTransactions = useCallback(async () => {
     if (transactionsFetched || loadingTransactions) return;
     setLoadingTransactions(true);
+    setHistoryError(null);
+    const generation = requestGeneration.current;
     try {
-      const server = createHorizonServer();
-      const transactionsResponse = await server.transactions().forAccount(id).order('desc').limit(50).call();
+      const transactionsResponse = await getAccountTransactions(id, 50, 'desc');
+      if (generation !== requestGeneration.current) return;
       const transactionsData = normalizeTransactions(transactionsResponse.records || []);
       setTransactions(transactionsData);
       setTransactionsFetched(true);
     } catch (e) {
+      if (generation !== requestGeneration.current) return;
+      setHistoryError('transactions');
       console.error('Error fetching transactions:', e);
     } finally {
-      setLoadingTransactions(false);
+      if (generation === requestGeneration.current) setLoadingTransactions(false);
     }
   }, [id, transactionsFetched, loadingTransactions]);
 
@@ -357,16 +384,20 @@ export default function AccountPage() {
     if (issuedAssetsFetched || loadingIssuedAssets) return;
 
     setLoadingIssuedAssets(true);
+    const generation = requestGeneration.current;
     try {
       const filters = buildIssuedAssetsFilters(id);
-      setIssuedAssets(await getIssuedAssetsByIssuer(filters.issuer, filters.page, filters.itemsPerPage));
+      const assets = await getIssuedAssetsByIssuer(filters.issuer, filters.page, filters.itemsPerPage);
+      if (generation !== requestGeneration.current) return;
+      setIssuedAssets(assets);
       setIssuedAssetsFetched(true);
     } catch (e) {
+      if (generation !== requestGeneration.current) return;
       console.error('Error fetching issued assets:', e);
       setIssuedAssets([]);
       setIssuedAssetsFetched(true);
     } finally {
-      setLoadingIssuedAssets(false);
+      if (generation === requestGeneration.current) setLoadingIssuedAssets(false);
     }
   }, [id, issuedAssetsFetched, loadingIssuedAssets]);
 
@@ -374,49 +405,12 @@ export default function AccountPage() {
   const fetchOperations = useCallback(async () => {
     if (operationsFetched || loadingOperations) return;
     setLoadingOperations(true);
+    setHistoryError(null);
+    const generation = requestGeneration.current;
     try {
-      const server = createHorizonServer();
-
-      const [operationsResponse, transactionsResponse] = await Promise.all([
-        server.operations().forAccount(id).order('desc').limit(100).call(),
-        // We need transactions to find missing Soroban ops
-        transactionsFetched
-          ? Promise.resolve({ records: [] })
-          : server.transactions().forAccount(id).order('desc').limit(50).call(),
-      ]);
-
-      let operationsData = (operationsResponse.records || []) as unknown as Operation[];
-
-      // Also set transactions if we fetched them alongside
-      let txData = transactions;
-      if (!transactionsFetched && transactionsResponse.records?.length > 0) {
-        txData = normalizeTransactions(transactionsResponse.records);
-        setTransactions(txData);
-        setTransactionsFetched(true);
-      }
-
-      // For Soroban contract calls, fetch operations from missing transactions
-      const existingOpTxHashes = new Set(operationsData.map(op => op.transaction_hash));
-      const missingTxs = txData.filter(tx => !existingOpTxHashes.has(tx.hash));
-
-      if (missingTxs.length > 0) {
-        const additionalOpsPromises = missingTxs.slice(0, 20).map(async tx => {
-          try {
-            const txOps = await server.operations().forTransaction(tx.hash).limit(5).call();
-            return (txOps.records || []) as unknown as Operation[];
-          } catch {
-            return [];
-          }
-        });
-
-        const additionalOpsArrays = await Promise.all(additionalOpsPromises);
-        const additionalOps = additionalOpsArrays.flat();
-
-        if (additionalOps.length > 0) {
-          operationsData = [...operationsData, ...additionalOps];
-          operationsData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        }
-      }
+      const operationsResponse = await getAccountOperations(id, 100, 'desc');
+      if (generation !== requestGeneration.current) return;
+      const operationsData = operationsResponse.records || [];
 
       setOperations(operationsData);
       setOperationsFetched(true);
@@ -426,6 +420,7 @@ export default function AccountPage() {
       if (counterpartyAddresses.length > 0) {
         try {
           const labelsMap = await getAccountLabels(counterpartyAddresses);
+          if (generation !== requestGeneration.current) return;
           const labels: Record<string, AccountLabel> = {};
           labelsMap.forEach((label, address) => {
             labels[address] = label;
@@ -436,18 +431,20 @@ export default function AccountPage() {
         }
       }
     } catch (e) {
+      if (generation !== requestGeneration.current) return;
+      setHistoryError('operations');
       console.error('Error fetching operations:', e);
     } finally {
-      setLoadingOperations(false);
+      if (generation === requestGeneration.current) setLoadingOperations(false);
     }
   }, [id, operationsFetched, loadingOperations, transactionsFetched, transactions]);
 
-  if (!loading && (error || !account)) {
+  if (!loading && error) {
     const hasNetworkMatch = availableNetworks.length > 0;
-    const title = hasNetworkMatch ? 'Account Found On Another Network' : 'Account Not Found';
+    const title = hasNetworkMatch ? 'Account Found On Another Network' : (error.includes('temporarily') ? 'Account Data Unavailable' : 'Account Not Found');
     const description = hasNetworkMatch
       ? 'This address is valid, but not on the currently selected network.'
-      : 'We could not find this account on Mainnet or Testnet.';
+      : error;
 
     return (
       <div className="min-h-[70vh] bg-[var(--bg-primary)] flex items-center justify-center p-4">
@@ -490,20 +487,10 @@ export default function AccountPage() {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div className="text-sm text-[var(--text-muted)]">Loading account view...</div>
-      </div>
-    );
-  }
+  if (loading || isMobile === null) return <AccountLoading />;
 
-  if (isMobile === null) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div className="text-sm text-[var(--text-muted)]">Loading account view...</div>
-      </div>
-    );
+  if (!account) {
+    return <AccountHistoryView key={`${activeNetwork}:${id}`} accountId={id} />;
   }
 
   const accountData = account ? {
@@ -524,6 +511,11 @@ export default function AccountPage() {
 
   return (
     <>
+      {historyError && <div role="alert" className="mx-auto max-w-[1400px] px-4 py-3 text-sm text-[var(--text-primary)]">
+        Historical {historyError} are temporarily unavailable.
+        <button type="button" className="ml-3 rounded-lg border border-[var(--border-default)] px-3 py-2 focus-visible:outline-2"
+          onClick={() => historyError === 'transactions' ? void fetchTransactions() : void fetchOperations()}>Retry</button>
+      </div>}
       {isMobile ? (
         <AccountMobileView
           account={accountData}
