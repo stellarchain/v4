@@ -17,6 +17,7 @@ import { buildBalanceAssetKey, runBalanceAssetRequests } from '@/lib/shared/asse
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
 import AccountLoading from './loading';
 import AccountHistoryView from '@/components/account/AccountHistoryView';
+import type { AccountHistoryPagination } from '@/lib/shared/interfaces';
 
 
 type Account = Horizon.ServerApi.AccountRecord;
@@ -147,6 +148,8 @@ export default function AccountPage() {
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
 
   // Track which tab data has been fetched
+  const [transactionsPagination, setTransactionsPagination] = useState<AccountHistoryPagination | null>(null);
+  const [operationsPagination, setOperationsPagination] = useState<AccountHistoryPagination | null>(null);
   const [transactionsFetched, setTransactionsFetched] = useState(false);
   const [operationsFetched, setOperationsFetched] = useState(false);
   const [issuedAssetsFetched, setIssuedAssetsFetched] = useState(false);
@@ -283,6 +286,8 @@ export default function AccountPage() {
       setOperationsFetched(false);
       setIssuedAssetsFetched(false);
       setTransactions([]);
+      setTransactionsPagination(null);
+      setOperationsPagination(null);
       setOperations([]);
       setIssuedAssets([]);
       setBalanceAssetDetails({});
@@ -370,6 +375,7 @@ export default function AccountPage() {
       if (generation !== requestGeneration.current) return;
       const transactionsData = normalizeTransactions(transactionsResponse.records || []);
       setTransactions(transactionsData);
+      setTransactionsPagination(transactionsResponse.meta);
       setTransactionsFetched(true);
     } catch (e) {
       if (generation !== requestGeneration.current) return;
@@ -413,6 +419,7 @@ export default function AccountPage() {
       const operationsData = operationsResponse.records || [];
 
       setOperations(operationsData);
+      setOperationsPagination(operationsResponse.meta);
       setOperationsFetched(true);
 
       // Fetch counterparty labels in background
@@ -518,9 +525,12 @@ export default function AccountPage() {
       </div>}
       {isMobile ? (
         <AccountMobileView
+          key={`${activeNetwork}:${id}`}
           account={accountData}
           accountId={id}
           transactions={transactions}
+          transactionsPagination={transactionsPagination}
+          operationsPagination={operationsPagination}
           operations={operations}
           xlmPrice={xlmPrice}
           accountLabels={accountLabels}
@@ -543,9 +553,12 @@ export default function AccountPage() {
         />
       ) : (
         <AccountDesktopView
+          key={`${activeNetwork}:${id}`}
           account={accountData}
           accountId={id}
           transactions={transactions}
+          transactionsPagination={transactionsPagination}
+          operationsPagination={operationsPagination}
           operations={operations}
           xlmPrice={xlmPrice}
           accountLabels={accountLabels}

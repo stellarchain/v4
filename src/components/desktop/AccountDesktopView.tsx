@@ -21,6 +21,7 @@ import {
   getAccountEffects,
 } from '@/lib/stellar';
 import type { AccountLabel } from '@/lib/stellar';
+import type { AccountHistoryPagination } from '@/lib/shared/interfaces';
 import AccountBadges from '@/components/AccountBadges';
 import { QRCodeSVG } from 'qrcode.react';
 import { useFavorites } from '@/contexts/FavoritesContext';
@@ -65,6 +66,8 @@ interface AccountDesktopViewProps {
   account: AccountData | null;
   accountId: string;
   transactions: Transaction[];
+  transactionsPagination?: AccountHistoryPagination | null;
+  operationsPagination?: AccountHistoryPagination | null;
   operations: Operation[];
   xlmPrice: number;
   accountLabels?: Record<string, AccountLabel>;
@@ -232,7 +235,7 @@ const getOperationCategory = (type: string): { label: string; color: string; bgC
   return { label: 'Action', color: 'text-[var(--text-secondary)]', bgColor: 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]' };
 };
 
-export default function AccountDesktopView({ account, accountId, transactions, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false, issuedAssets = [], loadingIssuedAssets = false, showIssuedAssetsTab = false, balanceAssetDetails = {} }: AccountDesktopViewProps) {
+export default function AccountDesktopView({ account, accountId, transactions, transactionsPagination, operationsPagination, operations: initialOperations, xlmPrice, accountLabels = {}, currentAccountLabel, firstTransactionAt, lastTransactionAt, accountMeta = null, loading = false, onTabChange, loadingTransactions = false, loadingOperations = false, issuedAssets = [], loadingIssuedAssets = false, showIssuedAssetsTab = false, balanceAssetDetails = {} }: AccountDesktopViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState(false);
@@ -271,9 +274,10 @@ export default function AccountDesktopView({ account, accountId, transactions, o
   // Operations state for pagination
   const [allOperations, setAllOperations] = useState<Operation[]>(initialOperations);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMoreToFetch, setHasMoreToFetch] = useState(initialOperations.length >= 100);
+  const [operationsPageError, setOperationsPageError] = useState(false);
+  const [hasMoreToFetch, setHasMoreToFetch] = useState(operationsPagination?.hasMore ?? initialOperations.length >= 100);
   const [lastCursor, setLastCursor] = useState<string | null>(
-    initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
+    operationsPagination ? operationsPagination.nextCursor : (initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null)
   );
 
   // Transactions state for infinite scroll
@@ -282,9 +286,10 @@ export default function AccountDesktopView({ account, accountId, transactions, o
     return [...transactions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   });
   const [loadingMoreTx, setLoadingMoreTx] = useState(false);
-  const [hasMoreTransactions, setHasMoreTransactions] = useState(transactions.length >= TX_PAGE_SIZE);
+  const [transactionsPageError, setTransactionsPageError] = useState(false);
+  const [hasMoreTransactions, setHasMoreTransactions] = useState(transactionsPagination?.hasMore ?? transactions.length >= TX_PAGE_SIZE);
   const [lastTxCursor, setLastTxCursor] = useState<string | null>(
-    transactions.length > 0 ? transactions[transactions.length - 1].paging_token : null
+    transactionsPagination ? transactionsPagination.nextCursor : (transactions.length > 0 ? transactions[transactions.length - 1].paging_token : null)
   );
   const txLoadMoreRef = useRef<HTMLDivElement | null>(null);
   const opsLoadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -343,20 +348,22 @@ export default function AccountDesktopView({ account, accountId, transactions, o
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
     setAllOperations(sortedOps);
-    setHasMoreToFetch(initialOperations.length >= 100);
+    setOperationsPageError(false);
+    setHasMoreToFetch(operationsPagination?.hasMore ?? initialOperations.length >= 100);
     setLastCursor(
-      initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null
+      operationsPagination ? operationsPagination.nextCursor : (initialOperations.length > 0 ? initialOperations[initialOperations.length - 1].paging_token : null)
     );
-  }, [initialOperations]);
+  }, [initialOperations, operationsPagination]);
 
   useEffect(() => {
     const sortedTxs = [...transactions].sort((a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
     setAllTransactions(sortedTxs);
-    setHasMoreTransactions(transactions.length >= TX_PAGE_SIZE);
-    setLastTxCursor(transactions.length > 0 ? transactions[transactions.length - 1].paging_token : null);
-  }, [TX_PAGE_SIZE, transactions]);
+    setTransactionsPageError(false);
+    setHasMoreTransactions(transactionsPagination?.hasMore ?? transactions.length >= TX_PAGE_SIZE);
+    setLastTxCursor(transactionsPagination ? transactionsPagination.nextCursor : (transactions.length > 0 ? transactions[transactions.length - 1].paging_token : null));
+  }, [TX_PAGE_SIZE, transactions, transactionsPagination]);
 
   useEffect(() => {
     fetchedBalancePriceKeys.current.clear();
@@ -531,6 +538,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
     if (!hasMoreToFetch || loadingMore || !lastCursor) return;
 
     setLoadingMore(true);
+    setOperationsPageError(false);
     try {
       const data = await getAccountOperations(accountId, 100, 'desc', lastCursor);
       const newOps = data.records || [];
@@ -541,12 +549,13 @@ export default function AccountDesktopView({ account, accountId, transactions, o
           const uniqueNew = newOps.filter((op: Operation) => !existing.has(op.id));
           return [...prev, ...uniqueNew];
         });
-        setLastCursor(newOps[newOps.length - 1].paging_token);
-        setHasMoreToFetch(newOps.length >= 100);
+        setLastCursor(data.meta.nextCursor);
+        setHasMoreToFetch(data.meta.hasMore);
       } else {
         setHasMoreToFetch(false);
       }
     } catch (error) {
+      setOperationsPageError(true);
       console.error('Failed to load more operations:', error);
     } finally {
       setLoadingMore(false);
@@ -557,6 +566,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
     if (!hasMoreTransactions || loadingMoreTx || !lastTxCursor) return;
 
     setLoadingMoreTx(true);
+    setTransactionsPageError(false);
     try {
       const data = await getAccountTransactions(accountId, TX_PAGE_SIZE, 'desc', lastTxCursor);
       const newTxs: Transaction[] = data?.records || [];
@@ -567,12 +577,13 @@ export default function AccountDesktopView({ account, accountId, transactions, o
           const uniqueNew = newTxs.filter(t => !existing.has(t.hash));
           return [...prev, ...uniqueNew];
         });
-        setLastTxCursor(newTxs[newTxs.length - 1].paging_token);
-        setHasMoreTransactions(newTxs.length >= TX_PAGE_SIZE);
+        setLastTxCursor(data.meta.nextCursor);
+        setHasMoreTransactions(data.meta.hasMore);
       } else {
         setHasMoreTransactions(false);
       }
     } catch (error) {
+      setTransactionsPageError(true);
       console.error('Failed to load more transactions:', error);
     } finally {
       setLoadingMoreTx(false);
@@ -581,7 +592,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
 
   useEffect(() => {
     if (activeTab !== 'transactions') return;
-    if (!hasMoreTransactions || loadingMoreTx) return;
+    if (!hasMoreTransactions || loadingMoreTx || transactionsPageError) return;
     const el = txLoadMoreRef.current;
     if (!el) return;
 
@@ -595,11 +606,11 @@ export default function AccountDesktopView({ account, accountId, transactions, o
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [activeTab, fetchMoreTransactions, hasMoreTransactions, loadingMoreTx]);
+  }, [activeTab, fetchMoreTransactions, hasMoreTransactions, loadingMoreTx, transactionsPageError]);
 
   useEffect(() => {
     if (activeTab !== 'operations') return;
-    if (!hasMoreToFetch || loadingMore) return;
+    if (!hasMoreToFetch || loadingMore || operationsPageError) return;
     const el = opsLoadMoreRef.current;
     if (!el) return;
 
@@ -613,7 +624,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [activeTab, fetchMoreOperations, hasMoreToFetch, loadingMore]);
+  }, [activeTab, fetchMoreOperations, hasMoreToFetch, loadingMore, operationsPageError]);
 
   // Fetch effects for all operations in a single request
   const effectsFetched = useRef(false);
@@ -1138,7 +1149,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                 <div className="px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-[var(--text-tertiary)]">
-                      {loadingMoreTx ? 'Loading more...' : hasMoreTransactions ? 'Scroll to load more...' : allTransactions.length > 0 ? 'End of results' : ''}
+                      {transactionsPageError ? 'Transactions are temporarily unavailable.' : loadingMoreTx ? 'Loading more...' : hasMoreTransactions ? 'Scroll to load more...' : allTransactions.length > 0 ? 'End of results' : ''}
                     </div>
                     {hasMoreTransactions && (
                       <button
@@ -1147,7 +1158,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                         disabled={loadingMoreTx}
                         className="px-3 py-1.5 rounded-lg text-xs font-semibold text-sky-600 hover:bg-sky-50 disabled:opacity-50"
                       >
-                        {loadingMoreTx ? 'Loading...' : 'Load More'}
+                        {loadingMoreTx ? 'Loading...' : transactionsPageError ? 'Retry transactions' : 'Load More'}
                       </button>
                     )}
                   </div>
@@ -1297,7 +1308,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                 <div className="px-4 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-[var(--text-tertiary)]">
-                      {loadingMore ? 'Loading more...' : hasMoreToFetch ? 'Scroll to load more...' : allOperations.length > 0 ? 'End of results' : ''}
+                      {operationsPageError ? 'Operations are temporarily unavailable.' : loadingMore ? 'Loading more...' : hasMoreToFetch ? 'Scroll to load more...' : allOperations.length > 0 ? 'End of results' : ''}
                     </div>
                     {hasMoreToFetch && (
                       <button
@@ -1306,7 +1317,7 @@ export default function AccountDesktopView({ account, accountId, transactions, o
                         disabled={loadingMore}
                         className="px-3 py-1.5 rounded-lg text-xs font-semibold text-sky-600 hover:bg-sky-50 disabled:opacity-50"
                       >
-                        {loadingMore ? 'Loading...' : 'Load More'}
+                        {loadingMore ? 'Loading...' : operationsPageError ? 'Retry operations' : 'Load More'}
                       </button>
                     )}
                   </div>

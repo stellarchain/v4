@@ -73,6 +73,15 @@ Statistics metric sections use four cards per row on wide desktop, three on comp
 
 Partner discovery reuses bordered Card surfaces, semantic badges and the existing link/control shapes. Category pages preserve a two-column desktop and one-column mobile reading order. Region and network notes stay visible beside each listing. Directory inclusion, commercial relationship and trust remain distinct. Administration uses the same surfaces, a bounded listing list and a naturally scrolling form. Native selects own their platform popup; the app-owned discard dialog uses native modal focus behavior. No new palette, font or decorative shell is introduced.
 
+Contract detail pages use shared bordered Card surfaces and Badge status semantics.
+Indexed storage state, linked addresses and the contract interface form separate
+reading groups. Addresses remain fully visible in monospaced link rows; observation
+timestamps use compact UTC tiles and remain distinct from deployment dates. Native
+`details`/`summary` owns function disclosure, with argument counts and return types
+visible on desktop and full signatures available when expanded on every viewport.
+Sapphire icon tiles connect these sections to the existing explorer headers; status
+colors encode only the indexed boolean/archive state, not verification or safety.
+
 ## Do's and Don'ts
 
 - Do preserve the existing light/dark variable mapping and shared component owners.

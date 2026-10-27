@@ -3,6 +3,8 @@
 import ContractWasmPanel from '@/components/contract/ContractWasmPanel';
 import ContractSourcePanel from '@/components/contract/ContractSourcePanel';
 import SacContractInfo from '@/components/contract/SacContractInfo';
+import ContractFirstSeen from '@/components/contract/ContractFirstSeen';
+import ContractOverviewInfo from '@/components/contract/ContractOverviewInfo';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -113,6 +115,10 @@ interface ContractData {
   totalInvokes?: number;
   totalOperations?: number;
   createdAt?: string;
+  firstSeenAt?: string | null;
+  lastSeenAt?: string | null;
+  archived?: boolean | null;
+  wasmSizeBytes?: number | null;
   wasmId?: string;
   contractCode?: string;
   sourceCodeVerified?: boolean;
@@ -563,10 +569,12 @@ export default function ContractMobileView({ contract, operations, onTabChange, 
 
         {/* Tab Content */}
         <div className="min-h-[200px]">
+          <ContractFirstSeen value={contract.firstSeenAt} className="mb-4" />
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
             <div className="space-y-4">
               {isSac && <SacContractInfo issuer={contract.assetIssuer} admin={contract.sacAdmin} functions={contract.functionNames} />}
+              {!isSac && <ContractOverviewInfo storage={contract.storage} spec={contract.spec} lastSeenAt={contract.lastSeenAt} archived={contract.archived} wasmSizeBytes={contract.wasmSizeBytes} />}
               {/* SAC Balance Reconciliation */}
               {isToken && reconciliation && (
                 <SacBalanceComparison
