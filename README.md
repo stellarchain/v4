@@ -65,6 +65,8 @@ src/
 
 - `src/services/horizon.js`
   - single place for Horizon server creation and base URL resolution
+  - `createHistoryServer` uses Orion on Mainnet for transaction/ledger lists and details, their scoped operations/effects, ledger transactions and homepage snapshots
+  - Orion's base URL is configured independently in `src/services/config.js`; other Horizon resources, live streams, Testnet/Futurenet and the StellarChain API keep their existing providers
 
 - `src/services/soroban.js`
   - single place for Soroban RPC server creation and passphrase resolution

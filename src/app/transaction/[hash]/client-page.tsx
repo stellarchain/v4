@@ -9,7 +9,7 @@ import type { AccountLabel, Transaction, Operation, Effect } from '@/lib/stellar
 import TransactionMobileView from '@/components/mobile/TransactionMobileView';
 import TransactionDesktopView from '@/components/desktop/TransactionDesktopView';
 import { getDetailRouteValue } from '@/lib/shared/routeDetail';
-import { createHorizonServer } from '@/services/horizon';
+import { createHistoryServer } from '@/services/horizon';
 import { useNetwork, NETWORK_CONFIGS, type NetworkType } from '@/contexts/NetworkContext';
 import { redirectToNetwork } from '@/lib/network/navigation';
 
@@ -88,7 +88,7 @@ export default function TransactionPage() {
   });
 
   const loadTransactionData = async (txHash: string) => {
-    const server = createHorizonServer();
+    const server = createHistoryServer();
     const [txResponse, operationsResponse, effectsResponse] = await Promise.all([
       server.transactions().transaction(txHash).call(),
       server.operations().forTransaction(txHash).limit(200).call(),
@@ -116,7 +116,7 @@ export default function TransactionPage() {
     const checks = await Promise.all(
       otherNetworks.map(async (network) => {
         try {
-          await createHorizonServer(network).transactions().transaction(txHash).call();
+          await createHistoryServer(network).transactions().transaction(txHash).call();
           return network;
         } catch {
           return null;
